@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import InvoiceModal from "@/components/ui/invoice-modal"
 import { 
-  proceedToCashSaleFromInvoice, 
   printDocument, 
   downloadDocument 
 } from "@/lib/workflow-utils"
@@ -372,13 +371,7 @@ const InvoicesView = () => {
   }
 
   const handleProceedToCashSale = async (invoice: Invoice) => {
-    try {
-      const cashSale = await proceedToCashSaleFromInvoice(invoice.id)
-      toast.success(`Cash sale ${cashSale.sale_number} created successfully`)
-      fetchInvoices()
-    } catch (error) {
-      // Error handling is done in the workflow function
-    }
+    toast.info("Cash sale conversion functionality will be available soon")
   }
 
   const handlePrint = (invoice: Invoice) => {
