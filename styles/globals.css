@@ -15,24 +15,24 @@ body {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 249 100% 65%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -47,6 +47,20 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Custom colors matching HTML version */
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
+    --tertiary-gradient: linear-gradient(135deg, #3f3f42 20%, #37058f48 10%, #000000 70%);
+    --background-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    --quad-gradient: linear-gradient(135deg, #3b82f6 30%, #2dd4bf 60%);
+    --card-bg: rgba(255, 255, 255, 0.829);
+    --glass-bg: rgba(0, 0, 0, 0);
+    --sidebar-bg: rgba(31, 41, 55, 0.95);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-tertiary: #e7e5d8;
+    --text-primary-light: #ffffff;
   }
 
   .dark {
@@ -91,6 +105,187 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-image: url('https://img.freepik.com/free-vector/white-minimal-hexagons-background_79603-1452.jpg?t=st=1738523537~exp=1738527137~hmac=3fbcf7240de7da982ebc9206f2a13fe728553b9eb22c9415c78d13a658b2ee88&w=740');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+}
+
+/* Custom button styles to match HTML version */
+@layer components {
+  .btn-primary {
+    background: var(--primary-gradient);
+    color: var(--text-primary-light);
+    border: none;
+    border-radius: 16px;
+    padding: 12px 24px;
+    font-weight: 500;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-add {
+    background: var(--secondary-gradient);
+    color: var(--text-primary-light);
+    border: none;
+    border-radius: 16px;
+    padding: 12px 24px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3);
+  }
+
+  /* Card styles */
+  .card {
+    background: transparent;
+    border: none;
+    overflow: visible;
+    border-radius: 24px !important;
+  }
+
+  .card-body {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 1.0rem;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .card-header {
+    background: var(--tertiary-gradient);
+    color: var(--text-primary-light);
+    border: none;
+    padding: 1.1rem;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    border-radius: 24px !important;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 24px;
+  }
+
+  /* Text colors */
+  .text-primary {
+    color: var(--text-primary);
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-tertiary {
+    color: var(--text-tertiary);
+  }
+
+  .text-primary-light {
+    color: var(--text-primary-light);
+  }
+
+  /* Modal styles */
+  .modal-content {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .modal-header {
+    background: var(--tertiary-gradient);
+    color: var(--text-primary-light);
+    border-bottom: none;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .modal-footer {
+    border-top: 1px solid rgba(99, 102, 241, 0.1);
+  }
+
+  /* Export button */
+  .export-btn {
+    padding: 0.6rem;
+    border: none;
+    background: var(--tertiary-gradient);
+    color: var(--text-primary-light);
+    font-weight: 500;
+    border-radius: 16px;
+    height: 45px;
+    transition: all 0.3s ease;
+  }
+
+  .export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Action buttons */
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+
+  .action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+
+  /* Input styles */
+  input[type="text"], input[type="tel"], select, .form-control, .form-select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.3s;
+    color: var(--text-primary);
+  }
+
+  input[type="text"]:focus, input[type="tel"]:focus, select:focus, .form-control:focus, .form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    outline: none;
   }
 }

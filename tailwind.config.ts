@@ -6,39 +6,49 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Custom colors to match HTML version
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#6366f1", // From --primary-gradient start
+          foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#3b82f6", // From --secondary-gradient start
+          foreground: "#ffffff",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "#ef4444",
+          foreground: "#ffffff",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "#f8fafc",
+          foreground: "#64748b", // --text-secondary
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#f1f5f9",
+          foreground: "#1e293b", // --text-primary
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "#ffffff",
+          foreground: "#1e293b", // --text-primary
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "#ffffff",
+          foreground: "#1e293b", // --text-primary
         },
+        // Custom text colors from HTML
+        "text-primary": "#1e293b",
+        "text-secondary": "#64748b", 
+        "text-tertiary": "#e7e5d8",
+        "text-primary-light": "#ffffff",
+        // Custom gradients as solid colors for fallback
+        "primary-gradient": "#6366f1",
+        "secondary-gradient": "#3b82f6",
+        "tertiary-gradient": "#3f3f42",
       },
       borderRadius: {
         lg: "var(--radius)",
