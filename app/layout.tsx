@@ -3,7 +3,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-import Sidebar from "@/components/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/sidebar"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,12 +30,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="d-flex">
-            <Sidebar />
-            <div className="content flex-fill">
-              {children}
-            </div>
-          </div>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 min-h-screen bg-background">
+              <div className="container-fluid p-4">
+                {children}
+              </div>
+            </main>
+          </SidebarProvider>
           <Toaster />
         </ThemeProvider>
       </body>

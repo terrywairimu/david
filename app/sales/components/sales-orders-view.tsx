@@ -1,51 +1,25 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { Edit, Trash2, Eye, Download, CreditCard, Receipt } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import SalesOrderModal from "@/components/ui/sales-order-modal"
-import { 
-  proceedToInvoice, 
-  proceedToCashSaleFromSalesOrder, 
-  printDocument, 
-  downloadDocument 
-} from "@/lib/workflow-utils"
 
 interface SalesOrder {
   id: number
   order_number: string
   client_id: number
   quotation_id?: number
-  original_quotation_number?: string
   date_created: string
-  cabinet_total: number
-  worktop_total: number
-  accessories_total: number
-  labour_percentage: number
-  labour_total: number
+  delivery_date: string
   total_amount: number
-  grand_total: number
-  include_accessories: boolean
-  status: "pending" | "processing" | "completed" | "cancelled" | "converted_to_invoice" | "converted_to_cash_sale"
+  status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled"
   notes?: string
-  terms_conditions?: string
   client?: {
     id: number
     name: string
     phone?: string
-    location?: string
   }
-  items?: Array<{
-    id: number
-    category: "cabinet" | "worktop" | "accessories"
-    description: string
-    unit: string
-    quantity: number
-    unit_price: number
-    total_price: number
-    stock_item_id?: number
-  }>
 }
 
 const SalesOrdersView = () => {
@@ -58,9 +32,6 @@ const SalesOrdersView = () => {
   const [periodStartDate, setPeriodStartDate] = useState("")
   const [periodEndDate, setPeriodEndDate] = useState("")
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
-  const [showModal, setShowModal] = useState(false)
-  const [selectedSalesOrder, setSelectedSalesOrder] = useState<SalesOrder | undefined>()
-  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
     fetchSalesOrders()
@@ -74,16 +45,16 @@ const SalesOrdersView = () => {
         .from("sales_orders")
         .select(`
           *,
-          client:registered_entities(id, name, phone, location),
-          items:sales_order_items(*)
+          client:registered_entities(*)
         `)
         .order("date_created", { ascending: false })
 
-      if (error) throw error
-      setSalesOrders(data || [])
-    } catch (error) {
+      if (error) {
         console.error("Error fetching sales orders:", error)
-      toast.error("Failed to load sales orders")
+        toast.error("Failed to fetch sales orders")
+      } else {
+        setSalesOrders(data || [])
+      }
     } finally {
       setLoading(false)
     }
@@ -95,19 +66,21 @@ const SalesOrdersView = () => {
         .from("registered_entities")
         .select("id, name")
         .eq("type", "client")
+        .eq("status", "active")
         .order("name")
 
-      if (error) throw error
-      
+      if (error) {
+        console.error("Error fetching clients:", error)
+      } else {
         const clientOptions = [
           { value: "", label: "All Clients" },
-        ...(data || []).map(client => ({
+          ...(data || []).map((client) => ({
             value: client.id.toString(),
-          label: client.name
-        }))
+            label: client.name,
+          })),
         ]
-      
         setClients(clientOptions)
+      }
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -124,276 +97,105 @@ const SalesOrdersView = () => {
     }
   }
 
-  const getFilteredSalesOrders = () => {
-    let filtered = [...salesOrders]
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
+  const filteredSalesOrders = salesOrders.filter((order) => {
+    const matchesSearch =
       order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      order.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesClient = clientFilter === "" || order.client_id.toString() === clientFilter
+
+    let matchesDate = true
+    if (dateFilter === "today") {
+      matchesDate = new Date(order.date_created).toDateString() === new Date().toDateString()
+    } else if (dateFilter === "week") {
+      matchesDate = isThisWeek(new Date(order.date_created))
+    } else if (dateFilter === "month") {
+      matchesDate = isThisMonth(new Date(order.date_created))
+    } else if (dateFilter === "year") {
+      matchesDate = isThisYear(new Date(order.date_created))
+    } else if (dateFilter === "specific" && specificDate) {
+      matchesDate = new Date(order.date_created).toDateString() === new Date(specificDate).toDateString()
+    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
+      const orderDate = new Date(order.date_created)
+      const startDate = new Date(periodStartDate)
+      const endDate = new Date(periodEndDate)
+      matchesDate = orderDate >= startDate && orderDate <= endDate
     }
 
-    // Client filter
-    if (clientFilter) {
-      filtered = filtered.filter(order => order.client_id.toString() === clientFilter)
-    }
-
-    // Date filter
-    if (dateFilter) {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      
-      filtered = filtered.filter(order => {
-        const orderDate = new Date(order.date_created)
-        const orderDay = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate())
-        
-        switch (dateFilter) {
-          case "today":
-            return orderDay.getTime() === today.getTime()
-          case "week":
-            const weekStart = new Date(today)
-            weekStart.setDate(today.getDate() - today.getDay())
-            return orderDay >= weekStart
-          case "month":
-            return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear()
-          case "year":
-            return orderDate.getFullYear() === now.getFullYear()
-          case "specific":
-            if (specificDate) {
-              const specDate = new Date(specificDate)
-              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
-              return orderDay.getTime() === specDay.getTime()
-            }
-            return true
-          case "period":
-            if (periodStartDate && periodEndDate) {
-              const startDate = new Date(periodStartDate)
-              const endDate = new Date(periodEndDate)
-              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
-              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-              return orderDay >= startDay && orderDay <= endDay
-            }
-            return true
-          default:
-            return true
-        }
-      })
-    }
-
-    return filtered
-  }
-
-  const filteredSalesOrders = getFilteredSalesOrders()
+    return matchesSearch && matchesClient && matchesDate
+  })
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "badge bg-warning"
-      case "processing":
-        return "badge bg-info"
-      case "completed":
-        return "badge bg-success"
-      case "cancelled":
-        return "badge bg-danger"
-      case "converted_to_invoice":
-        return "badge bg-primary"
-      case "converted_to_cash_sale":
-        return "badge bg-success"
-      default:
-        return "badge bg-secondary"
+    const statusClasses = {
+      pending: "badge bg-warning",
+      confirmed: "badge bg-info",
+      in_progress: "badge bg-primary",
+      completed: "badge bg-success",
+      cancelled: "badge bg-danger",
     }
+    return statusClasses[status as keyof typeof statusClasses] || "badge bg-secondary"
   }
 
-  const handleModalSave = async (orderData: any) => {
-    try {
-      if (modalMode === "create") {
-        // Create new sales order
-        const { data: newOrder, error: orderError } = await supabase
-          .from("sales_orders")
-          .insert({
-            order_number: orderData.order_number,
-            client_id: orderData.client_id,
-            quotation_id: orderData.quotation_id,
-            original_quotation_number: orderData.original_quotation_number,
-            date_created: orderData.date_created,
-            cabinet_total: orderData.cabinet_total,
-            worktop_total: orderData.worktop_total,
-            accessories_total: orderData.accessories_total,
-            labour_percentage: orderData.labour_percentage,
-            labour_total: orderData.labour_total,
-            total_amount: orderData.total_amount,
-            grand_total: orderData.grand_total,
-            include_accessories: orderData.include_accessories,
-            status: orderData.status,
-            notes: orderData.notes,
-            terms_conditions: orderData.terms_conditions
-          })
-          .select()
-          .single()
+  const exportToCSV = () => {
+    const csvContent = [
+      ["Order #", "Date", "Client", "Total Amount", "Status"],
+      ...filteredSalesOrders.map((order) => [
+        order.order_number,
+        new Date(order.date_created).toLocaleDateString(),
+        order.client?.name || "",
+        order.total_amount.toFixed(2),
+        order.status,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n")
 
-        if (orderError) throw orderError
-
-        // Insert sales order items
-        if (orderData.items && orderData.items.length > 0) {
-          const orderItems = orderData.items.map((item: any) => ({
-            sales_order_id: newOrder.id,
-            category: item.category,
-            description: item.description,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            stock_item_id: item.stock_item_id
-          }))
-
-          const { error: itemsError } = await supabase
-            .from("sales_order_items")
-            .insert(orderItems)
-
-          if (itemsError) throw itemsError
-        }
-
-        toast.success("Sales order created successfully")
-      } else if (modalMode === "edit") {
-        // Update existing sales order
-        const { error: updateError } = await supabase
-          .from("sales_orders")
-          .update({
-            client_id: orderData.client_id,
-            date_created: orderData.date_created,
-            cabinet_total: orderData.cabinet_total,
-            worktop_total: orderData.worktop_total,
-            accessories_total: orderData.accessories_total,
-            labour_percentage: orderData.labour_percentage,
-            labour_total: orderData.labour_total,
-            total_amount: orderData.total_amount,
-            grand_total: orderData.grand_total,
-            include_accessories: orderData.include_accessories,
-            status: orderData.status,
-            notes: orderData.notes,
-            terms_conditions: orderData.terms_conditions
-          })
-          .eq("id", selectedSalesOrder?.id)
-
-        if (updateError) throw updateError
-
-        // Delete existing items and insert new ones
-        const { error: deleteError } = await supabase
-          .from("sales_order_items")
-          .delete()
-          .eq("sales_order_id", selectedSalesOrder?.id)
-
-        if (deleteError) throw deleteError
-
-        // Insert updated items
-        if (orderData.items && orderData.items.length > 0) {
-          const orderItems = orderData.items.map((item: any) => ({
-            sales_order_id: selectedSalesOrder?.id,
-            category: item.category,
-            description: item.description,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            stock_item_id: item.stock_item_id
-          }))
-
-          const { error: itemsError } = await supabase
-            .from("sales_order_items")
-            .insert(orderItems)
-
-          if (itemsError) throw itemsError
-        }
-
-        toast.success("Sales order updated successfully")
-      }
-
-      fetchSalesOrders()
-    } catch (error) {
-      console.error("Error saving sales order:", error)
-      toast.error("Failed to save sales order")
-    }
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "sales_orders.csv"
+    a.click()
+    window.URL.revokeObjectURL(url)
   }
 
-  const handleView = (order: SalesOrder) => {
-    setSelectedSalesOrder(order)
-    setModalMode("view")
-    setShowModal(true)
+  const isThisWeek = (date: Date) => {
+    const startOfWeek = new Date()
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(endOfWeek.getDate() + 6)
+    return date >= startOfWeek && date <= endOfWeek
   }
 
-  const handleEdit = (order: SalesOrder) => {
-    setSelectedSalesOrder(order)
-    setModalMode("edit")
-    setShowModal(true)
+  const isThisMonth = (date: Date) => {
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    const endOfMonth = new Date(startOfMonth)
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1)
+    endOfMonth.setDate(endOfMonth.getDate() - 1)
+    return date >= startOfMonth && date <= endOfMonth
   }
 
-  const handleDelete = async (order: SalesOrder) => {
-    if (window.confirm(`Are you sure you want to delete sales order ${order.order_number}?`)) {
-      try {
-        const { error } = await supabase
-          .from("sales_orders")
-          .delete()
-          .eq("id", order.id)
-
-        if (error) throw error
-
-        toast.success("Sales order deleted successfully")
-        fetchSalesOrders()
-      } catch (error) {
-        console.error("Error deleting sales order:", error)
-        toast.error("Failed to delete sales order")
-      }
-    }
-  }
-
-  const handleProceedToInvoice = async (order: SalesOrder) => {
-    try {
-      const invoice = await proceedToInvoice(order.id)
-      toast.success(`Invoice ${invoice.invoice_number} created successfully`)
-      fetchSalesOrders()
-    } catch (error) {
-      // Error handling is done in the workflow function
-    }
-  }
-
-  const handleProceedToCashSale = async (order: SalesOrder) => {
-    try {
-      const cashSale = await proceedToCashSaleFromSalesOrder(order.id)
-      toast.success(`Cash sale ${cashSale.sale_number} created successfully`)
-      fetchSalesOrders()
-    } catch (error) {
-      // Error handling is done in the workflow function
-    }
-  }
-
-  const handlePrint = (order: SalesOrder) => {
-    printDocument(`sales-order-${order.id}`, `SalesOrder-${order.order_number}`)
-  }
-
-  const handleDownload = (order: SalesOrder) => {
-    downloadDocument(`sales-order-${order.id}`, `SalesOrder-${order.order_number}`)
+  const isThisYear = (date: Date) => {
+    return date.getFullYear() === new Date().getFullYear()
   }
 
   return (
-    <div className="sales-orders-view">
-      <h5>Sales Orders</h5>
-
-      {/* Search and Filter Row */}
-      <div className="row mb-3">
-        <div className="col-md-3">
-          <div className="input-group">
-            <span className="input-group-text bg-white border-end-0">
-              <i className="fas fa-search"></i>
+    <div className="card-body">
+      {/* Search and Filter Controls */}
+      <div className="row mb-4">
+        <div className="col-md-4">
+          <div className="input-group shadow-sm">
+            <span 
+              className="input-group-text border-0 bg-white" 
+              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+            >
+              <i className="fas fa-search text-muted"></i>
             </span>
             <input
               type="text"
-              className="form-control border-start-0"
-              placeholder="Search sales orders..."
+              className="form-control border-0"
+              placeholder="Search orders..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
@@ -452,7 +254,10 @@ const SalesOrdersView = () => {
                   onChange={(e) => setPeriodStartDate(e.target.value)}
                   style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
                 />
-                <span className="mx-2">to</span>
+                <div className="mx-1 text-center" style={{ width: "20px", flexShrink: "0" }}>
+                  <div className="small text-muted mb-1">to</div>
+                  <i className="fas fa-arrow-right"></i>
+                </div>
                 <input
                   type="date"
                   className="form-control border-0 shadow-sm"
@@ -465,11 +270,15 @@ const SalesOrdersView = () => {
           )}
         </div>
         
-        <div className="col-md-3">
-          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
-            <i className="fas fa-download me-2"></i>
+        <div className="col-md-2">
+          <button
+            className="btn w-100 shadow-sm export-btn"
+            onClick={exportToCSV}
+            style={{ borderRadius: "16px", height: "45px" }}
+          >
+            <Download size={16} className="me-2" />
             Export
-        </button>
+          </button>
         </div>
       </div>
 
@@ -510,61 +319,22 @@ const SalesOrdersView = () => {
                       <small className="text-muted">{order.client.phone}</small>
                     )}
                   </td>
-                  <td>KES {order.grand_total.toFixed(2)}</td>
+                  <td>${order.total_amount.toFixed(2)}</td>
                   <td>
                     <span className={getStatusBadge(order.status)}>
-                      {order.status.replace(/_/g, " ")}
+                      {order.status}
                     </span>
                   </td>
                   <td>
-                    <div className="d-flex gap-1">
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleView(order)}
-                        title="View"
-                      >
+                    <button className="action-btn me-1">
                       <Eye size={14} />
                     </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleEdit(order)}
-                        title="Edit"
-                      >
+                    <button className="action-btn me-1">
                       <Edit size={14} />
                     </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleDelete(order)}
-                        title="Delete"
-                      >
+                    <button className="action-btn">
                       <Trash2 size={14} />
                     </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handlePrint(order)}
-                        title="Print"
-                      >
-                        <Download size={14} />
-                      </button>
-                      {(order.status === "pending" || order.status === "processing") && (
-                        <>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToInvoice(order)}
-                            title="Proceed to Invoice"
-                          >
-                            <CreditCard size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToCashSale(order)}
-                            title="Proceed to Cash Sale"
-                          >
-                            <Receipt size={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
                   </td>
                 </tr>
               ))
@@ -572,15 +342,6 @@ const SalesOrdersView = () => {
           </tbody>
         </table>
       </div>
-
-      {/* Sales Order Modal */}
-      <SalesOrderModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSave={handleModalSave}
-        salesOrder={selectedSalesOrder}
-        mode={modalMode}
-      />
     </div>
   )
 }
