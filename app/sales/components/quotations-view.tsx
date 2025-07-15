@@ -388,49 +388,7 @@ const QuotationsView = () => {
     toast.info("Export functionality coming soon!")
   }
 
-  // Handle view quotation
-  const handleView = (quotation: Quotation) => {
-    setSelectedQuotation(quotation)
-    setModalMode("view")
-    setShowModal(true)
-  }
 
-  // Handle edit quotation
-  const handleEdit = (quotation: Quotation) => {
-    setSelectedQuotation(quotation)
-    setModalMode("edit")
-    setShowModal(true)
-  }
-
-  // Handle delete quotation
-  const handleDelete = (quotation: Quotation) => {
-    deleteQuotation(quotation.id)
-  }
-
-  // Handle print quotation
-  const handlePrint = (quotation: Quotation) => {
-    printDocument(quotation, "quotation")
-  }
-
-  // Handle download quotation
-  const handleDownload = (quotation: Quotation) => {
-    downloadDocument(quotation, "quotation")
-  }
-
-  // Handle proceed to sales order
-  const handleProceedToSalesOrder = (quotation: Quotation) => {
-    proceedToSalesOrder(quotation)
-  }
-
-  // Handle proceed to cash sale
-  const handleProceedToCashSale = (quotation: Quotation) => {
-    proceedToCashSale(quotation)
-  }
-
-  // Handle modal save
-  const handleModalSave = (quotation: Quotation) => {
-    handleSaveQuotation(quotation)
-  }
 
   return (
     <div className="quotations-view">
