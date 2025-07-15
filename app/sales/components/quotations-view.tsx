@@ -1,10 +1,16 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, CreditCard, Receipt } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import QuotationModal from "@/components/ui/quotation-modal"
+import { 
+  proceedToSalesOrder, 
+  proceedToCashSale, 
+  printDocument, 
+  downloadDocument 
+} from "@/lib/workflow-utils"
 
 interface Quotation {
   id: number
@@ -12,17 +18,33 @@ interface Quotation {
   client_id: number
   date_created: string
   valid_until: string
-  total_amount: number
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  labour_percentage: number
   labour_total: number
+  total_amount: number
   grand_total: number
-  status: "draft" | "pending" | "accepted" | "rejected" | "expired"
+  include_accessories: boolean
+  status: "pending" | "accepted" | "rejected" | "expired" | "converted_to_sales_order" | "converted_to_cash_sale"
   notes?: string
   terms_conditions?: string
   client?: {
     id: number
     name: string
     phone?: string
+    location?: string
   }
+  items?: Array<{
+    id: number
+    category: "cabinet" | "worktop" | "accessories"
+    description: string
+    unit: string
+    quantity: number
+    unit_price: number
+    total_price: number
+    stock_item_id?: number
+  }>
 }
 
 const QuotationsView = () => {
@@ -36,6 +58,8 @@ const QuotationsView = () => {
   const [periodEndDate, setPeriodEndDate] = useState("")
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
   const [showModal, setShowModal] = useState(false)
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | undefined>()
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
     fetchQuotations()
@@ -49,16 +73,16 @@ const QuotationsView = () => {
         .from("quotations")
         .select(`
           *,
-          client:registered_entities(*)
+          client:registered_entities(id, name, phone, location),
+          items:quotation_items(*)
         `)
         .order("date_created", { ascending: false })
 
-      if (error) {
-        console.error("Error fetching quotations:", error)
-        toast.error("Failed to fetch quotations")
-      } else {
-        setQuotations(data || [])
-      }
+      if (error) throw error
+      setQuotations(data || [])
+    } catch (error) {
+      console.error("Error fetching quotations:", error)
+      toast.error("Failed to load quotations")
     } finally {
       setLoading(false)
     }
@@ -70,21 +94,19 @@ const QuotationsView = () => {
         .from("registered_entities")
         .select("id, name")
         .eq("type", "client")
-        .eq("status", "active")
         .order("name")
 
-      if (error) {
-        console.error("Error fetching clients:", error)
-      } else {
-        const clientOptions = [
-          { value: "", label: "All Clients" },
-          ...(data || []).map((client) => ({
-            value: client.id.toString(),
-            label: client.name,
-          })),
-        ]
-        setClients(clientOptions)
-      }
+      if (error) throw error
+      
+      const clientOptions = [
+        { value: "", label: "All Clients" },
+        ...(data || []).map(client => ({
+          value: client.id.toString(),
+          label: client.name
+        }))
+      ]
+      
+      setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -101,116 +123,287 @@ const QuotationsView = () => {
     }
   }
 
-  const handleModalSave = (quotation: any) => {
-    fetchQuotations() // Refresh the quotations list
-  }
+  const getFilteredQuotations = () => {
+    let filtered = [...quotations]
 
-  const filteredQuotations = quotations.filter((quotation) => {
-    const matchesSearch =
-      quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quotation.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesClient = clientFilter === "" || quotation.client_id.toString() === clientFilter
-
-    let matchesDate = true
-    if (dateFilter === "today") {
-      matchesDate = new Date(quotation.date_created).toDateString() === new Date().toDateString()
-    } else if (dateFilter === "week") {
-      matchesDate = isThisWeek(new Date(quotation.date_created))
-    } else if (dateFilter === "month") {
-      matchesDate = isThisMonth(new Date(quotation.date_created))
-    } else if (dateFilter === "year") {
-      matchesDate = isThisYear(new Date(quotation.date_created))
-    } else if (dateFilter === "specific" && specificDate) {
-      matchesDate = new Date(quotation.date_created).toDateString() === new Date(specificDate).toDateString()
-    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
-      const quotationDate = new Date(quotation.date_created)
-      const startDate = new Date(periodStartDate)
-      const endDate = new Date(periodEndDate)
-      matchesDate = quotationDate >= startDate && quotationDate <= endDate
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (quotation) =>
+          quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          quotation.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          quotation.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     }
 
-    return matchesSearch && matchesClient && matchesDate
-  })
+    // Client filter
+    if (clientFilter) {
+      filtered = filtered.filter(quotation => quotation.client_id.toString() === clientFilter)
+    }
+
+    // Date filter
+    if (dateFilter) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      filtered = filtered.filter(quotation => {
+        const quotationDate = new Date(quotation.date_created)
+        const quotationDay = new Date(quotationDate.getFullYear(), quotationDate.getMonth(), quotationDate.getDate())
+        
+        switch (dateFilter) {
+          case "today":
+            return quotationDay.getTime() === today.getTime()
+          case "week":
+            const weekStart = new Date(today)
+            weekStart.setDate(today.getDate() - today.getDay())
+            return quotationDay >= weekStart
+          case "month":
+            return quotationDate.getMonth() === now.getMonth() && quotationDate.getFullYear() === now.getFullYear()
+          case "year":
+            return quotationDate.getFullYear() === now.getFullYear()
+          case "specific":
+            if (specificDate) {
+              const specDate = new Date(specificDate)
+              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
+              return quotationDay.getTime() === specDay.getTime()
+            }
+            return true
+          case "period":
+            if (periodStartDate && periodEndDate) {
+              const startDate = new Date(periodStartDate)
+              const endDate = new Date(periodEndDate)
+              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+              return quotationDay >= startDay && quotationDay <= endDay
+            }
+            return true
+          default:
+            return true
+        }
+      })
+    }
+
+    return filtered
+  }
+
+  const filteredQuotations = getFilteredQuotations()
 
   const getStatusBadge = (status: string) => {
-    const statusClasses = {
-      draft: "badge bg-secondary",
-      pending: "badge bg-warning",
-      accepted: "badge bg-success",
-      rejected: "badge bg-danger",
-      expired: "badge bg-dark",
+    switch (status) {
+      case "pending":
+        return "badge bg-warning"
+      case "accepted":
+        return "badge bg-success"
+      case "rejected":
+        return "badge bg-danger"
+      case "expired":
+        return "badge bg-secondary"
+      case "converted_to_sales_order":
+        return "badge bg-info"
+      case "converted_to_cash_sale":
+        return "badge bg-primary"
+      default:
+        return "badge bg-secondary"
     }
-    return statusClasses[status as keyof typeof statusClasses] || "badge bg-secondary"
   }
 
-  const exportToCSV = () => {
-    const csvContent = [
-      ["Quotation #", "Date", "Client", "Total Amount", "Status"],
-      ...filteredQuotations.map((quotation) => [
-        quotation.quotation_number,
-        new Date(quotation.date_created).toLocaleDateString(),
-        quotation.client?.name || "",
-        quotation.total_amount.toFixed(2),
-        quotation.status,
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
+  const handleModalSave = async (quotationData: any) => {
+    try {
+      if (modalMode === "create") {
+        // Create new quotation
+        const { data: newQuotation, error: quotationError } = await supabase
+          .from("quotations")
+          .insert({
+            quotation_number: quotationData.quotation_number,
+            client_id: quotationData.client_id,
+            date_created: quotationData.date_created,
+            valid_until: quotationData.valid_until,
+            cabinet_total: quotationData.cabinet_total,
+            worktop_total: quotationData.worktop_total,
+            accessories_total: quotationData.accessories_total,
+            labour_percentage: quotationData.labour_percentage,
+            labour_total: quotationData.labour_total,
+            total_amount: quotationData.total_amount,
+            grand_total: quotationData.grand_total,
+            include_accessories: quotationData.include_accessories,
+            status: quotationData.status,
+            notes: quotationData.notes,
+            terms_conditions: quotationData.terms_conditions
+          })
+          .select()
+          .single()
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "quotations.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+        if (quotationError) throw quotationError
+
+        // Insert quotation items
+        if (quotationData.items && quotationData.items.length > 0) {
+          const quotationItems = quotationData.items.map((item: any) => ({
+            quotation_id: newQuotation.id,
+            category: item.category,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            stock_item_id: item.stock_item_id
+          }))
+
+          const { error: itemsError } = await supabase
+            .from("quotation_items")
+            .insert(quotationItems)
+
+          if (itemsError) throw itemsError
+        }
+
+        toast.success("Quotation created successfully")
+      } else if (modalMode === "edit") {
+        // Update existing quotation
+        const { error: updateError } = await supabase
+          .from("quotations")
+          .update({
+            client_id: quotationData.client_id,
+            date_created: quotationData.date_created,
+            valid_until: quotationData.valid_until,
+            cabinet_total: quotationData.cabinet_total,
+            worktop_total: quotationData.worktop_total,
+            accessories_total: quotationData.accessories_total,
+            labour_percentage: quotationData.labour_percentage,
+            labour_total: quotationData.labour_total,
+            total_amount: quotationData.total_amount,
+            grand_total: quotationData.grand_total,
+            include_accessories: quotationData.include_accessories,
+            status: quotationData.status,
+            notes: quotationData.notes,
+            terms_conditions: quotationData.terms_conditions
+          })
+          .eq("id", selectedQuotation?.id)
+
+        if (updateError) throw updateError
+
+        // Delete existing items and insert new ones
+        const { error: deleteError } = await supabase
+          .from("quotation_items")
+          .delete()
+          .eq("quotation_id", selectedQuotation?.id)
+
+        if (deleteError) throw deleteError
+
+        // Insert updated items
+        if (quotationData.items && quotationData.items.length > 0) {
+          const quotationItems = quotationData.items.map((item: any) => ({
+            quotation_id: selectedQuotation?.id,
+            category: item.category,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            stock_item_id: item.stock_item_id
+          }))
+
+          const { error: itemsError } = await supabase
+            .from("quotation_items")
+            .insert(quotationItems)
+
+          if (itemsError) throw itemsError
+        }
+
+        toast.success("Quotation updated successfully")
+      }
+
+      fetchQuotations()
+    } catch (error) {
+      console.error("Error saving quotation:", error)
+      toast.error("Failed to save quotation")
+    }
   }
 
-  const isThisWeek = (date: Date) => {
-    const startOfWeek = new Date()
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(endOfWeek.getDate() + 6)
-    return date >= startOfWeek && date <= endOfWeek
+  const handleView = (quotation: Quotation) => {
+    setSelectedQuotation(quotation)
+    setModalMode("view")
+    setShowModal(true)
   }
 
-  const isThisMonth = (date: Date) => {
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    const endOfMonth = new Date(startOfMonth)
-    endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-    endOfMonth.setDate(endOfMonth.getDate() - 1)
-    return date >= startOfMonth && date <= endOfMonth
+  const handleEdit = (quotation: Quotation) => {
+    setSelectedQuotation(quotation)
+    setModalMode("edit")
+    setShowModal(true)
   }
 
-  const isThisYear = (date: Date) => {
-    return date.getFullYear() === new Date().getFullYear()
+  const handleDelete = async (quotation: Quotation) => {
+    if (window.confirm(`Are you sure you want to delete quotation ${quotation.quotation_number}?`)) {
+      try {
+        const { error } = await supabase
+          .from("quotations")
+          .delete()
+          .eq("id", quotation.id)
+
+        if (error) throw error
+
+        toast.success("Quotation deleted successfully")
+        fetchQuotations()
+      } catch (error) {
+        console.error("Error deleting quotation:", error)
+        toast.error("Failed to delete quotation")
+      }
+    }
+  }
+
+  const handleProceedToSalesOrder = async (quotation: Quotation) => {
+    try {
+      const salesOrder = await proceedToSalesOrder(quotation.id)
+      toast.success(`Sales order ${salesOrder.order_number} created successfully`)
+      fetchQuotations()
+    } catch (error) {
+      // Error handling is done in the workflow function
+    }
+  }
+
+  const handleProceedToCashSale = async (quotation: Quotation) => {
+    try {
+      const cashSale = await proceedToCashSale(quotation.id)
+      toast.success(`Cash sale ${cashSale.sale_number} created successfully`)
+      fetchQuotations()
+    } catch (error) {
+      // Error handling is done in the workflow function
+    }
+  }
+
+  const handlePrint = (quotation: Quotation) => {
+    printDocument(`quotation-${quotation.id}`, `Quotation-${quotation.quotation_number}`)
+  }
+
+  const handleDownload = (quotation: Quotation) => {
+    downloadDocument(`quotation-${quotation.id}`, `Quotation-${quotation.quotation_number}`)
+  }
+
+  const handleNewQuotation = () => {
+    setSelectedQuotation(undefined)
+    setModalMode("create")
+    setShowModal(true)
   }
 
   return (
-    <div className="card-body">
+    <div className="quotations-view">
       {/* Add New Quotation Button */}
-      <div className="d-flex mb-4">
-        <button className="btn btn-add" onClick={() => setShowModal(true)}>
-          <Plus size={16} className="me-2" />
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5>Quotations</h5>
+        <button className="btn btn-add" onClick={handleNewQuotation}>
+          <Plus size={16} />
           Add New Quotation
         </button>
       </div>
 
-      {/* Search and Filter Controls */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="input-group shadow-sm">
-            <span 
-              className="input-group-text border-0 bg-white" 
-              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
-            >
-              <i className="fas fa-search text-muted"></i>
+      {/* Search and Filter Row */}
+      <div className="row mb-3">
+        <div className="col-md-3">
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="fas fa-search"></i>
             </span>
             <input
               type="text"
-              className="form-control border-0"
+              className="form-control border-start-0"
               placeholder="Search quotations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -270,10 +463,7 @@ const QuotationsView = () => {
                   onChange={(e) => setPeriodStartDate(e.target.value)}
                   style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
                 />
-                <div className="mx-1 text-center" style={{ width: "20px", flexShrink: "0" }}>
-                  <div className="small text-muted mb-1">to</div>
-                  <i className="fas fa-arrow-right"></i>
-                </div>
+                <span className="mx-2">to</span>
                 <input
                   type="date"
                   className="form-control border-0 shadow-sm"
@@ -286,13 +476,9 @@ const QuotationsView = () => {
           )}
         </div>
         
-        <div className="col-md-2">
-          <button
-            className="btn w-100 shadow-sm export-btn"
-            onClick={exportToCSV}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <Download size={16} className="me-2" />
+        <div className="col-md-3">
+          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
+            <i className="fas fa-download me-2"></i>
             Export
           </button>
         </div>
@@ -335,22 +521,61 @@ const QuotationsView = () => {
                       <small className="text-muted">{quotation.client.phone}</small>
                     )}
                   </td>
-                  <td>${quotation.total_amount.toFixed(2)}</td>
+                  <td>KES {quotation.grand_total.toFixed(2)}</td>
                   <td>
                     <span className={getStatusBadge(quotation.status)}>
-                      {quotation.status}
+                      {quotation.status.replace(/_/g, " ")}
                     </span>
                   </td>
                   <td>
-                    <button className="action-btn me-1">
-                      <Eye size={14} />
-                    </button>
-                    <button className="action-btn me-1">
-                      <Edit size={14} />
-                    </button>
-                    <button className="action-btn">
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="d-flex gap-1">
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleView(quotation)}
+                        title="View"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleEdit(quotation)}
+                        title="Edit"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleDelete(quotation)}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handlePrint(quotation)}
+                        title="Print"
+                      >
+                        <Download size={14} />
+                      </button>
+                      {quotation.status === "pending" && (
+                        <>
+                          <button 
+                            className="action-btn"
+                            onClick={() => handleProceedToSalesOrder(quotation)}
+                            title="Proceed to Sales Order"
+                          >
+                            <FileText size={14} />
+                          </button>
+                          <button 
+                            className="action-btn"
+                            onClick={() => handleProceedToCashSale(quotation)}
+                            title="Proceed to Cash Sale"
+                          >
+                            <Receipt size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -364,6 +589,8 @@ const QuotationsView = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleModalSave}
+        quotation={selectedQuotation}
+        mode={modalMode}
       />
     </div>
   )
