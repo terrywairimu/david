@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { Edit, Trash2, Eye, Download, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import RegisterModals from "@/components/ui/register-modals"
+import ConfirmDialog from "@/components/ui/confirm-dialog"
 
 interface RegisteredEntity {
   id: number
@@ -16,17 +18,31 @@ interface RegisteredEntity {
   status: "active" | "inactive"
 }
 
-const RegisterTable = () => {
+interface RegisterTableProps {
+  onShowClientModal: () => void
+  onShowSupplierModal: () => void
+}
+
+const RegisterTable = ({ onShowClientModal, onShowSupplierModal }: RegisterTableProps) => {
   const [entities, setEntities] = useState<RegisteredEntity[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("")
   const [locationFilter, setLocationFilter] = useState("")
   const [locations, setLocations] = useState<string[]>([])
+  
+  // Modal states
+  const [showClientModal, setShowClientModal] = useState(false)
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editEntity, setEditEntity] = useState<RegisteredEntity | null>(null)
+  
+  // Delete confirmation
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchEntities()
-    fetchLocations()
   }, [])
 
   const fetchEntities = async () => {
@@ -36,63 +52,73 @@ const RegisterTable = () => {
         .from("registered_entities")
         .select("*")
         .eq("status", "active")
-        .order("name")
+        .order("date_added", { ascending: false })
 
-      if (error) {
-        console.error("Error fetching entities:", error)
-        toast.error("Failed to fetch entities")
-      } else {
-        setEntities(data || [])
-      }
+      if (error) throw error
+
+      setEntities(data || [])
+      
+      // Extract unique locations
+      const uniqueLocations = [...new Set(data?.map(entity => entity.location).filter(Boolean))] as string[]
+      setLocations(uniqueLocations)
+    } catch (error) {
+      console.error("Error fetching entities:", error)
+      toast.error("Error fetching entities")
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchLocations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("location")
-        .eq("status", "active")
-        .not("location", "is", null)
+  const handleEdit = (entity: RegisteredEntity) => {
+    setEditEntity(entity)
+    setShowEditModal(true)
+  }
 
-      if (error) {
-        console.error("Error fetching locations:", error)
-      } else {
-        const uniqueLocations = [...new Set(data.map(item => item.location).filter(Boolean))]
-        setLocations(uniqueLocations)
-      }
+  const handleDelete = (id: number) => {
+    setDeleteEntityId(id)
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteEntityId) return
+
+    try {
+      const { error } = await supabase
+        .from("registered_entities")
+        .delete()
+        .eq("id", deleteEntityId)
+
+      if (error) throw error
+
+      toast.success("Entity deleted successfully!")
+      fetchEntities()
     } catch (error) {
-      console.error("Error fetching locations:", error)
+      console.error("Error deleting entity:", error)
+      toast.error("Error deleting entity")
+    } finally {
+      setShowDeleteDialog(false)
+      setDeleteEntityId(null)
     }
   }
 
-  const filteredEntities = entities.filter((entity) => {
-    const matchesSearch =
-      entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entity.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entity.pin?.toLowerCase().includes(searchTerm.toLowerCase())
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString()
+  }
 
-    const matchesType = typeFilter === "" || entity.type === typeFilter
-
-    const matchesLocation = locationFilter === "" || entity.location === locationFilter
-
+  const filteredEntities = entities.filter(entity => {
+    const matchesSearch = entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         entity.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         entity.location?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = !typeFilter || entity.type === typeFilter
+    const matchesLocation = !locationFilter || entity.location === locationFilter
+    
     return matchesSearch && matchesType && matchesLocation
   })
 
-  const getTypeBadge = (type: string) => {
-    const typeClasses = {
-      client: "badge bg-primary",
-      supplier: "badge bg-success",
-    }
-    return typeClasses[type as keyof typeof typeClasses] || "badge bg-secondary"
-  }
-
   const exportToCSV = () => {
     const csvContent = [
-      ["Name", "Type", "Phone Number", "Location", "PIN Number", "Date Added"],
-      ...filteredEntities.map((entity) => [
+      ["Name", "Type", "Phone", "Location", "PIN Number", "Date Added"],
+      ...filteredEntities.map(entity => [
         entity.name,
         entity.type,
         entity.phone || "",
@@ -111,6 +137,28 @@ const RegisterTable = () => {
     a.download = "register_data.csv"
     a.click()
     window.URL.revokeObjectURL(url)
+  }
+
+  const getTypeStyle = (type: string) => {
+    if (type === 'client') {
+      return {
+        backgroundColor: '#e3f2fd',
+        color: '#1976d2',
+        borderRadius: '50px',
+        padding: '6px 16px',
+        fontWeight: '500',
+        fontSize: '0.875rem'
+      }
+    } else {
+      return {
+        backgroundColor: '#e8f5e9',
+        color: '#2e7d32',
+        borderRadius: '50px',
+        padding: '6px 16px',
+        fontWeight: '500',
+        fontSize: '0.875rem'
+      }
+    }
   }
 
   return (
@@ -203,26 +251,23 @@ const RegisterTable = () => {
             ) : (
               filteredEntities.map((entity) => (
                 <tr key={entity.id}>
-                  <td className="fw-bold">{entity.name}</td>
+                  <td>{entity.name}</td>
                   <td>
-                    <span className={getTypeBadge(entity.type)}>
-                      {entity.type}
+                    <span style={getTypeStyle(entity.type)}>
+                      {entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
                     </span>
                   </td>
                   <td>{entity.phone || "-"}</td>
                   <td>{entity.location || "-"}</td>
-                  <td>{entity.pin || "-"}</td>
-                  <td>{new Date(entity.date_added).toLocaleDateString()}</td>
+                  <td>{entity.type === 'client' && entity.pin ? entity.pin : '-'}</td>
+                  <td>{formatDate(entity.date_added)}</td>
                   <td>
                     <div className="d-flex gap-1">
-                      <button className="btn btn-sm btn-outline-primary" title="View">
-                        <Eye size={14} />
+                      <button className="action-btn" onClick={() => handleEdit(entity)} title="Edit">
+                        <Edit size={16} />
                       </button>
-                      <button className="btn btn-sm btn-outline-warning" title="Edit">
-                        <Edit size={14} />
-                      </button>
-                      <button className="btn btn-sm btn-outline-danger" title="Delete">
-                        <Trash2 size={14} />
+                      <button className="action-btn" onClick={() => handleDelete(entity.id)} title="Delete">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -232,6 +277,30 @@ const RegisterTable = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Modals */}
+      <RegisterModals
+        showClientModal={showClientModal}
+        showSupplierModal={showSupplierModal}
+        showEditModal={showEditModal}
+        editEntity={editEntity}
+        onCloseClientModal={() => setShowClientModal(false)}
+        onCloseSupplierModal={() => setShowSupplierModal(false)}
+        onCloseEditModal={() => setShowEditModal(false)}
+        onRefreshData={fetchEntities}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        show={showDeleteDialog}
+        title="Delete Entity"
+        message="Are you sure you want to delete this entry?"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   )
 }
