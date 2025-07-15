@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import { Search, Plus, Minus, Calculator, FileText, User, Building } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -247,27 +246,25 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({
                         {getStatusBadge(item.status)}
                         {allowQuantitySelection && (
                           <div className="flex items-center space-x-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
+                            <button
+                              className="btn btn-outline btn-sm"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedQuantity(Math.max(1, selectedQuantity - 1))
                               }}
                             >
                               <Minus className="h-3 w-3" />
-                            </Button>
+                            </button>
                             <span className="w-8 text-center">{selectedQuantity}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
+                            <button
+                              className="btn btn-outline btn-sm"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedQuantity(Math.min(item.quantity, selectedQuantity + 1))
                               }}
                             >
                               <Plus className="h-3 w-3" />
-                            </Button>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -402,16 +399,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">{sectionTitle}</h3>
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
+            className="btn btn-outline btn-sm"
             onClick={() => addItem(sectionKey)}
             disabled={mode === "view"}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Item
-          </Button>
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -493,15 +489,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   Total: ${(item.quantity * item.unit_price).toFixed(2)}
                 </div>
                 {mode !== "view" && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    className="btn btn-outline btn-sm"
                     onClick={() => removeItem(sectionKey, index)}
                   >
                     <Minus className="h-4 w-4 mr-2" />
                     Remove
-                  </Button>
+                  </button>
                 )}
               </div>
             </Card>

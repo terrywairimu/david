@@ -1,6 +1,5 @@
 import React from "react"
 import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { 
   Dialog, 
   DialogContent, 
@@ -9,149 +8,151 @@ import {
   DialogDescription,
   DialogFooter 
 } from "@/components/ui/dialog"
-import { 
-  AlertDialog, 
-  AlertDialogContent, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel 
-} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
-// Base Modal Types
-export interface BaseModalProps {
+interface ModalProps {
   isOpen: boolean
   onClose: () => void
-  title?: string
-  description?: string
-  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full"
-  className?: string
+  title: string
   children: React.ReactNode
+  className?: string
 }
 
-export interface FormModalProps extends BaseModalProps {
-  onSubmit?: (e: React.FormEvent) => void
-  submitLabel?: string
-  cancelLabel?: string
-  submitDisabled?: boolean
-  submitLoading?: boolean
-  showFooter?: boolean
-  onCancel?: () => void
-}
-
-export interface ConfirmationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: () => void
-  title?: string
-  description?: string
-  confirmLabel?: string
-  cancelLabel?: string
-  variant?: "default" | "destructive"
-  loading?: boolean
-}
-
-export interface DocumentModalProps extends BaseModalProps {
-  showPrintButton?: boolean
-  onPrint?: () => void
-  showDownloadButton?: boolean
-  onDownload?: () => void
-  showActions?: boolean
-  actions?: React.ReactNode
-}
-
-// Size class mapping
-const sizeClasses = {
-  sm: "max-w-sm",
-  md: "max-w-md",
-  lg: "max-w-lg",
-  xl: "max-w-xl",
-  "2xl": "max-w-2xl",
-  full: "max-w-[95vw] w-full h-[95vh]"
-}
-
-// Base Modal Component
-const BaseModal: React.FC<BaseModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  description,
-  size = "md",
-  className,
-  children
-}) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(sizeClasses[size], className)}>
-        {(title || description) && (
-          <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-        )}
+      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
   )
 }
 
-// Form Modal Component
-const FormModal: React.FC<FormModalProps> = ({
+interface ConfirmModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  description: string
+  confirmLabel?: string
+  cancelLabel?: string
+  variant?: "default" | "destructive"
+}
+
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
+  onConfirm,
   title,
   description,
-  size = "md",
-  className,
-  submitLabel = "Submit",
+  confirmLabel = "Confirm",
   cancelLabel = "Cancel",
-  submitDisabled = false,
-  submitLoading = false,
-  showFooter = true,
-  onCancel,
-  children
+  variant = "default"
 }) => {
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel()
-    } else {
-      onClose()
-    }
+  const handleConfirm = () => {
+    onConfirm()
+    onClose()
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(sizeClasses[size], className)}>
-        {(title || description) && (
-          <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-        )}
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={variant === "destructive" ? "btn btn-danger" : "btn btn-primary"}
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface FormModalProps {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  onSubmit: (e: React.FormEvent) => void
+  children: React.ReactNode
+  confirmLabel?: string
+  cancelLabel?: string
+  showFooter?: boolean
+  submitLoading?: boolean
+  className?: string
+}
+
+export const FormModal: React.FC<FormModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  onSubmit,
+  children,
+  confirmLabel = "Submit",
+  cancelLabel = "Cancel",
+  showFooter = true,
+  submitLoading = false,
+  className
+}) => {
+  const handleCancel = () => {
+    onClose()
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSubmit(e)
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {children}
           
           {showFooter && (
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={handleCancel}
                 disabled={submitLoading}
               >
                 {cancelLabel}
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={submitDisabled || submitLoading}
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitLoading}
               >
-                {submitLoading ? "Loading..." : submitLabel}
-              </Button>
+                {submitLoading ? "Loading..." : confirmLabel}
+              </button>
             </DialogFooter>
           )}
         </form>
@@ -160,344 +161,231 @@ const FormModal: React.FC<FormModalProps> = ({
   )
 }
 
-// Confirmation Modal Component
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title = "Are you sure?",
-  description = "This action cannot be undone.",
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  variant = "default",
-  loading = false
-}) => {
-  const handleConfirm = () => {
-    onConfirm()
-  }
-
-  return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose} disabled={loading}>
-            {cancelLabel}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={loading}
-            className={cn(
-              variant === "destructive" && "bg-red-600 hover:bg-red-700"
-            )}
-          >
-            {loading ? "Loading..." : confirmLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
+interface DataTableModalProps {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  data: any[]
+  columns: {
+    key: string
+    label: string
+    render?: (value: any, row: any) => React.ReactNode
+  }[]
+  onRowClick?: (row: any) => void
+  className?: string
 }
 
-// Document Modal Component (for A4 documents, quotations, invoices)
-const DocumentModal: React.FC<DocumentModalProps> = ({
+export const DataTableModal: React.FC<DataTableModalProps> = ({
   isOpen,
   onClose,
   title,
-  description,
-  size = "2xl",
-  className,
-  showPrintButton = false,
-  onPrint,
-  showDownloadButton = false,
-  onDownload,
-  showActions = false,
-  actions,
-  children
+  data,
+  columns,
+  onRowClick,
+  className
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(sizeClasses[size], "document-modal", className)}>
-        {(title || description) && (
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                {title && <DialogTitle>{title}</DialogTitle>}
-                {description && <DialogDescription>{description}</DialogDescription>}
-              </div>
-              <div className="flex items-center space-x-2">
-                {showPrintButton && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onPrint}
-                  >
-                    Print
-                  </Button>
-                )}
-                {showDownloadButton && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onDownload}
-                  >
-                    Download
-                  </Button>
-                )}
-                {showActions && actions}
-              </div>
-            </div>
-          </DialogHeader>
-        )}
+      <DialogContent className={cn("sm:max-w-[600px]", className)}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         
-        <div className="document-content overflow-auto max-h-[70vh]">
-          {children}
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// Fullscreen Modal Component (for A4 documents)
-const FullscreenModal: React.FC<BaseModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  description,
-  className,
-  children
-}) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
-        "max-w-[100vw] w-full h-[100vh] m-0 p-0",
-        "fullscreen-modal",
-        className
-      )}>
-        {(title || description) && (
-          <DialogHeader className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                {title && <DialogTitle>{title}</DialogTitle>}
-                {description && <DialogDescription>{description}</DialogDescription>}
-              </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </DialogHeader>
-        )}
-        
-        <div className="flex-1 overflow-auto p-6">
-          {children}
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// View Modal Component (for read-only views)
-const ViewModal: React.FC<BaseModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  description,
-  size = "lg",
-  className,
-  children
-}) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(sizeClasses[size], className)}>
-        {(title || description) && (
-          <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-        )}
-        
-        <div className="space-y-4">
-          {children}
+        <div className="max-h-[400px] overflow-y-auto">
+          <table className="w-full border-collapse border border-gray-200">
+            <thead>
+              <tr className="bg-gray-50">
+                {columns.map((column) => (
+                  <th key={column.key} className="border border-gray-200 px-4 py-2 text-left">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, index) => (
+                <tr
+                  key={index}
+                  className={`hover:bg-gray-50 ${onRowClick ? "cursor-pointer" : ""}`}
+                  onClick={() => onRowClick?.(row)}
+                >
+                  {columns.map((column) => (
+                    <td key={column.key} className="border border-gray-200 px-4 py-2">
+                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+          >
             Close
-          </Button>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
 
-// Multi-step Modal Component
-export interface MultiStepModalProps extends BaseModalProps {
-  steps: {
-    title: string
-    content: React.ReactNode
-    isValid?: boolean
+interface DetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  data: { [key: string]: any }
+  fields: {
+    key: string
+    label: string
+    render?: (value: any) => React.ReactNode
   }[]
-  currentStep: number
-  onNext: () => void
-  onPrevious: () => void
-  onSubmit?: () => void
-  nextLabel?: string
-  previousLabel?: string
-  submitLabel?: string
-  loading?: boolean
+  className?: string
 }
 
-const MultiStepModal: React.FC<MultiStepModalProps> = ({
+export const DetailModal: React.FC<DetailModalProps> = ({
   isOpen,
   onClose,
   title,
-  description,
-  size = "lg",
-  className,
-  steps,
-  currentStep,
-  onNext,
-  onPrevious,
-  onSubmit,
-  nextLabel = "Next",
-  previousLabel = "Previous",
-  submitLabel = "Submit",
-  loading = false
+  data,
+  fields,
+  className
 }) => {
-  const isLastStep = currentStep === steps.length - 1
-  const isFirstStep = currentStep === 0
-  const currentStepData = steps[currentStep]
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(sizeClasses[size], className)}>
-        {(title || description) && (
-          <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-        )}
+      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         
-        {/* Step Indicator */}
-        <div className="flex items-center justify-between mb-4">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
-                index === currentStep
-                  ? "bg-blue-600 text-white"
-                  : index < currentStep
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-200 text-gray-600"
-              )}
-            >
-              {index + 1}
+        <div className="space-y-4">
+          {fields.map((field) => (
+            <div key={field.key} className="flex flex-col space-y-1">
+              <label className="text-sm font-medium text-gray-700">{field.label}</label>
+              <div className="text-sm text-gray-900">
+                {field.render ? field.render(data[field.key]) : data[field.key] || "N/A"}
+              </div>
             </div>
           ))}
         </div>
         
-        {/* Step Title */}
-        <h3 className="text-lg font-semibold mb-4">{currentStepData.title}</h3>
-        
-        {/* Step Content */}
-        <div className="space-y-4">
-          {currentStepData.content}
-        </div>
-        
-        {/* Navigation */}
         <DialogFooter>
-          <div className="flex justify-between w-full">
-            <Button
-              variant="outline"
-              onClick={onPrevious}
-              disabled={isFirstStep || loading}
-            >
-              {previousLabel}
-            </Button>
-            
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              
-              {isLastStep ? (
-                <Button
-                  onClick={onSubmit}
-                  disabled={!currentStepData.isValid || loading}
-                >
-                  {loading ? "Loading..." : submitLabel}
-                </Button>
-              ) : (
-                <Button
-                  onClick={onNext}
-                  disabled={!currentStepData.isValid || loading}
-                >
-                  {nextLabel}
-                </Button>
-              )}
-            </div>
-          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+          >
+            Close
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
 
-// Modal Hook for managing modal state
-export interface ModalState {
+interface MultiStepModalProps {
   isOpen: boolean
-  type?: "create" | "edit" | "view" | "delete"
-  data?: any
-  title?: string
-  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full"
+  onClose: () => void
+  title: string
+  currentStep: number
+  totalSteps: number
+  onNext: () => void
+  onPrevious: () => void
+  onSubmit: () => void
+  children: React.ReactNode
+  nextLabel?: string
+  previousLabel?: string
+  submitLabel?: string
+  canProceed?: boolean
+  isSubmitting?: boolean
+  className?: string
 }
 
-const useModal = (initialState: ModalState = { isOpen: false }) => {
-  const [modalState, setModalState] = React.useState<ModalState>(initialState)
+export const MultiStepModal: React.FC<MultiStepModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  currentStep,
+  totalSteps,
+  onNext,
+  onPrevious,
+  onSubmit,
+  children,
+  nextLabel = "Next",
+  previousLabel = "Previous",
+  submitLabel = "Submit",
+  canProceed = true,
+  isSubmitting = false,
+  className
+}) => {
+  const isLastStep = currentStep === totalSteps
+  const isFirstStep = currentStep === 1
 
-  const openModal = (
-    type: "create" | "edit" | "view" | "delete",
-    data?: any,
-    title?: string,
-    size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full"
-  ) => {
-    setModalState({
-      isOpen: true,
-      type,
-      data,
-      title,
-      size
-    })
-  }
-
-  const closeModal = () => {
-    setModalState({ isOpen: false })
-  }
-
-  const updateModal = (updates: Partial<ModalState>) => {
-    setModalState(prev => ({ ...prev, ...updates }))
-  }
-
-  return {
-    modalState,
-    openModal,
-    closeModal,
-    updateModal
-  }
-}
-
-// Export all components
-export {
-  BaseModal,
-  FormModal,
-  ConfirmationModal,
-  DocumentModal,
-  FullscreenModal,
-  ViewModal,
-  MultiStepModal,
-  useModal
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={cn("sm:max-w-[500px]", className)}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <div className="flex space-x-2 mt-2">
+            {Array.from({ length: totalSteps }, (_, index) => (
+              <div
+                key={index}
+                className={`h-2 flex-1 rounded ${
+                  index + 1 <= currentStep ? "bg-blue-500" : "bg-gray-200"
+                }`}
+              />
+            ))}
+          </div>
+        </DialogHeader>
+        
+        <div className="py-4">{children}</div>
+        
+        <DialogFooter>
+          {!isFirstStep && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onPrevious}
+              disabled={isSubmitting}
+            >
+              {previousLabel}
+            </button>
+          )}
+          
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          
+          {isLastStep ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={onSubmit}
+              disabled={!canProceed || isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : submitLabel}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={onNext}
+              disabled={!canProceed}
+            >
+              {nextLabel}
+            </button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 } 
