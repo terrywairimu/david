@@ -1,11 +1,15 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Edit, Trash2, Eye, Download } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import CashSaleModal from "@/components/ui/cash-sale-modal"
-import { printDocument, downloadDocument } from "@/lib/workflow-utils"
+import { 
+  printDocument, 
+  downloadDocument,
+  exportCashSales as exportCashSalesReport
+} from "@/lib/workflow-utils"
 
 interface CashSale {
   id: number
@@ -335,6 +339,11 @@ const CashSalesView = () => {
     setShowModal(true)
   }
 
+  // Export function
+  const exportCashSales = () => {
+    exportCashSalesReport(cashSales)
+  }
+
   const handleDelete = async (cashSale: CashSale) => {
     if (window.confirm(`Are you sure you want to delete cash sale ${cashSale.sale_number}?`)) {
       try {
@@ -453,7 +462,11 @@ const CashSalesView = () => {
           </div>
           
           <div className="col-md-3">
-            <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
+            <button 
+              className="btn w-100 shadow-sm export-btn" 
+              onClick={exportCashSales}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
               <i className="fas fa-download me-2"></i>
               Export
             </button>

@@ -1,6 +1,215 @@
 import { supabase } from "./supabase-client"
 import { toast } from "sonner"
 
+// Export functions
+export const exportQuotations = async (quotations: any[]) => {
+  try {
+    // Dynamic import for jsPDF
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(20)
+    doc.text('Quotations Report', 105, 20, { align: 'center' })
+    
+    // Add date
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    // Add summary section
+    doc.setFontSize(14)
+    doc.text('Quotation Summary', 20, 45)
+
+    // Add quotations table
+    const headers = [['Quotation #', 'Date', 'Client', 'Total Amount', 'Status']]
+    const data = quotations.map(quotation => [
+      quotation.quotation_number,
+      new Date(quotation.date_created).toLocaleDateString(),
+      quotation.client?.name || 'Unknown',
+      `KES ${quotation.grand_total?.toFixed(2) || '0.00'}`,
+      quotation.status
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    // Add total at the bottom
+    const total = quotations.reduce((sum, quotation) => {
+      return sum + (quotation.grand_total || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Quotations Value: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('quotations_report.pdf')
+    toast.success('Quotations report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export quotations report')
+  }
+}
+
+export const exportSalesOrders = async (salesOrders: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    doc.setFontSize(20)
+    doc.text('Sales Orders Report', 105, 20, { align: 'center' })
+    
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    doc.setFontSize(14)
+    doc.text('Sales Orders Summary', 20, 45)
+
+    const headers = [['Order #', 'Date', 'Client', 'Total Amount', 'Status']]
+    const data = salesOrders.map(order => [
+      order.order_number,
+      new Date(order.date_created).toLocaleDateString(),
+      order.client?.name || 'Unknown',
+      `KES ${order.grand_total?.toFixed(2) || '0.00'}`,
+      order.status
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    const total = salesOrders.reduce((sum, order) => {
+      return sum + (order.grand_total || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Sales Orders Value: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('sales_orders_report.pdf')
+    toast.success('Sales orders report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export sales orders report')
+  }
+}
+
+export const exportInvoices = async (invoices: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    doc.setFontSize(20)
+    doc.text('Invoices Report', 105, 20, { align: 'center' })
+    
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    doc.setFontSize(14)
+    doc.text('Invoices Summary', 20, 45)
+
+    const headers = [['Invoice #', 'Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status']]
+    const data = invoices.map(invoice => [
+      invoice.invoice_number,
+      new Date(invoice.date_created).toLocaleDateString(),
+      invoice.client?.name || 'Unknown',
+      `KES ${invoice.grand_total?.toFixed(2) || '0.00'}`,
+      `KES ${invoice.paid_amount?.toFixed(2) || '0.00'}`,
+      `KES ${invoice.balance_amount?.toFixed(2) || '0.00'}`,
+      invoice.status
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    const total = invoices.reduce((sum, invoice) => {
+      return sum + (invoice.grand_total || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Invoices Value: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('invoices_report.pdf')
+    toast.success('Invoices report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export invoices report')
+  }
+}
+
+export const exportCashSales = async (cashSales: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    doc.setFontSize(20)
+    doc.text('Cash Sales Report', 105, 20, { align: 'center' })
+    
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    doc.setFontSize(14)
+    doc.text('Cash Sales Summary', 20, 45)
+
+    const headers = [['Receipt #', 'Date', 'Client', 'Total Amount', 'Status']]
+    const data = cashSales.map(sale => [
+      sale.sale_number,
+      new Date(sale.date_created).toLocaleDateString(),
+      sale.client?.name || 'Unknown',
+      `KES ${sale.grand_total?.toFixed(2) || '0.00'}`,
+      sale.status
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    const total = cashSales.reduce((sum, sale) => {
+      return sum + (sale.grand_total || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Cash Sales Value: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('cash_sales_report.pdf')
+    toast.success('Cash sales report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export cash sales report')
+  }
+}
+
 export interface WorkflowItem {
   id?: number
   category: "cabinet" | "worktop" | "accessories"

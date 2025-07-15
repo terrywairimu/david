@@ -1,13 +1,15 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Edit, Trash2, Eye, Download, Receipt } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import InvoiceModal from "@/components/ui/invoice-modal"
 import { 
+  proceedToCashSaleFromInvoice, 
   printDocument, 
-  downloadDocument 
+  downloadDocument,
+  exportInvoices as exportInvoicesReport
 } from "@/lib/workflow-utils"
 
 interface Invoice {
@@ -351,6 +353,11 @@ const InvoicesView = () => {
     setShowModal(true)
   }
 
+  // Export function
+  const exportInvoices = () => {
+    exportInvoicesReport(invoices)
+  }
+
   const handleDelete = async (invoice: Invoice) => {
     if (window.confirm(`Are you sure you want to delete invoice ${invoice.invoice_number}?`)) {
       try {
@@ -473,7 +480,11 @@ const InvoicesView = () => {
           </div>
           
           <div className="col-md-3">
-            <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
+            <button 
+              className="btn w-100 shadow-sm export-btn" 
+              onClick={exportInvoices}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
               <i className="fas fa-download me-2"></i>
               Export
             </button>

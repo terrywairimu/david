@@ -9,7 +9,8 @@ import {
   proceedToSalesOrder, 
   proceedToCashSale, 
   printDocument, 
-  downloadDocument 
+  downloadDocument,
+  exportQuotations as exportQuotationsReport
 } from "@/lib/workflow-utils"
 
 interface Quotation {
@@ -385,7 +386,7 @@ const QuotationsView = () => {
 
   // Export function
   const exportQuotations = () => {
-    toast.info("Export functionality coming soon!")
+    exportQuotationsReport(quotations)
   }
 
 

@@ -9,7 +9,8 @@ import {
   proceedToInvoice, 
   proceedToCashSaleFromSalesOrder, 
   printDocument, 
-  downloadDocument 
+  downloadDocument,
+  exportSalesOrders as exportSalesOrdersReport
 } from "@/lib/workflow-utils"
 
 interface SalesOrder {
@@ -387,7 +388,7 @@ const SalesOrdersView = () => {
 
   // Export function
   const exportSalesOrders = () => {
-    toast.info("Export functionality coming soon!")
+    exportSalesOrdersReport(salesOrders)
   }
 
   return (
