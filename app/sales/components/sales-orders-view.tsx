@@ -82,7 +82,7 @@ const SalesOrdersView = () => {
       if (error) throw error
       setSalesOrders(data || [])
     } catch (error) {
-      console.error("Error fetching sales orders:", error)
+        console.error("Error fetching sales orders:", error)
       toast.error("Failed to load sales orders")
     } finally {
       setLoading(false)
@@ -99,15 +99,15 @@ const SalesOrdersView = () => {
 
       if (error) throw error
       
-      const clientOptions = [
-        { value: "", label: "All Clients" },
+        const clientOptions = [
+          { value: "", label: "All Clients" },
         ...(data || []).map(client => ({
-          value: client.id.toString(),
+            value: client.id.toString(),
           label: client.name
         }))
-      ]
+        ]
       
-      setClients(clientOptions)
+        setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -131,7 +131,7 @@ const SalesOrdersView = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (order) =>
-          order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.notes?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -469,7 +469,7 @@ const SalesOrdersView = () => {
           <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
             <i className="fas fa-download me-2"></i>
             Export
-          </button>
+        </button>
         </div>
       </div>
 
@@ -523,22 +523,22 @@ const SalesOrdersView = () => {
                         onClick={() => handleView(order)}
                         title="View"
                       >
-                        <Eye size={14} />
-                      </button>
+                      <Eye size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handleEdit(order)}
                         title="Edit"
                       >
-                        <Edit size={14} />
-                      </button>
+                      <Edit size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handleDelete(order)}
                         title="Delete"
                       >
-                        <Trash2 size={14} />
-                      </button>
+                      <Trash2 size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handlePrint(order)}

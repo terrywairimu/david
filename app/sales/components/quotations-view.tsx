@@ -81,7 +81,7 @@ const QuotationsView = () => {
       if (error) throw error
       setQuotations(data || [])
     } catch (error) {
-      console.error("Error fetching quotations:", error)
+        console.error("Error fetching quotations:", error)
       toast.error("Failed to load quotations")
     } finally {
       setLoading(false)
@@ -98,15 +98,15 @@ const QuotationsView = () => {
 
       if (error) throw error
       
-      const clientOptions = [
-        { value: "", label: "All Clients" },
+        const clientOptions = [
+          { value: "", label: "All Clients" },
         ...(data || []).map(client => ({
-          value: client.id.toString(),
+            value: client.id.toString(),
           label: client.name
         }))
-      ]
+        ]
       
-      setClients(clientOptions)
+        setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -130,7 +130,7 @@ const QuotationsView = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (quotation) =>
-          quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           quotation.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           quotation.notes?.toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -534,22 +534,22 @@ const QuotationsView = () => {
                         onClick={() => handleView(quotation)}
                         title="View"
                       >
-                        <Eye size={14} />
-                      </button>
+                      <Eye size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handleEdit(quotation)}
                         title="Edit"
                       >
-                        <Edit size={14} />
-                      </button>
+                      <Edit size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handleDelete(quotation)}
                         title="Delete"
                       >
-                        <Trash2 size={14} />
-                      </button>
+                      <Trash2 size={14} />
+                    </button>
                       <button 
                         className="action-btn"
                         onClick={() => handlePrint(quotation)}
