@@ -1,22 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Edit, Trash2, Eye, Download, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import SearchFilterRow from "@/components/ui/search-filter-row"
 
 interface RegisteredEntity {
   id: number
   name: string
   type: "client" | "supplier"
   phone?: string
-  email?: string
-  address?: string
-  city?: string
-  country?: string
+  pin?: string
+  location?: string
+  date_added: string
   status: "active" | "inactive"
-  date_created: string
 }
 
 const RegisterTable = () => {
@@ -25,7 +22,7 @@ const RegisterTable = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("")
   const [locationFilter, setLocationFilter] = useState("")
-  const [locations, setLocations] = useState<{ value: string; label: string }[]>([])
+  const [locations, setLocations] = useState<string[]>([])
 
   useEffect(() => {
     fetchEntities()
@@ -56,22 +53,15 @@ const RegisterTable = () => {
     try {
       const { data, error } = await supabase
         .from("registered_entities")
-        .select("city")
+        .select("location")
         .eq("status", "active")
-        .not("city", "is", null)
+        .not("location", "is", null)
 
       if (error) {
         console.error("Error fetching locations:", error)
       } else {
-        const uniqueLocations = [...new Set(data.map(item => item.city).filter(Boolean))]
-        const locationOptions = [
-          { value: "", label: "All Locations" },
-          ...uniqueLocations.map((location) => ({
-            value: location,
-            label: location,
-          })),
-        ]
-        setLocations(locationOptions)
+        const uniqueLocations = [...new Set(data.map(item => item.location).filter(Boolean))]
+        setLocations(uniqueLocations)
       }
     } catch (error) {
       console.error("Error fetching locations:", error)
@@ -82,11 +72,11 @@ const RegisterTable = () => {
     const matchesSearch =
       entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entity.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entity.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      entity.pin?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesType = typeFilter === "" || entity.type === typeFilter
 
-    const matchesLocation = locationFilter === "" || entity.city === locationFilter
+    const matchesLocation = locationFilter === "" || entity.location === locationFilter
 
     return matchesSearch && matchesType && matchesLocation
   })
@@ -101,15 +91,14 @@ const RegisterTable = () => {
 
   const exportToCSV = () => {
     const csvContent = [
-      ["Name", "Type", "Phone", "Email", "Address", "City", "Country"],
+      ["Name", "Type", "Phone Number", "Location", "PIN Number", "Date Added"],
       ...filteredEntities.map((entity) => [
         entity.name,
         entity.type,
         entity.phone || "",
-        entity.email || "",
-        entity.address || "",
-        entity.city || "",
-        entity.country || "",
+        entity.location || "",
+        entity.pin || "",
+        new Date(entity.date_added).toLocaleDateString(),
       ]),
     ]
       .map((row) => row.join(","))
@@ -124,40 +113,63 @@ const RegisterTable = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  const typeOptions = [
-    { value: "", label: "All Types" },
-    { value: "client", label: "Clients" },
-    { value: "supplier", label: "Suppliers" },
-  ]
-
   return (
     <div className="card-body">
-      {/* Add New Entity Button */}
-      <div className="d-flex mb-4">
-        <button className="btn btn-add">
-          <Plus size={16} className="me-2" />
-          Add New Entity
-        </button>
-      </div>
-
       {/* Search and Filter Controls */}
-      <SearchFilterRow
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search..."
-        firstFilter={{
-          value: typeFilter,
-          onChange: setTypeFilter,
-          options: typeOptions,
-        }}
-        secondFilter={{
-          value: locationFilter,
-          onChange: setLocationFilter,
-          options: locations,
-        }}
-        onExport={exportToCSV}
-        exportLabel="Export"
-      />
+      <div className="row mb-4">
+        <div className="col-md-4">
+          <div className="input-group shadow-sm">
+            <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+              <Search className="text-muted" size={16} />
+            </span>
+            <input
+              type="text"
+              className="form-control border-0 py-2"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+            />
+          </div>
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select border-0 py-2 shadow-sm"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ borderRadius: "16px", height: "45px" }}
+          >
+            <option value="">All Types</option>
+            <option value="client">Clients</option>
+            <option value="supplier">Suppliers</option>
+          </select>
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select border-0 py-2 shadow-sm"
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            style={{ borderRadius: "16px", height: "45px" }}
+          >
+            <option value="">All Locations</option>
+            {locations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-2">
+          <button
+            className="btn w-100 shadow-sm export-btn"
+            onClick={exportToCSV}
+            style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+          >
+            <Download className="me-2" size={16} />
+            Export
+          </button>
+        </div>
+      </div>
 
       {/* Register Table */}
       <div className="table-responsive">
@@ -166,24 +178,25 @@ const RegisterTable = () => {
             <tr>
               <th>Name</th>
               <th>Type</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th>City</th>
-              <th>Country</th>
+              <th>Phone Number</th>
+              <th>Location</th>
+              <th>PIN Number</th>
+              <th>Date Added</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="text-center">
-                  Loading...
+                <td colSpan={7} className="text-center">
+                  <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
                 </td>
               </tr>
             ) : filteredEntities.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center">
+                <td colSpan={7} className="text-center">
                   No entities found
                 </td>
               </tr>
@@ -197,20 +210,21 @@ const RegisterTable = () => {
                     </span>
                   </td>
                   <td>{entity.phone || "-"}</td>
-                  <td>{entity.email || "-"}</td>
-                  <td>{entity.address || "-"}</td>
-                  <td>{entity.city || "-"}</td>
-                  <td>{entity.country || "-"}</td>
+                  <td>{entity.location || "-"}</td>
+                  <td>{entity.pin || "-"}</td>
+                  <td>{new Date(entity.date_added).toLocaleDateString()}</td>
                   <td>
-                    <button className="action-btn me-1">
-                      <Eye size={14} />
-                    </button>
-                    <button className="action-btn me-1">
-                      <Edit size={14} />
-                    </button>
-                    <button className="action-btn">
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="d-flex gap-1">
+                      <button className="btn btn-sm btn-outline-primary" title="View">
+                        <Eye size={14} />
+                      </button>
+                      <button className="btn btn-sm btn-outline-warning" title="Edit">
+                        <Edit size={14} />
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger" title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
