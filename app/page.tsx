@@ -92,6 +92,7 @@ const HomePage = () => {
       const { data, error } = await supabase
         .from("registered_entities")
         .select("*")
+        .eq("status", "active")
         .order("date_added", { ascending: false })
 
       if (error) {
@@ -132,7 +133,10 @@ const HomePage = () => {
     e.preventDefault()
 
     try {
-      const { data, error } = await supabase.from("registered_entities").insert([formData])
+      const { data, error } = await supabase.from("registered_entities").insert([{
+        ...formData,
+        status: "active"
+      }])
 
       if (error) {
         console.error("Error inserting entity:", error)
