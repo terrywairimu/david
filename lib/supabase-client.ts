@@ -109,7 +109,7 @@ export class RegisterService {
       const { data, error, count } = await query
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<PaginatedResponse<RegisteredEntity>>(false, undefined, error.message)
       }
 
       const paginatedResponse = createPaginatedResponse(
@@ -121,7 +121,7 @@ export class RegisterService {
 
       return createApiResponse(true, paginatedResponse)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<PaginatedResponse<RegisteredEntity>>(false, undefined, (error as Error).message)
     }
   }
 
@@ -134,12 +134,12 @@ export class RegisterService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<RegisteredEntity>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<RegisteredEntity>(false, undefined, (error as Error).message)
     }
   }
 
@@ -155,12 +155,12 @@ export class RegisterService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<RegisteredEntity>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Entity created successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<RegisteredEntity>(false, undefined, (error as Error).message)
     }
   }
 
@@ -174,12 +174,12 @@ export class RegisterService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<RegisteredEntity>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Entity updated successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<RegisteredEntity>(false, undefined, (error as Error).message)
     }
   }
 
@@ -191,12 +191,12 @@ export class RegisterService {
         .eq('id', id)
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<boolean>(false, undefined, error.message)
       }
 
       return createApiResponse(true, true, undefined, 'Entity deleted successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<boolean>(false, undefined, (error as Error).message)
     }
   }
 
@@ -215,12 +215,12 @@ export class RegisterService {
       const { data, error } = await query.limit(10)
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<RegisteredEntity[]>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data || [])
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<RegisteredEntity[]>(false, undefined, (error as Error).message)
     }
   }
 }
@@ -262,7 +262,7 @@ export class StockService {
       const { data, error, count } = await query
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       const paginatedResponse = createPaginatedResponse(
@@ -274,7 +274,7 @@ export class StockService {
 
       return createApiResponse(true, paginatedResponse)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -290,12 +290,12 @@ export class StockService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -316,12 +316,12 @@ export class StockService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Stock item created successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -346,12 +346,12 @@ export class StockService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Stock item updated successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -365,7 +365,7 @@ export class StockService {
         .single()
 
       if (getError) {
-        return createApiResponse(false, undefined, getError.message)
+        return createApiResponse<StockItem>(false, undefined, getError.message)
       }
 
       // Update stock quantity
@@ -391,7 +391,7 @@ export class StockService {
 
       return updatedItem
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -404,12 +404,12 @@ export class StockService {
         .limit(10)
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data || [])
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -422,12 +422,12 @@ export class StockService {
         .order('quantity', { ascending: true })
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data || [])
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 }
@@ -476,7 +476,7 @@ export class QuotationService {
       const { data, error, count } = await query
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       const paginatedResponse = createPaginatedResponse(
@@ -488,7 +488,7 @@ export class QuotationService {
 
       return createApiResponse(true, paginatedResponse)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -508,12 +508,12 @@ export class QuotationService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data)
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -547,12 +547,12 @@ export class QuotationService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Quotation created successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -569,12 +569,12 @@ export class QuotationService {
         .single()
 
       if (error) {
-        return createApiResponse(false, undefined, error.message)
+        return createApiResponse<any>(false, undefined, error.message)
       }
 
       return createApiResponse(true, data, undefined, 'Quotation updated successfully')
     } catch (error) {
-      return createApiResponse(false, undefined, (error as Error).message)
+      return createApiResponse<any>(false, undefined, (error as Error).message)
     }
   }
 
@@ -727,8 +727,26 @@ export class NumberGenerationService {
 }
 
 // Export all services
-export {
-  handleDatabaseResponse,
-  createApiResponse,
-  createPaginatedResponse
-}
+export type {
+  RegisteredEntity,
+  StockItem,
+  Quotation,
+  QuotationItem,
+  SalesOrder,
+  SalesOrderItem,
+  Invoice,
+  InvoiceItem,
+  Payment,
+  Expense,
+  Purchase,
+  PurchaseItem,
+  CashSale,
+  CashSaleItem,
+  StockMovement,
+  AccountSummary,
+  DatabaseResult,
+  ApiResponse,
+  PaginatedResponse,
+  FilterState,
+  PaginationInfo
+} from "./types"
