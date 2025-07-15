@@ -387,199 +387,209 @@ const SalesOrdersView = () => {
 
   return (
     <div className="sales-orders-view">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5>Sales Orders</h5>
-      </div>
+      <div className="card-body">
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5>Sales Orders</h5>
+        </div>
 
-      {/* Search and Filter Row */}
-      <div className="row mb-3">
-        <div className="col-md-3">
-          <div className="input-group">
-            <span className="input-group-text bg-white border-end-0">
-              <i className="fas fa-search"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control border-start-0"
-              placeholder="Search sales orders..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-            />
+        {/* Search and Filter Row */}
+        <div className="row mb-3">
+          <div className="col-md-3">
+            <div className="input-group">
+              <span className="input-group-text bg-white border-end-0">
+                <i className="fas fa-search"></i>
+              </span>
+              <input
+                type="text"
+                className="form-control border-start-0"
+                placeholder="Search sales orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+              />
+            </div>
           </div>
-        </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            {clients.map((client) => (
-              <option key={client.value} value={client.value}>
-                {client.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={dateFilter}
-            onChange={(e) => handleDateFilterChange(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <option value="">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="specific">Specific Date</option>
-            <option value="period">Specific Period</option>
-          </select>
           
-          {dateFilter === "specific" && (
-            <input
-              type="date"
-              className="form-control border-0 shadow-sm mt-2"
-              value={specificDate}
-              onChange={(e) => setSpecificDate(e.target.value)}
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
               style={{ borderRadius: "16px", height: "45px" }}
-            />
-          )}
+            >
+              {clients.map((client) => (
+                <option key={client.value} value={client.value}>
+                  {client.label}
+                </option>
+              ))}
+            </select>
+          </div>
           
-          {dateFilter === "period" && (
-            <div style={{ display: "block" }}>
-              <div className="d-flex align-items-center justify-content-between mt-2">
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <option value="">All Dates</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+              <option value="specific">Specific Date</option>
+              <option value="period">Specific Period</option>
+            </select>
+            
+            {dateFilter === "specific" && (
+              <input
+                type="date"
+                className="form-control border-0 shadow-sm mt-2"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              />
+            )}
+            
+            {dateFilter === "period" && (
+              <div className="d-flex gap-2 mt-2">
                 <input
                   type="date"
                   className="form-control border-0 shadow-sm"
+                  placeholder="Start Date"
                   value={periodStartDate}
                   onChange={(e) => setPeriodStartDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  style={{ borderRadius: "16px", height: "45px" }}
                 />
-                <span className="mx-2">to</span>
                 <input
                   type="date"
                   className="form-control border-0 shadow-sm"
+                  placeholder="End Date"
                   value={periodEndDate}
                   onChange={(e) => setPeriodEndDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  style={{ borderRadius: "16px", height: "45px" }}
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          
+          <div className="col-md-3">
+            <button
+              className="btn w-100 shadow-sm export-btn"
+              onClick={exportSalesOrders}
+              style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+            >
+              <Download size={16} className="me-2" />
+              Export
+            </button>
+          </div>
         </div>
-        
-        <div className="col-md-3">
-          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
-            <i className="fas fa-download me-2"></i>
-            Export
-          </button>
-        </div>
-      </div>
 
-      {/* Sales Orders Table */}
-      <div className="table-responsive">
-        <table className="table" id="salesOrdersTable">
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Total Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Sales Orders Table */}
+        <div className="table-responsive">
+          <table className="table table-hover">
+            <thead>
               <tr>
-                <td colSpan={6} className="text-center">
-                  Loading...
-                </td>
+                <th>Order #</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ) : filteredSalesOrders.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center">
-                  No sales orders found
-                </td>
-              </tr>
-            ) : (
-              filteredSalesOrders.map((order) => (
-                <tr key={order.id}>
-                  <td className="fw-bold">{order.order_number}</td>
-                  <td>{new Date(order.date_created).toLocaleDateString()}</td>
-                  <td>
-                    <div>{order.client?.name}</div>
-                    {order.client?.phone && (
-                      <small className="text-muted">{order.client.phone}</small>
-                    )}
-                  </td>
-                  <td>KES {order.grand_total.toFixed(2)}</td>
-                  <td>
-                    <span className={getStatusBadge(order.status)}>
-                      {order.status.replace(/_/g, " ")}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleView(order)}
-                        title="View"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleEdit(order)}
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleDelete(order)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handlePrint(order)}
-                        title="Print"
-                      >
-                        <Download size={14} />
-                      </button>
-                      {order.status === "pending" && (
-                        <>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToInvoice(order)}
-                            title="Proceed to Invoice"
-                          >
-                            <FileText size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToCashSale(order)}
-                            title="Proceed to Cash Sale"
-                          >
-                            <Receipt size={14} />
-                          </button>
-                        </>
-                      )}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredSalesOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4 text-muted">
+                    No sales orders found
+                  </td>
+                </tr>
+              ) : (
+                filteredSalesOrders.map((salesOrder) => (
+                  <tr key={salesOrder.id}>
+                    <td>{salesOrder.order_number}</td>
+                    <td>{new Date(salesOrder.date_created).toLocaleDateString()}</td>
+                    <td>{salesOrder.client?.name || "Unknown"}</td>
+                    <td>${salesOrder.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>
+                      <span className={`badge ${getStatusBadge(salesOrder.status)}`}>
+                        {salesOrder.status.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleView(salesOrder)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleEdit(salesOrder)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleDelete(salesOrder)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handlePrint(salesOrder)}
+                          title="Print"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleDownload(salesOrder)}
+                          title="Download"
+                        >
+                          <FileText size={14} />
+                        </button>
+                        
+                        {salesOrder.status === "pending" && (
+                          <>
+                            <button 
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleProceedToInvoice(salesOrder)}
+                              title="Proceed to Invoice"
+                            >
+                              <FileText size={14} />
+                            </button>
+                            <button 
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleProceedToCashSale(salesOrder)}
+                              title="Proceed to Cash Sale"
+                            >
+                              <Receipt size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Sales Order Modal */}

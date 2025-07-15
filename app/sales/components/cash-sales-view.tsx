@@ -364,175 +364,177 @@ const CashSalesView = () => {
 
   return (
     <div className="cash-sales-view">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5>Cash Sales</h5>
-      </div>
+      <div className="card-body">
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5>Cash Sales</h5>
+        </div>
 
-      {/* Search and Filter Row */}
-      <div className="row mb-3">
-        <div className="col-md-3">
-          <div className="input-group">
-            <span className="input-group-text bg-white border-end-0">
-              <i className="fas fa-search"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control border-start-0"
-              placeholder="Search cash sales..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-            />
+        {/* Search and Filter Row */}
+        <div className="row mb-3">
+          <div className="col-md-3">
+            <div className="input-group">
+              <span className="input-group-text bg-white border-end-0">
+                <i className="fas fa-search"></i>
+              </span>
+              <input
+                type="text"
+                className="form-control border-start-0"
+                placeholder="Search cash sales..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+              />
+            </div>
+          </div>
+          
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              {clients.map((client) => (
+                <option key={client.value} value={client.value}>
+                  {client.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <option value="">All Dates</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+              <option value="specific">Specific Date</option>
+              <option value="period">Specific Period</option>
+            </select>
+            
+            {dateFilter === "specific" && (
+              <input
+                type="date"
+                className="form-control border-0 shadow-sm mt-2"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              />
+            )}
+            
+            {dateFilter === "period" && (
+              <div style={{ display: "block" }}>
+                <div className="d-flex align-items-center justify-content-between mt-2">
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    value={periodStartDate}
+                    onChange={(e) => setPeriodStartDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  />
+                  <span className="mx-2">to</span>
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    value={periodEndDate}
+                    onChange={(e) => setPeriodEndDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="col-md-3">
+            <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
+              <i className="fas fa-download me-2"></i>
+              Export
+            </button>
           </div>
         </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            {clients.map((client) => (
-              <option key={client.value} value={client.value}>
-                {client.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={dateFilter}
-            onChange={(e) => handleDateFilterChange(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <option value="">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="specific">Specific Date</option>
-            <option value="period">Specific Period</option>
-          </select>
-          
-          {dateFilter === "specific" && (
-            <input
-              type="date"
-              className="form-control border-0 shadow-sm mt-2"
-              value={specificDate}
-              onChange={(e) => setSpecificDate(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            />
-          )}
-          
-          {dateFilter === "period" && (
-            <div style={{ display: "block" }}>
-              <div className="d-flex align-items-center justify-content-between mt-2">
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  value={periodStartDate}
-                  onChange={(e) => setPeriodStartDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                />
-                <span className="mx-2">to</span>
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  value={periodEndDate}
-                  onChange={(e) => setPeriodEndDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="col-md-3">
-          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
-            <i className="fas fa-download me-2"></i>
-            Export
-          </button>
-        </div>
-      </div>
 
-      {/* Cash Sales Table */}
-      <div className="table-responsive">
-        <table className="table" id="cashSalesTable">
-          <thead>
-            <tr>
-              <th>Receipt #</th>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Total Amount</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Cash Sales Table */}
+        <div className="table-responsive">
+          <table className="table" id="cashSalesTable">
+            <thead>
               <tr>
-                <td colSpan={5} className="text-center">
-                  Loading...
-                </td>
+                <th>Receipt #</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Total Amount</th>
+                <th>Actions</th>
               </tr>
-            ) : filteredCashSales.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center">
-                  No cash sales found
-                </td>
-              </tr>
-            ) : (
-              filteredCashSales.map((sale) => (
-                <tr key={sale.id}>
-                  <td className="fw-bold">{sale.sale_number}</td>
-                  <td>{new Date(sale.date_created).toLocaleDateString()}</td>
-                  <td>
-                    <div>{sale.client?.name}</div>
-                    {sale.client?.phone && (
-                      <small className="text-muted">{sale.client.phone}</small>
-                    )}
-                  </td>
-                  <td>KES {sale.grand_total.toFixed(2)}</td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleView(sale)}
-                        title="View"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleEdit(sale)}
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleDelete(sale)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handlePrint(sale)}
-                        title="Print"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center">
+                    Loading...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredCashSales.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center">
+                    No cash sales found
+                  </td>
+                </tr>
+              ) : (
+                filteredCashSales.map((sale) => (
+                  <tr key={sale.id}>
+                    <td className="fw-bold">{sale.sale_number}</td>
+                    <td>{new Date(sale.date_created).toLocaleDateString()}</td>
+                    <td>
+                      <div>{sale.client?.name}</div>
+                      {sale.client?.phone && (
+                        <small className="text-muted">{sale.client.phone}</small>
+                      )}
+                    </td>
+                    <td>KES {sale.grand_total.toFixed(2)}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button 
+                          className="action-btn"
+                          onClick={() => handleView(sale)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => handleEdit(sale)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => handleDelete(sale)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button 
+                          className="action-btn"
+                          onClick={() => handlePrint(sale)}
+                          title="Print"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Cash Sale Modal */}

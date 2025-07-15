@@ -385,213 +385,224 @@ const QuotationsView = () => {
 
   return (
     <div className="quotations-view">
-      {/* Add New Quotation Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5>Quotations</h5>
-        <button className="btn btn-add" onClick={handleNewQuotation}>
-          <Plus size={16} />
-          Add New Quotation
-        </button>
-      </div>
-
-      {/* Search and Filter Row */}
-      <div className="row mb-3">
-        <div className="col-md-3">
-          <div className="input-group">
-            <span className="input-group-text bg-white border-end-0">
-              <i className="fas fa-search"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control border-start-0"
-              placeholder="Search quotations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-            />
-          </div>
-        </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            {clients.map((client) => (
-              <option key={client.value} value={client.value}>
-                {client.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 shadow-sm"
-            value={dateFilter}
-            onChange={(e) => handleDateFilterChange(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <option value="">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="specific">Specific Date</option>
-            <option value="period">Specific Period</option>
-          </select>
-          
-          {dateFilter === "specific" && (
-            <input
-              type="date"
-              className="form-control border-0 shadow-sm mt-2"
-              value={specificDate}
-              onChange={(e) => setSpecificDate(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            />
-          )}
-          
-          {dateFilter === "period" && (
-            <div style={{ display: "block" }}>
-              <div className="d-flex align-items-center justify-content-between mt-2">
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  value={periodStartDate}
-                  onChange={(e) => setPeriodStartDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                />
-                <span className="mx-2">to</span>
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  value={periodEndDate}
-                  onChange={(e) => setPeriodEndDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="col-md-3">
-          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
-            <i className="fas fa-download me-2"></i>
-            Export
+      <div className="card-body">
+        {/* Add New Quotation Button */}
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5>Quotations</h5>
+          <button className="btn btn-add" onClick={handleNewQuotation}>
+            <Plus size={16} />
+            Add New Quotation
           </button>
         </div>
-      </div>
 
-      {/* Quotations Table */}
-      <div className="table-responsive">
-        <table className="table" id="quotationsTable">
-          <thead>
-            <tr>
-              <th>Quotation #</th>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Total Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Search and Filter Row */}
+        <div className="row mb-3">
+          <div className="col-md-3">
+            <div className="input-group">
+              <span className="input-group-text bg-white border-end-0">
+                <i className="fas fa-search"></i>
+              </span>
+              <input
+                type="text"
+                className="form-control border-start-0"
+                placeholder="Search quotations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+              />
+            </div>
+          </div>
+          
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              {clients.map((client) => (
+                <option key={client.value} value={client.value}>
+                  {client.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <option value="">All Dates</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+              <option value="specific">Specific Date</option>
+              <option value="period">Specific Period</option>
+            </select>
+            
+            {dateFilter === "specific" && (
+              <input
+                type="date"
+                className="form-control border-0 shadow-sm mt-2"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              />
+            )}
+            
+            {dateFilter === "period" && (
+              <div className="d-flex gap-2 mt-2">
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="Start Date"
+                  value={periodStartDate}
+                  onChange={(e) => setPeriodStartDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                />
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="End Date"
+                  value={periodEndDate}
+                  onChange={(e) => setPeriodEndDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="col-md-3">
+            <button
+              className="btn w-100 shadow-sm export-btn"
+              onClick={exportQuotations}
+              style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+            >
+              <Download size={16} className="me-2" />
+              Export
+            </button>
+          </div>
+        </div>
+
+        {/* Quotations Table */}
+        <div className="table-responsive">
+          <table className="table table-hover">
+            <thead>
               <tr>
-                <td colSpan={6} className="text-center">
-                  Loading...
-                </td>
+                <th>Quotation #</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ) : filteredQuotations.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center">
-                  No quotations found
-                </td>
-              </tr>
-            ) : (
-              filteredQuotations.map((quotation) => (
-                <tr key={quotation.id}>
-                  <td className="fw-bold">{quotation.quotation_number}</td>
-                  <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
-                  <td>
-                    <div>{quotation.client?.name}</div>
-                    {quotation.client?.phone && (
-                      <small className="text-muted">{quotation.client.phone}</small>
-                    )}
-                  </td>
-                  <td>KES {quotation.grand_total.toFixed(2)}</td>
-                  <td>
-                    <span className={getStatusBadge(quotation.status)}>
-                      {quotation.status.replace(/_/g, " ")}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleView(quotation)}
-                        title="View"
-                      >
-                      <Eye size={14} />
-                    </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleEdit(quotation)}
-                        title="Edit"
-                      >
-                      <Edit size={14} />
-                    </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handleDelete(quotation)}
-                        title="Delete"
-                      >
-                      <Trash2 size={14} />
-                    </button>
-                      <button 
-                        className="action-btn"
-                        onClick={() => handlePrint(quotation)}
-                        title="Print"
-                      >
-                        <Download size={14} />
-                      </button>
-                      {quotation.status === "pending" && (
-                        <>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToSalesOrder(quotation)}
-                            title="Proceed to Sales Order"
-                          >
-                            <FileText size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToCashSale(quotation)}
-                            title="Proceed to Cash Sale"
-                          >
-                            <Receipt size={14} />
-                          </button>
-                        </>
-                      )}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredQuotations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4 text-muted">
+                    No quotations found
+                  </td>
+                </tr>
+              ) : (
+                filteredQuotations.map((quotation) => (
+                  <tr key={quotation.id}>
+                    <td>{quotation.quotation_number}</td>
+                    <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
+                    <td>{quotation.client?.name || "Unknown"}</td>
+                    <td>${quotation.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>
+                      <span className={`badge ${getStatusBadge(quotation.status)}`}>
+                        {quotation.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => viewQuotation(quotation)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => editQuotation(quotation)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => deleteQuotation(quotation.id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => printDocument(quotation, "quotation")}
+                          title="Print"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => downloadDocument(quotation, "quotation")}
+                          title="Download"
+                        >
+                          <FileText size={14} />
+                        </button>
+                        
+                        {quotation.status === "accepted" && (
+                          <>
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => proceedToSalesOrder(quotation)}
+                              title="Create Sales Order"
+                            >
+                              <CreditCard size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => proceedToCashSale(quotation)}
+                              title="Create Cash Sale"
+                            >
+                              <Receipt size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Quotation Modal */}
-      <QuotationModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSave={handleModalSave}
-        quotation={selectedQuotation}
-        mode={modalMode}
-      />
+      {showModal && (
+        <QuotationModal
+          quotation={selectedQuotation}
+          mode={modalMode}
+          onClose={() => setShowModal(false)}
+          onSave={handleSaveQuotation}
+        />
+      )}
     </div>
   )
 }
