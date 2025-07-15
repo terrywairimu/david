@@ -7,13 +7,17 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 
 const Sidebar = () => {
-  const [activeSection, setActiveSection] = useState("register")
+  const [activeSection, setActiveSection] = useState("dashboard")
   const pathname = usePathname()
 
   useEffect(() => {
     // Set active section based on current path
-    const path = pathname.split("/")[1] || "register"
-    setActiveSection(path)
+    if (pathname === "/") {
+      setActiveSection("dashboard")
+    } else {
+      const path = pathname.split("/")[1]
+      setActiveSection(path || "dashboard")
+    }
   }, [pathname])
 
   const handleSectionClick = (section: string) => {
@@ -30,9 +34,16 @@ const Sidebar = () => {
       <nav className="nav flex-column">
         <SidebarLink
           href="/"
+          label="Dashboard"
+          icon={Home}
+          isActive={activeSection === "dashboard" || pathname === "/"}
+          onClick={() => handleSectionClick("dashboard")}
+        />
+        <SidebarLink
+          href="/register"
           label="Register"
           icon={UserPlus}
-          isActive={activeSection === "register" || pathname === "/"}
+          isActive={activeSection === "register"}
           onClick={() => handleSectionClick("register")}
         />
         <SidebarLink

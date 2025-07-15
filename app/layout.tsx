@@ -8,7 +8,7 @@ import Sidebar from "@/components/sidebar"
 export const metadata: Metadata = {
   title: "Client Management Dashboard",
   description: "A Next.js dashboard for managing clients and sales.",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
           <div className="container-fluid">
             <div className="row">
               <Sidebar />
-              <main className="col-md-10 content">{children}</main>
+              <div className="col-md-10 content">{children}</div>
             </div>
           </div>
           <Toaster position="top-right" />
