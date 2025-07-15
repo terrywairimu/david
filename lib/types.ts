@@ -12,7 +12,6 @@ export interface RegisteredEntity {
   company?: string
   contact_person?: string
   notes?: string
-  status: "active" | "inactive"
   last_transaction?: string
 }
 

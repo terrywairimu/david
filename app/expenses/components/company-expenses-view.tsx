@@ -16,7 +16,7 @@ interface Expense {
   description: string
   receipt_number?: string
   date_created: string
-  type: "client" | "company"
+  expense_type: "client" | "company"
 }
 
 const CompanyExpensesView = () => {
@@ -66,7 +66,7 @@ const CompanyExpensesView = () => {
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
-        .eq("type", "company")
+        .eq("expense_type", "company")
         .order("date_created", { ascending: false })
 
       if (error) {
@@ -132,7 +132,7 @@ const CompanyExpensesView = () => {
           amount: formData.amount,
           description: formData.description,
           receipt_number: formData.receipt_number,
-          type: "company",
+          expense_type: "company",
         },
       ])
 

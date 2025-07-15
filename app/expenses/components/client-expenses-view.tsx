@@ -16,7 +16,7 @@ interface Expense {
   description: string
   receipt_number?: string
   date_created: string
-  type: "client" | "company"
+  expense_type: "client" | "company"
   client?: RegisteredEntity
 }
 
@@ -62,7 +62,7 @@ const ClientExpensesView = () => {
           *,
           client:registered_entities(*)
         `)
-        .eq("type", "client")
+        .eq("expense_type", "client")
         .order("date_created", { ascending: false })
 
       if (error) {
@@ -152,7 +152,7 @@ const ClientExpensesView = () => {
           amount: formData.amount,
           description: formData.description,
           receipt_number: formData.receipt_number,
-          type: "client",
+          expense_type: "client",
         },
       ])
 
