@@ -1,14 +1,16 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "sonner"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import Sidebar from "@/components/sidebar"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/sidebar"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Client Management Dashboard",
-  description: "A Next.js dashboard for managing clients and sales.",
-  generator: 'v0.dev'
+  title: "Business Management System",
+  description: "Complete business management solution",
 }
 
 export default function RootLayout({
@@ -17,25 +19,26 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
       </head>
-      <body>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="light" 
-          enableSystem 
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
-          <div className="container-fluid">
-            <div className="row">
-              <Sidebar />
-              <div className="col-md-10 content">{children}</div>
-            </div>
-          </div>
-          <Toaster position="top-right" />
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 min-h-screen bg-background">
+              <div className="container-fluid p-4">
+                {children}
+              </div>
+            </main>
+          </SidebarProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
