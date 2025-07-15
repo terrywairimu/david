@@ -16,7 +16,7 @@ interface Payment {
   payment_method: "cash" | "card" | "bank_transfer" | "mobile"
   reference_number?: string
   notes?: string
-  date_paid: string
+  date_created: string
   client?: RegisteredEntity
 }
 
@@ -72,7 +72,7 @@ const MakePaymentView = () => {
           *,
           client:registered_entities(*)
         `)
-        .order("date_paid", { ascending: false })
+        .order("date_created", { ascending: false })
 
       if (error) {
         console.error("Error fetching payments:", error)
@@ -142,7 +142,7 @@ const MakePaymentView = () => {
       ...filteredPayments.map((payment) => [
         payment.payment_number,
         payment.client?.name || "",
-        new Date(payment.date_paid).toLocaleDateString(),
+        new Date(payment.date_created).toLocaleDateString(),
         payment.amount.toFixed(2),
         payment.payment_method,
         payment.reference_number || "",
@@ -391,7 +391,7 @@ const MakePaymentView = () => {
               filteredPayments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="fw-bold">{payment.payment_number}</td>
-                  <td>{new Date(payment.date_paid).toLocaleDateString()}</td>
+                  <td>{new Date(payment.date_created).toLocaleDateString()}</td>
                   <td>{payment.client?.name}</td>
                   <td>${payment.amount.toFixed(2)}</td>
                   <td>

@@ -29,7 +29,7 @@ const PaymentsPage = () => {
           client:registered_entities(*),
           invoice:invoices(*)
         `)
-        .order("date_paid", { ascending: false })
+        .order("date_created", { ascending: false })
 
       if (error) {
         console.error("Error fetching payments:", error)

@@ -97,7 +97,7 @@ interface PaymentFormData {
   amount: number
   payment_method: "cash" | "card" | "mobile" | "bank_transfer"
   payment_reference?: string
-  date_paid: string
+  date_created: string
   notes?: string
 }
 
@@ -134,7 +134,7 @@ const InvoicesView = () => {
     amount: 0,
     payment_method: "cash",
     payment_reference: "",
-    date_paid: new Date().toISOString().split('T')[0],
+    date_created: new Date().toISOString().split('T')[0],
     notes: ""
   })
 
@@ -265,7 +265,7 @@ const InvoicesView = () => {
       amount: invoice.total_amount - invoice.paid_amount,
       payment_method: "cash",
       payment_reference: "",
-      date_paid: new Date().toISOString().split('T')[0],
+      date_created: new Date().toISOString().split('T')[0],
       notes: ""
     })
     setPaymentModalOpen(true)
@@ -1009,12 +1009,12 @@ const InvoicesView = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date_paid">Date Paid</Label>
+              <Label htmlFor="date_created">Date Created</Label>
               <Input
-                id="date_paid"
+                id="date_created"
                 type="date"
-                value={paymentFormData.date_paid}
-                onChange={(e) => setPaymentFormData(prev => ({ ...prev, date_paid: e.target.value }))}
+                value={paymentFormData.date_created}
+                onChange={(e) => setPaymentFormData(prev => ({ ...prev, date_created: e.target.value }))}
               />
             </div>
             <div>

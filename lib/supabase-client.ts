@@ -90,7 +90,7 @@ export class RegisterService {
       if (filters.type && filters.type !== 'all') {
         query = query.eq('type', filters.type)
       }
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         query = query.eq('status', filters.status)
       }
 
@@ -149,8 +149,7 @@ export class RegisterService {
         .from('registered_entities')
         .insert([{
           ...entity,
-          date_added: new Date().toISOString(),
-          status: 'active'
+          date_added: new Date().toISOString()
         }])
         .select()
         .single()

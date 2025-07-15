@@ -7,6 +7,7 @@ export interface RegisteredEntity {
   pin?: string
   location?: string
   date_added: string
+  status: "active" | "inactive"
   email?: string
   address?: string
   company?: string

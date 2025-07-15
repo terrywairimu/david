@@ -18,7 +18,7 @@ interface RecentPayment {
   client_name: string
   amount: number
   payment_method: string
-  date_paid: string
+  date_created: string
 }
 
 const AccountSummaryView = () => {
@@ -62,10 +62,10 @@ const AccountSummaryView = () => {
           payment_number,
           amount,
           payment_method,
-          date_paid,
+          date_created,
           client:registered_entities(name)
         `)
-        .order("date_paid", { ascending: false })
+        .order("date_created", { ascending: false })
         .limit(10)
 
       if (recentError) {
@@ -93,7 +93,7 @@ const AccountSummaryView = () => {
           client_name: payment.client?.name || "Unknown",
           amount: payment.amount,
           payment_method: payment.payment_method,
-          date_paid: payment.date_paid,
+          date_created: payment.date_created,
         })) || []
 
       setRecentPayments(formattedRecentPayments)
@@ -223,7 +223,7 @@ const AccountSummaryView = () => {
                     <tr key={payment.id}>
                       <td className="fw-bold">{payment.payment_number}</td>
                       <td>{payment.client_name}</td>
-                      <td>{new Date(payment.date_paid).toLocaleDateString()}</td>
+                      <td>{new Date(payment.date_created).toLocaleDateString()}</td>
                       <td>${payment.amount.toFixed(2)}</td>
                       <td>
                         <span className={getPaymentMethodBadge(payment.payment_method)}>{payment.payment_method}</span>
