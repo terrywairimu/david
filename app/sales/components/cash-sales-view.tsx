@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Search, Download, Edit, Trash2, Eye } from "lucide-react"
+import { Plus, Edit, Trash2, Eye } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import SearchFilterRow from "@/components/ui/search-filter-row"
 
 interface CashSale {
   id: number
@@ -27,11 +28,13 @@ const CashSalesView = () => {
   const [cashSales, setCashSales] = useState<CashSale[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [clientFilter, setClientFilter] = useState("all")
-  const [dateFilter, setDateFilter] = useState("all")
+  const [clientFilter, setClientFilter] = useState("")
+  const [dateFilter, setDateFilter] = useState("")
+  const [clients, setClients] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
     fetchCashSales()
+    fetchClients()
   }, [])
 
   const fetchCashSales = async () => {
@@ -56,15 +59,41 @@ const CashSalesView = () => {
     }
   }
 
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("id, name")
+        .eq("type", "client")
+        .eq("status", "active")
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching clients:", error)
+      } else {
+        const clientOptions = [
+          { value: "", label: "All Clients" },
+          ...(data || []).map((client) => ({
+            value: client.id.toString(),
+            label: client.name,
+          })),
+        ]
+        setClients(clientOptions)
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error)
+    }
+  }
+
   const filteredSales = cashSales.filter((sale) => {
     const matchesSearch =
       sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesClient = clientFilter === "all" || sale.client_id.toString() === clientFilter
+    const matchesClient = clientFilter === "" || sale.client_id.toString() === clientFilter
 
     const matchesDate =
-      dateFilter === "all" ||
+      dateFilter === "" ||
       (dateFilter === "today" && new Date(sale.date_created).toDateString() === new Date().toDateString()) ||
       (dateFilter === "week" && isThisWeek(new Date(sale.date_created))) ||
       (dateFilter === "month" && isThisMonth(new Date(sale.date_created)))
@@ -123,124 +152,100 @@ const CashSalesView = () => {
     return date >= startOfMonth && date <= endOfMonth
   }
 
+  const dateOptions = [
+    { value: "", label: "All Dates" },
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+  ]
+
   return (
-    <div>
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="text-white">
-          <Plus size={20} className="me-2" />
-          Cash Sales
-        </h3>
-        <div className="d-flex gap-2">
-          <button className="btn-add">
-            <Plus size={16} className="me-2" />
-            New Cash Sale
-          </button>
-          <button className="export-btn" onClick={exportToCSV}>
-            <Download size={16} className="me-2" />
-            Export
-          </button>
-        </div>
+    <div className="card-body">
+      {/* Add New Cash Sale Button */}
+      <div className="d-flex mb-4">
+        <button className="btn btn-add">
+          <Plus size={16} className="me-2" />
+          New Cash Sale
+        </button>
       </div>
 
-      {/* Filters */}
-      <div className="row g-3 mb-4">
-        <div className="col-md-4">
-          <div className="input-group">
-            <span className="input-group-text">
-              <Search size={16} />
-            </span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search cash sales..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="col-md-3">
-          <select className="form-select" value={clientFilter} onChange={(e) => setClientFilter(e.target.value)}>
-            <option value="all">All Clients</option>
-            {/* Additional client options can be added here */}
-          </select>
-        </div>
-        <div className="col-md-3">
-          <select className="form-select" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-            <option value="all">All Dates</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-        </div>
-        <div className="col-md-2">
-          <button className="export-btn w-100" onClick={exportToCSV}>
-            <Download size={16} className="me-1" />
-            Export
-          </button>
-        </div>
-      </div>
+      {/* Search and Filter Controls */}
+      <SearchFilterRow
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search cash sales..."
+        firstFilter={{
+          value: clientFilter,
+          onChange: setClientFilter,
+          options: clients,
+        }}
+        secondFilter={{
+          value: dateFilter,
+          onChange: setDateFilter,
+          options: dateOptions,
+        }}
+        onExport={exportToCSV}
+        exportLabel="Export"
+      />
 
-      {/* Table */}
-      <div className="card">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Sale #</th>
-                  <th>Date</th>
-                  <th>Client</th>
-                  <th>Total Amount</th>
-                  <th>Amount Paid</th>
-                  <th>Change</th>
-                  <th>Payment Method</th>
-                  <th>Actions</th>
+      {/* Cash Sales Table */}
+      <div className="table-responsive">
+        <table className="table" id="cashSaleTable">
+          <thead>
+            <tr>
+              <th>Sale #</th>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Total Amount</th>
+              <th>Amount Paid</th>
+              <th>Change</th>
+              <th>Payment Method</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="text-center">
+                  Loading...
+                </td>
+              </tr>
+            ) : filteredSales.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center">
+                  No cash sales found
+                </td>
+              </tr>
+            ) : (
+              filteredSales.map((sale) => (
+                <tr key={sale.id}>
+                  <td className="fw-bold">{sale.sale_number}</td>
+                  <td>{new Date(sale.date_created).toLocaleDateString()}</td>
+                  <td>{sale.client?.name}</td>
+                  <td>${sale.total_amount.toFixed(2)}</td>
+                  <td>${sale.amount_paid.toFixed(2)}</td>
+                  <td>${sale.change_amount.toFixed(2)}</td>
+                  <td>
+                    <span className={getPaymentMethodBadge(sale.payment_method)}>
+                      {sale.payment_method}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="action-btn me-1">
+                      <Eye size={14} />
+                    </button>
+                    <button className="action-btn me-1">
+                      <Edit size={14} />
+                    </button>
+                    <button className="action-btn">
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : filteredSales.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center">
-                      No cash sales found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td className="fw-bold">{sale.sale_number}</td>
-                      <td>{new Date(sale.date_created).toLocaleDateString()}</td>
-                      <td>{sale.client?.name}</td>
-                      <td>${sale.total_amount.toFixed(2)}</td>
-                      <td>${sale.amount_paid.toFixed(2)}</td>
-                      <td>${sale.change_amount.toFixed(2)}</td>
-                      <td>
-                        <span className={getPaymentMethodBadge(sale.payment_method)}>{sale.payment_method}</span>
-                      </td>
-                      <td>
-                        <button className="action-btn me-1">
-                          <Eye size={14} />
-                        </button>
-                        <button className="action-btn me-1">
-                          <Edit size={14} />
-                        </button>
-                        <button className="action-btn">
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )
