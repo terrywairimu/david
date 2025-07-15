@@ -1,27 +1,60 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Edit, Trash2, Eye, Download } from "lucide-react"
+import React, { useEffect, useState } from "react"
+import { Edit, Trash2, Eye, Download, Receipt } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import InvoiceModal from "@/components/ui/invoice-modal"
+import { 
+  proceedToCashSaleFromInvoice, 
+  printDocument, 
+  downloadDocument 
+} from "@/lib/workflow-utils"
 
 interface Invoice {
   id: number
   invoice_number: string
   client_id: number
   sales_order_id?: number
+  quotation_id?: number
+  original_quotation_number?: string
+  original_order_number?: string
   date_created: string
   due_date: string
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  labour_percentage: number
+  labour_total: number
   total_amount: number
-  amount_paid: number
-  balance: number
-  status: "draft" | "sent" | "paid" | "overdue" | "cancelled"
+  grand_total: number
+  include_accessories: boolean
+  status: "pending" | "paid" | "overdue" | "cancelled" | "partially_paid" | "converted_to_cash_sale"
   notes?: string
+  terms_conditions?: string
   client?: {
     id: number
     name: string
     phone?: string
+    location?: string
   }
+  items?: Array<{
+    id: number
+    category: "cabinet" | "worktop" | "accessories"
+    description: string
+    unit: string
+    quantity: number
+    unit_price: number
+    total_price: number
+    stock_item_id?: number
+  }>
+  payments?: Array<{
+    id: number
+    amount: number
+    date: string
+    method: string
+    reference?: string
+  }>
 }
 
 const InvoicesView = () => {
@@ -34,6 +67,9 @@ const InvoicesView = () => {
   const [periodStartDate, setPeriodStartDate] = useState("")
   const [periodEndDate, setPeriodEndDate] = useState("")
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>()
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
     fetchInvoices()
@@ -47,16 +83,17 @@ const InvoicesView = () => {
         .from("invoices")
         .select(`
           *,
-          client:registered_entities(*)
+          client:registered_entities(id, name, phone, location),
+          items:invoice_items(*),
+          payments:payments(id, amount, date, method, reference)
         `)
         .order("date_created", { ascending: false })
 
-      if (error) {
-        console.error("Error fetching invoices:", error)
-        toast.error("Failed to fetch invoices")
-      } else {
-        setInvoices(data || [])
-      }
+      if (error) throw error
+      setInvoices(data || [])
+    } catch (error) {
+      console.error("Error fetching invoices:", error)
+      toast.error("Failed to load invoices")
     } finally {
       setLoading(false)
     }
@@ -68,24 +105,27 @@ const InvoicesView = () => {
         .from("registered_entities")
         .select("id, name")
         .eq("type", "client")
-        .eq("status", "active")
         .order("name")
 
-      if (error) {
-        console.error("Error fetching clients:", error)
-      } else {
-        const clientOptions = [
-          { value: "", label: "All Clients" },
-          ...(data || []).map((client) => ({
-            value: client.id.toString(),
-            label: client.name,
-          })),
-        ]
-        setClients(clientOptions)
-      }
+      if (error) throw error
+      
+      const clientOptions = [
+        { value: "", label: "All Clients" },
+        ...(data || []).map(client => ({
+          value: client.id.toString(),
+          label: client.name
+        }))
+      ]
+      
+      setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
+  }
+
+  const calculateBalance = (invoice: Invoice) => {
+    const totalPaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+    return invoice.grand_total - totalPaid
   }
 
   const handleDateFilterChange = (value: string) => {
@@ -99,105 +139,273 @@ const InvoicesView = () => {
     }
   }
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    const matchesSearch =
-      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const getFilteredInvoices = () => {
+    let filtered = [...invoices]
 
-    const matchesClient = clientFilter === "" || invoice.client_id.toString() === clientFilter
-
-    let matchesDate = true
-    if (dateFilter === "today") {
-      matchesDate = new Date(invoice.date_created).toDateString() === new Date().toDateString()
-    } else if (dateFilter === "week") {
-      matchesDate = isThisWeek(new Date(invoice.date_created))
-    } else if (dateFilter === "month") {
-      matchesDate = isThisMonth(new Date(invoice.date_created))
-    } else if (dateFilter === "year") {
-      matchesDate = isThisYear(new Date(invoice.date_created))
-    } else if (dateFilter === "specific" && specificDate) {
-      matchesDate = new Date(invoice.date_created).toDateString() === new Date(specificDate).toDateString()
-    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
-      const invoiceDate = new Date(invoice.date_created)
-      const startDate = new Date(periodStartDate)
-      const endDate = new Date(periodEndDate)
-      matchesDate = invoiceDate >= startDate && invoiceDate <= endDate
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (invoice) =>
+          invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          invoice.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          invoice.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          invoice.original_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          invoice.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     }
 
-    return matchesSearch && matchesClient && matchesDate
-  })
+    // Client filter
+    if (clientFilter) {
+      filtered = filtered.filter(invoice => invoice.client_id.toString() === clientFilter)
+    }
+
+    // Date filter
+    if (dateFilter) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      filtered = filtered.filter(invoice => {
+        const invoiceDate = new Date(invoice.date_created)
+        const invoiceDay = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), invoiceDate.getDate())
+        
+        switch (dateFilter) {
+          case "today":
+            return invoiceDay.getTime() === today.getTime()
+          case "week":
+            const weekStart = new Date(today)
+            weekStart.setDate(today.getDate() - today.getDay())
+            return invoiceDay >= weekStart
+          case "month":
+            return invoiceDate.getMonth() === now.getMonth() && invoiceDate.getFullYear() === now.getFullYear()
+          case "year":
+            return invoiceDate.getFullYear() === now.getFullYear()
+          case "specific":
+            if (specificDate) {
+              const specDate = new Date(specificDate)
+              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
+              return invoiceDay.getTime() === specDay.getTime()
+            }
+            return true
+          case "period":
+            if (periodStartDate && periodEndDate) {
+              const startDate = new Date(periodStartDate)
+              const endDate = new Date(periodEndDate)
+              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+              return invoiceDay >= startDay && invoiceDay <= endDay
+            }
+            return true
+          default:
+            return true
+        }
+      })
+    }
+
+    return filtered
+  }
+
+  const filteredInvoices = getFilteredInvoices()
 
   const getStatusBadge = (status: string) => {
-    const statusClasses = {
-      draft: "badge bg-secondary",
-      sent: "badge bg-info",
-      paid: "badge bg-success",
-      overdue: "badge bg-danger",
-      cancelled: "badge bg-dark",
+    switch (status) {
+      case "pending":
+        return "badge bg-warning"
+      case "paid":
+        return "badge bg-success"
+      case "overdue":
+        return "badge bg-danger"
+      case "cancelled":
+        return "badge bg-secondary"
+      case "partially_paid":
+        return "badge bg-info"
+      case "converted_to_cash_sale":
+        return "badge bg-success"
+      default:
+        return "badge bg-secondary"
     }
-    return statusClasses[status as keyof typeof statusClasses] || "badge bg-secondary"
   }
 
-  const exportToCSV = () => {
-    const csvContent = [
-      ["Invoice #", "Date", "Client", "Total Amount", "Balance", "Status"],
-      ...filteredInvoices.map((invoice) => [
-        invoice.invoice_number,
-        new Date(invoice.date_created).toLocaleDateString(),
-        invoice.client?.name || "",
-        invoice.total_amount.toFixed(2),
-        invoice.balance.toFixed(2),
-        invoice.status,
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
+  const handleModalSave = async (invoiceData: any) => {
+    try {
+      if (modalMode === "create") {
+        // Create new invoice
+        const { data: newInvoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert({
+            invoice_number: invoiceData.invoice_number,
+            client_id: invoiceData.client_id,
+            sales_order_id: invoiceData.sales_order_id,
+            quotation_id: invoiceData.quotation_id,
+            original_quotation_number: invoiceData.original_quotation_number,
+            original_order_number: invoiceData.original_order_number,
+            date_created: invoiceData.date_created,
+            due_date: invoiceData.due_date,
+            cabinet_total: invoiceData.cabinet_total,
+            worktop_total: invoiceData.worktop_total,
+            accessories_total: invoiceData.accessories_total,
+            labour_percentage: invoiceData.labour_percentage,
+            labour_total: invoiceData.labour_total,
+            total_amount: invoiceData.total_amount,
+            grand_total: invoiceData.grand_total,
+            include_accessories: invoiceData.include_accessories,
+            status: invoiceData.status,
+            notes: invoiceData.notes,
+            terms_conditions: invoiceData.terms_conditions
+          })
+          .select()
+          .single()
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "invoices.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+        if (invoiceError) throw invoiceError
+
+        // Insert invoice items
+        if (invoiceData.items && invoiceData.items.length > 0) {
+          const invoiceItems = invoiceData.items.map((item: any) => ({
+            invoice_id: newInvoice.id,
+            category: item.category,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            stock_item_id: item.stock_item_id
+          }))
+
+          const { error: itemsError } = await supabase
+            .from("invoice_items")
+            .insert(invoiceItems)
+
+          if (itemsError) throw itemsError
+        }
+
+        toast.success("Invoice created successfully")
+      } else if (modalMode === "edit") {
+        // Update existing invoice
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update({
+            client_id: invoiceData.client_id,
+            date_created: invoiceData.date_created,
+            due_date: invoiceData.due_date,
+            cabinet_total: invoiceData.cabinet_total,
+            worktop_total: invoiceData.worktop_total,
+            accessories_total: invoiceData.accessories_total,
+            labour_percentage: invoiceData.labour_percentage,
+            labour_total: invoiceData.labour_total,
+            total_amount: invoiceData.total_amount,
+            grand_total: invoiceData.grand_total,
+            include_accessories: invoiceData.include_accessories,
+            status: invoiceData.status,
+            notes: invoiceData.notes,
+            terms_conditions: invoiceData.terms_conditions
+          })
+          .eq("id", selectedInvoice?.id)
+
+        if (updateError) throw updateError
+
+        // Delete existing items and insert new ones
+        const { error: deleteError } = await supabase
+          .from("invoice_items")
+          .delete()
+          .eq("invoice_id", selectedInvoice?.id)
+
+        if (deleteError) throw deleteError
+
+        // Insert updated items
+        if (invoiceData.items && invoiceData.items.length > 0) {
+          const invoiceItems = invoiceData.items.map((item: any) => ({
+            invoice_id: selectedInvoice?.id,
+            category: item.category,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            stock_item_id: item.stock_item_id
+          }))
+
+          const { error: itemsError } = await supabase
+            .from("invoice_items")
+            .insert(invoiceItems)
+
+          if (itemsError) throw itemsError
+        }
+
+        toast.success("Invoice updated successfully")
+      }
+
+      fetchInvoices()
+    } catch (error) {
+      console.error("Error saving invoice:", error)
+      toast.error("Failed to save invoice")
+    }
   }
 
-  const isThisWeek = (date: Date) => {
-    const startOfWeek = new Date()
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(endOfWeek.getDate() + 6)
-    return date >= startOfWeek && date <= endOfWeek
+  const handleView = (invoice: Invoice) => {
+    setSelectedInvoice(invoice)
+    setModalMode("view")
+    setShowModal(true)
   }
 
-  const isThisMonth = (date: Date) => {
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    const endOfMonth = new Date(startOfMonth)
-    endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-    endOfMonth.setDate(endOfMonth.getDate() - 1)
-    return date >= startOfMonth && date <= endOfMonth
+  const handleEdit = (invoice: Invoice) => {
+    setSelectedInvoice(invoice)
+    setModalMode("edit")
+    setShowModal(true)
   }
 
-  const isThisYear = (date: Date) => {
-    return date.getFullYear() === new Date().getFullYear()
+  const handleDelete = async (invoice: Invoice) => {
+    if (window.confirm(`Are you sure you want to delete invoice ${invoice.invoice_number}?`)) {
+      try {
+        const { error } = await supabase
+          .from("invoices")
+          .delete()
+          .eq("id", invoice.id)
+
+        if (error) throw error
+
+        toast.success("Invoice deleted successfully")
+        fetchInvoices()
+      } catch (error) {
+        console.error("Error deleting invoice:", error)
+        toast.error("Failed to delete invoice")
+      }
+    }
+  }
+
+  const handleProceedToCashSale = async (invoice: Invoice) => {
+    try {
+      const cashSale = await proceedToCashSaleFromInvoice(invoice.id)
+      toast.success(`Cash sale ${cashSale.sale_number} created successfully`)
+      fetchInvoices()
+    } catch (error) {
+      // Error handling is done in the workflow function
+    }
+  }
+
+  const handlePrint = (invoice: Invoice) => {
+    printDocument(`invoice-${invoice.id}`, `Invoice-${invoice.invoice_number}`)
+  }
+
+  const handleDownload = (invoice: Invoice) => {
+    downloadDocument(`invoice-${invoice.id}`, `Invoice-${invoice.invoice_number}`)
   }
 
   return (
-    <div className="card-body">
-      {/* Search and Filter Controls */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="input-group shadow-sm">
-            <span 
-              className="input-group-text border-0 bg-white" 
-              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
-            >
-              <i className="fas fa-search text-muted"></i>
+    <div className="invoices-view">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5>Invoices</h5>
+      </div>
+
+      {/* Search and Filter Row */}
+      <div className="row mb-3">
+        <div className="col-md-3">
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="fas fa-search"></i>
             </span>
             <input
               type="text"
-              className="form-control border-0"
+              className="form-control border-start-0"
               placeholder="Search invoices..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -257,10 +465,7 @@ const InvoicesView = () => {
                   onChange={(e) => setPeriodStartDate(e.target.value)}
                   style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
                 />
-                <div className="mx-1 text-center" style={{ width: "20px", flexShrink: "0" }}>
-                  <div className="small text-muted mb-1">to</div>
-                  <i className="fas fa-arrow-right"></i>
-                </div>
+                <span className="mx-2">to</span>
                 <input
                   type="date"
                   className="form-control border-0 shadow-sm"
@@ -273,13 +478,9 @@ const InvoicesView = () => {
           )}
         </div>
         
-        <div className="col-md-2">
-          <button
-            className="btn w-100 shadow-sm export-btn"
-            onClick={exportToCSV}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <Download size={16} className="me-2" />
+        <div className="col-md-3">
+          <button className="btn w-100 shadow-sm export-btn" style={{ borderRadius: "16px", height: "45px" }}>
+            <i className="fas fa-download me-2"></i>
             Export
           </button>
         </div>
@@ -323,23 +524,53 @@ const InvoicesView = () => {
                       <small className="text-muted">{invoice.client.phone}</small>
                     )}
                   </td>
-                  <td>${invoice.total_amount.toFixed(2)}</td>
-                  <td>${invoice.balance.toFixed(2)}</td>
+                  <td>KES {invoice.grand_total.toFixed(2)}</td>
+                  <td>KES {calculateBalance(invoice).toFixed(2)}</td>
                   <td>
                     <span className={getStatusBadge(invoice.status)}>
-                      {invoice.status}
+                      {invoice.status.replace(/_/g, " ")}
                     </span>
                   </td>
                   <td>
-                    <button className="action-btn me-1">
-                      <Eye size={14} />
-                    </button>
-                    <button className="action-btn me-1">
-                      <Edit size={14} />
-                    </button>
-                    <button className="action-btn">
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="d-flex gap-1">
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleView(invoice)}
+                        title="View"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleEdit(invoice)}
+                        title="Edit"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handleDelete(invoice)}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <button 
+                        className="action-btn"
+                        onClick={() => handlePrint(invoice)}
+                        title="Print"
+                      >
+                        <Download size={14} />
+                      </button>
+                      {invoice.status === "pending" && (
+                        <button 
+                          className="action-btn"
+                          onClick={() => handleProceedToCashSale(invoice)}
+                          title="Proceed to Cash Sale"
+                        >
+                          <Receipt size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -347,6 +578,15 @@ const InvoicesView = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleModalSave}
+        invoice={selectedInvoice}
+        mode={modalMode}
+      />
     </div>
   )
 }
