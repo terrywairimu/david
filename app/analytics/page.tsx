@@ -10,7 +10,7 @@ const AnalyticsPage = () => {
       value: "$45,231",
       change: "+20.1%",
       trend: "up",
-      icon: DollarSign,
+      iconType: "dollar",
       color: "text-success",
     },
     {
@@ -18,7 +18,7 @@ const AnalyticsPage = () => {
       value: "23",
       change: "+15.3%",
       trend: "up",
-      icon: Users,
+      iconType: "users",
       color: "text-info",
     },
     {
@@ -26,7 +26,7 @@ const AnalyticsPage = () => {
       value: "156",
       change: "-2.4%",
       trend: "down",
-      icon: ShoppingCart,
+      iconType: "cart",
       color: "text-warning",
     },
     {
@@ -34,10 +34,25 @@ const AnalyticsPage = () => {
       value: "89",
       change: "+5.2%",
       trend: "up",
-      icon: Package,
+      iconType: "package",
       color: "text-primary",
     },
   ]
+
+  const renderIcon = (iconType: string, size: number, className: string) => {
+    switch (iconType) {
+      case "dollar":
+        return <DollarSign size={size} className={className} />
+      case "users":
+        return <Users size={size} className={className} />
+      case "cart":
+        return <ShoppingCart size={size} className={className} />
+      case "package":
+        return <Package size={size} className={className} />
+      default:
+        return <BarChart size={size} className={className} />
+    }
+  }
 
   return (
     <div id="analyticsSection">
@@ -71,7 +86,7 @@ const AnalyticsPage = () => {
                           </span>
                         </div>
                       </div>
-                      <metric.icon size={32} className={metric.color} />
+                      {renderIcon(metric.iconType, 32, metric.color)}
                     </div>
                   </div>
                 </div>
@@ -99,52 +114,59 @@ const AnalyticsPage = () => {
             <div className="col-md-6">
               <div className="card">
                 <div className="card-header">
-                  <h5 className="mb-0">Client Growth</h5>
+                  <h5 className="mb-0">Revenue Distribution</h5>
                 </div>
                 <div className="card-body">
                   <div
                     className="d-flex align-items-center justify-content-center"
                     style={{ height: "250px", backgroundColor: "#f8f9fa" }}
                   >
-                    <p className="text-muted">Client Growth Chart Placeholder</p>
+                    <p className="text-muted">Revenue Chart Placeholder</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Additional Analytics */}
-          <div className="row">
-            <div className="col-md-4">
+          {/* Quick Stats */}
+          <div className="row mb-4">
+            <div className="col-md-8">
               <div className="card">
                 <div className="card-header">
-                  <h5 className="mb-0">Top Products</h5>
+                  <h5 className="mb-0">Top Performing Products</h5>
                 </div>
                 <div className="card-body">
-                  <div className="d-flex flex-column gap-3">
-                    {["Product A", "Product B", "Product C"].map((product, index) => (
-                      <div key={index} className="d-flex justify-content-between align-items-center">
-                        <span className="fw-medium">{product}</span>
-                        <span className="text-muted">${(Math.random() * 1000).toFixed(0)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="card">
-                <div className="card-header">
-                  <h5 className="mb-0">Top Clients</h5>
-                </div>
-                <div className="card-body">
-                  <div className="d-flex flex-column gap-3">
-                    {["Client A", "Client B", "Client C"].map((client, index) => (
-                      <div key={index} className="d-flex justify-content-between align-items-center">
-                        <span className="fw-medium">{client}</span>
-                        <span className="text-muted">${(Math.random() * 5000).toFixed(0)}</span>
-                      </div>
-                    ))}
+                  <div className="table-responsive">
+                    <table className="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Sales</th>
+                          <th>Revenue</th>
+                          <th>Growth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Kitchen Cabinets</td>
+                          <td>45</td>
+                          <td>$12,500</td>
+                          <td className="text-success">+15%</td>
+                        </tr>
+                        <tr>
+                          <td>Worktops</td>
+                          <td>32</td>
+                          <td>$8,200</td>
+                          <td className="text-success">+8%</td>
+                        </tr>
+                        <tr>
+                          <td>Accessories</td>
+                          <td>78</td>
+                          <td>$3,450</td>
+                          <td className="text-danger">-2%</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
