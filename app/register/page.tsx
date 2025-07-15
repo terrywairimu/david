@@ -5,9 +5,22 @@ import RegisterTable from "./components/register-table"
 import RegisterModals from "@/components/ui/register-modals"
 import { UserPlus, Truck } from "lucide-react"
 
+interface RegisteredEntity {
+  id: number
+  name: string
+  type: "client" | "supplier"
+  phone?: string
+  pin?: string
+  location?: string
+  date_added: string
+  status: "active" | "inactive"
+}
+
 const RegisterPage = () => {
   const [showClientModal, setShowClientModal] = useState(false)
   const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editEntity, setEditEntity] = useState<RegisteredEntity | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const handleShowClientModal = () => {
@@ -16,6 +29,11 @@ const RegisterPage = () => {
 
   const handleShowSupplierModal = () => {
     setShowSupplierModal(true)
+  }
+
+  const handleEditEntity = (entity: RegisteredEntity) => {
+    setEditEntity(entity)
+    setShowEditModal(true)
   }
 
   const handleRefreshData = () => {
@@ -43,7 +61,8 @@ const RegisterPage = () => {
         <RegisterTable 
           onShowClientModal={handleShowClientModal}
           onShowSupplierModal={handleShowSupplierModal}
-          key={refreshTrigger}
+          onEditEntity={handleEditEntity}
+          refreshTrigger={refreshTrigger}
         />
       </div>
 
@@ -51,11 +70,11 @@ const RegisterPage = () => {
       <RegisterModals
         showClientModal={showClientModal}
         showSupplierModal={showSupplierModal}
-        showEditModal={false}
-        editEntity={null}
+        showEditModal={showEditModal}
+        editEntity={editEntity}
         onCloseClientModal={() => setShowClientModal(false)}
         onCloseSupplierModal={() => setShowSupplierModal(false)}
-        onCloseEditModal={() => {}}
+        onCloseEditModal={() => setShowEditModal(false)}
         onRefreshData={handleRefreshData}
       />
     </>

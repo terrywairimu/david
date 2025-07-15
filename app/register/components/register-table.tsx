@@ -1,10 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Edit, Trash2, Eye, Download, Search } from "lucide-react"
+import { Edit, Trash2, Download, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import RegisterModals from "@/components/ui/register-modals"
 import ConfirmDialog from "@/components/ui/confirm-dialog"
 
 interface RegisteredEntity {
@@ -21,9 +20,11 @@ interface RegisteredEntity {
 interface RegisterTableProps {
   onShowClientModal: () => void
   onShowSupplierModal: () => void
+  onEditEntity: (entity: RegisteredEntity) => void
+  refreshTrigger?: number
 }
 
-const RegisterTable = ({ onShowClientModal, onShowSupplierModal }: RegisterTableProps) => {
+const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, refreshTrigger }: RegisterTableProps) => {
   const [entities, setEntities] = useState<RegisteredEntity[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -31,19 +32,13 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal }: RegisterTable
   const [locationFilter, setLocationFilter] = useState("")
   const [locations, setLocations] = useState<string[]>([])
   
-  // Modal states
-  const [showClientModal, setShowClientModal] = useState(false)
-  const [showSupplierModal, setShowSupplierModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editEntity, setEditEntity] = useState<RegisteredEntity | null>(null)
-  
   // Delete confirmation
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchEntities()
-  }, [])
+  }, [refreshTrigger])
 
   const fetchEntities = async () => {
     setLoading(true)
@@ -70,8 +65,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal }: RegisterTable
   }
 
   const handleEdit = (entity: RegisteredEntity) => {
-    setEditEntity(entity)
-    setShowEditModal(true)
+    onEditEntity(entity)
   }
 
   const handleDelete = (id: number) => {
@@ -277,18 +271,6 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal }: RegisterTable
           </tbody>
         </table>
       </div>
-
-      {/* Modals */}
-      <RegisterModals
-        showClientModal={showClientModal}
-        showSupplierModal={showSupplierModal}
-        showEditModal={showEditModal}
-        editEntity={editEntity}
-        onCloseClientModal={() => setShowClientModal(false)}
-        onCloseSupplierModal={() => setShowSupplierModal(false)}
-        onCloseEditModal={() => setShowEditModal(false)}
-        onRefreshData={fetchEntities}
-      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
