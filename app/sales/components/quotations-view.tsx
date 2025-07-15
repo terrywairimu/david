@@ -383,6 +383,55 @@ const QuotationsView = () => {
     setShowModal(true)
   }
 
+  // Export function
+  const exportQuotations = () => {
+    toast.info("Export functionality coming soon!")
+  }
+
+  // Handle view quotation
+  const handleView = (quotation: Quotation) => {
+    setSelectedQuotation(quotation)
+    setModalMode("view")
+    setShowModal(true)
+  }
+
+  // Handle edit quotation
+  const handleEdit = (quotation: Quotation) => {
+    setSelectedQuotation(quotation)
+    setModalMode("edit")
+    setShowModal(true)
+  }
+
+  // Handle delete quotation
+  const handleDelete = (quotation: Quotation) => {
+    deleteQuotation(quotation.id)
+  }
+
+  // Handle print quotation
+  const handlePrint = (quotation: Quotation) => {
+    printDocument(quotation, "quotation")
+  }
+
+  // Handle download quotation
+  const handleDownload = (quotation: Quotation) => {
+    downloadDocument(quotation, "quotation")
+  }
+
+  // Handle proceed to sales order
+  const handleProceedToSalesOrder = (quotation: Quotation) => {
+    proceedToSalesOrder(quotation)
+  }
+
+  // Handle proceed to cash sale
+  const handleProceedToCashSale = (quotation: Quotation) => {
+    proceedToCashSale(quotation)
+  }
+
+  // Handle modal save
+  const handleModalSave = (quotation: Quotation) => {
+    handleSaveQuotation(quotation)
+  }
+
   return (
     <div className="quotations-view">
       <div className="card-body">
@@ -532,35 +581,35 @@ const QuotationsView = () => {
                       <div className="d-flex gap-1">
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => viewQuotation(quotation)}
+                          onClick={() => handleView(quotation)}
                           title="View"
                         >
                           <Eye size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => editQuotation(quotation)}
+                          onClick={() => handleEdit(quotation)}
                           title="Edit"
                         >
                           <Edit size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => deleteQuotation(quotation.id)}
+                          onClick={() => handleDelete(quotation)}
                           title="Delete"
                         >
                           <Trash2 size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => printDocument(quotation, "quotation")}
+                          onClick={() => handlePrint(quotation)}
                           title="Print"
                         >
                           <Download size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => downloadDocument(quotation, "quotation")}
+                          onClick={() => handleDownload(quotation)}
                           title="Download"
                         >
                           <FileText size={14} />
@@ -570,14 +619,14 @@ const QuotationsView = () => {
                           <>
                             <button
                               className="btn btn-sm action-btn"
-                              onClick={() => proceedToSalesOrder(quotation)}
+                              onClick={() => handleProceedToSalesOrder(quotation)}
                               title="Create Sales Order"
                             >
                               <CreditCard size={14} />
                             </button>
                             <button
                               className="btn btn-sm action-btn"
-                              onClick={() => proceedToCashSale(quotation)}
+                              onClick={() => handleProceedToCashSale(quotation)}
                               title="Create Cash Sale"
                             >
                               <Receipt size={14} />
@@ -600,7 +649,7 @@ const QuotationsView = () => {
           quotation={selectedQuotation}
           mode={modalMode}
           onClose={() => setShowModal(false)}
-          onSave={handleSaveQuotation}
+          onSave={handleModalSave}
         />
       )}
     </div>

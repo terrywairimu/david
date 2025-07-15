@@ -385,6 +385,11 @@ const SalesOrdersView = () => {
     setShowModal(true)
   }
 
+  // Export function
+  const exportSalesOrders = () => {
+    toast.info("Export functionality coming soon!")
+  }
+
   return (
     <div className="sales-orders-view">
       <div className="card-body">
