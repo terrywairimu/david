@@ -7,16 +7,16 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 
 const Sidebar = () => {
-  const [activeSection, setActiveSection] = useState("dashboard")
+  const [activeSection, setActiveSection] = useState("register")
   const pathname = usePathname()
 
   useEffect(() => {
     // Set active section based on current path
     if (pathname === "/") {
-      setActiveSection("dashboard")
+      setActiveSection("register")
     } else {
       const path = pathname.split("/")[1]
-      setActiveSection(path || "dashboard")
+      setActiveSection(path || "register")
     }
   }, [pathname])
 
@@ -28,22 +28,15 @@ const Sidebar = () => {
   return (
     <div className="col-md-2 sidebar">
       <h3>
-        <Home className="me-2" size={20} />
+        <BarChart className="me-2" size={20} />
         Dashboard
       </h3>
       <nav className="nav flex-column">
         <SidebarLink
-          href="/"
-          label="Dashboard"
-          icon={Home}
-          isActive={activeSection === "dashboard" || pathname === "/"}
-          onClick={() => handleSectionClick("dashboard")}
-        />
-        <SidebarLink
           href="/register"
           label="Register"
           icon={UserPlus}
-          isActive={activeSection === "register"}
+          isActive={activeSection === "register" || pathname === "/"}
           onClick={() => handleSectionClick("register")}
         />
         <SidebarLink
@@ -106,15 +99,15 @@ const Sidebar = () => {
 interface SidebarLinkProps {
   href: string
   label: string
-  icon: any
-  isActive: boolean
-  onClick: () => void
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  isActive?: boolean
+  onClick?: () => void
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, label, icon: Icon, isActive, onClick }) => {
+const SidebarLink = ({ href, label, icon: Icon, isActive, onClick }: SidebarLinkProps) => {
   return (
     <Link href={href} className={`nav-link ${isActive ? "active" : ""}`} onClick={onClick}>
-      <Icon className="me-2" size={20} />
+      <Icon size={20} />
       <span>{label}</span>
     </Link>
   )
