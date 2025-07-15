@@ -31,8 +31,8 @@ const SearchFilterRow: React.FC<SearchFilterRowProps> = ({
   exportLabel = "Export",
 }) => {
   return (
-    <div className="row mb-4">
-      <div className="col-md-4">
+    <div className="flex flex-wrap gap-4 mb-4 items-center">
+      <div className="flex-1 min-w-[300px]">
         <div className="input-group shadow-sm">
           <span 
             className="input-group-text border-0 bg-white" 
@@ -52,9 +52,9 @@ const SearchFilterRow: React.FC<SearchFilterRowProps> = ({
       </div>
       
       {firstFilter && (
-        <div className="col-md-3">
+        <div className="flex-shrink-0 min-w-[200px]">
           <select
-            className="form-select border-0 py-2 shadow-sm"
+            className="form-select border-0 py-2 shadow-sm w-full"
             value={firstFilter.value}
             onChange={(e) => firstFilter.onChange(e.target.value)}
             style={{ borderRadius: "16px", height: "45px" }}
@@ -69,9 +69,9 @@ const SearchFilterRow: React.FC<SearchFilterRowProps> = ({
       )}
       
       {secondFilter && (
-        <div className="col-md-3">
+        <div className="flex-shrink-0 min-w-[200px]">
           <select
-            className="form-select border-0 py-2 shadow-sm"
+            className="form-select border-0 py-2 shadow-sm w-full"
             value={secondFilter.value}
             onChange={(e) => secondFilter.onChange(e.target.value)}
             style={{ borderRadius: "16px", height: "45px" }}
@@ -86,9 +86,9 @@ const SearchFilterRow: React.FC<SearchFilterRowProps> = ({
       )}
       
       {onExport && (
-        <div className="col-md-2">
+        <div className="flex-shrink-0 min-w-[150px]">
           <button
-            className="btn w-100 shadow-sm export-btn"
+            className="btn w-full shadow-sm export-btn"
             onClick={onExport}
             style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
           >
