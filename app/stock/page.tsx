@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
-import { Plus, Search, Download, Edit, Trash2, AlertTriangle, Boxes } from "lucide-react"
+import { Plus, Search, Download, Edit, Trash2, AlertTriangle, Boxes, CheckCircle, XCircle } from "lucide-react"
 import { supabase, type StockItem } from "@/lib/supabase-client"
 import { toast } from "sonner"
 
@@ -48,35 +48,51 @@ const StockPage = () => {
       item.description?.toLowerCase().includes(searchTerm.toLowerCase())
 
     let matchesFilter = true
-    if (activeFilter === "in-stock") {
-      matchesFilter = item.quantity > item.reorder_level
-    } else if (activeFilter === "low-stock") {
-      matchesFilter = item.quantity > 0 && item.quantity <= item.reorder_level
-    } else if (activeFilter === "out-of-stock") {
-      matchesFilter = item.quantity === 0
+
+    switch (activeFilter) {
+      case "in-stock":
+        matchesFilter = item.quantity > item.reorder_level
+        break
+      case "low-stock":
+        matchesFilter = item.quantity <= item.reorder_level && item.quantity > 0
+        break
+      case "out-of-stock":
+        matchesFilter = item.quantity === 0
+        break
+      default:
+        matchesFilter = true
     }
 
     return matchesSearch && matchesFilter
   })
 
+  const stockCounts = {
+    totalItems: stockItems.length,
+    inStock: stockItems.filter(item => item.quantity > item.reorder_level).length,
+    lowStock: stockItems.filter(item => item.quantity <= item.reorder_level && item.quantity > 0).length,
+    outOfStock: stockItems.filter(item => item.quantity === 0).length,
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    
     try {
-      const { data, error } = await supabase.from("stock_items").insert([
+      const { error } = await supabase.from("stock_items").insert([
         {
-          ...formData,
-          unit_price: Number.parseFloat(formData.unit_price),
-          quantity: Number.parseInt(formData.quantity),
-          reorder_level: Number.parseInt(formData.reorder_level),
+          name: formData.name,
+          description: formData.description,
+          unit_price: Number(formData.unit_price),
+          quantity: Number(formData.quantity),
+          reorder_level: Number(formData.reorder_level),
         },
       ])
 
       if (error) {
-        console.error("Error inserting stock item:", error)
+        console.error("Error adding stock item:", error)
         toast.error("Failed to add stock item")
       } else {
         toast.success("Stock item added successfully")
+        setShowForm(false)
         setFormData({
           name: "",
           description: "",
@@ -84,56 +100,30 @@ const StockPage = () => {
           quantity: "",
           reorder_level: "",
         })
-        setShowForm(false)
         fetchStockItems()
       }
     } catch (error) {
-      console.error("Unexpected error:", error)
-      toast.error("An unexpected error occurred")
+      console.error("Error:", error)
+      toast.error("Failed to add stock item")
     }
   }
-
-  const getStockStatus = (quantity: number, reorderLevel: number) => {
-    if (quantity === 0) {
-      return { status: "Out of Stock", color: "badge bg-danger" }
-    } else if (quantity <= reorderLevel) {
-      return { status: "Low Stock", color: "badge bg-warning" }
-    } else {
-      return { status: "In Stock", color: "badge bg-success" }
-    }
-  }
-
-  const getStockCounts = () => {
-    const totalItems = stockItems.length
-    const inStock = stockItems.filter((item) => item.quantity > item.reorder_level).length
-    const lowStock = stockItems.filter((item) => item.quantity > 0 && item.quantity <= item.reorder_level).length
-    const outOfStock = stockItems.filter((item) => item.quantity === 0).length
-
-    return { totalItems, inStock, lowStock, outOfStock }
-  }
-
-  const stockCounts = getStockCounts()
 
   const exportToCSV = () => {
-    const csvContent = [
-      ["Name", "Description", "Unit Price", "Quantity", "Reorder Level", "Status", "Date Added"],
-      ...filteredItems.map((item) => {
-        const stockStatus = getStockStatus(item.quantity, item.reorder_level)
-        return [
-          item.name,
-          item.description || "",
-          item.unit_price.toFixed(2),
-          item.quantity.toString(),
-          item.reorder_level.toString(),
-          stockStatus.status,
-          new Date(item.date_added).toLocaleDateString(),
-        ]
-      }),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
+    const csvData = filteredItems.map(item => ({
+      Name: item.name,
+      Description: item.description || "",
+      Unit_Price: item.unit_price,
+      Quantity: item.quantity,
+      Reorder_Level: item.reorder_level,
+      Status: item.quantity === 0 ? "Out of Stock" : item.quantity <= item.reorder_level ? "Low Stock" : "In Stock"
+    }))
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
+    const csvString = [
+      Object.keys(csvData[0]).join(","),
+      ...csvData.map(row => Object.values(row).join(","))
+    ].join("\n")
+
+    const blob = new Blob([csvString], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -142,106 +132,118 @@ const StockPage = () => {
     window.URL.revokeObjectURL(url)
   }
 
+  const getStockStatus = (item: StockItem) => {
+    if (item.quantity === 0) {
+      return <span className="badge bg-danger">Out of Stock</span>
+    } else if (item.quantity <= item.reorder_level) {
+      return <span className="badge bg-warning">Low Stock</span>
+    } else {
+      return <span className="badge bg-success">In Stock</span>
+    }
+  }
+
   return (
-    <div id="stockSection">
-      {/* Header Card */}
-      <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">
-            <Boxes className="me-2" size={20} />
-            Stock Management
-          </h4>
-          <div className="d-flex gap-2">
-            <button className={`btn-add ${showForm ? "active" : ""}`} onClick={() => setShowForm(!showForm)}>
-              <Plus size={16} className="me-1" />
-              Add Stock Item
-            </button>
-            <button className="export-btn" onClick={exportToCSV}>
-              <Download size={16} className="me-1" />
-              Export
+    <div id="stockSection" className="card">
+      <div className="card-header">
+        <div className="d-flex justify-content-between align-items-center">
+          <h2 className="mb-0">Stock Management</h2>
+          <div className="d-flex gap-3">
+            <button className="btn btn-add" onClick={() => setShowForm(!showForm)}>
+              <Plus className="me-2" size={16} />
+              Add New Item
             </button>
           </div>
         </div>
-        <div className="card-body">
-          {/* Stock Summary Cards */}
-          <div className="row mb-4">
-            <div className="col-md-3">
-              <div
-                className={`stock-summary-card total-items card text-white ${activeFilter === "all" ? "active" : ""}`}
-                onClick={() => setActiveFilter("all")}
-              >
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6>Total Items</h6>
-                      <h2>{stockCounts.totalItems}</h2>
-                    </div>
-                    <div className="icon-box">
-                      <Boxes size={24} />
-                    </div>
+      </div>
+
+      <div className="card-body">
+        {/* Stock Summary Cards */}
+        <div className="row mb-4">
+          <div className="col-md-3">
+            <div
+              className={`card stock-summary-card total-items ${activeFilter === "all" ? "active" : ""}`}
+              onClick={() => setActiveFilter("all")}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="text-white mb-1">Total Items</h6>
+                    <h2 className="mb-0 text-white">{stockCounts.totalItems}</h2>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div
-                className={`stock-summary-card in-stock card text-white ${activeFilter === "in-stock" ? "active" : ""}`}
-                onClick={() => setActiveFilter("in-stock")}
-              >
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6>In Stock</h6>
-                      <h2>{stockCounts.inStock}</h2>
-                    </div>
-                    <div className="icon-box">
-                      <Boxes size={24} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div
-                className={`stock-summary-card low-stock card text-white ${activeFilter === "low-stock" ? "active" : ""}`}
-                onClick={() => setActiveFilter("low-stock")}
-              >
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6>Low Stock</h6>
-                      <h2>{stockCounts.lowStock}</h2>
-                    </div>
-                    <div className="icon-box">
-                      <AlertTriangle size={24} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div
-                className={`stock-summary-card out-of-stock card text-white ${activeFilter === "out-of-stock" ? "active" : ""}`}
-                onClick={() => setActiveFilter("out-of-stock")}
-              >
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6>Out of Stock</h6>
-                      <h2>{stockCounts.outOfStock}</h2>
-                    </div>
-                    <div className="icon-box">
-                      <AlertTriangle size={24} />
-                    </div>
+                  <div className="icon-box">
+                    <Boxes size={24} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          <div className="col-md-3">
+            <div
+              className={`card stock-summary-card in-stock ${activeFilter === "in-stock" ? "active" : ""}`}
+              onClick={() => setActiveFilter("in-stock")}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="text-white mb-1">In Stock</h6>
+                    <h2 className="mb-0 text-white">{stockCounts.inStock}</h2>
+                  </div>
+                  <div className="icon-box">
+                    <CheckCircle size={24} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div
+              className={`card stock-summary-card low-stock ${activeFilter === "low-stock" ? "active" : ""}`}
+              onClick={() => setActiveFilter("low-stock")}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="text-white mb-1">Low Stock</h6>
+                    <h2 className="mb-0 text-white">{stockCounts.lowStock}</h2>
+                  </div>
+                  <div className="icon-box">
+                    <AlertTriangle size={24} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div
+              className={`card stock-summary-card out-of-stock ${activeFilter === "out-of-stock" ? "active" : ""}`}
+              onClick={() => setActiveFilter("out-of-stock")}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="text-white mb-1">Out of Stock</h6>
+                    <h2 className="mb-0 text-white">{stockCounts.outOfStock}</h2>
+                  </div>
+                  <div className="icon-box">
+                    <XCircle size={24} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* Add Form */}
-          {showForm && (
-            <div className="mb-4">
+        {/* Add Stock Item Form */}
+        {showForm && (
+          <div className="card mb-4">
+            <div className="card-header">
+              <h5 className="mb-0">Add New Stock Item</h5>
+            </div>
+            <div className="card-body">
               <form onSubmit={handleSubmit} className="row g-3">
                 <div className="col-md-6">
                   <label className="form-label">Name</label>
@@ -303,90 +305,114 @@ const StockPage = () => {
                 </div>
               </form>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Search */}
-          <div className="row g-3 mb-4">
-            <div className="col-md-12">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <Search size={16} />
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search stock items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+        {/* Search and Filter Controls */}
+        <div className="row mb-4">
+          <div className="col-md-4">
+            <div className="input-group shadow-sm">
+              <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                <Search className="text-muted" size={16} />
+              </span>
+              <input
+                type="text"
+                className="form-control border-0"
+                placeholder="Search stock..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+              />
             </div>
           </div>
-
-          {/* Table */}
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Unit Price</th>
-                  <th>Quantity</th>
-                  <th>Reorder Level</th>
-                  <th>Status</th>
-                  <th>Date Added</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : filteredItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center">
-                      No stock items found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item) => {
-                    const stockStatus = getStockStatus(item.quantity, item.reorder_level)
-                    return (
-                      <tr key={item.id}>
-                        <td className="fw-bold">{item.name}</td>
-                        <td>{item.description || "-"}</td>
-                        <td>${item.unit_price.toFixed(2)}</td>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            {item.quantity}
-                            {item.quantity <= item.reorder_level && (
-                              <AlertTriangle size={16} className="text-warning" />
-                            )}
-                          </div>
-                        </td>
-                        <td>{item.reorder_level}</td>
-                        <td>
-                          <span className={stockStatus.color}>{stockStatus.status}</span>
-                        </td>
-                        <td>{new Date(item.date_added).toLocaleDateString()}</td>
-                        <td>
-                          <button className="action-btn me-1">
-                            <Edit size={14} />
-                          </button>
-                          <button className="action-btn">
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <option value="">All Categories</option>
+              <option value="kitchen">Kitchen Cabinets</option>
+              <option value="worktop">Worktops</option>
+              <option value="accessories">Accessories</option>
+            </select>
           </div>
+          <div className="col-md-3">
+            <select
+              className="form-select border-0 shadow-sm"
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <option value="">All Dates</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+          <div className="col-md-2">
+            <button
+              className="btn w-100 shadow-sm export-btn"
+              onClick={exportToCSV}
+              style={{ borderRadius: "16px", height: "45px" }}
+            >
+              <Download size={16} className="me-1" />
+              Export
+            </button>
+          </div>
+        </div>
+
+        {/* Stock Table */}
+        <div className="table-responsive">
+          <table className="table" id="stockTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+                <th>Reorder Level</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center">
+                    <div className="spinner-border" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center">
+                    No stock items found.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.name}</td>
+                    <td>{item.description || "-"}</td>
+                    <td>${item.unit_price.toFixed(2)}</td>
+                    <td>{item.quantity}</td>
+                    <td>{item.reorder_level}</td>
+                    <td>{getStockStatus(item)}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button className="btn btn-sm btn-outline-warning" title="Edit">
+                          <Edit size={14} />
+                        </button>
+                        <button className="btn btn-sm btn-outline-danger" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

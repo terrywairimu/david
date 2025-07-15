@@ -1,7 +1,8 @@
 "use client"
 
 import RegisterTable from "./components/register-table"
-import { UserPlus } from "lucide-react"
+import { UserPlus, Plus, ShoppingCart } from "lucide-react"
+import Link from "next/link"
 
 const RegisterPage = () => {
   return (
@@ -13,6 +14,18 @@ const RegisterPage = () => {
             <UserPlus className="me-2" size={20} />
             Register Management
           </h4>
+          <div className="d-flex gap-2">
+            <button className="btn-add">
+              <Plus className="me-2" size={16} />
+              Add Client
+            </button>
+            <Link href="/sales">
+              <button className="btn-add">
+                <ShoppingCart className="me-2" size={16} />
+                New Sale
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 

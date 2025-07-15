@@ -61,20 +61,6 @@ const HomePage = () => {
       <div className="card-header">
         <div className="d-flex justify-content-between align-items-center">
           <h2 className="mb-0">Dashboard</h2>
-          <div className="d-flex gap-2">
-            <Link href="/register">
-              <button className="btn-add">
-                <Plus className="me-2" size={16} />
-                Add Client
-              </button>
-            </Link>
-            <Link href="/sales">
-              <button className="btn-add">
-                <ShoppingCart className="me-2" size={16} />
-                New Sale
-              </button>
-            </Link>
-          </div>
         </div>
       </div>
       <div className="card-body">
@@ -105,123 +91,95 @@ const HomePage = () => {
           ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="row">
-          {/* Recent Activities */}
+        {/* Recent Activities */}
+        <div className="row mb-4">
           <div className="col-md-8">
             <div className="card glass-card">
               <div className="card-header">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h3 className="mb-0">Recent Activities</h3>
-                  <button className="btn btn-outline btn-sm">
-                    <Eye className="me-1" size={16} />
-                    View All
-                  </button>
-                </div>
+                <h5 className="mb-0 text-white">Recent Activities</h5>
               </div>
               <div className="card-body">
-                <div className="space-y-4">
-                  {recentActivities.map((activity, index) => (
-                    <div key={index} className="d-flex align-items-center justify-content-between p-3 bg-gray-50 rounded-lg">
-                      <div className="d-flex align-items-center gap-3">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            activity.type === "client"
-                              ? "bg-blue-500"
-                              : activity.type === "order"
-                                ? "bg-green-500"
-                                : activity.type === "payment"
-                                  ? "bg-yellow-500"
-                                  : "bg-purple-500"
-                          }`}
-                        />
-                        <span className="text-sm fw-medium">{activity.action}</span>
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="d-flex align-items-center mb-3">
+                    <div className="me-3">
+                      <div className="activity-icon">
+                        {activity.type === "client" && <Users size={16} />}
+                        {activity.type === "order" && <ShoppingCart size={16} />}
+                        {activity.type === "payment" && <DollarSign size={16} />}
+                        {activity.type === "stock" && <Package size={16} />}
                       </div>
-                      <span className="text-xs text-muted">{activity.time}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-grow-1">
+                      <p className="mb-0 text-white">{activity.action}</p>
+                      <small className="text-muted">{activity.time}</small>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-
-          {/* Low Stock Alert */}
           <div className="col-md-4">
             <div className="card glass-card">
               <div className="card-header">
-                <h3 className="mb-0 d-flex align-items-center gap-2 text-warning">
-                  <AlertTriangle size={20} />
-                  Low Stock Alert
-                </h3>
+                <h5 className="mb-0 text-white">Low Stock Alert</h5>
               </div>
               <div className="card-body">
-                <div className="space-y-3">
-                  {lowStockItems.map((item, index) => (
-                    <div key={index} className="p-3 bg-orange-50 rounded-lg">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className="text-sm fw-medium">{item.name}</span>
-                        <span className="text-xs text-warning">
-                          {item.quantity}/{item.reorderLevel}
-                        </span>
-                      </div>
-                      <div className="w-100 bg-orange-200 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-orange-500 h-2 rounded-full"
-                          style={{ width: `${(item.quantity / item.reorderLevel) * 100}%` }}
-                        />
-                      </div>
+                {lowStockItems.map((item, index) => (
+                  <div key={index} className="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <p className="mb-0 text-white">{item.name}</p>
+                      <small className="text-muted">Qty: {item.quantity}</small>
                     </div>
-                  ))}
-                  <Link href="/stock">
-                    <button className="btn btn-outline w-100 mt-3">
-                      Manage Stock
-                    </button>
-                  </Link>
-                </div>
+                    <div className="d-flex align-items-center">
+                      <AlertTriangle className="text-warning me-1" size={16} />
+                      <small className="text-warning">Reorder</small>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="row mt-4">
+        <div className="row">
           <div className="col-12">
             <div className="card glass-card">
               <div className="card-header">
-                <h3 className="mb-0">Quick Actions</h3>
+                <h5 className="mb-0 text-white">Quick Actions</h5>
               </div>
               <div className="card-body">
                 <div className="row">
                   <div className="col-md-3">
-                    <Link href="/register">
-                      <button className="btn btn-outline h-20 w-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                        <Users size={24} />
-                        Add Client
-                      </button>
+                    <Link href="/register" className="text-decoration-none">
+                      <div className="quick-action-card">
+                        <Users size={32} className="text-primary" />
+                        <h6 className="mt-2 mb-0 text-white">Manage Clients</h6>
+                      </div>
                     </Link>
                   </div>
                   <div className="col-md-3">
-                    <Link href="/sales">
-                      <button className="btn btn-outline h-20 w-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                        <ShoppingCart size={24} />
-                        New Sale
-                      </button>
+                    <Link href="/sales" className="text-decoration-none">
+                      <div className="quick-action-card">
+                        <ShoppingCart size={32} className="text-success" />
+                        <h6 className="mt-2 mb-0 text-white">Create Sale</h6>
+                      </div>
                     </Link>
                   </div>
                   <div className="col-md-3">
-                    <Link href="/stock">
-                      <button className="btn btn-outline h-20 w-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                        <Package size={24} />
-                        Add Stock
-                      </button>
+                    <Link href="/stock" className="text-decoration-none">
+                      <div className="quick-action-card">
+                        <Package size={32} className="text-info" />
+                        <h6 className="mt-2 mb-0 text-white">Manage Stock</h6>
+                      </div>
                     </Link>
                   </div>
                   <div className="col-md-3">
-                    <Link href="/reports">
-                      <button className="btn btn-outline h-20 w-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                        <TrendingUp size={24} />
-                        View Reports
-                      </button>
+                    <Link href="/reports" className="text-decoration-none">
+                      <div className="quick-action-card">
+                        <TrendingUp size={32} className="text-warning" />
+                        <h6 className="mt-2 mb-0 text-white">View Reports</h6>
+                      </div>
                     </Link>
                   </div>
                 </div>
