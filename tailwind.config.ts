@@ -44,6 +44,10 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // Add custom border-radius values to match HTML version
+        "2xl": "24px",
+        "xl": "16px",
+        "action": "8px",
       },
       keyframes: {
         "accordion-down": {
