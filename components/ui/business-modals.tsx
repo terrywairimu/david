@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { BaseModal, FormModal, ConfirmationModal, DocumentModal } from "./modal"
+import { Modal, FormModal, ConfirmModal } from "./modal"
 import { 
   RegisteredEntity, 
   StockItem, 
@@ -73,11 +73,11 @@ const EntitySearchModal: React.FC<EntitySearchModalProps> = ({
   }
 
   return (
-    <BaseModal
+    <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={title || `Select ${type === "all" ? "Entity" : type.charAt(0).toUpperCase() + type.slice(1)}`}
-      size="lg"
+      className="max-w-4xl"
     >
       <div className="space-y-4">
         {/* Search Input */}
@@ -132,7 +132,7 @@ const EntitySearchModal: React.FC<EntitySearchModalProps> = ({
           )}
         </div>
       </div>
-    </BaseModal>
+    </Modal>
   )
 }
 
@@ -190,11 +190,11 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({
   }
 
   return (
-    <BaseModal
+    <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      size="lg"
+      className="max-w-4xl"
     >
       <div className="space-y-4">
         {/* Search Input */}
@@ -276,7 +276,7 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({
           )}
         </div>
       </div>
-    </BaseModal>
+    </Modal>
   )
 }
 
@@ -533,7 +533,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       onClose={onClose}
       onSubmit={handleSubmit}
       title={title}
-      size="full"
+      className="max-w-full"
       submitLabel={mode === "create" ? "Create Quotation" : "Update Quotation"}
       submitDisabled={loading || formData.client_id === 0}
       submitLoading={loading}

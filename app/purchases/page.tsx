@@ -72,7 +72,7 @@ const PurchasesPage = () => {
     try {
       const { data, error } = await supabase
         .from("registered_entities")
-        .select("id, name")
+        .select("id, name, type, date_added, status")
         .eq("type", "supplier")
         .order("name")
 

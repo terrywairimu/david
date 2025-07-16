@@ -605,6 +605,7 @@ const QuotationsView = () => {
       {/* Quotation Modal */}
       {showModal && (
         <QuotationModal
+          isOpen={showModal}
           quotation={selectedQuotation}
           mode={modalMode}
           onClose={() => setShowModal(false)}

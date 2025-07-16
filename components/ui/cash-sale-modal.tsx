@@ -4,48 +4,7 @@ import React, { useState, useEffect } from "react"
 import { X, Plus, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-
-interface CashSaleItem {
-  id?: number
-  category: "cabinet" | "worktop" | "accessories"
-  description: string
-  unit: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  stock_item_id?: number
-}
-
-interface CashSale {
-  id?: number
-  sale_number: string
-  client_id: number
-  sales_order_id?: number
-  original_quotation_number?: string
-  date_created: string
-  cabinet_total: number
-  worktop_total: number
-  accessories_total: number
-  labour_percentage: number
-  labour_total: number
-  total_amount: number
-  grand_total: number
-  amount_paid: number
-  change_amount: number
-  balance_amount: number
-  include_accessories: boolean
-  payment_method: string
-  status: string
-  notes?: string
-  terms_conditions?: string
-  client?: {
-    id: number
-    name: string
-    phone?: string
-    location?: string
-  }
-  items?: CashSaleItem[]
-}
+import { CashSale, CashSaleItem } from "@/lib/types"
 
 interface CashSaleModalProps {
   isOpen: boolean

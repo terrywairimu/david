@@ -123,31 +123,52 @@ export interface SalesOrderItem {
 
 // Invoice Types
 export interface Invoice {
-  id: number
+  id?: number
   invoice_number: string
   client_id: number
   sales_order_id?: number
+  quotation_id?: number
+  original_quotation_number?: string
+  original_order_number?: string
   date_created: string
-  due_date?: string
+  due_date: string
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  labour_percentage: number
+  labour_total: number
   total_amount: number
+  grand_total: number
   paid_amount: number
-  balance: number
-  status: "draft" | "pending" | "paid" | "overdue" | "cancelled"
+  balance_amount: number
+  include_accessories: boolean
+  status: string
   notes?: string
+  terms_conditions?: string
+  client?: {
+    id: number
+    name: string
+    phone?: string
+    location?: string
+  }
+  items?: InvoiceItem[]
+  payments?: Payment[]
+  // Legacy fields for backward compatibility
+  balance?: number
   payment_terms?: string
-  client?: RegisteredEntity
   sales_order?: SalesOrder
-  items: InvoiceItem[]
-  payments: Payment[]
 }
 
 export interface InvoiceItem {
-  id: number
-  invoice_id: number
-  stock_item_id: number
+  id?: number
+  invoice_id?: number
+  category: "cabinet" | "worktop" | "accessories"
+  description: string
+  unit: string
   quantity: number
   unit_price: number
   total_price: number
+  stock_item_id?: number
   discount_percentage?: number
   discount_amount?: number
   tax_percentage?: number
@@ -157,27 +178,51 @@ export interface InvoiceItem {
 
 // Cash Sales Types
 export interface CashSale {
-  id: number
+  id?: number
   sale_number: string
-  client_id?: number
+  client_id: number
+  invoice_id?: number
+  sales_order_id?: number
+  quotation_id?: number
+  original_quotation_number?: string
+  original_order_number?: string
+  original_invoice_number?: string
   date_created: string
-  total_amount: number
-  payment_method: "cash" | "card" | "mobile" | "bank_transfer"
+  payment_method: string
   payment_reference?: string
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  labour_percentage: number
+  labour_total: number
+  total_amount: number
+  grand_total: number
+  amount_paid: number
+  change_amount: number
+  balance_amount: number
+  include_accessories: boolean
+  status: string
   notes?: string
-  client?: RegisteredEntity
-  items: CashSaleItem[]
+  terms_conditions?: string
+  client?: {
+    id: number
+    name: string
+    phone?: string
+    location?: string
+  }
+  items?: CashSaleItem[]
 }
 
 export interface CashSaleItem {
-  id: number
-  cash_sale_id: number
-  stock_item_id: number
+  id?: number
+  cash_sale_id?: number
+  category: "cabinet" | "worktop" | "accessories"
+  description: string
+  unit: string
   quantity: number
   unit_price: number
   total_price: number
-  discount_percentage?: number
-  discount_amount?: number
+  stock_item_id?: number
   stock_item?: StockItem
 }
 

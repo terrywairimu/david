@@ -4,56 +4,7 @@ import React, { useState, useEffect } from "react"
 import { X, Plus, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-
-interface InvoiceItem {
-  id?: number
-  category: "cabinet" | "worktop" | "accessories"
-  description: string
-  unit: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  stock_item_id?: number
-}
-
-interface Payment {
-  id?: number
-  date_paid: string
-  description: string
-  amount: number
-  account_paid_to: string
-}
-
-interface Invoice {
-  id?: number
-  invoice_number: string
-  client_id: number
-  sales_order_id?: number
-  original_quotation_number?: string
-  date_created: string
-  due_date: string
-  cabinet_total: number
-  worktop_total: number
-  accessories_total: number
-  labour_percentage: number
-  labour_total: number
-  total_amount: number
-  grand_total: number
-  paid_amount: number
-  balance_amount: number
-  include_accessories: boolean
-  status: string
-  notes?: string
-  terms_conditions?: string
-  client?: {
-    id: number
-    name: string
-    phone?: string
-    location?: string
-  }
-  items?: InvoiceItem[]
-  payments?: Payment[]
-}
+import { Invoice, InvoiceItem, Payment } from "@/lib/types"
 
 interface InvoiceModalProps {
   isOpen: boolean

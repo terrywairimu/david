@@ -53,6 +53,7 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
     return `${prefix}-0001`
   } catch (error) {
     console.error('Error generating expense number:', error)
+    const prefix = type === 'client' ? 'EXP-C' : 'EXP-CO'
     return `${prefix}-${Date.now().toString().slice(-4)}`
   }
 }
@@ -762,7 +763,7 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<any> => {
 
     // Insert invoice items
     if (salesOrder.items && salesOrder.items.length > 0) {
-      const invoiceItems = salesOrder.items.map(item => ({
+      const invoiceItems = salesOrder.items.map((item: any) => ({
         invoice_id: newInvoice.id,
         category: item.category,
         description: item.description,
@@ -850,7 +851,7 @@ export const proceedToCashSale = async (quotationId: number): Promise<any> => {
 
     // Insert cash sale items
     if (quotation.items && quotation.items.length > 0) {
-      const cashSaleItems = quotation.items.map(item => ({
+      const cashSaleItems = quotation.items.map((item: any) => ({
         cash_sale_id: newCashSale.id,
         category: item.category,
         description: item.description,
@@ -939,7 +940,7 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
 
     // Insert cash sale items
     if (salesOrder.items && salesOrder.items.length > 0) {
-      const cashSaleItems = salesOrder.items.map(item => ({
+      const cashSaleItems = salesOrder.items.map((item: any) => ({
         cash_sale_id: newCashSale.id,
         category: item.category,
         description: item.description,
@@ -970,6 +971,95 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
   } catch (error) {
     console.error("Error converting sales order to cash sale:", error)
     toast.error(error instanceof Error ? error.message : "Failed to convert sales order to cash sale")
+    throw error
+  }
+}
+
+// Convert invoice to cash sale
+export const proceedToCashSaleFromInvoice = async (invoiceId: number): Promise<any> => {
+  try {
+    // Get invoice data
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
+      .select(`
+        *,
+        client:registered_entities(id, name, phone, location),
+        items:invoice_items(*)
+      `)
+      .eq("id", invoiceId)
+      .single()
+
+    if (invoiceError) throw invoiceError
+
+    // Generate cash sale number
+    const saleNumber = await generateNextNumber("cash_sales", "sale_number", "CS")
+
+    // Create cash sale
+    const cashSaleData = {
+      sale_number: saleNumber,
+      client_id: invoice.client_id,
+      invoice_id: invoice.id,
+      original_quotation_number: invoice.original_quotation_number,
+      date_created: new Date().toISOString().split('T')[0],
+      cabinet_total: invoice.cabinet_total,
+      worktop_total: invoice.worktop_total,
+      accessories_total: invoice.accessories_total,
+      labour_percentage: invoice.labour_percentage,
+      labour_total: invoice.labour_total,
+      total_amount: invoice.total_amount,
+      grand_total: invoice.grand_total,
+      amount_paid: invoice.grand_total, // Full payment for cash sale
+      change_amount: 0,
+      balance_amount: 0,
+      include_accessories: invoice.include_accessories,
+      payment_method: "cash",
+      status: "completed",
+      notes: invoice.notes,
+      terms_conditions: invoice.terms_conditions
+    }
+
+    // Insert cash sale
+    const { data: newCashSale, error: cashSaleError } = await supabase
+      .from("cash_sales")
+      .insert(cashSaleData)
+      .select()
+      .single()
+
+    if (cashSaleError) throw cashSaleError
+
+    // Insert cash sale items
+    if (invoice.items && invoice.items.length > 0) {
+      const cashSaleItems = invoice.items.map((item: any) => ({
+        cash_sale_id: newCashSale.id,
+        category: item.category,
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        stock_item_id: item.stock_item_id
+      }))
+
+      const { error: itemsError } = await supabase
+        .from("cash_sale_items")
+        .insert(cashSaleItems)
+
+      if (itemsError) throw itemsError
+    }
+
+    // Update invoice status
+    const { error: updateError } = await supabase
+      .from("invoices")
+      .update({ status: "converted_to_cash_sale" })
+      .eq("id", invoiceId)
+
+    if (updateError) throw updateError
+
+    toast.success("Successfully converted invoice to cash sale")
+    return { ...cashSaleData, id: newCashSale.id, client: invoice.client, items: invoice.items }
+  } catch (error) {
+    console.error("Error converting invoice to cash sale:", error)
+    toast.error(error instanceof Error ? error.message : "Failed to convert invoice to cash sale")
     throw error
   }
 }

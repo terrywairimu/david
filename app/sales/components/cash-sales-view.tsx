@@ -10,50 +10,9 @@ import {
   downloadDocument,
   exportCashSales as exportCashSalesReport
 } from "@/lib/workflow-utils"
+import { CashSale } from "@/lib/types"
 
-interface CashSale {
-  id: number
-  sale_number: string
-  client_id: number
-  invoice_id?: number
-  sales_order_id?: number
-  quotation_id?: number
-  original_quotation_number?: string
-  original_order_number?: string
-  original_invoice_number?: string
-  date_created: string
-  payment_method: string
-  payment_reference?: string
-  cabinet_total: number
-  worktop_total: number
-  accessories_total: number
-  labour_percentage: number
-  labour_total: number
-  total_amount: number
-  grand_total: number
-  include_accessories: boolean
-  status: "completed" | "cancelled"
-  notes?: string
-  terms_conditions?: string
-  client?: {
-    id: number
-    name: string
-    phone?: string
-    location?: string
-  }
-  items?: Array<{
-    id: number
-    category: "cabinet" | "worktop" | "accessories"
-    description: string
-    unit: string
-    quantity: number
-    unit_price: number
-    total_price: number
-    stock_item_id?: number
-  }>
-}
-
-const CashSalesView = () => {
+const CashSalesView: React.FC = () => {
   const [cashSales, setCashSales] = useState<CashSale[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")

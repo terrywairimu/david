@@ -11,54 +11,9 @@ import {
   downloadDocument,
   exportInvoices as exportInvoicesReport
 } from "@/lib/workflow-utils"
+import { Invoice } from "@/lib/types"
 
-interface Invoice {
-  id: number
-  invoice_number: string
-  client_id: number
-  sales_order_id?: number
-  quotation_id?: number
-  original_quotation_number?: string
-  original_order_number?: string
-  date_created: string
-  due_date: string
-  cabinet_total: number
-  worktop_total: number
-  accessories_total: number
-  labour_percentage: number
-  labour_total: number
-  total_amount: number
-  grand_total: number
-  include_accessories: boolean
-  status: "pending" | "paid" | "overdue" | "cancelled" | "partially_paid" | "converted_to_cash_sale"
-  notes?: string
-  terms_conditions?: string
-  client?: {
-    id: number
-    name: string
-    phone?: string
-    location?: string
-  }
-  items?: Array<{
-    id: number
-    category: "cabinet" | "worktop" | "accessories"
-    description: string
-    unit: string
-    quantity: number
-    unit_price: number
-    total_price: number
-    stock_item_id?: number
-  }>
-  payments?: Array<{
-    id: number
-    amount: number
-    date: string
-    method: string
-    reference?: string
-  }>
-}
-
-const InvoicesView = () => {
+const InvoicesView: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
