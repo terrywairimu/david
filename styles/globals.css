@@ -271,20 +271,83 @@ body {
 
 /* Base Card Styles */
 .card {
-    background: transparent;
-    border: none;
+    background: transparent !important;
+    border: none !important;
     overflow: visible;
     border-radius: 24px !important;
+    margin-bottom: 1.5rem;
+}
+
+/* Ensure card has proper structure */
+.card:not(.stock-summary-card) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .card-body {
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    padding: 1.0rem;
-    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    padding: 1.0rem !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure card-body has proper glass effect */
+.card > .card-body,
+.card .card-body {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    padding: 1.0rem !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure card-body content is properly styled */
+.card-body .row {
+    margin-bottom: 1rem;
+}
+
+.card-body .input-group {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.card-body .input-group-text {
+    background: white;
+    border: none;
+    color: var(--text-secondary);
+}
+
+.card-body .form-control,
+.card-body .form-select {
+    border: none;
+    background: white;
+    color: var(--text-primary);
+}
+
+.card-body .form-control:focus,
+.card-body .form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    outline: none;
+}
+
+.card-body .table-responsive {
+    background: transparent;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.card-body .table {
+    background: transparent;
+    margin-bottom: 0;
 }
 
 .card > .card-header,
@@ -295,10 +358,10 @@ body {
     padding: 1.1rem !important;
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    z-index: 2;
     border-radius: 24px !important;
-    margin-bottom: 1.1rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.1rem !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
 }
 
 .card > .card-header::before,
