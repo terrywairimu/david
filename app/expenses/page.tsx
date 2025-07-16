@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { User, Building } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ClientExpensesView from "./components/client-expenses-view"
@@ -97,26 +98,22 @@ export default function ExpensesPage() {
     <div id="expensesSection">
       {/* Main Header Card with Navigation */}
       <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h2 className="mb-0">Expenses Management</h2>
-          {/* Navigation Buttons in Header */}
-          <div className="d-flex gap-3">
-            <button
-              className={`btn btn-add ${activeView === "client" ? "active" : ""}`}
-              onClick={() => setActiveView("client")}
-            >
-                              <User size={16} className="me-2" />
-              Client Expenses
-            </button>
-            <button
-              className={`btn btn-add ${activeView === "company" ? "active" : ""}`}
-              onClick={() => setActiveView("company")}
-            >
-              <Building size={16} className="me-2" />
-              Company Expenses
-            </button>
-          </div>
-        </div>
+        <SectionHeader title="Expenses Management">
+          <button
+            className={`btn btn-add ${activeView === "client" ? "active" : ""}`}
+            onClick={() => setActiveView("client")}
+          >
+            <User size={16} className="me-2" />
+            Client Expenses
+          </button>
+          <button
+            className={`btn btn-add ${activeView === "company" ? "active" : ""}`}
+            onClick={() => setActiveView("company")}
+          >
+            <Building size={16} className="me-2" />
+            Company Expenses
+          </button>
+        </SectionHeader>
       </div>
 
       {/* Active View Content */}

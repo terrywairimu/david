@@ -3,6 +3,7 @@
 import { useState } from "react"
 import RegisterTable from "./components/register-table"
 import RegisterModals from "@/components/ui/register-modals"
+import { SectionHeader } from "@/components/ui/section-header"
 import { UserPlus, Truck } from "lucide-react"
 
 interface RegisteredEntity {
@@ -43,21 +44,16 @@ const RegisterPage = () => {
   return (
     <>
       <div id="registerSection" className="card">
-        <div className="card-header">
-          <div className="d-flex justify-content-between align-items-center">
-            <h2 className="mb-0">Register Management</h2>
-            <div className="d-flex gap-2">
-              <button className="btn btn-add" onClick={handleShowClientModal}>
-                <UserPlus className="me-2" size={16} />
-                Add New Client
-              </button>
-              <button className="btn btn-add" onClick={handleShowSupplierModal}>
-                <Truck className="me-2" size={16} />
-                Add New Supplier
-              </button>
-            </div>
-          </div>
-        </div>
+        <SectionHeader title="Register Management">
+          <button className="btn btn-add" onClick={handleShowClientModal}>
+            <UserPlus className="me-2" size={16} />
+            Add New Client
+          </button>
+          <button className="btn btn-add" onClick={handleShowSupplierModal}>
+            <Truck className="me-2" size={16} />
+            Add New Supplier
+          </button>
+        </SectionHeader>
         <RegisterTable 
           onShowClientModal={handleShowClientModal}
           onShowSupplierModal={handleShowSupplierModal}

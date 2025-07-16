@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Plus, Search, Download, Edit, Trash2, TrendingUp, TrendingDown, Package, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { StockItem } from "@/lib/types"
@@ -339,22 +340,21 @@ const StockPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="card border-0 shadow-lg" style={{ borderRadius: "20px" }}>
-          <div className="card-header bg-white border-0 py-4" style={{ borderRadius: "20px 20px 0 0" }}>
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-0">Stock Management</h2>
-              <button
-                className="btn btn-add px-6 py-2 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={() => setShowAddModal(true)}
-                style={{ borderRadius: "16px" }}
-              >
-                <Plus size={16} className="mr-2" />
-                Add New Item
-              </button>
-            </div>
-          </div>
+        <div className="card">
+          <SectionHeader 
+            title="Stock Management" 
+            icon={<Package size={24} />}
+          >
+            <button
+              className="btn btn-add"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={16} className="me-2" />
+              Add New Item
+            </button>
+          </SectionHeader>
 
-          <div className="card-body p-6">
+          <div className="card-body">
             {/* Stock Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div

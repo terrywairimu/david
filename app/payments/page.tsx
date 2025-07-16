@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { CreditCard, Receipt } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import MakePaymentView from "./components/make-payment-view"
@@ -128,26 +129,22 @@ export default function PaymentsPage() {
     <div id="paymentsSection">
       {/* Main Header Card with Navigation */}
       <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h2 className="mb-0">Payments Management</h2>
-          {/* Navigation Buttons in Header */}
-          <div className="d-flex gap-3">
-            <button
-              className={`btn btn-add ${activeView === "make-payment" ? "active" : ""}`}
-              onClick={handleMakePayment}
-            >
-              <CreditCard size={16} className="me-2" />
-              Make Payment
-            </button>
-            <button
-              className={`btn btn-add ${activeView === "account-summary" ? "active" : ""}`}
-              onClick={() => setActiveView("account-summary")}
-            >
-                              <Receipt size={16} className="me-2" />
-              Account Summary
-            </button>
-          </div>
-        </div>
+        <SectionHeader title="Payments Management">
+          <button
+            className={`btn btn-add ${activeView === "make-payment" ? "active" : ""}`}
+            onClick={handleMakePayment}
+          >
+            <CreditCard size={16} className="me-2" />
+            Make Payment
+          </button>
+          <button
+            className={`btn btn-add ${activeView === "account-summary" ? "active" : ""}`}
+            onClick={() => setActiveView("account-summary")}
+          >
+            <Receipt size={16} className="me-2" />
+            Account Summary
+          </button>
+        </SectionHeader>
       </div>
 
       {/* Active View Content */}

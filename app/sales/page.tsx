@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FileText, ShoppingCart, Receipt, DollarSign } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import QuotationsView from "./components/quotations-view"
 import SalesOrdersView from "./components/sales-orders-view"
 import InvoicesView from "./components/invoices-view"
@@ -29,43 +30,39 @@ const SalesPage = () => {
     <div id="salesSection">
       {/* Main Header Card with Navigation */}
       <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">
-            <ShoppingCart className="me-2" size={20} />
-            Sales Management
-          </h4>
-          {/* Navigation Tabs in Header */}
-          <div className="d-flex gap-2">
-            <button
-              className={`btn-add ${activeView === "quotations" ? "active" : ""}`}
-              onClick={() => setActiveView("quotations")}
-            >
-              <FileText size={16} className="me-1" />
-              Quotation
-            </button>
-            <button
-              className={`btn-add ${activeView === "orders" ? "active" : ""}`}
-              onClick={() => setActiveView("orders")}
-            >
-              <ShoppingCart size={16} className="me-1" />
-              Sales Order
-            </button>
-            <button
-              className={`btn-add ${activeView === "invoices" ? "active" : ""}`}
-              onClick={() => setActiveView("invoices")}
-            >
-              <Receipt size={16} className="me-1" />
-              Invoice
-            </button>
-            <button
-              className={`btn-add ${activeView === "cash" ? "active" : ""}`}
-              onClick={() => setActiveView("cash")}
-            >
-              <DollarSign size={16} className="me-1" />
-              Cash Sale
-            </button>
-          </div>
-        </div>
+        <SectionHeader 
+          title="Sales Management" 
+          icon={<ShoppingCart size={20} />}
+        >
+          <button
+            className={`btn-add ${activeView === "quotations" ? "active" : ""}`}
+            onClick={() => setActiveView("quotations")}
+          >
+            <FileText size={16} className="me-1" />
+            Quotation
+          </button>
+          <button
+            className={`btn-add ${activeView === "orders" ? "active" : ""}`}
+            onClick={() => setActiveView("orders")}
+          >
+            <ShoppingCart size={16} className="me-1" />
+            Sales Order
+          </button>
+          <button
+            className={`btn-add ${activeView === "invoices" ? "active" : ""}`}
+            onClick={() => setActiveView("invoices")}
+          >
+            <Receipt size={16} className="me-1" />
+            Invoice
+          </button>
+          <button
+            className={`btn-add ${activeView === "cash" ? "active" : ""}`}
+            onClick={() => setActiveView("cash")}
+          >
+            <DollarSign size={16} className="me-1" />
+            Cash Sale
+          </button>
+        </SectionHeader>
       </div>
 
       {/* Active View Content */}

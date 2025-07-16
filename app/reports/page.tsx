@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FileText, Download, Calendar, DollarSign, Users, Package } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 
 const ReportsPage = () => {
   const [dateFrom, setDateFrom] = useState("")
@@ -38,12 +39,10 @@ const ReportsPage = () => {
     <div id="reportsSection">
       {/* Header Card */}
       <div className="card mb-4">
-        <div className="card-header">
-          <h4 className="mb-0">
-            <FileText className="me-2" size={20} />
-            Reports
-          </h4>
-        </div>
+        <SectionHeader 
+          title="Reports" 
+          icon={<FileText size={20} />}
+        />
         <div className="card-body">
           {/* Date Range Filter */}
           <div className="card mb-4">

@@ -1,6 +1,7 @@
 "use client"
 
 import { TrendingUp, TrendingDown, DollarSign, Users, Package, ShoppingCart, BarChart } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 
 const AnalyticsPage = () => {
   // Mock data for demonstration
@@ -58,12 +59,10 @@ const AnalyticsPage = () => {
     <div id="analyticsSection">
       {/* Header Card */}
       <div className="card mb-4">
-        <div className="card-header">
-          <h4 className="mb-0">
-            <BarChart className="me-2" size={20} />
-            Analytics
-          </h4>
-        </div>
+        <SectionHeader 
+          title="Analytics" 
+          icon={<BarChart size={20} />}
+        />
         <div className="card-body">
           {/* Key Metrics */}
           <div className="row mb-4">

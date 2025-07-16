@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer } from "lucide-react"
+import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import PurchaseModal from "@/components/ui/purchase-modal"
@@ -425,25 +426,22 @@ const PurchasesPage = () => {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <div className="d-flex justify-content-between align-items-center">
-          <h2 className="mb-0">
-            <ShoppingCart className="me-2" size={24} />
-            Purchase Management
-          </h2>
-          <button
-            className="btn btn-add"
-            onClick={() => {
-              setSelectedPurchase(undefined)
-              setModalMode("create")
-              setShowModal(true)
-            }}
-          >
-            <Plus size={16} className="me-1" />
-            Add New Purchase
-          </button>
-        </div>
-      </div>
+      <SectionHeader 
+        title="Purchase Management" 
+        icon={<ShoppingCart size={24} />}
+      >
+        <button
+          className="btn btn-add"
+          onClick={() => {
+            setSelectedPurchase(undefined)
+            setModalMode("create")
+            setShowModal(true)
+          }}
+        >
+          <Plus size={16} className="me-1" />
+          Add New Purchase
+        </button>
+      </SectionHeader>
 
       <div className="card-body">
         {/* Search and Filter Controls */}
