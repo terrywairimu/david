@@ -1,17 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { CreditCard, FileInvoiceDollar } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import MakePaymentView from "./components/make-payment-view"
 import AccountSummaryView from "./components/account-summary-view"
+import PaymentModal from "@/components/ui/payment-modal"
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [clients, setClients] = useState<RegisteredEntity[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("make-payment")
+  const [activeView, setActiveView] = useState<"make-payment" | "account-summary">("make-payment")
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -90,62 +93,77 @@ export default function PaymentsPage() {
     fetchData()
   }
 
+  const handleMakePayment = () => {
+    setActiveView("make-payment")
+    setShowPaymentModal(true)
+  }
+
+  const handleSavePayment = (payment: any) => {
+    handleRefresh()
+    setShowPaymentModal(false)
+  }
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case "make-payment":
+        return <MakePaymentView clients={clients} invoices={invoices} payments={payments} onRefresh={handleRefresh} />
+      case "account-summary":
+        return <AccountSummaryView clients={clients} payments={payments} onRefresh={handleRefresh} />
+      default:
+        return <MakePaymentView clients={clients} invoices={invoices} payments={payments} onRefresh={handleRefresh} />
+    }
+  }
+
   if (loading) {
     return (
-      <div className="container-fluid mt-4">
-        <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container-fluid mt-4" id="paymentsSection">
-      <div className="row">
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title mb-0">Payments Management</h4>
-            </div>
-            
-            {/* Tab Navigation */}
-            <div className="card-body">
-              <div className="d-flex mb-4">
-                <button
-                  className={`btn btn-add me-2 ${activeTab === "make-payment" ? "active" : ""}`}
-                  onClick={() => setActiveTab("make-payment")}
-                >
-                  Make Payment
-                </button>
-                <button
-                  className={`btn btn-add ${activeTab === "account-summary" ? "active" : ""}`}
-                  onClick={() => setActiveTab("account-summary")}
-                >
-                  Account Summary
-                </button>
-              </div>
-
-              {/* Tab Content */}
-              {activeTab === "make-payment" ? (
-                <MakePaymentView
-                  clients={clients}
-                  invoices={invoices}
-                  fetchPayments={handleRefresh}
-                />
-              ) : (
-                <AccountSummaryView
-                  clients={clients}
-                  payments={payments}
-                  onRefresh={handleRefresh}
-                />
-              )}
-            </div>
+    <div id="paymentsSection">
+      {/* Main Header Card with Navigation */}
+      <div className="card mb-4">
+        <div className="card-header d-flex justify-content-between align-items-center">
+          <h2 className="mb-0">Payments Management</h2>
+          {/* Navigation Buttons in Header */}
+          <div className="d-flex gap-3">
+            <button
+              className={`btn btn-add ${activeView === "make-payment" ? "active" : ""}`}
+              onClick={handleMakePayment}
+            >
+              <CreditCard size={16} className="me-2" />
+              Make Payment
+            </button>
+            <button
+              className={`btn btn-add ${activeView === "account-summary" ? "active" : ""}`}
+              onClick={() => setActiveView("account-summary")}
+            >
+              <FileInvoiceDollar size={16} className="me-2" />
+              Account Summary
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Active View Content */}
+      {renderActiveView()}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          payment={null}
+          mode="create"
+          onClose={() => setShowPaymentModal(false)}
+          onSave={handleSavePayment}
+          clients={clients}
+          invoices={invoices}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { UserTag, Building } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ClientExpensesView from "./components/client-expenses-view"
@@ -10,8 +11,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [clients, setClients] = useState<RegisteredEntity[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("client")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [activeView, setActiveView] = useState<"client" | "company">("client")
 
   useEffect(() => {
     fetchData()
@@ -72,66 +72,55 @@ export default function ExpensesPage() {
     fetchData()
   }
 
+  const renderActiveView = () => {
+    switch (activeView) {
+      case "client":
+        return <ClientExpensesView expenses={expenses} clients={clients} onRefresh={handleRefresh} />
+      case "company":
+        return <CompanyExpensesView expenses={expenses} clients={clients} onRefresh={handleRefresh} />
+      default:
+        return <ClientExpensesView expenses={expenses} clients={clients} onRefresh={handleRefresh} />
+    }
+  }
+
   if (loading) {
     return (
-      <div className="container-fluid mt-4">
-        <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container-fluid mt-4" id="expensesSection">
-      <div className="row">
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title mb-0">Expenses Management</h4>
-            </div>
-            
-            {/* Tab Navigation */}
-            <div className="card-body">
-              <div className="d-flex mb-4">
-                <button
-                  className={`btn btn-add me-2 ${activeTab === "client" ? "active" : ""}`}
-                  onClick={() => setActiveTab("client")}
-                >
-                  Client Expenses
-                </button>
-                <button
-                  className={`btn btn-add ${activeTab === "company" ? "active" : ""}`}
-                  onClick={() => setActiveTab("company")}
-                >
-                  Company Expenses
-                </button>
-              </div>
-
-              {/* Tab Content */}
-              {activeTab === "client" ? (
-                <ClientExpensesView
-                  expenses={expenses}
-                  clients={clients}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onRefresh={handleRefresh}
-                />
-              ) : (
-                <CompanyExpensesView
-                  expenses={expenses}
-                  clients={clients}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onRefresh={handleRefresh}
-                />
-              )}
-            </div>
+    <div id="expensesSection">
+      {/* Main Header Card with Navigation */}
+      <div className="card mb-4">
+        <div className="card-header d-flex justify-content-between align-items-center">
+          <h2 className="mb-0">Expenses Management</h2>
+          {/* Navigation Buttons in Header */}
+          <div className="d-flex gap-3">
+            <button
+              className={`btn btn-add ${activeView === "client" ? "active" : ""}`}
+              onClick={() => setActiveView("client")}
+            >
+              <UserTag size={16} className="me-2" />
+              Client Expenses
+            </button>
+            <button
+              className={`btn btn-add ${activeView === "company" ? "active" : ""}`}
+              onClick={() => setActiveView("company")}
+            >
+              <Building size={16} className="me-2" />
+              Company Expenses
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Active View Content */}
+      {renderActiveView()}
     </div>
   )
 }

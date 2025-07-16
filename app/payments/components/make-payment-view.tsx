@@ -11,12 +11,11 @@ import PaymentModal from "@/components/ui/payment-modal"
 interface MakePaymentViewProps {
   clients: RegisteredEntity[]
   invoices: Invoice[]
-  fetchPayments: () => void
+  payments: Payment[]
+  onRefresh: () => void
 }
 
-const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewProps) => {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
+const MakePaymentView = ({ clients, invoices, payments, onRefresh }: MakePaymentViewProps) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -29,32 +28,8 @@ const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewPr
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
-    fetchPaymentsList()
     setupClientOptions()
   }, [clients])
-
-  const fetchPaymentsList = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from("payments")
-        .select(`
-          *,
-          client:registered_entities(*),
-          invoice:invoices(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching payments:", error)
-        toast.error("Failed to fetch payments")
-      } else {
-        setPayments(data || [])
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -158,8 +133,7 @@ const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewPr
         if (error) throw error
 
         toast.success("Payment deleted successfully")
-        fetchPaymentsList()
-        fetchPayments()
+        onRefresh()
       } catch (error) {
         console.error("Error deleting payment:", error)
         toast.error("Failed to delete payment")
@@ -172,34 +146,15 @@ const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewPr
   }
 
   const handleSavePayment = (payment: any) => {
-    fetchPaymentsList()
-    fetchPayments()
+    onRefresh()
     setShowPaymentModal(false)
   }
 
   const filteredPayments = getFilteredPayments()
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="card">
       <div className="card-body">
-        {/* Add New Payment Button */}
-        <div className="d-flex mb-4">
-          <button className="btn btn-add" onClick={handleNewPayment}>
-            <Plus size={16} className="me-2" />
-            Make Payment
-          </button>
-        </div>
-
         {/* Enhanced Search and Filter Row */}
         <SearchFilterRow
           searchValue={searchTerm}

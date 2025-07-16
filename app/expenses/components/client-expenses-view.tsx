@@ -11,12 +11,11 @@ import ExpenseModal from "@/components/ui/expense-modal"
 interface ClientExpensesViewProps {
   expenses: Expense[]
   clients: RegisteredEntity[]
-  searchTerm: string
-  onSearchChange: (term: string) => void
   onRefresh: () => void
 }
 
-const ClientExpensesView = ({ expenses, clients, searchTerm, onSearchChange, onRefresh }: ClientExpensesViewProps) => {
+const ClientExpensesView = ({ expenses, clients, onRefresh }: ClientExpensesViewProps) => {
+  const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
   const [specificDate, setSpecificDate] = useState("")
@@ -153,143 +152,147 @@ const ClientExpensesView = ({ expenses, clients, searchTerm, onSearchChange, onR
   const filteredExpenses = getFilteredExpenses()
 
   return (
-    <div className="card-body">
-      {/* Add New Client Expense Button */}
-      <div className="d-flex mb-4">
-        <button className="btn btn-add" onClick={handleNewExpense}>
-          <Plus size={16} className="me-2" />
-          Add New Client Expense
-        </button>
-      </div>
+    <div className="card">
+      <div className="card-body">
+        {/* Add New Client Expense Button */}
+        <div className="d-flex mb-4">
+          <button className="btn btn-add" onClick={handleNewExpense}>
+            <Plus size={16} className="me-2" />
+            Add New Client Expense
+          </button>
+        </div>
 
-      {/* Enhanced Search and Filter Row */}
-      <SearchFilterRow
-        searchValue={searchTerm}
-        onSearchChange={onSearchChange}
-        searchPlaceholder="Search client expenses..."
-        firstFilter={{
-          value: clientFilter,
-          onChange: setClientFilter,
-          options: clientOptions,
-          placeholder: "All Clients"
-        }}
-        dateFilter={{
-          value: dateFilter,
-          onChange: setDateFilter,
-          onSpecificDateChange: setSpecificDate,
-          onPeriodStartChange: setPeriodStartDate,
-          onPeriodEndChange: setPeriodEndDate,
-          specificDate,
-          periodStartDate,
-          periodEndDate
-        }}
-        onExport={handleExport}
-        exportLabel="Export"
-      />
+        {/* Enhanced Search and Filter Row */}
+        <SearchFilterRow
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search client expenses..."
+          firstFilter={{
+            value: clientFilter,
+            onChange: setClientFilter,
+            options: clientOptions,
+            placeholder: "All Clients"
+          }}
+          dateFilter={{
+            value: dateFilter,
+            onChange: setDateFilter,
+            onSpecificDateChange: setSpecificDate,
+            onPeriodStartChange: setPeriodStartDate,
+            onPeriodEndChange: setPeriodEndDate,
+            specificDate,
+            periodStartDate,
+            periodEndDate
+          }}
+          onExport={handleExport}
+          exportLabel="Export"
+        />
 
-      {/* Client Expenses Table */}
-      <div className="table-responsive">
-        <table className="table table-hover">
-          <thead>
-            <tr>
-              <th>Expense #</th>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Account Debited</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExpenses.length === 0 ? (
+        {/* Client Expenses Table */}
+        <div className="table-responsive">
+          <table className="table table-hover">
+            <thead>
               <tr>
-                <td colSpan={8} className="text-center py-4">
-                  <div className="text-muted">
-                    {searchTerm || clientFilter || dateFilter
-                      ? "No client expenses found matching your criteria"
-                      : "No client expenses found"}
-                  </div>
-                </td>
+                <th>Expense #</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Description</th>
+                <th>Unit</th>
+                <th>Quantity</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Account Debited</th>
+                <th>Actions</th>
               </tr>
-            ) : (
-              filteredExpenses.map((expense) => (
-                <tr key={expense.id}>
-                  <td className="fw-bold">{expense.expense_number}</td>
-                  <td>{new Date(expense.date_created).toLocaleDateString()}</td>
-                  <td>{expense.client?.name || "Unknown"}</td>
-                  <td>
-                    <span className="badge bg-primary">{expense.category}</span>
-                  </td>
-                  <td>{expense.description || "-"}</td>
-                  <td className="fw-bold text-danger">
-                    KES {expense.amount.toFixed(2)}
-                  </td>
-                  <td>{expense.account_debited || "-"}</td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleViewExpense(expense)}
-                        title="View"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleEditExpense(expense)}
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleDeleteExpense(expense)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+            </thead>
+            <tbody>
+              {filteredExpenses.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-4">
+                    <div className="text-muted">
+                      {searchTerm || clientFilter || dateFilter
+                        ? "No client expenses found matching your criteria"
+                        : "No client expenses found"}
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredExpenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td className="fw-bold">{expense.expense_number}</td>
+                    <td>{new Date(expense.date_created).toLocaleDateString()}</td>
+                    <td>{expense.client?.name || "Unknown"}</td>
+                    <td>{expense.description || "-"}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td className="fw-bold text-danger">
+                      KES {expense.amount.toFixed(2)}
+                    </td>
+                    <td>{expense.account_debited || "-"}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleViewExpense(expense)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleEditExpense(expense)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleDeleteExpense(expense)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Expense Summary */}
-      <div className="row mt-4">
-        <div className="col-md-6 offset-md-6">
-          <div className="card">
-            <div className="card-body">
-              <div className="d-flex justify-content-between">
-                <span className="fw-bold">Total Client Expenses:</span>
-                <span className="fw-bold text-danger">
-                  KES {filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
-                </span>
-              </div>
-              <div className="d-flex justify-content-between">
-                <span>Count:</span>
-                <span>{filteredExpenses.length}</span>
+        {/* Expense Summary */}
+        <div className="row mt-4">
+          <div className="col-md-6 offset-md-6">
+            <div className="card">
+              <div className="card-body">
+                <div className="d-flex justify-content-between">
+                  <span className="fw-bold">Total Client Expenses:</span>
+                  <span className="fw-bold text-danger">
+                    KES {filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>Count:</span>
+                  <span>{filteredExpenses.length}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Expense Modal */}
-      {showExpenseModal && (
-        <ExpenseModal
-          expense={selectedExpense}
-          mode={modalMode}
-          onClose={() => setShowExpenseModal(false)}
-          onSave={handleSaveExpense}
-          clients={clients}
-          expenseType="client"
-        />
-      )}
+        {/* Expense Modal */}
+        {showExpenseModal && (
+          <ExpenseModal
+            expense={selectedExpense}
+            mode={modalMode}
+            onClose={() => setShowExpenseModal(false)}
+            onSave={handleSaveExpense}
+            clients={clients}
+            expenseType="client"
+          />
+        )}
+      </div>
     </div>
   )
 }
