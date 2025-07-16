@@ -1,38 +1,32 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Building, Receipt } from "lucide-react"
+import { useState, useEffect } from "react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ClientExpensesView from "./components/client-expenses-view"
 import CompanyExpensesView from "./components/company-expenses-view"
 
-const ExpensesPage = () => {
+export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [clients, setClients] = useState<RegisteredEntity[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("client")
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeView, setActiveView] = useState<"client" | "company">("client")
-
-  // Form state
-  const [formData, setFormData] = useState({
-    category: "",
-    description: "",
-    amount: "",
-    expense_type: "client" as "client" | "company",
-    client_id: "",
-    receipt_number: "",
-    notes: "",
-  })
 
   useEffect(() => {
-    fetchExpenses()
-    fetchClients()
+    fetchData()
+    
+    // Set up real-time updates
+    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [])
 
+  const fetchData = async () => {
+    await Promise.all([fetchExpenses(), fetchClients()])
+  }
+
   const fetchExpenses = async () => {
-    setLoading(true)
     try {
       const { data, error } = await supabase
         .from("expenses")
@@ -44,10 +38,13 @@ const ExpensesPage = () => {
 
       if (error) {
         console.error("Error fetching expenses:", error)
-        toast.error("Failed to fetch expenses")
+        toast.error("Failed to load expenses")
       } else {
         setExpenses(data || [])
       }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+      toast.error("Failed to load expenses")
     } finally {
       setLoading(false)
     }
@@ -55,7 +52,11 @@ const ExpensesPage = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase.from("registered_entities").select("*").eq("type", "client").order("name")
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "client")
+        .order("name")
 
       if (error) {
         console.error("Error fetching clients:", error)
@@ -63,172 +64,74 @@ const ExpensesPage = () => {
         setClients(data || [])
       }
     } catch (error) {
-      console.error("Unexpected error:", error)
+      console.error("Error fetching clients:", error)
     }
   }
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch =
-      expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.client?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesType = expense.expense_type === activeView
-
-    return matchesSearch && matchesType
-  })
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      // Generate expense number
-      const expenseNumber = `EXP-${Date.now()}`
-
-      const { data, error } = await supabase.from("expenses").insert([
-        {
-          ...formData,
-          expense_number: expenseNumber,
-          amount: Number.parseFloat(formData.amount),
-          client_id: formData.client_id ? Number.parseInt(formData.client_id) : null,
-          expense_type: activeView, // Use the active view as expense type
-        },
-      ])
-
-      if (error) {
-        console.error("Error inserting expense:", error)
-        toast.error("Failed to add expense")
-      } else {
-        toast.success("Expense added successfully")
-        setFormData({
-          category: "",
-          description: "",
-          amount: "",
-          expense_type: activeView,
-          client_id: "",
-          receipt_number: "",
-          notes: "",
-        })
-        fetchExpenses()
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error)
-      toast.error("An unexpected error occurred")
-    }
+  const handleRefresh = () => {
+    fetchData()
   }
 
-  const exportToCSV = () => {
-    const csvContent = [
-      ["Expense #", "Category", "Description", "Amount", "Type", "Client", "Date"],
-      ...filteredExpenses.map((expense) => [
-        expense.expense_number,
-        expense.category,
-        expense.description || "",
-        expense.amount.toFixed(2),
-        expense.expense_type,
-        expense.client?.name || "",
-        new Date(expense.date_created).toLocaleDateString(),
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${activeView}_expenses.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-
-  const handleAddExpense = () => {
-    setFormData({ ...formData, expense_type: activeView })
-    // setShowForm(true) // This line is removed as it's not needed in the new structure
-  }
-
-  const renderActiveView = () => {
-    switch (activeView) {
-      case "client":
-        return (
-          <ClientExpensesView
-            expenses={filteredExpenses}
-            clients={clients}
-            loading={loading}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            handleSubmit={handleSubmit}
-            exportToCSV={exportToCSV}
-            handleAddExpense={handleAddExpense}
-            formData={formData}
-            setFormData={setFormData}
-          />
-        )
-      case "company":
-        return (
-          <CompanyExpensesView
-            expenses={filteredExpenses}
-            loading={loading}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            handleSubmit={handleSubmit}
-            exportToCSV={exportToCSV}
-            handleAddExpense={handleAddExpense}
-            formData={formData}
-            setFormData={setFormData}
-          />
-        )
-      default:
-        return (
-          <ClientExpensesView
-            expenses={filteredExpenses}
-            clients={clients}
-            loading={loading}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            handleSubmit={handleSubmit}
-            exportToCSV={exportToCSV}
-            handleAddExpense={handleAddExpense}
-            formData={formData}
-            setFormData={setFormData}
-          />
-        )
-    }
-  }
-
-  return (
-    <div id="expensesSection">
-      {/* Main Header Card with Navigation */}
-      <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">
-            <Receipt className="me-2" size={20} />
-            Expenses Management
-          </h4>
-          {/* Navigation Tabs in Header */}
-          <div className="d-flex gap-2">
-            <button
-              className={`btn-add ${activeView === "client" ? "active" : ""}`}
-              onClick={() => setActiveView("client")}
-            >
-              <Receipt size={16} className="me-1" />
-              Client Expenses
-            </button>
-            <button
-              className={`btn-add ${activeView === "company" ? "active" : ""}`}
-              onClick={() => setActiveView("company")}
-            >
-              <Building size={16} className="me-1" />
-              Company Expenses
-            </button>
+  if (loading) {
+    return (
+      <div className="container-fluid mt-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Active View Content */}
-      {renderActiveView()}
+  return (
+    <div className="container-fluid mt-4" id="expensesSection">
+      <div className="row">
+        <div className="col-12">
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title mb-0">Expenses Management</h4>
+            </div>
+            
+            {/* Tab Navigation */}
+            <div className="card-body">
+              <div className="d-flex mb-4">
+                <button
+                  className={`btn btn-add me-2 ${activeTab === "client" ? "active" : ""}`}
+                  onClick={() => setActiveTab("client")}
+                >
+                  Client Expenses
+                </button>
+                <button
+                  className={`btn btn-add ${activeTab === "company" ? "active" : ""}`}
+                  onClick={() => setActiveTab("company")}
+                >
+                  Company Expenses
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === "client" ? (
+                <ClientExpensesView
+                  expenses={expenses}
+                  clients={clients}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onRefresh={handleRefresh}
+                />
+              ) : (
+                <CompanyExpensesView
+                  expenses={expenses}
+                  clients={clients}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onRefresh={handleRefresh}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-export default ExpensesPage

@@ -1,26 +1,32 @@
 "use client"
+
 import { useState, useEffect } from "react"
-import { CreditCard, FileText } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import MakePaymentView from "./components/make-payment-view"
 import AccountSummaryView from "./components/account-summary-view"
 
-const PaymentsPage = () => {
+export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [clients, setClients] = useState<RegisteredEntity[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<"make-payment" | "account-summary">("make-payment")
+  const [activeTab, setActiveTab] = useState("make-payment")
 
   useEffect(() => {
-    fetchPayments()
-    fetchClients()
-    fetchInvoices()
+    fetchData()
+    
+    // Set up real-time updates
+    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [])
 
+  const fetchData = async () => {
+    await Promise.all([fetchPayments(), fetchClients(), fetchInvoices()])
+  }
+
   const fetchPayments = async () => {
-    setLoading(true)
     try {
       const { data, error } = await supabase
         .from("payments")
@@ -33,10 +39,13 @@ const PaymentsPage = () => {
 
       if (error) {
         console.error("Error fetching payments:", error)
-        toast.error("Failed to fetch payments")
+        toast.error("Failed to load payments")
       } else {
         setPayments(data || [])
       }
+    } catch (error) {
+      console.error("Error fetching payments:", error)
+      toast.error("Failed to load payments")
     } finally {
       setLoading(false)
     }
@@ -44,7 +53,11 @@ const PaymentsPage = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase.from("registered_entities").select("*").eq("type", "client").order("name")
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "client")
+        .order("name")
 
       if (error) {
         console.error("Error fetching clients:", error)
@@ -52,7 +65,7 @@ const PaymentsPage = () => {
         setClients(data || [])
       }
     } catch (error) {
-      console.error("Unexpected error:", error)
+      console.error("Error fetching clients:", error)
     }
   }
 
@@ -61,7 +74,6 @@ const PaymentsPage = () => {
       const { data, error } = await supabase
         .from("invoices")
         .select("*")
-        .in("status", ["pending", "overdue"])
         .order("date_created", { ascending: false })
 
       if (error) {
@@ -70,54 +82,70 @@ const PaymentsPage = () => {
         setInvoices(data || [])
       }
     } catch (error) {
-      console.error("Unexpected error:", error)
+      console.error("Error fetching invoices:", error)
     }
   }
 
-  const renderActiveView = () => {
-    switch (activeView) {
-      case "make-payment":
-        return <MakePaymentView clients={clients} invoices={invoices} fetchPayments={fetchPayments} />
-      case "account-summary":
-        return <AccountSummaryView payments={payments} invoices={invoices} />
-      default:
-        return <MakePaymentView clients={clients} invoices={invoices} fetchPayments={fetchPayments} />
-    }
+  const handleRefresh = () => {
+    fetchData()
   }
 
-  return (
-    <div id="paymentsSection">
-      {/* Main Header Card with Navigation */}
-      <div className="card mb-4">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">
-            <CreditCard className="me-2" size={20} />
-            Payments Management
-          </h4>
-          {/* Navigation Tabs in Header */}
-          <div className="d-flex gap-2">
-            <button
-              className={`btn-add ${activeView === "make-payment" ? "active" : ""}`}
-              onClick={() => setActiveView("make-payment")}
-            >
-              <CreditCard size={16} className="me-1" />
-              Make Payment
-            </button>
-            <button
-              className={`btn-add ${activeView === "account-summary" ? "active" : ""}`}
-              onClick={() => setActiveView("account-summary")}
-            >
-              <FileText size={16} className="me-1" />
-              Account Summary
-            </button>
+  if (loading) {
+    return (
+      <div className="container-fluid mt-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Active View Content */}
-      {renderActiveView()}
+  return (
+    <div className="container-fluid mt-4" id="paymentsSection">
+      <div className="row">
+        <div className="col-12">
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title mb-0">Payments Management</h4>
+            </div>
+            
+            {/* Tab Navigation */}
+            <div className="card-body">
+              <div className="d-flex mb-4">
+                <button
+                  className={`btn btn-add me-2 ${activeTab === "make-payment" ? "active" : ""}`}
+                  onClick={() => setActiveTab("make-payment")}
+                >
+                  Make Payment
+                </button>
+                <button
+                  className={`btn btn-add ${activeTab === "account-summary" ? "active" : ""}`}
+                  onClick={() => setActiveTab("account-summary")}
+                >
+                  Account Summary
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === "make-payment" ? (
+                <MakePaymentView
+                  clients={clients}
+                  invoices={invoices}
+                  fetchPayments={handleRefresh}
+                />
+              ) : (
+                <AccountSummaryView
+                  clients={clients}
+                  payments={payments}
+                  onRefresh={handleRefresh}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-export default PaymentsPage

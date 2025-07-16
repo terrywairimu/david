@@ -184,14 +184,16 @@ export interface CashSaleItem {
 export interface Payment {
   id: number
   payment_number: string
-  client_id: number
+  client_id?: number
   invoice_id?: number
   amount: number
-  payment_method: "cash" | "card" | "mobile" | "bank_transfer"
-  payment_reference?: string
-  date_paid: string
-  notes?: string
-  status: "pending" | "completed" | "failed" | "cancelled"
+  payment_method: string
+  reference?: string
+  description?: string
+  paid_to?: string
+  account_credited?: string
+  status: string
+  date_created: string
   client?: RegisteredEntity
   invoice?: Invoice
 }
@@ -237,16 +239,14 @@ export interface PurchaseItem {
 export interface Expense {
   id: number
   expense_number: string
-  category: string
-  description?: string
-  amount: number
-  expense_type: "company" | "client"
   client_id?: number
-  date_created: string
+  category: string
+  amount: number
+  description?: string
   receipt_number?: string
-  notes?: string
-  payment_method?: "cash" | "card" | "mobile" | "bank_transfer"
-  status: "pending" | "approved" | "rejected" | "paid"
+  account_debited?: string
+  date_created: string
+  expense_type: "client" | "company"
   client?: RegisteredEntity
 }
 

@@ -1,6 +1,62 @@
 import { supabase } from "./supabase-client"
 import { toast } from "sonner"
 
+// Number generation functions
+export const generatePaymentNumber = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('payment_number')
+      .order('id', { ascending: false })
+      .limit(1)
+    
+    if (error) throw error
+    
+    if (data && data.length > 0) {
+      const lastNumber = data[0].payment_number
+      const match = lastNumber.match(/PAY-(\d+)/)
+      if (match) {
+        const nextNumber = parseInt(match[1]) + 1
+        return `PAY-${nextNumber.toString().padStart(4, '0')}`
+      }
+    }
+    
+    return 'PAY-0001'
+  } catch (error) {
+    console.error('Error generating payment number:', error)
+    return `PAY-${Date.now().toString().slice(-4)}`
+  }
+}
+
+export const generateExpenseNumber = async (type: 'client' | 'company') => {
+  try {
+    const prefix = type === 'client' ? 'EXP-C' : 'EXP-CO'
+    
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('expense_number')
+      .like('expense_number', `${prefix}%`)
+      .order('id', { ascending: false })
+      .limit(1)
+    
+    if (error) throw error
+    
+    if (data && data.length > 0) {
+      const lastNumber = data[0].expense_number
+      const match = lastNumber.match(new RegExp(`${prefix.replace('-', '\\-')}-(\\d+)`))
+      if (match) {
+        const nextNumber = parseInt(match[1]) + 1
+        return `${prefix}-${nextNumber.toString().padStart(4, '0')}`
+      }
+    }
+    
+    return `${prefix}-0001`
+  } catch (error) {
+    console.error('Error generating expense number:', error)
+    return `${prefix}-${Date.now().toString().slice(-4)}`
+  }
+}
+
 // Export functions
 export const exportQuotations = async (quotations: any[]) => {
   try {
@@ -207,6 +263,176 @@ export const exportCashSales = async (cashSales: any[]) => {
   } catch (error) {
     console.error('Export error:', error)
     toast.error('Failed to export cash sales report')
+  }
+}
+
+export const exportPayments = async (payments: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(20)
+    doc.text('Payments Report', 105, 20, { align: 'center' })
+    
+    // Add date
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    // Add summary section
+    doc.setFontSize(14)
+    doc.text('Payment Summary', 20, 45)
+
+    // Add payments table
+    const headers = [['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited']]
+    const data = payments.map(payment => [
+      payment.payment_number || 'N/A',
+      payment.client?.name || 'Unknown',
+      new Date(payment.date_created).toLocaleDateString(),
+      payment.paid_to || '-',
+      payment.description || '-',
+      `KES ${payment.amount?.toFixed(2) || '0.00'}`,
+      payment.account_credited || '-'
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    // Add total at the bottom
+    const total = payments.reduce((sum, payment) => {
+      return sum + (payment.amount || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Payments: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('payments_report.pdf')
+    toast.success('Payments report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export payments report')
+  }
+}
+
+export const exportClientExpenses = async (expenses: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(20)
+    doc.text('Client Expenses Report', 105, 20, { align: 'center' })
+    
+    // Add date
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    // Add summary section
+    doc.setFontSize(14)
+    doc.text('Client Expenses Summary', 20, 45)
+
+    // Add expenses table
+    const headers = [['Expense #', 'Date', 'Client', 'Category', 'Description', 'Amount', 'Account Debited']]
+    const data = expenses.map(expense => [
+      expense.expense_number || 'N/A',
+      new Date(expense.date_created).toLocaleDateString(),
+      expense.client?.name || 'Unknown',
+      expense.category || '-',
+      expense.description || '-',
+      `KES ${expense.amount?.toFixed(2) || '0.00'}`,
+      expense.account_debited || '-'
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    // Add total at the bottom
+    const total = expenses.reduce((sum, expense) => {
+      return sum + (expense.amount || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Client Expenses: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('client_expenses_report.pdf')
+    toast.success('Client expenses report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export client expenses report')
+  }
+}
+
+export const exportCompanyExpenses = async (expenses: any[]) => {
+  try {
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(20)
+    doc.text('Company Expenses Report', 105, 20, { align: 'center' })
+    
+    // Add date
+    doc.setFontSize(12)
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+
+    // Add summary section
+    doc.setFontSize(14)
+    doc.text('Company Expenses Summary', 20, 45)
+
+    // Add expenses table
+    const headers = [['Expense #', 'Date', 'Category', 'Description', 'Amount', 'Account Debited']]
+    const data = expenses.map(expense => [
+      expense.expense_number || 'N/A',
+      new Date(expense.date_created).toLocaleDateString(),
+      expense.category || '-',
+      expense.description || '-',
+      `KES ${expense.amount?.toFixed(2) || '0.00'}`,
+      expense.account_debited || '-'
+    ])
+
+    doc.autoTable({
+      startY: 55,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+      margin: { left: 15, right: 15 },
+    })
+
+    // Add total at the bottom
+    const total = expenses.reduce((sum, expense) => {
+      return sum + (expense.amount || 0)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.text(`Total Company Expenses: KES ${total.toFixed(2)}`, 20, finalY)
+
+    doc.save('company_expenses_report.pdf')
+    toast.success('Company expenses report exported successfully!')
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export company expenses report')
   }
 }
 

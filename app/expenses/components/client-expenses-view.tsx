@@ -1,392 +1,256 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
-import { Plus, Search, Download, Edit, Trash2, Eye, Receipt } from "lucide-react"
-import { supabase, type RegisteredEntity } from "@/lib/supabase-client"
+import { useState, useEffect } from "react"
+import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
+import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import SearchFilterRow from "@/components/ui/search-filter-row"
+import { exportClientExpenses } from "@/lib/workflow-utils"
+import ExpenseModal from "@/components/ui/expense-modal"
 
-interface Expense {
-  id: number
-  expense_number: string
-  client_id?: number
-  category: string
-  amount: number
-  description: string
-  receipt_number?: string
-  date_created: string
-  expense_type: "client" | "company"
-  client?: RegisteredEntity
+interface ClientExpensesViewProps {
+  expenses: Expense[]
+  clients: RegisteredEntity[]
+  searchTerm: string
+  onSearchChange: (term: string) => void
+  onRefresh: () => void
 }
 
-const ClientExpensesView = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [clients, setClients] = useState<RegisteredEntity[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [showForm, setShowForm] = useState(false)
-
-  // Form state
-  const [formData, setFormData] = useState({
-    client_id: "",
-    category: "",
-    amount: 0,
-    description: "",
-    receipt_number: "",
-  })
-
-  const categories = ["Travel", "Meals", "Office Supplies", "Marketing", "Professional Services", "Equipment", "Other"]
+const ClientExpensesView = ({ expenses, clients, searchTerm, onSearchChange, onRefresh }: ClientExpensesViewProps) => {
+  const [clientFilter, setClientFilter] = useState("")
+  const [dateFilter, setDateFilter] = useState("")
+  const [specificDate, setSpecificDate] = useState("")
+  const [periodStartDate, setPeriodStartDate] = useState("")
+  const [periodEndDate, setPeriodEndDate] = useState("")
+  const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
-    fetchExpenses()
-    fetchClients()
-  }, [])
+    setupClientOptions()
+  }, [clients])
 
-  const fetchExpenses = async () => {
-    setLoading(true)
-    try {
-      // Check if Supabase is properly configured
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      if (!supabaseUrl || supabaseUrl === "https://placeholder.supabase.co") {
-        console.warn("Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.")
-        toast.error("Database not configured. Please set up Supabase credentials.")
-        setExpenses([])
-        return
+  const setupClientOptions = () => {
+    const options = clients.map(client => ({
+      value: client.id.toString(),
+      label: client.name
+    }))
+    setClientOptions(options)
+  }
+
+  const getFilteredExpenses = () => {
+    let filtered = expenses.filter(expense => expense.expense_type === "client")
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(expense => 
+        expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Client filter
+    if (clientFilter) {
+      filtered = filtered.filter(expense => 
+        expense.client_id?.toString() === clientFilter
+      )
+    }
+
+    // Date filter
+    if (dateFilter) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      filtered = filtered.filter(expense => {
+        const expenseDate = new Date(expense.date_created)
+        const expenseDay = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+        
+        switch (dateFilter) {
+          case "today":
+            return expenseDay.getTime() === today.getTime()
+          case "week":
+            const weekStart = new Date(today)
+            weekStart.setDate(today.getDate() - today.getDay())
+            return expenseDay >= weekStart && expenseDay <= today
+          case "month":
+            return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
+          case "year":
+            return expenseDate.getFullYear() === now.getFullYear()
+          case "specific":
+            if (specificDate) {
+              const specDate = new Date(specificDate)
+              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
+              return expenseDay.getTime() === specDay.getTime()
+            }
+            return true
+          case "period":
+            if (periodStartDate && periodEndDate) {
+              const startDate = new Date(periodStartDate)
+              const endDate = new Date(periodEndDate)
+              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+              return expenseDay >= startDay && expenseDay <= endDay
+            }
+            return true
+          default:
+            return true
+        }
+      })
+    }
+
+    return filtered
+  }
+
+  const handleNewExpense = () => {
+    setSelectedExpense(null)
+    setModalMode("create")
+    setShowExpenseModal(true)
+  }
+
+  const handleViewExpense = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setModalMode("view")
+    setShowExpenseModal(true)
+  }
+
+  const handleEditExpense = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setModalMode("edit")
+    setShowExpenseModal(true)
+  }
+
+  const handleDeleteExpense = async (expense: Expense) => {
+    if (window.confirm(`Are you sure you want to delete expense ${expense.expense_number}?`)) {
+      try {
+        const { error } = await supabase
+          .from("expenses")
+          .delete()
+          .eq("id", expense.id)
+
+        if (error) throw error
+
+        toast.success("Expense deleted successfully")
+        onRefresh()
+      } catch (error) {
+        console.error("Error deleting expense:", error)
+        toast.error("Failed to delete expense")
       }
-
-      const { data, error } = await supabase
-        .from("expenses")
-        .select(`
-          *,
-          client:registered_entities(*)
-        `)
-        .eq("expense_type", "client")
-        .order("date_created", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching expenses:", error)
-        toast.error("Failed to fetch expenses. Please check your database connection.")
-      } else {
-        setExpenses(data || [])
-      }
-    } catch (err) {
-      console.error("Database connection error:", err)
-      toast.error("Database connection failed. Please check your Supabase configuration.")
-    } finally {
-      setLoading(false)
     }
   }
 
-  const fetchClients = async () => {
-    try {
-      // Check if Supabase is properly configured
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      if (!supabaseUrl || supabaseUrl === "https://placeholder.supabase.co") {
-        setClients([])
-        return
-      }
-
-      const { data, error } = await supabase.from("registered_entities").select("*").eq("type", "client").order("name")
-
-      if (error) {
-        console.error("Error fetching clients:", error)
-      } else {
-        setClients(data || [])
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error)
-    }
+  const handleExport = () => {
+    exportClientExpenses(getFilteredExpenses())
   }
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch =
-      expense.expense_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.client?.name.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesCategory = categoryFilter === "all" || expense.category === categoryFilter
-
-    return matchesSearch && matchesCategory
-  })
-
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-
-  const exportToCSV = () => {
-    const csvContent = [
-      ["Expense #", "Client", "Category", "Description", "Amount", "Receipt #", "Date"],
-      ...filteredExpenses.map((expense) => [
-        expense.expense_number,
-        expense.client?.name || "",
-        expense.category,
-        expense.description,
-        expense.amount.toFixed(2),
-        expense.receipt_number || "",
-        new Date(expense.date_created).toLocaleDateString(),
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "client_expenses.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+  const handleSaveExpense = (expense: any) => {
+    onRefresh()
+    setShowExpenseModal(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      const expenseNumber = `EXP-C-${Date.now()}`
-
-      const { data, error } = await supabase.from("expenses").insert([
-        {
-          expense_number: expenseNumber,
-          client_id: Number.parseInt(formData.client_id),
-          category: formData.category,
-          amount: formData.amount,
-          description: formData.description,
-          receipt_number: formData.receipt_number,
-          expense_type: "client",
-        },
-      ])
-
-      if (error) {
-        console.error("Error creating expense:", error)
-        toast.error("Failed to create expense")
-      } else {
-        toast.success("Client expense created successfully")
-        setFormData({
-          client_id: "",
-          category: "",
-          amount: 0,
-          description: "",
-          receipt_number: "",
-        })
-        setShowForm(false)
-        fetchExpenses()
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error)
-      toast.error("An unexpected error occurred")
-    }
-  }
+  const filteredExpenses = getFilteredExpenses()
 
   return (
-    <div>
-      {/* Summary Card */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="card stock-summary-card total-items">
-            <div className="card-body text-white">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="mb-1">Total Client Expenses</h6>
-                  <h2 className="mb-0">${totalExpenses.toFixed(2)}</h2>
-                  <small>({filteredExpenses.length} expenses)</small>
-                </div>
-                <div className="icon-box">
-                  <Receipt size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Add New Expense Button */}
-      <div className="mb-4">
-        <button className="btn-add" onClick={() => setShowForm(!showForm)}>
+    <div className="card-body">
+      {/* Add New Client Expense Button */}
+      <div className="d-flex mb-4">
+        <button className="btn btn-add" onClick={handleNewExpense}>
           <Plus size={16} className="me-2" />
-          Add Client Expense
+          Add New Client Expense
         </button>
       </div>
 
-      {/* Add Form Modal */}
-      {showForm && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add Client Expense</h5>
-                <button type="button" className="btn-close" onClick={() => setShowForm(false)}></button>
-              </div>
-              <div className="modal-body">
-                <form onSubmit={handleSubmit}>
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-6">
-                      <label className="form-label">Client</label>
-                      <select
-                        className="form-select"
-                        value={formData.client_id}
-                        onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                        required
-                      >
-                        <option value="">Select Client</option>
-                        {clients.map((client) => (
-                          <option key={client.id} value={client.id}>
-                            {client.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Category</label>
-                      <select
-                        className="form-select"
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        required
-                      >
-                        <option value="">Select Category</option>
-                        {categories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+      {/* Enhanced Search and Filter Row */}
+      <SearchFilterRow
+        searchValue={searchTerm}
+        onSearchChange={onSearchChange}
+        searchPlaceholder="Search client expenses..."
+        firstFilter={{
+          value: clientFilter,
+          onChange: setClientFilter,
+          options: clientOptions,
+          placeholder: "All Clients"
+        }}
+        dateFilter={{
+          value: dateFilter,
+          onChange: setDateFilter,
+          onSpecificDateChange: setSpecificDate,
+          onPeriodStartChange: setPeriodStartDate,
+          onPeriodEndChange: setPeriodEndDate,
+          specificDate,
+          periodStartDate,
+          periodEndDate
+        }}
+        onExport={handleExport}
+        exportLabel="Export"
+      />
 
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-6">
-                      <label className="form-label">Amount</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-control"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: Number.parseFloat(e.target.value) })}
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label">Receipt Number</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={formData.receipt_number}
-                        onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Description</label>
-                    <textarea
-                      className="form-control"
-                      rows={3}
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="modal-footer">
-                    <button type="submit" className="btn btn-primary">
-                      Add Expense
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Search and Filters Row */}
-      <div className="row g-3 mb-4">
-        <div className="col-md-6">
-          <div className="input-group">
-            <span className="input-group-text">
-              <Search size={16} />
-            </span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search expenses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="col-md-4">
-          <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="all">All Categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-md-2">
-          <button className="export-btn w-100" onClick={exportToCSV}>
-            <Download size={16} className="me-1" />
-            Export
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
+      {/* Client Expenses Table */}
       <div className="table-responsive">
-        <table className="table">
+        <table className="table table-hover">
           <thead>
             <tr>
               <th>Expense #</th>
+              <th>Date</th>
               <th>Client</th>
               <th>Category</th>
               <th>Description</th>
               <th>Amount</th>
-              <th>Receipt #</th>
-              <th>Date</th>
+              <th>Account Debited</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {filteredExpenses.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center">
-                  Loading...
-                </td>
-              </tr>
-            ) : filteredExpenses.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center">
-                  No client expenses found
+                <td colSpan={8} className="text-center py-4">
+                  <div className="text-muted">
+                    {searchTerm || clientFilter || dateFilter
+                      ? "No client expenses found matching your criteria"
+                      : "No client expenses found"}
+                  </div>
                 </td>
               </tr>
             ) : (
               filteredExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td className="fw-bold">{expense.expense_number}</td>
-                  <td>{expense.client?.name}</td>
-                  <td>
-                    <span className="badge bg-info">{expense.category}</span>
-                  </td>
-                  <td>{expense.description}</td>
-                  <td>${expense.amount.toFixed(2)}</td>
-                  <td>{expense.receipt_number || "-"}</td>
                   <td>{new Date(expense.date_created).toLocaleDateString()}</td>
+                  <td>{expense.client?.name || "Unknown"}</td>
                   <td>
-                    <button className="action-btn me-1">
-                      <Eye size={14} />
-                    </button>
-                    <button className="action-btn me-1">
-                      <Edit size={14} />
-                    </button>
-                    <button className="action-btn">
-                      <Trash2 size={14} />
-                    </button>
+                    <span className="badge bg-primary">{expense.category}</span>
+                  </td>
+                  <td>{expense.description || "-"}</td>
+                  <td className="fw-bold text-danger">
+                    KES {expense.amount.toFixed(2)}
+                  </td>
+                  <td>{expense.account_debited || "-"}</td>
+                  <td>
+                    <div className="d-flex gap-1">
+                      <button
+                        className="btn btn-sm action-btn"
+                        onClick={() => handleViewExpense(expense)}
+                        title="View"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm action-btn"
+                        onClick={() => handleEditExpense(expense)}
+                        title="Edit"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm action-btn"
+                        onClick={() => handleDeleteExpense(expense)}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -394,6 +258,38 @@ const ClientExpensesView = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Expense Summary */}
+      <div className="row mt-4">
+        <div className="col-md-6 offset-md-6">
+          <div className="card">
+            <div className="card-body">
+              <div className="d-flex justify-content-between">
+                <span className="fw-bold">Total Client Expenses:</span>
+                <span className="fw-bold text-danger">
+                  KES {filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span>Count:</span>
+                <span>{filteredExpenses.length}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expense Modal */}
+      {showExpenseModal && (
+        <ExpenseModal
+          expense={selectedExpense}
+          mode={modalMode}
+          onClose={() => setShowExpenseModal(false)}
+          onSave={handleSaveExpense}
+          clients={clients}
+          expenseType="client"
+        />
+      )}
     </div>
   )
 }

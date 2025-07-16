@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, CreditCard } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
+import { exportPayments } from "@/lib/workflow-utils"
+import PaymentModal from "@/components/ui/payment-modal"
 
 interface MakePaymentViewProps {
   clients: RegisteredEntity[]
@@ -18,7 +20,13 @@ const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewPr
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
+  const [specificDate, setSpecificDate] = useState("")
+  const [periodStartDate, setPeriodStartDate] = useState("")
+  const [periodEndDate, setPeriodEndDate] = useState("")
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
     fetchPaymentsList()
@@ -49,185 +57,276 @@ const MakePaymentView = ({ clients, invoices, fetchPayments }: MakePaymentViewPr
   }
 
   const setupClientOptions = () => {
-    const options = [
-      { value: "", label: "All Clients" },
-      ...clients.map((client) => ({
-        value: client.id.toString(),
-        label: client.name,
-      })),
-    ]
+    const options = clients.map(client => ({
+      value: client.id.toString(),
+      label: client.name
+    }))
     setClientOptions(options)
   }
 
-  const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.invoice?.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.payment_method.toLowerCase().includes(searchTerm.toLowerCase())
+  const getFilteredPayments = () => {
+    let filtered = payments
 
-    const matchesClient = clientFilter === "" || payment.client_id.toString() === clientFilter
-
-    const matchesDate =
-      dateFilter === "" ||
-      (dateFilter === "today" && new Date(payment.date_created).toDateString() === new Date().toDateString()) ||
-      (dateFilter === "week" && isThisWeek(new Date(payment.date_created))) ||
-      (dateFilter === "month" && isThisMonth(new Date(payment.date_created)))
-
-    return matchesSearch && matchesClient && matchesDate
-  })
-
-  const getPaymentMethodBadge = (method: string) => {
-    const methodClasses = {
-      cash: "badge bg-success",
-      card: "badge bg-info",
-      bank_transfer: "badge bg-primary",
-      mobile: "badge bg-warning",
-      cheque: "badge bg-secondary",
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(payment => 
+        payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     }
-    return methodClasses[method as keyof typeof methodClasses] || "badge bg-secondary"
+
+    // Client filter
+    if (clientFilter) {
+      filtered = filtered.filter(payment => 
+        payment.client_id?.toString() === clientFilter
+      )
+    }
+
+    // Date filter
+    if (dateFilter) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      filtered = filtered.filter(payment => {
+        const paymentDate = new Date(payment.date_created)
+        const paymentDay = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate())
+        
+        switch (dateFilter) {
+          case "today":
+            return paymentDay.getTime() === today.getTime()
+          case "week":
+            const weekStart = new Date(today)
+            weekStart.setDate(today.getDate() - today.getDay())
+            return paymentDay >= weekStart && paymentDay <= today
+          case "month":
+            return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear()
+          case "year":
+            return paymentDate.getFullYear() === now.getFullYear()
+          case "specific":
+            if (specificDate) {
+              const specDate = new Date(specificDate)
+              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
+              return paymentDay.getTime() === specDay.getTime()
+            }
+            return true
+          case "period":
+            if (periodStartDate && periodEndDate) {
+              const startDate = new Date(periodStartDate)
+              const endDate = new Date(periodEndDate)
+              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+              return paymentDay >= startDay && paymentDay <= endDay
+            }
+            return true
+          default:
+            return true
+        }
+      })
+    }
+
+    return filtered
   }
 
-  const exportToCSV = () => {
-    const csvContent = [
-      ["Client", "Invoice", "Amount", "Payment Method", "Reference", "Date", "Status"],
-      ...filteredPayments.map((payment) => [
-        payment.client?.name || "",
-        payment.invoice?.invoice_number || "",
-        payment.amount.toFixed(2),
-        payment.payment_method,
-        payment.reference || "",
-        new Date(payment.date_created).toLocaleDateString(),
-        payment.status,
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "payments_report.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+  const handleNewPayment = () => {
+    setSelectedPayment(null)
+    setModalMode("create")
+    setShowPaymentModal(true)
   }
 
-  const isThisWeek = (date: Date) => {
-    const startOfWeek = new Date()
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(endOfWeek.getDate() + 6)
-    return date >= startOfWeek && date <= endOfWeek
+  const handleViewPayment = (payment: Payment) => {
+    setSelectedPayment(payment)
+    setModalMode("view")
+    setShowPaymentModal(true)
   }
 
-  const isThisMonth = (date: Date) => {
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    const endOfMonth = new Date(startOfMonth)
-    endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-    endOfMonth.setDate(endOfMonth.getDate() - 1)
-    return date >= startOfMonth && date <= endOfMonth
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment)
+    setModalMode("edit")
+    setShowPaymentModal(true)
   }
 
-  const dateOptions = [
-    { value: "", label: "All Dates" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" },
-  ]
+  const handleDeletePayment = async (payment: Payment) => {
+    if (window.confirm(`Are you sure you want to delete payment ${payment.payment_number}?`)) {
+      try {
+        const { error } = await supabase
+          .from("payments")
+          .delete()
+          .eq("id", payment.id)
+
+        if (error) throw error
+
+        toast.success("Payment deleted successfully")
+        fetchPaymentsList()
+        fetchPayments()
+      } catch (error) {
+        console.error("Error deleting payment:", error)
+        toast.error("Failed to delete payment")
+      }
+    }
+  }
+
+  const handleExport = () => {
+    exportPayments(getFilteredPayments())
+  }
+
+  const handleSavePayment = (payment: any) => {
+    fetchPaymentsList()
+    fetchPayments()
+    setShowPaymentModal(false)
+  }
+
+  const filteredPayments = getFilteredPayments()
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="card-body">
-      {/* Add New Payment Button */}
-      <div className="d-flex mb-4">
-        <button className="btn btn-add">
-          <Plus size={16} className="me-2" />
-          Make Payment
-        </button>
-      </div>
+    <div className="card">
+      <div className="card-body">
+        {/* Add New Payment Button */}
+        <div className="d-flex mb-4">
+          <button className="btn btn-add" onClick={handleNewPayment}>
+            <Plus size={16} className="me-2" />
+            Make Payment
+          </button>
+        </div>
 
-      {/* Search and Filter Controls */}
-      <SearchFilterRow
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search payments..."
-        firstFilter={{
-          value: clientFilter,
-          onChange: setClientFilter,
-          options: clientOptions,
-        }}
-        secondFilter={{
-          value: dateFilter,
-          onChange: setDateFilter,
-          options: dateOptions,
-        }}
-        onExport={exportToCSV}
-        exportLabel="Export"
-      />
+        {/* Enhanced Search and Filter Row */}
+        <SearchFilterRow
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search payments..."
+          firstFilter={{
+            value: clientFilter,
+            onChange: setClientFilter,
+            options: clientOptions,
+            placeholder: "All Clients"
+          }}
+          dateFilter={{
+            value: dateFilter,
+            onChange: setDateFilter,
+            onSpecificDateChange: setSpecificDate,
+            onPeriodStartChange: setPeriodStartDate,
+            onPeriodEndChange: setPeriodEndDate,
+            specificDate,
+            periodStartDate,
+            periodEndDate
+          }}
+          onExport={handleExport}
+          exportLabel="Export"
+        />
 
-      {/* Payments Table */}
-      <div className="table-responsive">
-        <table className="table" id="paymentsTable">
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Invoice</th>
-              <th>Amount</th>
-              <th>Payment Method</th>
-              <th>Reference</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Payments Table */}
+        <div className="table-responsive">
+          <table className="table table-hover">
+            <thead>
               <tr>
-                <td colSpan={8} className="text-center">
-                  Loading...
-                </td>
+                <th>Payment #</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Paid To</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Account Credited</th>
+                <th>Actions</th>
               </tr>
-            ) : filteredPayments.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center">
-                  No payments found
-                </td>
-              </tr>
-            ) : (
-              filteredPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td>{payment.client?.name}</td>
-                  <td className="fw-bold">{payment.invoice?.invoice_number || "N/A"}</td>
-                  <td>${payment.amount.toFixed(2)}</td>
-                  <td>
-                    <span className={getPaymentMethodBadge(payment.payment_method)}>
-                      {payment.payment_method.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td>{payment.reference || "-"}</td>
-                  <td>{new Date(payment.date_created).toLocaleDateString()}</td>
-                  <td>
-                    <span className="badge bg-success">
-                      {payment.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="action-btn me-1">
-                      <Eye size={14} />
-                    </button>
-                    <button className="action-btn me-1">
-                      <Edit size={14} />
-                    </button>
-                    <button className="action-btn">
-                      <Trash2 size={14} />
-                    </button>
+            </thead>
+            <tbody>
+              {filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-4">
+                    <div className="text-muted">
+                      {searchTerm || clientFilter || dateFilter
+                        ? "No payments found matching your criteria"
+                        : "No payments found"}
+                    </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredPayments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td className="fw-bold">{payment.payment_number}</td>
+                    <td>{payment.client?.name || "Unknown"}</td>
+                    <td>{new Date(payment.date_created).toLocaleDateString()}</td>
+                    <td>{payment.paid_to || "-"}</td>
+                    <td>{payment.description || "-"}</td>
+                    <td className="fw-bold text-success">
+                      KES {payment.amount.toFixed(2)}
+                    </td>
+                    <td>{payment.account_credited || "-"}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleViewPayment(payment)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleEditPayment(payment)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleDeletePayment(payment)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Payment Summary */}
+        <div className="row mt-4">
+          <div className="col-md-6 offset-md-6">
+            <div className="card">
+              <div className="card-body">
+                <div className="d-flex justify-content-between">
+                  <span className="fw-bold">Total Payments:</span>
+                  <span className="fw-bold text-success">
+                    KES {filteredPayments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>Count:</span>
+                  <span>{filteredPayments.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          payment={selectedPayment}
+          mode={modalMode}
+          onClose={() => setShowPaymentModal(false)}
+          onSave={handleSavePayment}
+          clients={clients}
+          invoices={invoices}
+        />
+      )}
     </div>
   )
 }
