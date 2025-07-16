@@ -220,7 +220,7 @@ export interface Purchase {
   status: "pending" | "received" | "cancelled" | "partial"
   notes?: string
   supplier?: RegisteredEntity
-  items: PurchaseItem[]
+  purchase_items?: PurchaseItemData[]
 }
 
 export interface PurchaseItem {
@@ -233,6 +233,16 @@ export interface PurchaseItem {
   received_quantity: number
   status: "pending" | "received" | "cancelled"
   stock_item?: StockItem
+}
+
+export interface PurchaseItemData {
+  id: number
+  purchase_id: number
+  stock_item_id: number
+  description: string
+  quantity: number
+  unit_price: number
+  total_price: number
 }
 
 // Expense Types
