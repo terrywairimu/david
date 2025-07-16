@@ -212,26 +212,28 @@ export interface AccountSummary {
 // Purchase Types
 export interface Purchase {
   id: number
-  purchase_number: string
+  purchase_order_number: string
+  purchase_date: string
   supplier_id: number
-  date_created: string
-  delivery_date?: string
+  payment_method: string
   total_amount: number
-  status: "pending" | "received" | "cancelled" | "partial"
+  status: "pending" | "received" | "cancelled"
   notes?: string
+  date_created: string
+  last_modified: string
   supplier?: RegisteredEntity
-  purchase_items?: PurchaseItemData[]
+  items?: PurchaseItemData[]
 }
 
 export interface PurchaseItem {
   id: number
   purchase_id: number
   stock_item_id: number
+  description: string
+  unit: string
   quantity: number
   unit_price: number
   total_price: number
-  received_quantity: number
-  status: "pending" | "received" | "cancelled"
   stock_item?: StockItem
 }
 
@@ -240,6 +242,7 @@ export interface PurchaseItemData {
   purchase_id: number
   stock_item_id: number
   description: string
+  unit: string
   quantity: number
   unit_price: number
   total_price: number
