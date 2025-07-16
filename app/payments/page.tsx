@@ -145,22 +145,20 @@ export default function PaymentsPage() {
             Account Summary
           </button>
         </SectionHeader>
+        {/* Active View Content */}
+         {renderActiveView()}
+         {/* Payment Modal */}
+{showPaymentModal && (
+  <PaymentModal
+    payment={null}
+    mode="create"
+    onClose={() => setShowPaymentModal(false)}
+    onSave={handleSavePayment}
+    clients={clients}
+    invoices={invoices}
+  />
+)}
       </div>
-
-      {/* Active View Content */}
-      {renderActiveView()}
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <PaymentModal
-          payment={null}
-          mode="create"
-          onClose={() => setShowPaymentModal(false)}
-          onSave={handleSavePayment}
-          clients={clients}
-          invoices={invoices}
-        />
-      )}
     </div>
   )
 }

@@ -154,7 +154,7 @@ const MakePaymentView = ({ clients, invoices, payments, onRefresh }: MakePayment
 
   return (
     <div className="card">
-      <div className="card-body">
+      <div>
         {/* Enhanced Search and Filter Row */}
         <SearchFilterRow
           searchValue={searchTerm}

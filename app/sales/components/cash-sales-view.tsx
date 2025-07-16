@@ -332,7 +332,7 @@ const CashSalesView: React.FC = () => {
 
   return (
     <div className="cash-sales-view">
-    <div className="card-body">
+    <div>
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Cash Sales</h5>

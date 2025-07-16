@@ -156,7 +156,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
   }
 
   return (
-    <div className="card-body">
+    <div>
       {/* Search and Filter Controls */}
       <div className="row mb-4">
         <div className="col-md-4">

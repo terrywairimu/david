@@ -393,11 +393,11 @@ const QuotationsView = () => {
 
   return (
     <div className="quotations-view">
-    <div className="card-body">
+    <div>
       {/* Add New Quotation Button */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Quotations</h5>
-          <button className="btn btn-add" onClick={handleNewQuotation}>
+          <button className="btn-add" onClick={handleNewQuotation}>
             <Plus size={16} />
           Add New Quotation
         </button>
@@ -499,8 +499,8 @@ const QuotationsView = () => {
       {/* Quotations Table */}
       <div className="table-responsive">
           <table className="table table-hover">
-          <thead>
-            <tr>
+            <thead>
+              <tr>
               <th>Quotation #</th>
                 <th>Date</th>
               <th>Client</th>

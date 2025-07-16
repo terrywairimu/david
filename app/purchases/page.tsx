@@ -443,7 +443,7 @@ const PurchasesPage = () => {
         </button>
       </SectionHeader>
 
-      <div className="card-body">
+      
         {/* Search and Filter Controls */}
         <div className="row mb-4">
           <div className="col-md-4">
@@ -616,7 +616,7 @@ const PurchasesPage = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      
 
       {/* Purchase Modal */}
       <PurchaseModal

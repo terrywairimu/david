@@ -29,7 +29,7 @@ const SalesPage = () => {
   return (
     <div id="salesSection">
       {/* Main Header Card with Navigation */}
-      <div className="card mb-4">
+      <div className="card">
         <SectionHeader 
           title="Sales Management" 
           icon={<ShoppingCart size={20} />}
@@ -63,10 +63,11 @@ const SalesPage = () => {
             Cash Sale
           </button>
         </SectionHeader>
+        {/* Active View Content */}
+      {renderActiveView()}
       </div>
 
-      {/* Active View Content */}
-      {renderActiveView()}
+      
     </div>
   )
 }

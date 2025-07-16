@@ -393,7 +393,7 @@ const SalesOrdersView = () => {
 
   return (
     <div className="sales-orders-view">
-    <div className="card-body">
+    <div>
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Sales Orders</h5>
