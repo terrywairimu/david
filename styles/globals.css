@@ -175,7 +175,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .card-header {
+  .card > .card-header {
     background: var(--tertiary-gradient);
     color: var(--text-primary-light);
     border: none;
@@ -188,7 +188,7 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 
-  .card-header::before {
+  .card > .card-header::before {
     content: '';
     position: absolute;
     top: 0;
@@ -200,6 +200,13 @@ body {
     pointer-events: none;
     border-radius: 24px;
   }
+
+  .card > .card-header h2,
+  .card > .card-header h4 {
+    color: var(--text-primary-light) !important;
+  }
+
+
 
   /* Text colors */
   .text-primary {
