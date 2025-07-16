@@ -287,11 +287,12 @@ body {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.card > .card-header {
-    background: var(--tertiary-gradient);
-    color: white;
-    border: none;
-    padding: 1.1rem;
+.card > .card-header,
+.card .card-header {
+    background: var(--tertiary-gradient) !important;
+    color: white !important;
+    border: none !important;
+    padding: 1.1rem !important;
     position: relative;
     overflow: hidden;
     z-index: 1;
@@ -300,7 +301,8 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.card > .card-header::before {
+.card > .card-header::before,
+.card .card-header::before {
     content: '';
     position: absolute;
     top: 0;
@@ -311,6 +313,49 @@ body {
     z-index: -1;
     pointer-events: none;
     border-radius: 24px;
+}
+
+/* Ensure card header text is white */
+.card > .card-header h2,
+.card .card-header h2,
+.card > .card-header h3,
+.card .card-header h3,
+.card > .card-header h4,
+.card .card-header h4,
+.card > .card-header h5,
+.card .card-header h5 {
+    color: white !important;
+    margin-bottom: 0 !important;
+}
+
+/* Ensure card header buttons are properly styled */
+.card > .card-header .btn-add,
+.card .card-header .btn-add {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 16px !important;
+    padding: 12px 24px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.3s !important;
+    cursor: pointer !important;
+}
+
+.card > .card-header .btn-add:hover,
+.card .card-header .btn-add:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(45, 212, 191, 0.3) !important;
+}
+
+.card > .card-header .btn-add.active,
+.card .card-header .btn-add.active {
+    background: linear-gradient(135deg, #4c00ff 0%, #830bf3 100%) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
 }
 
 .btn-add {
