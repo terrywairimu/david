@@ -174,7 +174,7 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
                   <div className="small">Average Payment</div>
                   <div className="h5 mb-0">
                     KES {filteredPayments.length > 0 ? (totalPayments / filteredPayments.length).toFixed(2) : '0.00'}
-                  </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -210,8 +210,8 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
       {/* Payment Methods Breakdown */}
       <div className="row mb-4">
         <div className="col-md-12">
-          <div className="card">
-            <div className="card-header">
+      <div className="card">
+        <div className="card-header">
               <h5 className="card-title mb-0">Payment Methods Breakdown</h5>
             </div>
             <div className="card-body">
@@ -231,21 +231,21 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
       </div>
 
       {/* Account Summary Table */}
-      <div className="table-responsive">
+          <div className="table-responsive">
         <table className="table table-hover">
-          <thead>
-            <tr>
-              <th>Payment #</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Method</th>
+              <thead>
+                <tr>
+                  <th>Payment #</th>
+                  <th>Client</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Method</th>
               <th>Status</th>
               <th>Reference</th>
               <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+                </tr>
+              </thead>
+              <tbody>
             {filteredPayments.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-4">
@@ -254,14 +254,14 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
                       ? "No payments found matching your criteria"
                       : "No payments found"}
                   </div>
-                </td>
-              </tr>
-            ) : (
+                    </td>
+                  </tr>
+                ) : (
               filteredPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td className="fw-bold">{payment.payment_number}</td>
+                    <tr key={payment.id}>
+                      <td className="fw-bold">{payment.payment_number}</td>
                   <td>{payment.client?.name || "Unknown"}</td>
-                  <td>{new Date(payment.date_created).toLocaleDateString()}</td>
+                      <td>{new Date(payment.date_created).toLocaleDateString()}</td>
                   <td className="fw-bold text-success">
                     KES {payment.amount.toFixed(2)}
                   </td>
@@ -283,12 +283,12 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
                     >
                       <Eye size={14} />
                     </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
       </div>
     </div>
   )

@@ -83,7 +83,7 @@ const SalesOrdersView = () => {
       if (error) throw error
       setSalesOrders(data || [])
     } catch (error) {
-      console.error("Error fetching sales orders:", error)
+        console.error("Error fetching sales orders:", error)
       toast.error("Failed to load sales orders")
     } finally {
       setLoading(false)
@@ -100,15 +100,15 @@ const SalesOrdersView = () => {
 
       if (error) throw error
       
-      const clientOptions = [
-        { value: "", label: "All Clients" },
+        const clientOptions = [
+          { value: "", label: "All Clients" },
         ...(data || []).map(client => ({
-          value: client.id.toString(),
+            value: client.id.toString(),
           label: client.name
         }))
-      ]
+        ]
       
-      setClients(clientOptions)
+        setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -132,7 +132,7 @@ const SalesOrdersView = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (order) =>
-          order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.notes?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -393,7 +393,7 @@ const SalesOrdersView = () => {
 
   return (
     <div className="sales-orders-view">
-      <div className="card-body">
+    <div className="card-body">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Sales Orders</h5>
@@ -430,8 +430,8 @@ const SalesOrdersView = () => {
                 </option>
               ))}
             </select>
-          </div>
-          
+      </div>
+
           <div className="col-md-3">
             <select
               className="form-select border-0 shadow-sm"
@@ -492,35 +492,35 @@ const SalesOrdersView = () => {
           </div>
         </div>
 
-        {/* Sales Orders Table */}
-        <div className="table-responsive">
+      {/* Sales Orders Table */}
+      <div className="table-responsive">
           <table className="table table-hover">
-            <thead>
-              <tr>
-                <th>Order #</th>
+          <thead>
+            <tr>
+              <th>Order #</th>
                 <th>Date</th>
-                <th>Client</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
+              <th>Client</th>
+              <th>Total Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
                   <td colSpan={6} className="text-center py-4">
                     <div className="spinner-border text-primary" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
-                  </td>
-                </tr>
-              ) : filteredSalesOrders.length === 0 ? (
-                <tr>
+                </td>
+              </tr>
+            ) : filteredSalesOrders.length === 0 ? (
+              <tr>
                   <td colSpan={6} className="text-center py-4 text-muted">
-                    No sales orders found
-                  </td>
-                </tr>
-              ) : (
+                  No sales orders found
+                </td>
+              </tr>
+            ) : (
                 filteredSalesOrders.map((salesOrder) => (
                   <tr key={salesOrder.id}>
                     <td>{salesOrder.order_number}</td>
@@ -530,31 +530,31 @@ const SalesOrdersView = () => {
                     <td>
                       <span className={`badge ${getStatusBadge(salesOrder.status)}`}>
                         {salesOrder.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td>
+                    </span>
+                  </td>
+                  <td>
                       <div className="d-flex gap-1">
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleView(salesOrder)}
                           title="View"
                         >
-                          <Eye size={14} />
-                        </button>
+                      <Eye size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleEdit(salesOrder)}
                           title="Edit"
                         >
-                          <Edit size={14} />
-                        </button>
+                      <Edit size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDelete(salesOrder)}
                           title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                      <Trash2 size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handlePrint(salesOrder)}
@@ -589,13 +589,13 @@ const SalesOrdersView = () => {
                           </>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       </div>
 
       {/* Sales Order Modal */}

@@ -87,7 +87,7 @@ const CashSalesView = () => {
       if (error) throw error
       setCashSales(data || [])
     } catch (error) {
-      console.error("Error fetching cash sales:", error)
+        console.error("Error fetching cash sales:", error)
       toast.error("Failed to load cash sales")
     } finally {
       setLoading(false)
@@ -104,15 +104,15 @@ const CashSalesView = () => {
 
       if (error) throw error
       
-      const clientOptions = [
-        { value: "", label: "All Clients" },
+        const clientOptions = [
+          { value: "", label: "All Clients" },
         ...(data || []).map(client => ({
-          value: client.id.toString(),
+            value: client.id.toString(),
           label: client.name
         }))
-      ]
+        ]
       
-      setClients(clientOptions)
+        setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -136,7 +136,7 @@ const CashSalesView = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (sale) =>
-          sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           sale.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           sale.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           sale.original_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -373,7 +373,7 @@ const CashSalesView = () => {
 
   return (
     <div className="cash-sales-view">
-      <div className="card-body">
+    <div className="card-body">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Cash Sales</h5>
@@ -410,8 +410,8 @@ const CashSalesView = () => {
                 </option>
               ))}
             </select>
-          </div>
-          
+      </div>
+
           <div className="col-md-3">
             <select
               className="form-select border-0 shadow-sm"
@@ -473,42 +473,42 @@ const CashSalesView = () => {
           </div>
         </div>
 
-        {/* Cash Sales Table */}
-        <div className="table-responsive">
+      {/* Cash Sales Table */}
+      <div className="table-responsive">
           <table className="table" id="cashSalesTable">
-            <thead>
-              <tr>
+          <thead>
+            <tr>
                 <th>Receipt #</th>
-                <th>Date</th>
-                <th>Client</th>
-                <th>Total Amount</th>
-                <th>Actions</th>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Total Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                  <td colSpan={5} className="text-center">
+                  Loading...
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="text-center">
-                    Loading...
-                  </td>
-                </tr>
               ) : filteredCashSales.length === 0 ? (
-                <tr>
+              <tr>
                   <td colSpan={5} className="text-center">
-                    No cash sales found
-                  </td>
-                </tr>
-              ) : (
+                  No cash sales found
+                </td>
+              </tr>
+            ) : (
                 filteredCashSales.map((sale) => (
-                  <tr key={sale.id}>
-                    <td className="fw-bold">{sale.sale_number}</td>
-                    <td>{new Date(sale.date_created).toLocaleDateString()}</td>
+                <tr key={sale.id}>
+                  <td className="fw-bold">{sale.sale_number}</td>
+                  <td>{new Date(sale.date_created).toLocaleDateString()}</td>
                     <td>
                       <div>{sale.client?.name}</div>
                       {sale.client?.phone && (
                         <small className="text-muted">{sale.client.phone}</small>
                       )}
-                    </td>
+                  </td>
                     <td>KES {sale.grand_total.toFixed(2)}</td>
                     <td>
                       <div className="d-flex gap-1">
@@ -517,22 +517,22 @@ const CashSalesView = () => {
                           onClick={() => handleView(sale)}
                           title="View"
                         >
-                          <Eye size={14} />
-                        </button>
+                      <Eye size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handleEdit(sale)}
                           title="Edit"
                         >
-                          <Edit size={14} />
-                        </button>
+                      <Edit size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handleDelete(sale)}
                           title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                      <Trash2 size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handlePrint(sale)}
@@ -541,13 +541,13 @@ const CashSalesView = () => {
                           <Download size={14} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       </div>
 
       {/* Cash Sale Modal */}

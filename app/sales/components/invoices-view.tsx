@@ -93,7 +93,7 @@ const InvoicesView = () => {
       if (error) throw error
       setInvoices(data || [])
     } catch (error) {
-      console.error("Error fetching invoices:", error)
+        console.error("Error fetching invoices:", error)
       toast.error("Failed to load invoices")
     } finally {
       setLoading(false)
@@ -110,15 +110,15 @@ const InvoicesView = () => {
 
       if (error) throw error
       
-      const clientOptions = [
-        { value: "", label: "All Clients" },
+        const clientOptions = [
+          { value: "", label: "All Clients" },
         ...(data || []).map(client => ({
-          value: client.id.toString(),
+            value: client.id.toString(),
           label: client.name
         }))
-      ]
+        ]
       
-      setClients(clientOptions)
+        setClients(clientOptions)
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
@@ -147,7 +147,7 @@ const InvoicesView = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (invoice) =>
-          invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           invoice.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           invoice.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           invoice.original_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -391,7 +391,7 @@ const InvoicesView = () => {
 
   return (
     <div className="invoices-view">
-      <div className="card-body">
+    <div className="card-body">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Invoices</h5>
@@ -428,8 +428,8 @@ const InvoicesView = () => {
                 </option>
               ))}
             </select>
-          </div>
-          
+      </div>
+
           <div className="col-md-3">
             <select
               className="form-select border-0 shadow-sm"
@@ -491,74 +491,74 @@ const InvoicesView = () => {
           </div>
         </div>
 
-        {/* Invoices Table */}
-        <div className="table-responsive">
+      {/* Invoices Table */}
+      <div className="table-responsive">
           <table className="table" id="invoicesTable">
-            <thead>
-              <tr>
-                <th>Invoice #</th>
+          <thead>
+            <tr>
+              <th>Invoice #</th>
                 <th>Date</th>
-                <th>Client</th>
-                <th>Total Amount</th>
-                <th>Balance</th>
-                <th>Status</th>
-                <th>Actions</th>
+              <th>Client</th>
+              <th>Total Amount</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                  <td colSpan={7} className="text-center">
+                  Loading...
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
+            ) : filteredInvoices.length === 0 ? (
+              <tr>
                   <td colSpan={7} className="text-center">
-                    Loading...
-                  </td>
-                </tr>
-              ) : filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center">
-                    No invoices found
-                  </td>
-                </tr>
-              ) : (
-                filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td className="fw-bold">{invoice.invoice_number}</td>
+                  No invoices found
+                </td>
+              </tr>
+            ) : (
+              filteredInvoices.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td className="fw-bold">{invoice.invoice_number}</td>
                     <td>{new Date(invoice.date_created).toLocaleDateString()}</td>
-                    <td>
-                      <div>{invoice.client?.name}</div>
-                      {invoice.client?.phone && (
-                        <small className="text-muted">{invoice.client.phone}</small>
-                      )}
-                    </td>
+                  <td>
+                    <div>{invoice.client?.name}</div>
+                    {invoice.client?.phone && (
+                      <small className="text-muted">{invoice.client.phone}</small>
+                    )}
+                  </td>
                     <td>KES {invoice.grand_total.toFixed(2)}</td>
                     <td>KES {calculateBalance(invoice).toFixed(2)}</td>
-                    <td>
-                      <span className={getStatusBadge(invoice.status)}>
+                  <td>
+                    <span className={getStatusBadge(invoice.status)}>
                         {invoice.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td>
+                    </span>
+                  </td>
+                  <td>
                       <div className="d-flex gap-1">
                         <button 
                           className="action-btn"
                           onClick={() => handleView(invoice)}
                           title="View"
                         >
-                          <Eye size={14} />
-                        </button>
+                      <Eye size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handleEdit(invoice)}
                           title="Edit"
                         >
-                          <Edit size={14} />
-                        </button>
+                      <Edit size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handleDelete(invoice)}
                           title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                      <Trash2 size={14} />
+                    </button>
                         <button 
                           className="action-btn"
                           onClick={() => handlePrint(invoice)}
@@ -576,13 +576,13 @@ const InvoicesView = () => {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       </div>
 
       {/* Invoice Modal */}

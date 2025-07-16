@@ -157,7 +157,7 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
         {/* Add New Company Expense Button */}
         <div className="d-flex mb-4">
           <button className="btn btn-add" onClick={handleNewExpense}>
-            <Plus size={16} className="me-2" />
+          <Plus size={16} className="me-2" />
             Add New Company Expense
           </button>
         </div>
@@ -188,23 +188,23 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
         />
 
         {/* Company Expenses Table */}
-        <div className="table-responsive">
+      <div className="table-responsive">
           <table className="table table-hover">
-            <thead>
-              <tr>
-                <th>Expense #</th>
+          <thead>
+            <tr>
+              <th>Expense #</th>
                 <th>Date</th>
-                <th>Category</th>
-                <th>Description</th>
+              <th>Category</th>
+              <th>Description</th>
                 <th>Unit</th>
                 <th>Quantity</th>
                 <th>Rate</th>
-                <th>Amount</th>
+              <th>Amount</th>
                 <th>Account Debited</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
               {filteredExpenses.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="text-center py-4">
@@ -213,14 +213,14 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
                         ? "No company expenses found matching your criteria"
                         : "No company expenses found"}
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredExpenses.map((expense) => (
-                  <tr key={expense.id}>
-                    <td className="fw-bold">{expense.expense_number}</td>
-                    <td>{new Date(expense.date_created).toLocaleDateString()}</td>
-                    <td>
+                </td>
+              </tr>
+            ) : (
+              filteredExpenses.map((expense) => (
+                <tr key={expense.id}>
+                  <td className="fw-bold">{expense.expense_number}</td>
+                  <td>{new Date(expense.date_created).toLocaleDateString()}</td>
+                  <td>
                       <span className="badge bg-secondary">{expense.category}</span>
                     </td>
                     <td>{expense.description || "-"}</td>
@@ -238,29 +238,29 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
                           onClick={() => handleViewExpense(expense)}
                           title="View"
                         >
-                          <Eye size={14} />
-                        </button>
+                      <Eye size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleEditExpense(expense)}
                           title="Edit"
                         >
-                          <Edit size={14} />
-                        </button>
+                      <Edit size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDeleteExpense(expense)}
                           title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                      <Trash2 size={14} />
+                    </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
         </div>
 
         {/* Expense Summary */}

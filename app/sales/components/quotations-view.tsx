@@ -393,15 +393,15 @@ const QuotationsView = () => {
 
   return (
     <div className="quotations-view">
-      <div className="card-body">
-        {/* Add New Quotation Button */}
+    <div className="card-body">
+      {/* Add New Quotation Button */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Quotations</h5>
           <button className="btn btn-add" onClick={handleNewQuotation}>
             <Plus size={16} />
-            Add New Quotation
-          </button>
-        </div>
+          Add New Quotation
+        </button>
+      </div>
 
         {/* Search and Filter Row */}
         <div className="row mb-3">
@@ -496,69 +496,69 @@ const QuotationsView = () => {
           </div>
         </div>
 
-        {/* Quotations Table */}
-        <div className="table-responsive">
+      {/* Quotations Table */}
+      <div className="table-responsive">
           <table className="table table-hover">
-            <thead>
-              <tr>
-                <th>Quotation #</th>
+          <thead>
+            <tr>
+              <th>Quotation #</th>
                 <th>Date</th>
-                <th>Client</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
+              <th>Client</th>
+              <th>Total Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
                   <td colSpan={6} className="text-center py-4">
                     <div className="spinner-border text-primary" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
-                  </td>
-                </tr>
-              ) : filteredQuotations.length === 0 ? (
-                <tr>
+                </td>
+              </tr>
+            ) : filteredQuotations.length === 0 ? (
+              <tr>
                   <td colSpan={6} className="text-center py-4 text-muted">
-                    No quotations found
-                  </td>
-                </tr>
-              ) : (
-                filteredQuotations.map((quotation) => (
-                  <tr key={quotation.id}>
+                  No quotations found
+                </td>
+              </tr>
+            ) : (
+              filteredQuotations.map((quotation) => (
+                <tr key={quotation.id}>
                     <td>{quotation.quotation_number}</td>
-                    <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
+                  <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
                     <td>{quotation.client?.name || "Unknown"}</td>
                     <td>${quotation.grand_total?.toFixed(2) || "0.00"}</td>
-                    <td>
+                  <td>
                       <span className={`badge ${getStatusBadge(quotation.status)}`}>
-                        {quotation.status}
-                      </span>
-                    </td>
-                    <td>
+                      {quotation.status}
+                    </span>
+                  </td>
+                  <td>
                       <div className="d-flex gap-1">
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleView(quotation)}
                           title="View"
                         >
-                          <Eye size={14} />
-                        </button>
+                      <Eye size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleEdit(quotation)}
                           title="Edit"
                         >
-                          <Edit size={14} />
-                        </button>
+                      <Edit size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDelete(quotation)}
                           title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                      <Trash2 size={14} />
+                    </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handlePrint(quotation)}
@@ -593,13 +593,13 @@ const QuotationsView = () => {
                           </>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       </div>
 
       {/* Quotation Modal */}
