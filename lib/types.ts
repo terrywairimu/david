@@ -31,6 +31,7 @@ export interface StockItem {
   status: "in_stock" | "low_stock" | "out_of_stock"
   last_updated: string
   supplier?: RegisteredEntity
+  unit?: string
 }
 
 // Enhanced Quotation System Types
