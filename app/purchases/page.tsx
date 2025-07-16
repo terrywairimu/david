@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, Download, Eye, Print, ShoppingBasket } from "lucide-react"
+import { Search, Download, Eye, Printer, ShoppingBasket } from "lucide-react"
 import { supabase, type Purchase, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import PurchaseModal from "@/components/ui/purchase-modal"
@@ -334,7 +334,7 @@ const PurchasesPage = () => {
                           onClick={() => handlePrint(purchase)}
                           title="Print"
                         >
-                          <Print size={16} />
+                          <Printer size={16} />
                         </button>
                         <button 
                           className="action-btn" 
