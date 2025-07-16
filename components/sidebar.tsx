@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { Home, UserPlus, ShoppingCart, DollarSign, ShoppingBasket, Boxes, File, BarChart } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
@@ -28,63 +27,63 @@ const Sidebar = () => {
   return (
     <div className="col-md-2 sidebar">
       <h3>
-        <BarChart className="me-2" size={20} />
+        <i className="fas fa-chart-line me-2"></i>
         Dashboard
       </h3>
       <nav className="nav flex-column">
         <SidebarLink
           href="/register"
           label="Register"
-          icon={UserPlus}
+          icon="fas fa-user-plus"
           isActive={activeSection === "register" || pathname === "/"}
           onClick={() => handleSectionClick("register")}
         />
         <SidebarLink
           href="/sales"
           label="Sales"
-          icon={ShoppingCart}
+          icon="fas fa-cart-shopping"
           isActive={activeSection === "sales"}
           onClick={() => handleSectionClick("sales")}
         />
         <SidebarLink
           href="/payments"
           label="Payments"
-          icon={DollarSign}
+          icon="fas fa-money-bill-alt"
           isActive={activeSection === "payments"}
           onClick={() => handleSectionClick("payments")}
         />
         <SidebarLink
           href="/expenses"
           label="Expenses"
-          icon={DollarSign}
+          icon="fas fa-money-bill-wave"
           isActive={activeSection === "expenses"}
           onClick={() => handleSectionClick("expenses")}
         />
         <SidebarLink
           href="/purchases"
           label="Purchases"
-          icon={ShoppingBasket}
+          icon="fas fa-shopping-basket"
           isActive={activeSection === "purchases"}
           onClick={() => handleSectionClick("purchases")}
         />
         <SidebarLink
           href="/stock"
           label="Stock"
-          icon={Boxes}
+          icon="fas fa-boxes"
           isActive={activeSection === "stock"}
           onClick={() => handleSectionClick("stock")}
         />
         <SidebarLink
           href="/reports"
           label="Reports"
-          icon={File}
+          icon="fas fa-file-alt"
           isActive={activeSection === "reports"}
           onClick={() => handleSectionClick("reports")}
         />
         <SidebarLink
           href="/analytics"
           label="Analytics"
-          icon={BarChart}
+          icon="fas fa-chart-bar"
           isActive={activeSection === "analytics"}
           onClick={() => handleSectionClick("analytics")}
         />
@@ -99,15 +98,15 @@ const Sidebar = () => {
 interface SidebarLinkProps {
   href: string
   label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: string
   isActive?: boolean
   onClick?: () => void
 }
 
-const SidebarLink = ({ href, label, icon: Icon, isActive, onClick }: SidebarLinkProps) => {
+const SidebarLink = ({ href, label, icon, isActive, onClick }: SidebarLinkProps) => {
   return (
     <Link href={href} className={`nav-link ${isActive ? "active" : ""}`} onClick={onClick}>
-      <Icon size={20} />
+      <i className={icon}></i>
       <span>{label}</span>
     </Link>
   )

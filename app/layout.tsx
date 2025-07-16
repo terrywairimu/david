@@ -33,9 +33,9 @@ export default function RootLayout({
           <div className="container-fluid">
             <div className="row">
               <Sidebar />
-              <main className="col-md-10 content">
+              <div className="col-md-10 content">
                 {children}
-              </main>
+              </div>
             </div>
           </div>
           <Toaster />
