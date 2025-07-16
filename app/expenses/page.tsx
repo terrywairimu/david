@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { UserTag, Building } from "lucide-react"
+import { User, Building } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ClientExpensesView from "./components/client-expenses-view"
@@ -105,7 +105,7 @@ export default function ExpensesPage() {
               className={`btn btn-add ${activeView === "client" ? "active" : ""}`}
               onClick={() => setActiveView("client")}
             >
-              <UserTag size={16} className="me-2" />
+                              <User size={16} className="me-2" />
               Client Expenses
             </button>
             <button

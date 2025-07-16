@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CreditCard, FileInvoiceDollar } from "lucide-react"
+import { CreditCard, Receipt } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import MakePaymentView from "./components/make-payment-view"
@@ -143,7 +143,7 @@ export default function PaymentsPage() {
               className={`btn btn-add ${activeView === "account-summary" ? "active" : ""}`}
               onClick={() => setActiveView("account-summary")}
             >
-              <FileInvoiceDollar size={16} className="me-2" />
+                              <Receipt size={16} className="me-2" />
               Account Summary
             </button>
           </div>
