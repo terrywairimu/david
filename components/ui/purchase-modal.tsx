@@ -408,6 +408,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       type="button"
                         onClick={() => {
                           console.log("Supplier dropdown clicked, current state:", supplierDropdownVisible)
+                          console.log("Available suppliers:", suppliers.length)
+                          console.log("Filtered suppliers:", filteredSuppliers.length)
                           setSupplierDropdownVisible(!supplierDropdownVisible)
                           if (!supplierDropdownVisible) {
                             setSupplierSearch("")  // Clear search when opening dropdown to show all
@@ -429,6 +431,17 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
                         style={{
                           display: supplierDropdownVisible ? "block" : "none"
+                        }}
+                        ref={(el) => {
+                          if (el && supplierDropdownVisible) {
+                            console.log("Supplier dropdown element:", el);
+                            console.log("Supplier dropdown computed styles:", window.getComputedStyle(el));
+                            console.log("Supplier dropdown className:", el.className);
+                            console.log("Supplier dropdown style.display:", el.style.display);
+                            console.log("Supplier dropdown offsetHeight:", el.offsetHeight);
+                            console.log("Supplier dropdown offsetWidth:", el.offsetWidth);
+                            console.log("Supplier dropdown getBoundingClientRect:", el.getBoundingClientRect());
+                          }
                         }}
                       >
                         {filteredSuppliers.length > 0 ? (
@@ -509,7 +522,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   {items.map((item) => (
                     <div key={item.id} className="row mb-2 align-items-center" data-item-container={item.id}>
                       <div className="col-md-4">
-                        <div className="input-group shadow-sm item-search-container">
+                        <div className="input-group shadow-sm item-search-container" style={{ position: "relative" }}>
                           <input
                             type="text"
                             className="form-control border-0 item-search"
@@ -527,6 +540,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             type="button"
                             onClick={() => {
                               console.log(`Item dropdown ${item.id} clicked, current state:`, itemDropdownVisible[item.id])
+                              console.log(`Available stock items for filtering:`, stockItems.length)
+                              console.log(`Filtered stock items for item ${item.id}:`, filteredStockItems[item.id]?.length || 0)
                               setItemDropdownVisible(prev => ({ ...prev, [item.id]: !prev[item.id] }))
                               if (!itemDropdownVisible[item.id]) {
                                 setItemSearches(prev => ({ ...prev, [item.id]: "" }))  // Clear search when opening dropdown
@@ -545,20 +560,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           
                           {/* Item Dropdown */}
                           <ul 
-                            className={`dropdown-menu w-100 ${itemDropdownVisible[item.id] ? 'show' : ''}`}
+                            className={`item-list ${itemDropdownVisible[item.id] ? 'show' : ''}`}
                             style={{
-                              display: itemDropdownVisible[item.id] ? "block" : "none",
-                              position: "absolute",
-                              top: "100%",
-                              left: "0",
-                              zIndex: 1000,
-                              width: "100%",
-                              maxHeight: "200px",
-                              overflowY: "auto",
-                              backgroundColor: "white",
-                              border: "1px solid #dee2e6",
-                              borderRadius: "8px",
-                              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+                              display: itemDropdownVisible[item.id] ? "block" : "none"
+                            }}
+                            ref={(el) => {
+                              if (el && itemDropdownVisible[item.id]) {
+                                console.log(`Item dropdown ${item.id} element:`, el);
+                                console.log(`Item dropdown ${item.id} computed styles:`, window.getComputedStyle(el));
+                                console.log(`Item dropdown ${item.id} className:`, el.className);
+                                console.log(`Item dropdown ${item.id} style.display:`, el.style.display);
+                                console.log(`Item dropdown ${item.id} offsetHeight:`, el.offsetHeight);
+                                console.log(`Item dropdown ${item.id} offsetWidth:`, el.offsetWidth);
+                                console.log(`Item dropdown ${item.id} getBoundingClientRect:`, el.getBoundingClientRect());
+                                console.log(`Item dropdown ${item.id} parent container:`, el.parentElement);
+                              }
                             }}
                           >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
