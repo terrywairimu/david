@@ -434,19 +434,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         className={`custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`}
                         style={{
                           display: supplierDropdownVisible ? 'block' : 'none',
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          zIndex: 9999,
+                          position: 'fixed',
+                          top: '200px',
+                          left: '50%',
+                          width: '300px',
+                          zIndex: 99999,
                           background: 'white',
-                          border: '2px solid red',
+                          border: '3px solid red',
                           borderRadius: '8px',
                           maxHeight: '300px',
                           overflowY: 'auto',
                           listStyle: 'none',
-                          padding: 0,
-                          margin: 0
+                          padding: '10px',
+                          margin: 0,
+                          boxShadow: '0 0 20px rgba(0,0,0,0.5)'
                         }}
                       >
                         {filteredSuppliers.length > 0 ? (
@@ -563,19 +564,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             className={`custom-dropdown-list ${itemDropdownVisible[item.id] ? 'visible' : ''}`}
                             style={{
                               display: itemDropdownVisible[item.id] ? 'block' : 'none',
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              zIndex: 9999,
+                              position: 'fixed',
+                              top: '400px',
+                              left: '60%',
+                              width: '300px',
+                              zIndex: 99999,
                               background: 'yellow',
-                              border: '2px solid blue',
+                              border: '3px solid blue',
                               borderRadius: '8px',
                               maxHeight: '300px',
                               overflowY: 'auto',
                               listStyle: 'none',
-                              padding: 0,
-                              margin: 0
+                              padding: '10px',
+                              margin: 0,
+                              boxShadow: '0 0 20px rgba(0,0,0,0.8)'
                             }}
                           >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
