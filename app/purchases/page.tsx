@@ -48,6 +48,23 @@ const PurchasesPage = () => {
   useEffect(() => {
     fetchPurchases()
     fetchSuppliers()
+    
+    // Set up real-time subscription for purchases
+    const subscription = supabase
+      .channel('purchases_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases' }, (payload) => {
+        console.log('Purchase change detected:', payload)
+        fetchPurchases() // Refresh the table
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_items' }, (payload) => {
+        console.log('Purchase items change detected:', payload)
+        fetchPurchases() // Refresh the table
+      })
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const fetchPurchases = async () => {

@@ -285,7 +285,15 @@ body {
     box-shadow: none !important;
 }
 
+/* Remove card-body styling as requested by user */
 .card-body {
+    background: transparent !important;
+    border: none !important;
+    padding: 1.0rem !important;
+}
+
+/* Ensure content within cards has proper glass effect */
+.card .table-responsive {
     background: rgba(255, 255, 255, 0.05) !important;
     backdrop-filter: blur(10px) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -296,58 +304,34 @@ body {
     z-index: 1;
 }
 
-/* Ensure card-body has proper glass effect */
-.card > .card-body,
-.card .card-body {
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 24px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
-    padding: 1.0rem !important;
-    position: relative;
-    z-index: 1;
-}
-
-/* Ensure card-body content is properly styled */
-.card-body .row {
+/* Search/Filter controls container */
+.card .row {
     margin-bottom: 1rem;
 }
 
-.card-body .input-group {
+.card .input-group {
     border-radius: 16px;
     overflow: hidden;
 }
 
-.card-body .input-group-text {
+.card .input-group-text {
     background: white;
     border: none;
     color: var(--text-secondary);
 }
 
-.card-body .form-control,
-.card-body .form-select {
+.card .form-control,
+.card .form-select {
     border: none;
     background: white;
     color: var(--text-primary);
 }
 
-.card-body .form-control:focus,
-.card-body .form-select:focus {
+.card .form-control:focus,
+.card .form-select:focus {
     border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     outline: none;
-}
-
-.card-body .table-responsive {
-    background: transparent;
-    border-radius: 16px;
-    overflow: hidden;
-}
-
-.card-body .table {
-    background: transparent;
-    margin-bottom: 0;
 }
 
 .card > .card-header,
@@ -441,8 +425,7 @@ body {
 }
 
 .table {
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
+    background: transparent !important;
     border-radius: 16px;
     overflow: hidden;
 }
@@ -518,10 +501,11 @@ input[type="text"]:focus, input[type="tel"]:focus, select:focus {
 }
 
 .modal-content {
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
 }
 
 .modal-header {
@@ -704,6 +688,7 @@ input:checked + .toggle-slider:before {
 
 .modal-body {
     color: white;
+    background: transparent !important;
 }
 
 .modal-body .form-label {
