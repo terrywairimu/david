@@ -72,7 +72,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }, [isOpen, mode, purchase])
 
-  // Click outside to close dropdowns
+  // Click outside to close dropdowns - TEMPORARILY DISABLED FOR TESTING
+  /*
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
@@ -110,6 +111,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       }
     }
   }, [isOpen])
+  */
 
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
@@ -430,6 +432,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const [priceInputValue, setPriceInputValue] = useState((item.unit_price || 0).toString())
     const [quantityInputValue, setQuantityInputValue] = useState((item.quantity || 1).toString())
 
+    // Sync local state with item props when item changes
+    useEffect(() => {
+      if (item.stock_item?.name !== itemSearchTerm && !itemSearchTerm) {
+        setItemSearchTerm(item.stock_item?.name || "")
+      }
+    }, [item.stock_item?.name])
+
+    useEffect(() => {
+      setPriceInputValue((item.unit_price || 0).toString())
+    }, [item.unit_price])
+
+    useEffect(() => {
+      setQuantityInputValue((item.quantity || 1).toString())
+    }, [item.quantity])
+
     const filteredStockItems = stockItems.filter(stockItem =>
       stockItem.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
       stockItem.description?.toLowerCase().includes(itemSearchTerm.toLowerCase())
@@ -455,18 +472,26 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
     const handlePriceChange = (value: string) => {
       setPriceInputValue(value)
-      const numValue = parseFloat(value) || 0
-      updateItem(item.id, "unit_price", numValue)
+      // Debounce the updateItem call to prevent immediate re-renders
+      setTimeout(() => {
+        const numValue = parseFloat(value) || 0
+        updateItem(item.id, "unit_price", numValue)
+      }, 300)
     }
 
     const handleQuantityFocus = () => {
-      setQuantityInputValue("")
+      if (quantityInputValue === "1" || quantityInputValue === "0") {
+        setQuantityInputValue("")
+      }
     }
 
     const handleQuantityChange = (value: string) => {
       setQuantityInputValue(value)
-      const numValue = parseInt(value) || 0
-      updateItem(item.id, "quantity", numValue)
+      // Debounce the updateItem call to prevent immediate re-renders
+      setTimeout(() => {
+        const numValue = parseInt(value) || 1
+        updateItem(item.id, "quantity", numValue)
+      }, 300)
     }
 
     return (
@@ -518,18 +543,24 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               <ul
                 className="dropdown-menu w-100"
                 style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  zIndex: 9999,
+                  position: "absolute !important" as any,
+                  top: "100% !important" as any,
+                  left: "0 !important" as any,
+                  zIndex: "99999 !important" as any,
                   maxHeight: "200px",
                   overflowY: "auto",
-                  background: "white",
-                  border: "1px solid #dee2e6",
+                  background: "red !important" as any, // DEBUG: Make it obvious
+                  border: "3px solid blue !important" as any, // DEBUG: Make it obvious
                   borderRadius: "0.375rem",
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
                   marginTop: "2px",
-                  display: "block"
+                  display: "block !important" as any,
+                  minHeight: "100px" // DEBUG: Ensure it has height
+                }}
+                ref={(el) => {
+                  if (el) {
+                    console.log('Item dropdown UL element rendered:', el, 'for item:', item.id)
+                  }
                 }}
               >
                 {filteredStockItems.map((stockItem) => (
@@ -628,7 +659,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   return (
     <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg" style={{ position: "relative" }}>
+      <div className="modal-dialog modal-lg" style={{ position: "relative", overflow: "visible" }}>
                   <div className="modal-content" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">
@@ -639,7 +670,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             </button>
           </div>
           <div className="modal-body pt-2" style={{ overflow: "visible", position: "relative" }}>
-            <form className="needs-validation" noValidate>
+            <form className="needs-validation" noValidate style={{ overflow: "visible" }}>
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="purchaseDate" className="form-label">Purchase Date</label>
@@ -704,20 +735,26 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       <ul
                         className="dropdown-menu supplier-list"
                         style={{
-                          position: "absolute",
-                          top: "100%",
-                          left: 0,
+                          position: "absolute !important" as any,
+                          top: "100% !important" as any,
+                          left: "0 !important" as any,
                           width: "100%",
                           maxHeight: "300px",
                           overflowY: "auto",
                           overflowX: "hidden",
                           marginTop: "2px",
-                          zIndex: 9999,
-                          background: "white",
-                          border: "1px solid #dee2e6",
+                          zIndex: "99999 !important" as any,
+                          background: "yellow !important" as any, // DEBUG: Make it obvious
+                          border: "3px solid green !important" as any, // DEBUG: Make it obvious
                           borderRadius: "0.375rem",
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                          display: "block"
+                          display: "block !important" as any,
+                          minHeight: "100px" // DEBUG: Ensure it has height
+                        }}
+                        ref={(el) => {
+                          if (el) {
+                            console.log('Supplier dropdown UL element rendered:', el)
+                          }
                         }}
                       >
                         {suppliers
