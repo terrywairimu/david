@@ -287,18 +287,18 @@ const PurchasesPage = () => {
                 const { error: movementError } = await supabase
                   .from("stock_movements")
                   .insert({
-                    stock_item_id: item.stock_item_id,
+                stock_item_id: item.stock_item_id,
                     movement_type: "in",
                     quantity: item.quantity,
                     reference_type: "purchase",
                     reference_id: newPurchase.id,
                     notes: `Purchase Order: ${purchaseData.purchase_order_number}`
-                  })
+              })
 
                 if (movementError) {
                   console.error("Error creating stock movement:", movementError);
                   // Don't throw error for movement tracking, just log it
-                }
+              }
 
                 console.log(`Successfully updated stock for ${stockItem.name}: ${stockItem.quantity} + ${item.quantity} = ${newQuantity}`);
                 toast.success(`Stock updated for ${item.description}: +${item.quantity}`);
@@ -496,20 +496,20 @@ const PurchasesPage = () => {
         title="Purchase Management" 
         icon={<ShoppingCart size={24} />}
       >
-        <button
-          className="btn btn-add"
-          onClick={() => {
-            setSelectedPurchase(undefined)
-            setModalMode("create")
-            setShowModal(true)
-          }}
-        >
-          <Plus size={16} className="me-1" />
-          Add New Purchase
-        </button>
+          <button
+            className="btn btn-add"
+            onClick={() => {
+              setSelectedPurchase(undefined)
+              setModalMode("create")
+              setShowModal(true)
+            }}
+          >
+            <Plus size={16} className="me-1" />
+            Add New Purchase
+          </button>
       </SectionHeader>
 
-      
+
         {/* Search and Filter Controls */}
         <div className="row mb-4">
           <div className="col-md-4">
@@ -681,7 +681,7 @@ const PurchasesPage = () => {
               )}
             </tbody>
           </table>
-        </div>
+      </div>
       
 
       {/* Purchase Modal */}
