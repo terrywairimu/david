@@ -103,14 +103,22 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       
+      // Don't close if clicking on dropdown buttons or dropdown content
+      if (target.closest('.supplier-dropdown') || target.closest('.item-dropdown')) {
+        console.log('Clicked on dropdown button, not closing')
+        return
+      }
+      
       // Close supplier dropdown if clicking outside
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(target)) {
+        console.log('Closing supplier dropdown - clicked outside')
         setShowSupplierResults(false)
       }
       
       // Close item dropdowns if clicking outside
       Object.values(itemDropdownRefs.current).forEach((ref, index) => {
         if (ref && !ref.contains(target)) {
+          console.log('Closing item dropdown', index, '- clicked outside')
           setItems(prevItems => prevItems.map((item, i) => 
             i === index ? { ...item, showDropdown: false } : item
           ))
@@ -296,11 +304,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const updateItem = (itemId: any, field: string, value: any) => {
+    console.log('Updating item:', itemId, 'field:', field, 'value:', value)
     const updatedItems = items.map(item => {
       if (item.id === itemId) {
         const updatedItem = { ...item, [field]: value }
         if (field === "quantity" || field === "unit_price") {
           updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
+        }
+        if (field === "showDropdown") {
+          console.log('Dropdown state changed for item:', itemId, 'to:', value)
         }
         return updatedItem
       }
@@ -324,7 +336,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const removeItem = (itemId: any) => {
+    console.log('Removing item with ID:', itemId, 'Current items:', items.length)
     const updatedItems = items.filter(item => item.id !== itemId)
+    console.log('Items after removal:', updatedItems.length)
     setItems(updatedItems)
     calculateTotal(updatedItems)
   }
@@ -393,6 +407,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const ItemRow: React.FC<{ item: any, index: number }> = ({ item, index }) => {
+    console.log('Rendering ItemRow for item:', item.id, 'showDropdown:', item.showDropdown)
     const [itemSearchTerm, setItemSearchTerm] = useState(item.stock_item?.name || "")
     const [priceInputValue, setPriceInputValue] = useState(item.unit_price.toString())
     const [quantityInputValue, setQuantityInputValue] = useState(item.quantity.toString())
@@ -403,11 +418,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     )
 
     const handleItemSearchFocus = () => {
+      console.log('Item search focused, opening dropdown')
       setItemSearchTerm("")
       updateItem(item.id, "showDropdown", true)
     }
 
     const handleItemSearchChange = (value: string) => {
+      console.log('Item search changed:', value, 'opening dropdown')
       setItemSearchTerm(value)
       updateItem(item.id, "showDropdown", true)
     }
@@ -453,7 +470,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <button
               className="btn btn-outline-secondary border-0 item-dropdown"
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('Item dropdown clicked, current state:', item.showDropdown)
                 setItemSearchTerm("")  // Clear search to show all items
                 updateItem(item.id, "showDropdown", !item.showDropdown)
               }}
@@ -551,7 +571,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <button
               type="button"
               className="btn btn-sm btn-outline-danger"
-              onClick={() => removeItem(item.id)}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('Delete button clicked for item:', item.id)
+                removeItem(item.id)
+              }}
               style={{ borderRadius: "8px" }}
             >
                                   <i className="fas fa-times"></i>
@@ -614,7 +639,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <button
                       className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('Supplier dropdown clicked, current state:', showSupplierResults)
                         setSupplierSearchTerm("")  // Clear search to show all suppliers
                         setShowSupplierResults(!showSupplierResults)
                       }}
@@ -716,7 +744,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 </div>
                 <button
                   type="button"
-                  className="btn btn-outline-primary"
+                  className="btn btn-add"
                   onClick={addItem}
                 >
                   <i className="fas fa-plus me-2"></i>
@@ -744,7 +772,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-add"
               onClick={handleSave}
               disabled={loading}
             >
