@@ -283,27 +283,31 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const updateItem = useCallback((itemId: any, field: string, value: any) => {
     console.log('Updating item:', itemId, 'field:', field, 'value:', value)
     setItems(prevItems => {
-      const updatedItems = prevItems.map(item => {
-        if (item.id === itemId) {
-          const updatedItem = { ...item, [field]: value }
-          if (field === "quantity" || field === "unit_price") {
-            updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
-          }
-          if (field === "showDropdown") {
-            console.log('Dropdown state changed for item:', itemId, 'to:', value)
-            // Close other dropdowns when opening a new one
-            if (value === true) {
-              return prevItems.map(i => 
-                i.id === itemId 
-                  ? { ...i, showDropdown: true }
-                  : { ...i, showDropdown: false }
-              )
+      let updatedItems;
+      
+      if (field === "showDropdown" && value === true) {
+        // Close other dropdowns when opening a new one
+        console.log('Dropdown state changed for item:', itemId, 'to:', value)
+        updatedItems = prevItems.map(item => ({
+          ...item,
+          showDropdown: item.id === itemId ? true : false
+        }))
+      } else {
+        // Normal field update
+        updatedItems = prevItems.map(item => {
+          if (item.id === itemId) {
+            const updatedItem = { ...item, [field]: value }
+            if (field === "quantity" || field === "unit_price") {
+              updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
             }
+            if (field === "showDropdown") {
+              console.log('Dropdown state changed for item:', itemId, 'to:', value)
+            }
+            return updatedItem
           }
-          return updatedItem
-        }
-        return item
-      })
+          return item
+        })
+      }
       
       // Only calculate total if quantity or unit_price changed
       if (field === "quantity" || field === "unit_price") {
@@ -414,10 +418,17 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const ItemRow: React.FC<{ item: any, index: number }> = React.memo(({ item, index }) => {
-    console.log('Rendering ItemRow for item:', item.id, 'showDropdown:', item.showDropdown)
+    console.log('Rendering ItemRow for item:', item?.id, 'showDropdown:', item?.showDropdown)
+    
+    // Safety checks for undefined item
+    if (!item) {
+      console.error('ItemRow received undefined item')
+      return null
+    }
+    
     const [itemSearchTerm, setItemSearchTerm] = useState(item.stock_item?.name || "")
-    const [priceInputValue, setPriceInputValue] = useState(item.unit_price.toString())
-    const [quantityInputValue, setQuantityInputValue] = useState(item.quantity.toString())
+    const [priceInputValue, setPriceInputValue] = useState((item.unit_price || 0).toString())
+    const [quantityInputValue, setQuantityInputValue] = useState((item.quantity || 1).toString())
 
     const filteredStockItems = stockItems.filter(stockItem =>
       stockItem.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
@@ -593,7 +604,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "12px" }}>
           <div className="d-flex align-items-center h-100 justify-content-between">
-            <span className="me-2">KES {item.total_price.toFixed(2)}</span>
+            <span className="me-2">KES {(item.total_price || 0).toFixed(2)}</span>
             <button
               type="button"
               className="btn btn-sm btn-outline-danger"
@@ -607,11 +618,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             >
               <i className="fas fa-times"></i>
             </button>
-                  </div>
+          </div>
+        </div>
       </div>
-    </div>
-  )
-})
+    )
+  })
 
   if (!isOpen) return null
 
