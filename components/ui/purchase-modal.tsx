@@ -354,6 +354,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   if (!isOpen) return null
 
+  console.log('Purchase Modal Render - Supplier dropdown visible:', supplierDropdownVisible, 'Suppliers count:', suppliers.length)
+
   return (
     <>
       <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
@@ -403,8 +405,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         className="btn btn-outline-secondary border-0"
                         type="button"
                         onClick={() => {
+                          console.log('Supplier dropdown button clicked, current state:', supplierDropdownVisible)
                           setSupplierDropdownVisible(!supplierDropdownVisible)
-                          setSupplierSearch("")
+                          if (!supplierDropdownVisible) {
+                            setSupplierSearch("")  // Clear search when opening dropdown to show all
+                          }
                         }}
                         style={{
                           borderRadius: "0 16px 16px 0",
@@ -419,7 +424,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       
                       {/* Supplier Dropdown */}
                       <ul
-                        className={`dropdown-menu w-100 ${supplierDropdownVisible ? 'show' : ''}`}
+                        className={`supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
                         style={{
                           position: "absolute",
                           top: "100%",
@@ -433,7 +438,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                           background: "white",
                           zIndex: 1070,
-                          transform: "none"
+                          transform: "none",
+                          display: supplierDropdownVisible ? "block" : "none"
                         }}
                       >
                         {filteredSuppliers.length > 0 ? (
@@ -538,8 +544,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             className="btn btn-outline-secondary border-0"
                             type="button"
                             onClick={() => {
+                              console.log('Item dropdown button clicked for item:', item.id, 'current state:', itemDropdownVisible[item.id])
                               setItemDropdownVisible(prev => ({ ...prev, [item.id]: !prev[item.id] }))
-                              setItemSearches(prev => ({ ...prev, [item.id]: "" }))
+                              if (!itemDropdownVisible[item.id]) {
+                                setItemSearches(prev => ({ ...prev, [item.id]: "" }))  // Clear search when opening dropdown
+                              }
                             }}
                             style={{
                               borderRadius: "0 16px 16px 0",
@@ -568,7 +577,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                               background: "white",
                               zIndex: 1070,
-                              transform: "none"
+                              transform: "none",
+                              display: itemDropdownVisible[item.id] ? "block" : "none"
                             }}
                           >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
@@ -716,20 +726,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         </div>
       </div>
       
-      {/* Custom CSS for dropdown styles */}
-      <style jsx>{`
-        .dropdown-item:hover {
-          background-color: #f8f9fa !important;
-        }
-        
-        .supplier-search-container .dropdown-menu.show {
-          display: block !important;
-        }
-        
-        .input-group .btn:hover {
-          background-color: #f8f9fa !important;
-        }
-      `}</style>
+
     </>
   )
 }
