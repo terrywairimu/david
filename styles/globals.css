@@ -294,52 +294,53 @@ body {
 
 /* Custom Dropdown Styles - No Bootstrap Dependencies */
 .custom-dropdown-container {
-    position: relative;
+    position: relative !important;
 }
 
-.custom-dropdown-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    max-height: 300px;
-    margin-top: 2px;
-    padding: 0;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    z-index: 9999;
-    overflow-y: auto;
-    overflow-x: hidden;
-    list-style: none;
-    display: none;
+.modal .custom-dropdown-list {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-height: 300px !important;
+    margin-top: 2px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    background: white !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    z-index: 9999 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    list-style: none !important;
+    display: none !important;
+    transform: none !important;
 }
 
-.custom-dropdown-list.visible {
-    display: block;
+.modal .custom-dropdown-list.visible {
+    display: block !important;
 }
 
-.custom-dropdown-item {
-    padding: 0.75rem 1rem;
-    margin: 2px;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    width: 100%;
-    text-align: left;
-    color: var(--text-primary);
+.modal .custom-dropdown-item {
+    padding: 0.75rem 1rem !important;
+    margin: 2px !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    text-align: left !important;
+    color: var(--text-primary) !important;
 }
 
-.custom-dropdown-item:hover {
-    background-color: rgba(99, 102, 241, 0.1);
+.modal .custom-dropdown-item:hover {
+    background-color: rgba(99, 102, 241, 0.1) !important;
 }
 
-.custom-dropdown-item:focus {
-    outline: none;
-    background-color: rgba(99, 102, 241, 0.15);
+.modal .custom-dropdown-item:focus {
+    outline: none !important;
+    background-color: rgba(99, 102, 241, 0.15) !important;
 }
 
 @media (max-width: 768px) {

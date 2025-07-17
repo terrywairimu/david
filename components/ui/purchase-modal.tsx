@@ -360,6 +360,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   if (!isOpen) return null
 
   console.log('Purchase Modal Render - Supplier dropdown visible:', supplierDropdownVisible, 'Suppliers count:', suppliers.length)
+  console.log('Supplier dropdown classes:', `custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`)
+  console.log('Item dropdown states:', itemDropdownVisible)
 
   return (
     <>
@@ -428,7 +430,25 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </button>
                       
                       {/* Supplier Dropdown */}
-                      <ul className={`custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`}>
+                      <ul 
+                        className={`custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`}
+                        style={{
+                          display: supplierDropdownVisible ? 'block' : 'none',
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 9999,
+                          background: 'white',
+                          border: '2px solid red',
+                          borderRadius: '8px',
+                          maxHeight: '300px',
+                          overflowY: 'auto',
+                          listStyle: 'none',
+                          padding: 0,
+                          margin: 0
+                        }}
+                      >
                         {filteredSuppliers.length > 0 ? (
                           filteredSuppliers.map((supplier) => (
                             <li key={supplier.id}>
@@ -539,7 +559,25 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           </button>
                           
                           {/* Item Dropdown */}
-                          <ul className={`custom-dropdown-list ${itemDropdownVisible[item.id] ? 'visible' : ''}`}>
+                          <ul 
+                            className={`custom-dropdown-list ${itemDropdownVisible[item.id] ? 'visible' : ''}`}
+                            style={{
+                              display: itemDropdownVisible[item.id] ? 'block' : 'none',
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              zIndex: 9999,
+                              background: 'yellow',
+                              border: '2px solid blue',
+                              borderRadius: '8px',
+                              maxHeight: '300px',
+                              overflowY: 'auto',
+                              listStyle: 'none',
+                              padding: 0,
+                              margin: 0
+                            }}
+                          >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
                               (filteredStockItems[item.id] || []).map((stockItem) => (
                                 <li key={stockItem.id}>
