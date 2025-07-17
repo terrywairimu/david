@@ -347,20 +347,16 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const handleSupplierSelect = (supplier: RegisteredEntity) => {
-    console.log("Supplier selected:", supplier.name)
     setSupplierId(supplier.id)
     setSupplierName(supplier.name)
     setSupplierSearch(supplier.name)
     setSupplierDropdownVisible(false)
-    console.log("Supplier search updated to:", supplier.name)
   }
 
   const handleItemSelect = (itemId: number, stockItem: StockItem) => {
-    console.log("Item selected:", stockItem.name, "for item ID:", itemId)
     updateItem(itemId, 'stock_item_id', stockItem.id)
     setItemSearches(prev => ({ ...prev, [itemId]: stockItem.name }))
     setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
-    console.log("Item search updated to:", stockItem.name)
   }
 
   const handleSave = async () => {
@@ -611,12 +607,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                       handleItemSelect(item.id, stockItem)
                                     }}
                                   >
-                                    <div className="d-flex justify-content-between align-items-center">
+                                    <div className="d-flex flex-column">
                                       <div>
                                         <strong>{stockItem.name}</strong>
-                                        <div className="small text-dark">Code: {stockItem.sku}</div>
                                       </div>
-                                      <div className="small text-dark">KES {stockItem.unit_price?.toFixed(2) || '0.00'}</div>
+                                      <div className="small text-muted">Code: {stockItem.sku || `STK${stockItem.id.toString().padStart(4, '0')}`}</div>
                                     </div>
                                   </a>
                                 </li>
@@ -641,8 +636,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         <input
                           type="number"
                           className="form-control border-0 shadow-sm"
-                          value={item.quantity}
+                          value={item.quantity === 1 ? '' : item.quantity}
                           onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="Qty"
                           min="1"
                           style={{ borderRadius: "16px", height: "45px" }}
@@ -653,8 +649,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           type="number"
                           step="0.01"
                           className="form-control border-0 shadow-sm"
-                          value={item.unit_price}
+                          value={item.unit_price === 0 ? '' : item.unit_price}
                           onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="Unit Price"
                           min="0"
                           style={{ borderRadius: "16px", height: "45px" }}
