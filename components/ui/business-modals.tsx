@@ -317,7 +317,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const [activeTab, setActiveTab] = useState("kitchen_cabinets")
 
-  const addItem = (section: keyof typeof formData.kitchen_cabinets) => {
+  const addItem = (section: keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>) => {
     const newItem: QuotationSectionItemFormData = {
       description: "",
       quantity: 1,
@@ -336,18 +336,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }))
   }
 
-  const removeItem = (section: keyof typeof formData.kitchen_cabinets, index: number) => {
+  const removeItem = (section: keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>, index: number) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
         ...prev[section],
-        items: prev[section].items.filter((_, i) => i !== index)
+        items: prev[section].items.filter((_: any, i: number) => i !== index)
       }
     }))
   }
 
   const updateItem = (
-    section: keyof typeof formData.kitchen_cabinets,
+    section: keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>,
     index: number,
     field: keyof QuotationSectionItemFormData,
     value: any
@@ -356,14 +356,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       ...prev,
       [section]: {
         ...prev[section],
-        items: prev[section].items.map((item, i) => 
+        items: prev[section].items.map((item: any, i: number) => 
           i === index ? { ...item, [field]: value } : item
         )
       }
     }))
   }
 
-  const updateLabourCost = (section: keyof typeof formData.kitchen_cabinets, cost: number) => {
+  const updateLabourCost = (section: keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>, cost: number) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
@@ -390,7 +390,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const renderSection = (
-    sectionKey: keyof typeof formData.kitchen_cabinets,
+    sectionKey: keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>,
     sectionTitle: string
   ) => {
     const section = formData[sectionKey]
@@ -534,7 +534,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       onSubmit={handleSubmit}
       title={title}
       className="max-w-full"
-      submitLabel={mode === "create" ? "Create Quotation" : "Update Quotation"}
+      confirmLabel={mode === "create" ? "Create Quotation" : "Update Quotation"}
       submitDisabled={loading || formData.client_id === 0}
       submitLoading={loading}
       showFooter={mode !== "view"}
@@ -584,15 +584,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           </TabsList>
           
           <TabsContent value="kitchen_cabinets" className="mt-6">
-            {renderSection("kitchen_cabinets", "Kitchen Cabinets")}
+            {renderSection("kitchen_cabinets" as keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>, "Kitchen Cabinets")}
           </TabsContent>
           
           <TabsContent value="worktop" className="mt-6">
-            {renderSection("worktop", "Worktop")}
+            {renderSection("worktop" as keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>, "Worktop")}
           </TabsContent>
           
           <TabsContent value="accessories" className="mt-6">
-            {renderSection("accessories", "Accessories")}
+            {renderSection("accessories" as keyof Pick<QuotationFormData, 'kitchen_cabinets' | 'worktop' | 'accessories'>, "Accessories")}
           </TabsContent>
         </Tabs>
 

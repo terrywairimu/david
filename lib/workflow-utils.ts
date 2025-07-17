@@ -62,10 +62,10 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 export const exportQuotations = async (quotations: any[]) => {
   try {
     // Dynamic import for jsPDF
-    const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
-    
-    const doc = new jsPDF()
+const { jsPDF } = await import('jspdf')
+require('jspdf-autotable')
+
+const doc = new jsPDF() as any as any
     
     // Add title
     doc.setFontSize(20)
@@ -120,7 +120,7 @@ export const exportSalesOrders = async (salesOrders: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     doc.setFontSize(20)
     doc.text('Sales Orders Report', 105, 20, { align: 'center' })
@@ -170,7 +170,7 @@ export const exportInvoices = async (invoices: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     doc.setFontSize(20)
     doc.text('Invoices Report', 105, 20, { align: 'center' })
@@ -222,7 +222,7 @@ export const exportCashSales = async (cashSales: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     doc.setFontSize(20)
     doc.text('Cash Sales Report', 105, 20, { align: 'center' })
@@ -272,7 +272,7 @@ export const exportPayments = async (payments: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     // Add title
     doc.setFontSize(20)
@@ -329,7 +329,7 @@ export const exportClientExpenses = async (expenses: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     // Add title
     doc.setFontSize(20)
@@ -386,7 +386,7 @@ export const exportCompanyExpenses = async (expenses: any[]) => {
     const { jsPDF } = await import('jspdf')
     require('jspdf-autotable')
     
-    const doc = new jsPDF()
+    const doc = new jsPDF() as any
     
     // Add title
     doc.setFontSize(20)
@@ -528,7 +528,7 @@ export const generateNextNumber = async (table: string, field: string, prefix: s
 
     let nextNumber = 1
     if (data && data.length > 0) {
-      const lastNumber = data[0][field].match(/\d+/)
+      const lastNumber = (data[0] as any)[field].match(/\d+/)
       if (lastNumber) {
         nextNumber = parseInt(lastNumber[0]) + 1
       }

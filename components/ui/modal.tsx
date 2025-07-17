@@ -102,6 +102,7 @@ interface FormModalProps {
   cancelLabel?: string
   showFooter?: boolean
   submitLoading?: boolean
+  submitDisabled?: boolean
   className?: string
 }
 
@@ -115,6 +116,7 @@ export const FormModal: React.FC<FormModalProps> = ({
   cancelLabel = "Cancel",
   showFooter = true,
   submitLoading = false,
+  submitDisabled = false,
   className
 }) => {
   const handleCancel = () => {
@@ -149,7 +151,7 @@ export const FormModal: React.FC<FormModalProps> = ({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={submitLoading}
+                disabled={submitLoading || submitDisabled}
               >
                 {submitLoading ? "Loading..." : confirmLabel}
               </button>

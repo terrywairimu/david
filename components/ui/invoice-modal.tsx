@@ -685,10 +685,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     <tbody>
                       {formData.payments.map((payment, index) => (
                         <tr key={index}>
-                          <td>{new Date(payment.date_paid).toLocaleDateString()}</td>
+                          <td>{new Date(payment.date_created).toLocaleDateString()}</td>
                           <td>{payment.description}</td>
                           <td>KES {payment.amount.toFixed(2)}</td>
-                          <td>{payment.account_paid_to}</td>
+                          <td>{payment.paid_to}</td>
                         </tr>
                       ))}
                     </tbody>
