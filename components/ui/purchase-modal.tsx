@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { X, Plus, Truck, Package } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
+import { createPortal } from "react-dom"
 
 interface PurchaseModalProps {
   isOpen: boolean
@@ -21,6 +22,67 @@ interface PurchaseItem {
   quantity: number
   unit_price: number
   total_price: number
+}
+
+// Portal Dropdown Component
+const PortalDropdown: React.FC<{
+  isVisible: boolean
+  triggerRef: React.RefObject<HTMLDivElement | null>
+  onClose: () => void
+  children: React.ReactNode
+}> = ({ isVisible, triggerRef, onClose, children }) => {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
+
+  useEffect(() => {
+    if (isVisible && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }, [isVisible, triggerRef])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isVisible, triggerRef, onClose])
+
+  if (!isVisible) return null
+
+  return createPortal(
+    <ul 
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        maxHeight: '200px',
+        overflowY: 'auto',
+        backgroundColor: 'white',
+        border: '1px solid #dee2e6',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        zIndex: 9999,
+        listStyle: 'none',
+        margin: 0,
+        padding: 0
+      }}
+      className="portal-dropdown"
+    >
+      {children}
+    </ul>,
+    document.body
+  )
 }
 
 const PurchaseModal: React.FC<PurchaseModalProps> = ({
@@ -48,6 +110,18 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [itemSearches, setItemSearches] = useState<{[key: number]: string}>({})
   const [itemDropdownVisible, setItemDropdownVisible] = useState<{[key: number]: boolean}>({})
   const [filteredStockItems, setFilteredStockItems] = useState<{[key: number]: StockItem[]}>({})
+
+  // Refs for dropdown positioning
+  const supplierInputRef = useRef<HTMLDivElement>(null)
+  const itemInputRefs = useRef<{[key: number]: React.RefObject<HTMLDivElement | null>}>({})
+
+  // Function to get or create ref for item
+  const getItemInputRef = (itemId: number): React.RefObject<HTMLDivElement | null> => {
+    if (!itemInputRefs.current[itemId]) {
+      itemInputRefs.current[itemId] = { current: null }
+    }
+    return itemInputRefs.current[itemId]
+  }
 
   // Initialize form
   useEffect(() => {
@@ -101,37 +175,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setFilteredStockItems(newFilteredItems)
   }, [itemSearches, stockItems, items])
 
-  // Click outside handlers
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
-      
-      // Handle supplier dropdown - check if click is outside supplier container specifically
-      const supplierContainer = target.closest('.supplier-search-container')
-      if (!supplierContainer && supplierDropdownVisible) {
-        setSupplierDropdownVisible(false)
-      }
-      
-      // Handle item dropdowns - check each item container individually
-      const newItemDropdownVisible = { ...itemDropdownVisible }
-      let changed = false
-      Object.keys(itemDropdownVisible).forEach(key => {
-        const itemContainer = target.closest(`[data-item-container="${key}"]`)
-        if (!itemContainer && itemDropdownVisible[parseInt(key)]) {
-          newItemDropdownVisible[parseInt(key)] = false
-          changed = true
-        }
-      })
-      if (changed) {
-        setItemDropdownVisible(newItemDropdownVisible)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen, itemDropdownVisible, supplierDropdownVisible])
+  // Portal dropdowns handle their own click outside logic
 
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
@@ -390,7 +434,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </div>
                   <div className="col-md-6">
                     <label htmlFor="supplier" className="form-label">Supplier</label>
-                    <div className="input-group shadow-sm supplier-search-container" style={{ position: "relative" }}>
+                    <div className="input-group shadow-sm supplier-search-container" style={{ position: "relative" }} ref={supplierInputRef}>
                     <input
                       type="text"
                       className="form-control border-0"
@@ -407,9 +451,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
                         onClick={() => {
-                          console.log("Supplier dropdown clicked, current state:", supplierDropdownVisible)
-                          console.log("Available suppliers:", suppliers.length)
-                          console.log("Filtered suppliers:", filteredSuppliers.length)
                           setSupplierDropdownVisible(!supplierDropdownVisible)
                           if (!supplierDropdownVisible) {
                             setSupplierSearch("")  // Clear search when opening dropdown to show all
@@ -427,37 +468,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </button>
                       
                       {/* Supplier Dropdown */}
-                      <ul 
-                        className={`supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
-                        style={{
-                          display: supplierDropdownVisible ? "block" : "none",
-                          visibility: supplierDropdownVisible ? "visible" : "hidden",
-                          opacity: supplierDropdownVisible ? "1" : "0",
-                          position: "absolute",
-                          top: "100%",
-                          left: "0",
-                          zIndex: 9999,
-                          width: "100%",
-                          backgroundColor: "white",
-                          border: "1px solid #dee2e6",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
-                        }}
-                        ref={(el) => {
-                          if (el && supplierDropdownVisible) {
-                            const computedStyles = window.getComputedStyle(el);
-                            console.log("🔍 SUPPLIER DROPDOWN DEBUG:");
-                            console.log("Element:", el);
-                            console.log("Computed display:", computedStyles.display);
-                            console.log("Computed visibility:", computedStyles.visibility);
-                            console.log("Computed opacity:", computedStyles.opacity);
-                            console.log("Computed z-index:", computedStyles.zIndex);
-                            console.log("Inline style.display:", el.style.display);
-                            console.log("Classes:", el.className);
-                            console.log("Dimensions:", `${el.offsetWidth}x${el.offsetHeight}`);
-                            console.log("Position:", el.getBoundingClientRect());
-                          }
-                        }}
+                      <PortalDropdown
+                        isVisible={supplierDropdownVisible}
+                        triggerRef={supplierInputRef}
+                        onClose={() => setSupplierDropdownVisible(false)}
                       >
                         {filteredSuppliers.length > 0 ? (
                           filteredSuppliers.map((supplier) => (
@@ -483,7 +497,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         ) : (
                           <li><span className="dropdown-item">No suppliers found</span></li>
                         )}
-                      </ul>
+                      </PortalDropdown>
                     </div>
                   </div>
                 </div>
@@ -537,7 +551,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   {items.map((item) => (
                     <div key={item.id} className="row mb-2 align-items-center" data-item-container={item.id}>
                       <div className="col-md-4">
-                        <div className="input-group shadow-sm item-search-container" style={{ position: "relative" }}>
+                        <div className="input-group shadow-sm item-search-container" style={{ position: "relative" }} ref={getItemInputRef(item.id)}>
                           <input
                             type="text"
                             className="form-control border-0 item-search"
@@ -554,9 +568,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             className="btn btn-outline-secondary border-0 item-dropdown"
                             type="button"
                             onClick={() => {
-                              console.log(`Item dropdown ${item.id} clicked, current state:`, itemDropdownVisible[item.id])
-                              console.log(`Available stock items for filtering:`, stockItems.length)
-                              console.log(`Filtered stock items for item ${item.id}:`, filteredStockItems[item.id]?.length || 0)
                               setItemDropdownVisible(prev => ({ ...prev, [item.id]: !prev[item.id] }))
                               if (!itemDropdownVisible[item.id]) {
                                 setItemSearches(prev => ({ ...prev, [item.id]: "" }))  // Clear search when opening dropdown
@@ -574,41 +585,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           </button>
                           
                           {/* Item Dropdown */}
-                          <ul 
-                            className={`item-list ${itemDropdownVisible[item.id] ? 'show' : ''}`}
-                            style={{
-                              display: itemDropdownVisible[item.id] ? "block" : "none",
-                              visibility: itemDropdownVisible[item.id] ? "visible" : "hidden",
-                              opacity: itemDropdownVisible[item.id] ? "1" : "0",
-                              position: "absolute",
-                              top: "100%",
-                              left: "0",
-                              zIndex: 9999,
-                              width: "100%",
-                              backgroundColor: "white",
-                              border: "1px solid #dee2e6",
-                              borderRadius: "8px",
-                              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                              maxHeight: "200px",
-                              overflowY: "auto"
-                            }}
-                            ref={(el) => {
-                              if (el && itemDropdownVisible[item.id]) {
-                                const computedStyles = window.getComputedStyle(el);
-                                console.log(`🔍 ITEM DROPDOWN ${item.id} DEBUG:`);
-                                console.log("Element:", el);
-                                console.log("Computed display:", computedStyles.display);
-                                console.log("Computed visibility:", computedStyles.visibility);
-                                console.log("Computed opacity:", computedStyles.opacity);
-                                console.log("Computed z-index:", computedStyles.zIndex);
-                                console.log("Inline style.display:", el.style.display);
-                                console.log("Classes:", el.className);
-                                console.log("Dimensions:", `${el.offsetWidth}x${el.offsetHeight}`);
-                                console.log("Position:", el.getBoundingClientRect());
-                                console.log("Parent container:", el.parentElement);
-                              }
-                            }}
-                          >
+                                                     <PortalDropdown
+                             isVisible={itemDropdownVisible[item.id]}
+                             triggerRef={getItemInputRef(item.id)}
+                             onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id]: false }))}
+                           >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
                               (filteredStockItems[item.id] || []).map((stockItem) => (
                                 <li key={stockItem.id}>
@@ -633,7 +614,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             ) : (
                               <li><span className="dropdown-item">No items found</span></li>
                             )}
-                          </ul>
+                          </PortalDropdown>
                         </div>
                       </div>
                       <div className="col-md-2">
