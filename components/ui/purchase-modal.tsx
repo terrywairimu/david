@@ -72,36 +72,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }, [isOpen, mode, purchase])
 
-  // Click outside to close dropdowns - TEMPORARILY DISABLED FOR TESTING
-  /*
+  // Click outside to close dropdowns - Bootstrap-friendly version
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       
-      // Don't close if clicking on dropdown buttons, dropdown content, or inside the dropdowns
-      if (target.closest('.supplier-dropdown') || 
-          target.closest('.item-dropdown') || 
-          target.closest('.dropdown-menu') ||
-          target.closest('.supplier-list')) {
-        console.log('Clicked on dropdown button or content, not closing')
+      // Only close if clicking completely outside the modal
+      if (!target.closest('.modal-content')) {
+        // Let Bootstrap handle dropdown closures
         return
       }
       
-      // Close supplier dropdown if clicking outside
+      // Close supplier dropdown if clicking outside its container
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(target)) {
-        console.log('Closing supplier dropdown - clicked outside')
         setShowSupplierResults(false)
       }
-      
-      // Close all item dropdowns if clicking outside
-      setItems(prevItems => {
-        const hasOpenDropdowns = prevItems.some(item => item.showDropdown)
-        if (hasOpenDropdowns) {
-          console.log('Closing all item dropdowns - clicked outside')
-          return prevItems.map(item => ({ ...item, showDropdown: false }))
-        }
-        return prevItems
-      })
     }
 
     if (isOpen) {
@@ -111,7 +96,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       }
     }
   }, [isOpen])
-  */
 
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
@@ -126,8 +110,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       stock_item: null,
       quantity: 1, 
       unit_price: 0, 
-      total_price: 0,
-      showDropdown: false 
+      total_price: 0
     }])
     setTotal(0)
   }
@@ -206,8 +189,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setPaymentMethod(purchase.payment_method || "")
     setItems(purchase.items?.map((item: any) => ({
       ...item,
-      id: item.id || Date.now(),
-      showDropdown: false
+      id: item.id || Date.now()
     })) || [])
     setTotal(purchase.total_amount || 0)
   }
@@ -271,8 +253,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           stock_item_id: selectedStockItem.id,
           stock_item: selectedStockItem,
           unit_price: lastPrice,
-          total_price: lastPrice * i.quantity,
-          showDropdown: false
+          total_price: lastPrice * i.quantity
         }
       }
       return i
@@ -285,31 +266,16 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const updateItem = useCallback((itemId: any, field: string, value: any) => {
     console.log('Updating item:', itemId, 'field:', field, 'value:', value)
     setItems(prevItems => {
-      let updatedItems;
-      
-      if (field === "showDropdown" && value === true) {
-        // Close other dropdowns when opening a new one
-        console.log('Dropdown state changed for item:', itemId, 'to:', value)
-        updatedItems = prevItems.map(item => ({
-          ...item,
-          showDropdown: item.id === itemId ? true : false
-        }))
-      } else {
-        // Normal field update
-        updatedItems = prevItems.map(item => {
-          if (item.id === itemId) {
-            const updatedItem = { ...item, [field]: value }
-            if (field === "quantity" || field === "unit_price") {
-              updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
-            }
-            if (field === "showDropdown") {
-              console.log('Dropdown state changed for item:', itemId, 'to:', value)
-            }
-            return updatedItem
+      const updatedItems = prevItems.map(item => {
+        if (item.id === itemId) {
+          const updatedItem = { ...item, [field]: value }
+          if (field === "quantity" || field === "unit_price") {
+            updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
-          return item
-        })
-      }
+          return updatedItem
+        }
+        return item
+      })
       
       // Only calculate total if quantity or unit_price changed
       if (field === "quantity" || field === "unit_price") {
@@ -327,17 +293,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       stock_item: null,
       quantity: 1,
       unit_price: 0,
-      total_price: 0,
-      showDropdown: false
+      total_price: 0
     }
-    setItems(prevItems => {
-      // Close all existing dropdowns when adding a new item
-      const itemsWithClosedDropdowns = prevItems.map(item => ({
-        ...item,
-        showDropdown: false
-      }))
-      return [...itemsWithClosedDropdowns, newItem]
-    })
+    setItems(prevItems => [...prevItems, newItem])
   }
 
   const removeItem = useCallback((itemId: any) => {
@@ -420,7 +378,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const ItemRow: React.FC<{ item: any, index: number }> = React.memo(({ item, index }) => {
-    console.log('Rendering ItemRow for item:', item?.id, 'showDropdown:', item?.showDropdown)
+    console.log('Rendering ItemRow for item:', item?.id)
     
     // Safety checks for undefined item
     if (!item) {
@@ -472,11 +430,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
     const handlePriceChange = (value: string) => {
       setPriceInputValue(value)
-      // Debounce the updateItem call to prevent immediate re-renders
-      setTimeout(() => {
-        const numValue = parseFloat(value) || 0
-        updateItem(item.id, "unit_price", numValue)
-      }, 300)
+      const numValue = parseFloat(value) || 0
+      updateItem(item.id, "unit_price", numValue)
     }
 
     const handleQuantityFocus = () => {
@@ -487,11 +442,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
     const handleQuantityChange = (value: string) => {
       setQuantityInputValue(value)
-      // Debounce the updateItem call to prevent immediate re-renders
-      setTimeout(() => {
-        const numValue = parseInt(value) || 1
-        updateItem(item.id, "quantity", numValue)
-      }, 300)
+      const numValue = parseInt(value) || 1
+      updateItem(item.id, "quantity", numValue)
     }
 
     return (
@@ -502,7 +454,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             ref={(el) => {
               itemDropdownRefs.current[item.id] = el
             }}
-            style={{ zIndex: 1 }}
           >
             <input
               type="text"
@@ -511,59 +462,30 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               value={itemSearchTerm}
               onChange={(e) => handleItemSearchChange(e.target.value)}
               onFocus={handleItemSearchFocus}
-              style={{ borderRadius: "16px 0 0 16px", height: "45px", position: "relative", zIndex: 2 }}
+              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
             />
             <button
-              className="btn btn-outline-secondary border-0 item-dropdown"
+              className="btn btn-outline-secondary border-0 item-dropdown dropdown-toggle"
               type="button"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
+              data-bs-toggle="dropdown"
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('Item dropdown clicked, current state:', item.showDropdown)
+                console.log('Item dropdown clicked for item:', item.id)
                 setItemSearchTerm("")  // Clear search to show all items
-                updateItem(item.id, "showDropdown", !item.showDropdown)
               }}
               style={{
                 borderRadius: "0 16px 16px 0",
                 height: "45px",
                 width: "20%",
                 background: "white",
-                transition: "all 0.3s ease",
-                position: "relative",
-                zIndex: 2
+                transition: "all 0.3s ease"
               }}
             >
               <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
             </button>
-            {item.showDropdown && (
-              <ul
-                className="dropdown-menu w-100"
-                style={{
-                  position: "absolute !important" as any,
-                  top: "100% !important" as any,
-                  left: "0 !important" as any,
-                  zIndex: "99999 !important" as any,
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  background: "red !important" as any, // DEBUG: Make it obvious
-                  border: "3px solid blue !important" as any, // DEBUG: Make it obvious
-                  borderRadius: "0.375rem",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                  marginTop: "2px",
-                  display: "block !important" as any,
-                  minHeight: "100px" // DEBUG: Ensure it has height
-                }}
-                ref={(el) => {
-                  if (el) {
-                    console.log('Item dropdown UL element rendered:', el, 'for item:', item.id)
-                  }
-                }}
-              >
-                {filteredStockItems.map((stockItem) => (
+            <ul className="dropdown-menu w-100">
+              {filteredStockItems.map((stockItem) => (
                   <li key={stockItem.id}>
                     <button
                       className="dropdown-item"
@@ -596,8 +518,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </button>
                   </li>
                 ))}
-              </ul>
-              )}
+            </ul>
           </div>
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
@@ -618,7 +539,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             value={quantityInputValue}
             onChange={(e) => handleQuantityChange(e.target.value)}
             onFocus={handleQuantityFocus}
-            style={{ borderRadius: "16px", height: "45px", position: "relative", zIndex: 1 }}
+            style={{ borderRadius: "16px", height: "45px" }}
           />
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
@@ -630,7 +551,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             value={priceInputValue}
             onChange={(e) => handlePriceChange(e.target.value)}
             onFocus={handlePriceFocus}
-            style={{ borderRadius: "16px", height: "45px", position: "relative", zIndex: 1 }}
+            style={{ borderRadius: "16px", height: "45px" }}
           />
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "12px" }}>
@@ -645,7 +566,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 console.log('Delete button clicked for item:', item.id)
                 removeItem(item.id)
               }}
-              style={{ borderRadius: "8px", minWidth: "35px", height: "35px", position: "relative", zIndex: 1 }}
+              style={{ borderRadius: "8px", minWidth: "35px", height: "35px" }}
             >
               <i className="fas fa-times"></i>
             </button>
@@ -659,8 +580,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   return (
     <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg" style={{ position: "relative", overflow: "visible" }}>
-                  <div className="modal-content" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
+      <div className="modal-dialog modal-lg">
+        <div className="modal-content">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">
               {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
@@ -669,8 +590,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <div className="modal-body pt-2" style={{ overflow: "visible", position: "relative" }}>
-            <form className="needs-validation" noValidate style={{ overflow: "visible" }}>
+          <div className="modal-body pt-2">
+            <form className="needs-validation" noValidate>
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="purchaseDate" className="form-label">Purchase Date</label>
@@ -689,7 +610,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   <div 
                     className="input-group shadow-sm supplier-search-container"
                     ref={supplierDropdownRef}
-                    style={{ zIndex: 1 }}
                   >
                     <input
                       type="text"
@@ -703,63 +623,32 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       }}
                       onFocus={() => setShowSupplierResults(true)}
                       required
-                      style={{ borderRadius: "16px 0 0 16px", height: "45px", position: "relative", zIndex: 2 }}
+                      style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
                     />
                     <button
-                      className="btn btn-outline-secondary border-0 supplier-dropdown"
+                      className="btn btn-outline-secondary border-0 supplier-dropdown dropdown-toggle"
                       type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                      }}
+                      data-bs-toggle="dropdown"
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        console.log('Supplier dropdown clicked, current state:', showSupplierResults)
+                        console.log('Supplier dropdown clicked')
                         setSupplierSearchTerm("")  // Clear search to show all suppliers
-                        setShowSupplierResults(!showSupplierResults)
                       }}
                       style={{
                         borderRadius: "0 16px 16px 0",
                         height: "45px",
                         width: "20%",
                         background: "white",
-                        transition: "all 0.3s ease",
-                        position: "relative",
-                        zIndex: 2
+                        transition: "all 0.3s ease"
                       }}
                     >
                       <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
                     </button>
-                    {showSupplierResults && (
-                      <ul
-                        className="dropdown-menu supplier-list"
-                        style={{
-                          position: "absolute !important" as any,
-                          top: "100% !important" as any,
-                          left: "0 !important" as any,
-                          width: "100%",
-                          maxHeight: "300px",
-                          overflowY: "auto",
-                          overflowX: "hidden",
-                          marginTop: "2px",
-                          zIndex: "99999 !important" as any,
-                          background: "yellow !important" as any, // DEBUG: Make it obvious
-                          border: "3px solid green !important" as any, // DEBUG: Make it obvious
-                          borderRadius: "0.375rem",
-                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                          display: "block !important" as any,
-                          minHeight: "100px" // DEBUG: Ensure it has height
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            console.log('Supplier dropdown UL element rendered:', el)
-                          }
-                        }}
-                      >
-                        {suppliers
-                          .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
-                          .map((supplier) => (
+                    <ul className="dropdown-menu supplier-list">
+                      {suppliers
+                        .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
+                        .map((supplier) => (
                             <li key={supplier.id}>
                               <button
                                 className="dropdown-item"
@@ -790,8 +679,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                               </button>
                             </li>
                           ))}
-                      </ul>
-                      )}
+                    </ul>
                   </div>
                 </div>
               </div>

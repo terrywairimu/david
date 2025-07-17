@@ -5,6 +5,7 @@ import "bootstrap/dist/css/bootstrap.min.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import Sidebar from "@/components/sidebar"
+import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -40,6 +41,7 @@ export default function RootLayout({
           </div>
           <Toaster />
         </ThemeProvider>
+        <Script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" />
       </body>
     </html>
   )
