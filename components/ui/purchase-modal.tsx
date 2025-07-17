@@ -56,33 +56,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }, [isOpen])
 
-  // Click outside handler
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Close supplier dropdown if clicking outside
-      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target as Node)) {
-        setShowSupplierResults(false)
-      }
-      
-      // Close item dropdowns if clicking outside
-      Object.values(itemDropdownRefs.current).forEach((ref) => {
-        if (ref && !ref.contains(event.target as Node)) {
-          // Find the item ID and close its dropdown
-          const itemId = Object.keys(itemDropdownRefs.current).find(id => itemDropdownRefs.current[id] === ref)
-          if (itemId) {
-            setItems(prevItems => prevItems.map(item => 
-              item.id === itemId ? { ...item, showDropdown: false } : item
-            ))
-          }
-        }
-      })
-    }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -103,9 +77,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       
-      // Don't close if clicking on dropdown buttons or dropdown content
-      if (target.closest('.supplier-dropdown') || target.closest('.item-dropdown')) {
-        console.log('Clicked on dropdown button, not closing')
+      // Don't close if clicking on dropdown buttons, dropdown content, or inside the dropdowns
+      if (target.closest('.supplier-dropdown') || 
+          target.closest('.item-dropdown') || 
+          target.closest('.dropdown-menu') ||
+          target.closest('.supplier-list')) {
+        console.log('Clicked on dropdown button or content, not closing')
         return
       }
       
@@ -116,11 +93,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       }
       
       // Close item dropdowns if clicking outside
-      Object.values(itemDropdownRefs.current).forEach((ref, index) => {
+      Object.entries(itemDropdownRefs.current).forEach(([itemId, ref]) => {
         if (ref && !ref.contains(target)) {
-          console.log('Closing item dropdown', index, '- clicked outside')
-          setItems(prevItems => prevItems.map((item, i) => 
-            i === index ? { ...item, showDropdown: false } : item
+          console.log('Closing item dropdown for item:', itemId, '- clicked outside')
+          setItems(prevItems => prevItems.map(item => 
+            item.id === itemId ? { ...item, showDropdown: false } : item
           ))
         }
       })
@@ -470,6 +447,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <button
               className="btn btn-outline-secondary border-0 item-dropdown"
               type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -508,7 +489,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <button
                       className="dropdown-item"
                       type="button"
-                      onClick={() => handleItemSelect(item, stockItem)}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleItemSelect(item, stockItem)
+                      }}
                       style={{
                         padding: "0.5rem 1rem",
                         border: "none",
@@ -639,6 +628,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <button
                       className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -682,7 +675,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                               <button
                                 className="dropdown-item"
                                 type="button"
-                                onClick={() => handleSupplierSelect(supplier)}
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleSupplierSelect(supplier)
+                                }}
                                 style={{
                                   padding: "0.75rem 1rem",
                                   border: "none",
