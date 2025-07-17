@@ -20,11 +20,14 @@ interface Purchase {
   items?: Array<{
     id: number
     stock_item_id: number
-    description: string
-    unit: string
     quantity: number
     unit_price: number
     total_price: number
+    stock_item?: {
+      name: string
+      description: string
+      unit: string
+    }
   }>
 }
 
@@ -55,7 +58,10 @@ const PurchasesPage = () => {
         .select(`
           *,
           supplier:registered_entities(id, name, phone, location),
-          items:purchase_items(*)
+          items:purchase_items(
+            *,
+            stock_item:stock_items(name, description, unit)
+          )
         `)
         .order("purchase_date", { ascending: false })
 
@@ -163,7 +169,7 @@ const PurchasesPage = () => {
       filtered = filtered.filter(purchase =>
         purchase.purchase_order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         purchase.supplier?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.items?.some(item => item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        purchase.items?.some(item => item.stock_item?.description?.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
 
@@ -214,8 +220,6 @@ const PurchasesPage = () => {
           const purchaseItems = purchaseData.items.map((item: any) => ({
             purchase_id: newPurchase.id,
             stock_item_id: item.stock_item_id,
-            description: item.description,
-            unit: item.unit,
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price
@@ -320,8 +324,6 @@ const PurchasesPage = () => {
           const purchaseItems = purchaseData.items.map((item: any) => ({
             purchase_id: selectedPurchase?.id,
             stock_item_id: item.stock_item_id,
-            description: item.description,
-            unit: item.unit,
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price
@@ -395,8 +397,8 @@ const PurchasesPage = () => {
             <tbody>
               ${purchase.items?.map(item => `
                 <tr>
-                  <td>${item.description}</td>
-                  <td>${item.unit}</td>
+                  <td>${item.stock_item?.description || 'N/A'}</td>
+                  <td>${item.stock_item?.unit || 'N/A'}</td>
                   <td>${item.quantity}</td>
                   <td>KES ${item.unit_price.toFixed(2)}</td>
                   <td>KES ${item.total_price.toFixed(2)}</td>
@@ -428,8 +430,8 @@ const PurchasesPage = () => {
       [''],
       ['Item Description', 'Unit', 'Quantity', 'Unit Price', 'Total'],
       ...(purchase.items?.map(item => [
-        item.description,
-        item.unit,
+        item.stock_item?.description || 'N/A',
+        item.stock_item?.unit || 'N/A',
         item.quantity.toString(),
         item.unit_price.toFixed(2),
         item.total_price.toFixed(2)
@@ -623,7 +625,7 @@ const PurchasesPage = () => {
                         <div style={{ maxHeight: "60px", overflowY: "auto" }}>
                           {purchase.items.map((item, index) => (
                             <div key={index} className="small">
-                              {item.description} ({item.quantity} {item.unit})
+                              {item.stock_item?.description || 'N/A'} ({item.quantity} {item.stock_item?.unit || 'N/A'})
                             </div>
                           ))}
                         </div>
