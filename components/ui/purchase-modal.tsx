@@ -426,20 +426,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       <ul
                         className={`supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
                         style={{
-                          position: "absolute",
-                          top: "100%",
-                          left: 0,
-                          width: "100%",
-                          maxHeight: "300px",
-                          overflowY: "auto",
-                          overflowX: "hidden",
-                          marginTop: "2px",
-                          borderRadius: "16px",
-                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                          background: "white",
-                          zIndex: 1070,
-                          transform: "none",
-                          display: supplierDropdownVisible ? "block" : "none"
+                          maxHeight: "300px"
                         }}
                       >
                         {filteredSuppliers.length > 0 ? (
@@ -563,22 +550,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           
                           {/* Item Dropdown */}
                           <ul
-                            className={`dropdown-menu w-100 ${itemDropdownVisible[item.id] ? 'show' : ''}`}
+                            className={`item-list ${itemDropdownVisible[item.id] ? 'show' : ''}`}
                             style={{
-                              position: "absolute",
-                              top: "100%",
-                              left: 0,
-                              width: "100%",
-                              maxHeight: "300px",
-                              overflowY: "auto",
-                              overflowX: "hidden",
-                              marginTop: "2px",
-                              borderRadius: "16px",
-                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                              background: "white",
-                              zIndex: 1070,
-                              transform: "none",
-                              display: itemDropdownVisible[item.id] ? "block" : "none"
+                              maxHeight: "300px"
                             }}
                           >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
@@ -588,16 +562,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                     type="button"
                                     className="dropdown-item"
                                     onClick={() => handleItemSelect(item.id, stockItem)}
-                                    style={{
-                                      padding: "0.75rem 1rem",
-                                      borderRadius: "12px",
-                                      margin: "2px",
-                                      transition: "all 0.2s ease",
-                                      border: "none",
-                                      background: "none",
-                                      width: "100%",
-                                      textAlign: "left"
-                                    }}
                                   >
                                     <div className="d-flex justify-content-between align-items-center">
                                       <div>
