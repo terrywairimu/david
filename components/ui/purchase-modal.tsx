@@ -436,6 +436,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             ref={(el) => {
               itemDropdownRefs.current[item.id] = el
             }}
+            style={{ zIndex: 1 }}
           >
             <input
               type="text"
@@ -444,7 +445,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               value={itemSearchTerm}
               onChange={(e) => handleItemSearchChange(e.target.value)}
               onFocus={handleItemSearchFocus}
-              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+              style={{ borderRadius: "16px 0 0 16px", height: "45px", position: "relative", zIndex: 2 }}
             />
             <button
               className="btn btn-outline-secondary border-0 item-dropdown"
@@ -465,28 +466,31 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 height: "45px",
                 width: "20%",
                 background: "white",
-                transition: "all 0.3s ease"
+                transition: "all 0.3s ease",
+                position: "relative",
+                zIndex: 2
               }}
             >
               <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
             </button>
-            <ul
-              className="dropdown-menu w-100"
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                zIndex: 1050,
-                maxHeight: "200px",
-                overflowY: "auto",
-                background: "white",
-                border: "1px solid #dee2e6",
-                borderRadius: "0.375rem",
-                boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
-                marginTop: "2px",
-                display: item.showDropdown ? "block" : "none"
-              }}
-            >
+            {item.showDropdown && (
+              <ul
+                className="dropdown-menu w-100"
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  zIndex: 9999,
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  background: "white",
+                  border: "1px solid #dee2e6",
+                  borderRadius: "0.375rem",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  marginTop: "2px",
+                  display: "block"
+                }}
+              >
                 {filteredStockItems.map((stockItem) => (
                   <li key={stockItem.id}>
                     <button
@@ -521,6 +525,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </li>
                 ))}
               </ul>
+              )}
           </div>
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
@@ -541,7 +546,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             value={quantityInputValue}
             onChange={(e) => handleQuantityChange(e.target.value)}
             onFocus={handleQuantityFocus}
-            style={{ borderRadius: "16px", height: "45px" }}
+            style={{ borderRadius: "16px", height: "45px", position: "relative", zIndex: 1 }}
           />
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
@@ -553,7 +558,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             value={priceInputValue}
             onChange={(e) => handlePriceChange(e.target.value)}
             onFocus={handlePriceFocus}
-            style={{ borderRadius: "16px", height: "45px" }}
+            style={{ borderRadius: "16px", height: "45px", position: "relative", zIndex: 1 }}
           />
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "12px" }}>
@@ -568,7 +573,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 console.log('Delete button clicked for item:', item.id)
                 removeItem(item.id)
               }}
-              style={{ borderRadius: "8px", minWidth: "35px", height: "35px" }}
+              style={{ borderRadius: "8px", minWidth: "35px", height: "35px", position: "relative", zIndex: 1 }}
             >
               <i className="fas fa-times"></i>
             </button>
@@ -581,9 +586,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg">
-                  <div className="modal-content" style={{ overflow: "visible" }}>
+    <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
+      <div className="modal-dialog modal-lg" style={{ position: "relative" }}>
+                  <div className="modal-content" style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">
               {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
@@ -592,7 +597,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <div className="modal-body pt-2" style={{ overflow: "visible" }}>
+          <div className="modal-body pt-2" style={{ overflow: "visible", position: "relative" }}>
             <form className="needs-validation" noValidate>
               <div className="row mb-3">
                 <div className="col-md-6">
@@ -612,6 +617,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   <div 
                     className="input-group shadow-sm supplier-search-container"
                     ref={supplierDropdownRef}
+                    style={{ zIndex: 1 }}
                   >
                     <input
                       type="text"
@@ -625,7 +631,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       }}
                       onFocus={() => setShowSupplierResults(true)}
                       required
-                      style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+                      style={{ borderRadius: "16px 0 0 16px", height: "45px", position: "relative", zIndex: 2 }}
                     />
                     <button
                       className="btn btn-outline-secondary border-0 supplier-dropdown"
@@ -646,30 +652,33 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         height: "45px",
                         width: "20%",
                         background: "white",
-                        transition: "all 0.3s ease"
+                        transition: "all 0.3s ease",
+                        position: "relative",
+                        zIndex: 2
                       }}
                     >
                       <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
                     </button>
-                    <ul
-                      className="dropdown-menu supplier-list"
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        width: "100%",
-                        maxHeight: "300px",
-                        overflowY: "auto",
-                        overflowX: "hidden",
-                        marginTop: "2px",
-                        zIndex: 1050,
-                        background: "white",
-                        border: "1px solid #dee2e6",
-                        borderRadius: "0.375rem",
-                        boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
-                        display: showSupplierResults ? "block" : "none"
-                      }}
-                    >
+                    {showSupplierResults && (
+                      <ul
+                        className="dropdown-menu supplier-list"
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          width: "100%",
+                          maxHeight: "300px",
+                          overflowY: "auto",
+                          overflowX: "hidden",
+                          marginTop: "2px",
+                          zIndex: 9999,
+                          background: "white",
+                          border: "1px solid #dee2e6",
+                          borderRadius: "0.375rem",
+                          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                          display: "block"
+                        }}
+                      >
                         {suppliers
                           .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
                           .map((supplier) => (
@@ -704,6 +713,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             </li>
                           ))}
                       </ul>
+                      )}
                   </div>
                 </div>
               </div>
