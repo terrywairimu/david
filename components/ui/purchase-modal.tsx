@@ -407,6 +407,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
                         onClick={() => {
+                          console.log("Supplier dropdown clicked, current state:", supplierDropdownVisible)
                           setSupplierDropdownVisible(!supplierDropdownVisible)
                           if (!supplierDropdownVisible) {
                             setSupplierSearch("")  // Clear search when opening dropdown to show all
@@ -424,7 +425,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </button>
                       
                       {/* Supplier Dropdown */}
-                      <ul className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}>
+                      <ul 
+                        className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
+                        style={{
+                          display: supplierDropdownVisible ? "block" : "none"
+                        }}
+                      >
                         {filteredSuppliers.length > 0 ? (
                           filteredSuppliers.map((supplier) => (
                             <li key={supplier.id}>
@@ -520,6 +526,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             className="btn btn-outline-secondary border-0 item-dropdown"
                             type="button"
                             onClick={() => {
+                              console.log(`Item dropdown ${item.id} clicked, current state:`, itemDropdownVisible[item.id])
                               setItemDropdownVisible(prev => ({ ...prev, [item.id]: !prev[item.id] }))
                               if (!itemDropdownVisible[item.id]) {
                                 setItemSearches(prev => ({ ...prev, [item.id]: "" }))  // Clear search when opening dropdown
@@ -537,7 +544,23 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           </button>
                           
                           {/* Item Dropdown */}
-                          <ul className={`dropdown-menu w-100 ${itemDropdownVisible[item.id] ? 'show' : ''}`}>
+                          <ul 
+                            className={`dropdown-menu w-100 ${itemDropdownVisible[item.id] ? 'show' : ''}`}
+                            style={{
+                              display: itemDropdownVisible[item.id] ? "block" : "none",
+                              position: "absolute",
+                              top: "100%",
+                              left: "0",
+                              zIndex: 1000,
+                              width: "100%",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              backgroundColor: "white",
+                              border: "1px solid #dee2e6",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+                            }}
+                          >
                             {(filteredStockItems[item.id] || []).length > 0 ? (
                               (filteredStockItems[item.id] || []).map((stockItem) => (
                                 <li key={stockItem.id}>
