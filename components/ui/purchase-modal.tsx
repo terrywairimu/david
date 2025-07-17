@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { X, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -92,14 +92,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         setShowSupplierResults(false)
       }
       
-      // Close item dropdowns if clicking outside
-      Object.entries(itemDropdownRefs.current).forEach(([itemId, ref]) => {
-        if (ref && !ref.contains(target)) {
-          console.log('Closing item dropdown for item:', itemId, '- clicked outside')
-          setItems(prevItems => prevItems.map(item => 
-            item.id === itemId ? { ...item, showDropdown: false } : item
-          ))
+      // Close all item dropdowns if clicking outside
+      setItems(prevItems => {
+        const hasOpenDropdowns = prevItems.some(item => item.showDropdown)
+        if (hasOpenDropdowns) {
+          console.log('Closing all item dropdowns - clicked outside')
+          return prevItems.map(item => ({ ...item, showDropdown: false }))
         }
+        return prevItems
       })
     }
 
@@ -280,24 +280,39 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     calculateTotal(updatedItems)
   }
 
-  const updateItem = (itemId: any, field: string, value: any) => {
+  const updateItem = useCallback((itemId: any, field: string, value: any) => {
     console.log('Updating item:', itemId, 'field:', field, 'value:', value)
-    const updatedItems = items.map(item => {
-      if (item.id === itemId) {
-        const updatedItem = { ...item, [field]: value }
-        if (field === "quantity" || field === "unit_price") {
-          updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
+    setItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === itemId) {
+          const updatedItem = { ...item, [field]: value }
+          if (field === "quantity" || field === "unit_price") {
+            updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
+          }
+          if (field === "showDropdown") {
+            console.log('Dropdown state changed for item:', itemId, 'to:', value)
+            // Close other dropdowns when opening a new one
+            if (value === true) {
+              return prevItems.map(i => 
+                i.id === itemId 
+                  ? { ...i, showDropdown: true }
+                  : { ...i, showDropdown: false }
+              )
+            }
+          }
+          return updatedItem
         }
-        if (field === "showDropdown") {
-          console.log('Dropdown state changed for item:', itemId, 'to:', value)
-        }
-        return updatedItem
+        return item
+      })
+      
+      // Only calculate total if quantity or unit_price changed
+      if (field === "quantity" || field === "unit_price") {
+        calculateTotal(updatedItems)
       }
-      return item
+      
+      return updatedItems
     })
-    setItems(updatedItems)
-    calculateTotal(updatedItems)
-  }
+  }, [])
 
   const addItem = () => {
     const newItem = {
@@ -309,16 +324,31 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       total_price: 0,
       showDropdown: false
     }
-    setItems([...items, newItem])
+    setItems(prevItems => {
+      // Close all existing dropdowns when adding a new item
+      const itemsWithClosedDropdowns = prevItems.map(item => ({
+        ...item,
+        showDropdown: false
+      }))
+      return [...itemsWithClosedDropdowns, newItem]
+    })
   }
 
-  const removeItem = (itemId: any) => {
+  const removeItem = useCallback((itemId: any) => {
     console.log('Removing item with ID:', itemId, 'Current items:', items.length)
-    const updatedItems = items.filter(item => item.id !== itemId)
-    console.log('Items after removal:', updatedItems.length)
-    setItems(updatedItems)
-    calculateTotal(updatedItems)
-  }
+    setItems(prevItems => {
+      const updatedItems = prevItems.filter(item => item.id !== itemId)
+      console.log('Items after removal:', updatedItems.length)
+      calculateTotal(updatedItems)
+      
+      // Clean up the dropdown ref
+      if (itemDropdownRefs.current[itemId]) {
+        delete itemDropdownRefs.current[itemId]
+      }
+      
+      return updatedItems
+    })
+  }, [items.length])
 
   const calculateTotal = (itemsList: any[]) => {
     const newTotal = itemsList.reduce((sum, item) => sum + (item.total_price || 0), 0)
@@ -383,7 +413,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }
 
-  const ItemRow: React.FC<{ item: any, index: number }> = ({ item, index }) => {
+  const ItemRow: React.FC<{ item: any, index: number }> = React.memo(({ item, index }) => {
     console.log('Rendering ItemRow for item:', item.id, 'showDropdown:', item.showDropdown)
     const [itemSearchTerm, setItemSearchTerm] = useState(item.stock_item?.name || "")
     const [priceInputValue, setPriceInputValue] = useState(item.unit_price.toString())
@@ -581,7 +611,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       </div>
     </div>
   )
-}
+})
 
   if (!isOpen) return null
 
