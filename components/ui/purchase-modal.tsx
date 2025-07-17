@@ -126,8 +126,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }, [isOpen])
 
-  const supplierDropdownRef = useRef<HTMLDivElement>(null)
-
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
     setPurchaseDate(today)
