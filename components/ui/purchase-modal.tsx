@@ -26,7 +26,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [supplier, setSupplier] = useState<RegisteredEntity | null>(null)
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("")
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
-  const [showSupplierResults, setShowSupplierResults] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
   const [items, setItems] = useState<any[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
@@ -37,6 +36,29 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   // Refs for click outside detection
   const supplierDropdownRef = useRef<HTMLDivElement>(null)
   const itemDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+
+  // State for supplier dropdown visibility
+  const [supplierDropdownVisible, setSupplierDropdownVisible] = useState(false)
+
+  const handleSupplierSearchInput = (value: string) => {
+    setSupplierSearchTerm(value)
+    setSupplierDropdownVisible(true) // Show dropdown when typing
+  }
+
+  const handleSupplierDropdownClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Supplier dropdown clicked')
+    setSupplierSearchTerm("") // Clear search to show all suppliers
+    setSupplierDropdownVisible(!supplierDropdownVisible) // Toggle visibility
+  }
+
+  const handleSupplierSelection = (selectedSupplier: RegisteredEntity) => {
+    console.log('Supplier selected:', selectedSupplier.name)
+    setSupplierSearchTerm(selectedSupplier.name)
+    setSupplierDropdownVisible(false) // Hide dropdown after selection
+    handleSupplierSelect(selectedSupplier)
+  }
 
   // Real-time subscription
   useEffect(() => {
@@ -77,16 +99,18 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       
-      // Only close if clicking completely outside the modal
-      if (!target.closest('.modal-content')) {
-        // Let Bootstrap handle dropdown closures
-        return
-      }
-      
       // Close supplier dropdown if clicking outside its container
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(target)) {
-        setShowSupplierResults(false)
+        setSupplierDropdownVisible(false)
       }
+      
+      // Close item dropdowns if clicking outside their containers
+      Object.entries(itemDropdownRefs.current).forEach(([itemId, ref]) => {
+        if (ref && !ref.contains(target)) {
+          // For item dropdowns, we need to update individual item state
+          // This will be handled by each ItemRow's local state
+        }
+      })
     }
 
     if (isOpen) {
@@ -227,7 +251,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const handleSupplierSelect = (selectedSupplier: RegisteredEntity) => {
     setSupplier(selectedSupplier)
     setSupplierSearchTerm(selectedSupplier.name)
-    setShowSupplierResults(false)
     
     // Update prices for all items based on new supplier
     setItems(prevItems => prevItems.map(item => {
@@ -389,58 +412,65 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const [itemSearchTerm, setItemSearchTerm] = useState(item.stock_item?.name || "")
     const [priceInputValue, setPriceInputValue] = useState((item.unit_price || 0).toString())
     const [quantityInputValue, setQuantityInputValue] = useState((item.quantity || 1).toString())
+    const [dropdownVisible, setDropdownVisible] = useState(false)
 
-    // Sync local state with item props when item changes
+    // Add click outside effect for this item's dropdown
     useEffect(() => {
-      if (item.stock_item?.name !== itemSearchTerm && !itemSearchTerm) {
-        setItemSearchTerm(item.stock_item?.name || "")
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as HTMLElement
+        const container = itemDropdownRefs.current[item.id]
+        
+        if (container && !container.contains(target)) {
+          setDropdownVisible(false)
+        }
       }
-    }, [item.stock_item?.name])
 
-    useEffect(() => {
-      setPriceInputValue((item.unit_price || 0).toString())
-    }, [item.unit_price])
-
-    useEffect(() => {
-      setQuantityInputValue((item.quantity || 1).toString())
-    }, [item.quantity])
+      if (dropdownVisible) {
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside)
+        }
+      }
+    }, [dropdownVisible, item.id])
 
     const filteredStockItems = stockItems.filter(stockItem =>
       stockItem.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
       stockItem.description?.toLowerCase().includes(itemSearchTerm.toLowerCase())
     )
 
-    const handleItemSearchFocus = () => {
-      console.log('Item search focused, opening dropdown')
-      setItemSearchTerm("")
-      updateItem(item.id, "showDropdown", true)
-    }
-
-    const handleItemSearchChange = (value: string) => {
-      console.log('Item search changed:', value, 'opening dropdown')
+    // Handle item search input - like the working HTML
+    const handleItemSearchInput = (value: string) => {
       setItemSearchTerm(value)
-      updateItem(item.id, "showDropdown", true)
+      setDropdownVisible(true) // Show dropdown when typing
     }
 
-    const handlePriceFocus = () => {
-      if (priceInputValue === "0") {
-        setPriceInputValue("")
-      }
+    // Handle dropdown button click - like the working HTML  
+    const handleDropdownClick = (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log('Item dropdown clicked for item:', item.id)
+      setItemSearchTerm("") // Clear search to show all items
+      setDropdownVisible(!dropdownVisible) // Toggle visibility
     }
 
-    const handlePriceChange = (value: string) => {
+    // Handle item selection - like the working HTML
+    const handleItemSelection = (selectedStockItem: StockItem) => {
+      console.log('Item selected:', selectedStockItem.name)
+      setItemSearchTerm(selectedStockItem.name)
+      setDropdownVisible(false) // Hide dropdown after selection
+      handleItemSelect(item, selectedStockItem)
+    }
+
+    // Simple input handlers without complex state management
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
       setPriceInputValue(value)
       const numValue = parseFloat(value) || 0
       updateItem(item.id, "unit_price", numValue)
     }
 
-    const handleQuantityFocus = () => {
-      if (quantityInputValue === "1" || quantityInputValue === "0") {
-        setQuantityInputValue("")
-      }
-    }
-
-    const handleQuantityChange = (value: string) => {
+    const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value  
       setQuantityInputValue(value)
       const numValue = parseInt(value) || 1
       updateItem(item.id, "quantity", numValue)
@@ -460,20 +490,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               className="form-control border-0"
               placeholder="Search and select item..."
               value={itemSearchTerm}
-              onChange={(e) => handleItemSearchChange(e.target.value)}
-              onFocus={handleItemSearchFocus}
+              onChange={(e) => handleItemSearchInput(e.target.value)}
               style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
             />
             <button
-              className="btn btn-outline-secondary border-0 item-dropdown dropdown-toggle"
+              className="btn btn-outline-secondary border-0 item-dropdown"
               type="button"
-              data-bs-toggle="dropdown"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                console.log('Item dropdown clicked for item:', item.id)
-                setItemSearchTerm("")  // Clear search to show all items
-              }}
+              onClick={handleDropdownClick}
               style={{
                 borderRadius: "0 16px 16px 0",
                 height: "45px",
@@ -484,40 +507,32 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             >
               <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
             </button>
-            <ul className="dropdown-menu w-100">
+            <ul className={`dropdown-menu w-100 ${dropdownVisible ? 'show' : ''}`}>
               {filteredStockItems.map((stockItem) => (
-                  <li key={stockItem.id}>
-                    <button
-                      className="dropdown-item"
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleItemSelect(item, stockItem)
-                      }}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        border: "none",
-                        background: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        cursor: "pointer"
-                      }}
-                    >
-                      <div>
-                        <strong>{stockItem.name}</strong>
-                        <br />
-                        <small className="text-muted">{stockItem.description}</small>
-                        <br />
-                        <small>Stock: {stockItem.quantity} {stockItem.unit}</small>
-                      </div>
-                    </button>
-                  </li>
-                ))}
+                <li key={stockItem.id}>
+                  <button
+                    className="dropdown-item"
+                    type="button"
+                    onClick={() => handleItemSelection(stockItem)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      border: "none",
+                      background: "none",
+                      width: "100%",
+                      textAlign: "left",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <div>
+                      <strong>{stockItem.name}</strong>
+                      <br />
+                      <small className="text-muted">{stockItem.description}</small>
+                      <br />
+                      <small>Stock: {stockItem.quantity} {stockItem.unit}</small>
+                    </div>
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -537,8 +552,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             className="form-control border-0 shadow-sm"
             placeholder="Quantity"
             value={quantityInputValue}
-            onChange={(e) => handleQuantityChange(e.target.value)}
-            onFocus={handleQuantityFocus}
+            onChange={handleQuantityChange}
             style={{ borderRadius: "16px", height: "45px" }}
           />
         </div>
@@ -549,8 +563,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             className="form-control border-0 shadow-sm"
             placeholder="Unit Price"
             value={priceInputValue}
-            onChange={(e) => handlePriceChange(e.target.value)}
-            onFocus={handlePriceFocus}
+            onChange={handlePriceChange}
             style={{ borderRadius: "16px", height: "45px" }}
           />
         </div>
@@ -617,24 +630,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       id="supplierSearch"
                       placeholder="Search supplier..."
                       value={supplierSearchTerm}
-                      onChange={(e) => {
-                        setSupplierSearchTerm(e.target.value)
-                        setShowSupplierResults(true)
-                      }}
-                      onFocus={() => setShowSupplierResults(true)}
+                      onChange={(e) => handleSupplierSearchInput(e.target.value)}
                       required
                       style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
                     />
                     <button
-                      className="btn btn-outline-secondary border-0 supplier-dropdown dropdown-toggle"
+                      className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
-                      data-bs-toggle="dropdown"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        console.log('Supplier dropdown clicked')
-                        setSupplierSearchTerm("")  // Clear search to show all suppliers
-                      }}
+                      onClick={handleSupplierDropdownClick}
                       style={{
                         borderRadius: "0 16px 16px 0",
                         height: "45px",
@@ -645,7 +648,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     >
                       <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
                     </button>
-                    <ul className="dropdown-menu supplier-list">
+                    <ul className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}>
                       {suppliers
                         .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
                         .map((supplier) => (
@@ -657,11 +660,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                   e.preventDefault()
                                   e.stopPropagation()
                                 }}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleSupplierSelect(supplier)
-                                }}
+                                onClick={() => handleSupplierSelection(supplier)}
                                 style={{
                                   padding: "0.75rem 1rem",
                                   border: "none",

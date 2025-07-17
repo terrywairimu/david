@@ -222,7 +222,7 @@ body {
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     background: white;
-    z-index: 1050;
+    z-index: 1070;
     transform: none !important;
 }
 
@@ -239,7 +239,7 @@ body {
     border-radius: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     background: white;
-    z-index: 1050;
+    z-index: 1070;
     transform: none !important;
     display: none;
     overflow-y: auto;
@@ -1386,7 +1386,7 @@ input:checked + .toggle-slider:before {
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-    z-index: 1060 !important;
+    z-index: 1070 !important;
 }
 
 .modal-body .dropdown-menu .dropdown-item {
