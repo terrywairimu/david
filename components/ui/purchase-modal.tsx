@@ -433,7 +433,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         <div className="col-md-4" style={{ paddingLeft: "12px", paddingRight: "6px" }}>
           <div 
             className="input-group shadow-sm item-search-container position-relative"
-            ref={el => itemDropdownRefs.current[item.id] = el}
+            ref={(el) => {
+              itemDropdownRefs.current[item.id] = el
+            }}
           >
             <input
               type="text"
@@ -766,14 +768,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           <div className="modal-footer border-0">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn-secondary"
               onClick={onClose}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="btn btn-add"
+              className="btn-add"
               onClick={handleSave}
               disabled={loading}
             >
