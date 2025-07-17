@@ -230,16 +230,63 @@ const PurchasesPage = () => {
           // Update stock levels
           for (const item of purchaseData.items) {
             if (item.stock_item_id) {
-              const { error: stockError } = await supabase.rpc("update_stock_level", {
-                stock_item_id: item.stock_item_id,
-                quantity_change: item.quantity,
-                operation: "increase"
-              })
+              try {
+                console.log(`Updating stock for item ID: ${item.stock_item_id}, adding quantity: ${item.quantity}`);
+                
+                // Get current stock level
+                const { data: stockItem, error: fetchError } = await supabase
+                  .from("stock_items")
+                  .select("quantity, name")
+                  .eq("id", item.stock_item_id)
+                  .single()
 
-              if (stockError) {
-                console.error("Error updating stock:", stockError)
-                // Don't throw error, just log it
+                if (fetchError) {
+                  console.error("Error fetching stock item:", fetchError);
+                  throw fetchError;
+                }
+
+                console.log(`Current stock for ${stockItem.name}: ${stockItem.quantity}`);
+
+                // Update stock quantity by adding purchased quantity
+                const newQuantity = (stockItem.quantity || 0) + item.quantity
+
+                console.log(`Updating to new quantity: ${newQuantity}`);
+
+                const { error: updateError } = await supabase
+                  .from("stock_items")
+                  .update({ quantity: newQuantity })
+                  .eq("id", item.stock_item_id)
+
+                if (updateError) {
+                  console.error("Error updating stock quantity:", updateError);
+                  throw updateError;
+                }
+
+                // Record stock movement
+                const { error: movementError } = await supabase
+                  .from("stock_movements")
+                  .insert({
+                    stock_item_id: item.stock_item_id,
+                    movement_type: "in",
+                    quantity: item.quantity,
+                    reference_type: "purchase",
+                    reference_id: newPurchase.id,
+                    notes: `Purchase Order: ${purchaseData.purchase_order_number}`
+                  })
+
+                if (movementError) {
+                  console.error("Error creating stock movement:", movementError);
+                  // Don't throw error for movement tracking, just log it
+                }
+
+                console.log(`Successfully updated stock for ${stockItem.name}: ${stockItem.quantity} + ${item.quantity} = ${newQuantity}`);
+                toast.success(`Stock updated for ${item.description}: +${item.quantity}`);
+              } catch (stockError) {
+                console.error("Error updating stock for item:", item.stock_item_id, stockError);
+                toast.error(`Failed to update stock for ${item.description}: ${stockError instanceof Error ? stockError.message : String(stockError)}`);
               }
+            } else {
+              console.log(`Skipping stock update for item without stock_item_id:`, item);
             }
           }
         }
