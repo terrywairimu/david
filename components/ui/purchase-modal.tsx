@@ -107,9 +107,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       const target = event.target as Element
       
       // Handle supplier dropdown - check if click is outside supplier container specifically
-      const supplierContainer = target.closest('.custom-dropdown-container')
-      const isSupplierContainer = supplierContainer && supplierContainer.querySelector('input[placeholder*="Search supplier"]')
-      if (!isSupplierContainer && supplierDropdownVisible) {
+      const supplierContainer = target.closest('.supplier-search-container')
+      if (!supplierContainer && supplierDropdownVisible) {
         setSupplierDropdownVisible(false)
       }
       
@@ -359,10 +358,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   if (!isOpen) return null
 
-  console.log('Purchase Modal Render - Supplier dropdown visible:', supplierDropdownVisible, 'Suppliers count:', suppliers.length)
-  console.log('Supplier dropdown classes:', `custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`)
-  console.log('Item dropdown states:', itemDropdownVisible)
-
   return (
     <>
       <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
@@ -395,7 +390,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </div>
                   <div className="col-md-6">
                     <label htmlFor="supplier" className="form-label">Supplier</label>
-                    <div className="input-group shadow-sm custom-dropdown-container">
+                    <div className="input-group shadow-sm supplier-search-container">
                     <input
                       type="text"
                       className="form-control border-0"
@@ -409,10 +404,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
                     />
                     <button
-                        className="btn btn-outline-secondary border-0"
+                        className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
                         onClick={() => {
-                          console.log('Supplier dropdown button clicked, current state:', supplierDropdownVisible)
                           setSupplierDropdownVisible(!supplierDropdownVisible)
                           if (!supplierDropdownVisible) {
                             setSupplierSearch("")  // Clear search when opening dropdown to show all
@@ -430,33 +424,17 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </button>
                       
                       {/* Supplier Dropdown */}
-                      <ul 
-                        className={`custom-dropdown-list ${supplierDropdownVisible ? 'visible' : ''}`}
-                        style={{
-                          display: supplierDropdownVisible ? 'block' : 'none',
-                          position: 'fixed',
-                          top: '200px',
-                          left: '50%',
-                          width: '300px',
-                          zIndex: 99999,
-                          background: 'white',
-                          border: '3px solid red',
-                          borderRadius: '8px',
-                          maxHeight: '300px',
-                          overflowY: 'auto',
-                          listStyle: 'none',
-                          padding: '10px',
-                          margin: 0,
-                          boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-                        }}
-                      >
+                      <ul className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}>
                         {filteredSuppliers.length > 0 ? (
                           filteredSuppliers.map((supplier) => (
                             <li key={supplier.id}>
-                              <button
-                                type="button"
-                                className="custom-dropdown-item"
-                                onClick={() => handleSupplierSelect(supplier)}
+                              <a
+                                href="#"
+                                className="dropdown-item"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  handleSupplierSelect(supplier)
+                                }}
                               >
                                 <div className="d-flex justify-content-between align-items-center">
                                 <div>
@@ -465,11 +443,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                   </div>
                                   <div className="small text-dark">{supplier.phone || ''}</div>
                                 </div>
-                              </button>
+                              </a>
                             </li>
                           ))
                         ) : (
-                          <li><span className="custom-dropdown-item">No suppliers found</span></li>
+                          <li><span className="dropdown-item">No suppliers found</span></li>
                         )}
                       </ul>
                     </div>
@@ -525,10 +503,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   {items.map((item) => (
                     <div key={item.id} className="row mb-2 align-items-center" data-item-container={item.id}>
                       <div className="col-md-4">
-                        <div className="input-group shadow-sm custom-dropdown-container">
+                        <div className="input-group shadow-sm item-search-container">
                           <input
                             type="text"
-                            className="form-control border-0"
+                            className="form-control border-0 item-search"
                             placeholder="Search and select item..."
                             value={itemSearches[item.id] || ""}
                             onChange={(e) => {
@@ -539,10 +517,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
                           />
                           <button
-                            className="btn btn-outline-secondary border-0"
+                            className="btn btn-outline-secondary border-0 item-dropdown"
                             type="button"
                             onClick={() => {
-                              console.log('Item dropdown button clicked for item:', item.id, 'current state:', itemDropdownVisible[item.id])
                               setItemDropdownVisible(prev => ({ ...prev, [item.id]: !prev[item.id] }))
                               if (!itemDropdownVisible[item.id]) {
                                 setItemSearches(prev => ({ ...prev, [item.id]: "" }))  // Clear search when opening dropdown
@@ -560,33 +537,17 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           </button>
                           
                           {/* Item Dropdown */}
-                          <ul 
-                            className={`custom-dropdown-list ${itemDropdownVisible[item.id] ? 'visible' : ''}`}
-                            style={{
-                              display: itemDropdownVisible[item.id] ? 'block' : 'none',
-                              position: 'fixed',
-                              top: '400px',
-                              left: '60%',
-                              width: '300px',
-                              zIndex: 99999,
-                              background: 'yellow',
-                              border: '3px solid blue',
-                              borderRadius: '8px',
-                              maxHeight: '300px',
-                              overflowY: 'auto',
-                              listStyle: 'none',
-                              padding: '10px',
-                              margin: 0,
-                              boxShadow: '0 0 20px rgba(0,0,0,0.8)'
-                            }}
-                          >
+                          <ul className={`dropdown-menu w-100 ${itemDropdownVisible[item.id] ? 'show' : ''}`}>
                             {(filteredStockItems[item.id] || []).length > 0 ? (
                               (filteredStockItems[item.id] || []).map((stockItem) => (
                                 <li key={stockItem.id}>
-                                  <button
-                                    type="button"
-                                    className="custom-dropdown-item"
-                                    onClick={() => handleItemSelect(item.id, stockItem)}
+                                  <a
+                                    href="#"
+                                    className="dropdown-item"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      handleItemSelect(item.id, stockItem)
+                                    }}
                                   >
                                     <div className="d-flex justify-content-between align-items-center">
                                       <div>
@@ -595,11 +556,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                       </div>
                                       <div className="small text-dark">KES {stockItem.unit_price?.toFixed(2) || '0.00'}</div>
                                     </div>
-                                  </button>
+                                  </a>
                                 </li>
                               ))
                             ) : (
-                              <li><span className="custom-dropdown-item">No items found</span></li>
+                              <li><span className="dropdown-item">No items found</span></li>
                             )}
                           </ul>
                         </div>

@@ -292,6 +292,49 @@ body {
     background-color: #f8f9fa;
 }
 
+/* Item Search Container Dropdown Styles */
+.item-search-container {
+    position: relative;
+}
+
+.item-search-container .dropdown-menu {
+    position: absolute;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin-top: 2px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: white;
+    z-index: 1070;
+    transform: none !important;
+    display: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    list-style: none;
+    padding: 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.item-search-container .dropdown-menu.show {
+    display: block;
+}
+
+.item-search-container .dropdown-menu .dropdown-item {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    margin: 2px;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: block;
+}
+
+.item-search-container .dropdown-menu .dropdown-item:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+}
+
 /* Custom Dropdown Styles - No Bootstrap Dependencies */
 .custom-dropdown-container {
     position: relative !important;
