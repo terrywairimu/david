@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect } from "react"
 import { X, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -14,6 +14,15 @@ interface PurchaseModalProps {
   mode?: "create" | "edit" | "view"
 }
 
+interface PurchaseItem {
+  id: number
+  stock_item_id: number | null
+  stock_item: StockItem | null
+  quantity: number
+  unit_price: number
+  total_price: number
+}
+
 const PurchaseModal: React.FC<PurchaseModalProps> = ({
   isOpen,
   onClose,
@@ -23,63 +32,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 }) => {
   const [purchaseDate, setPurchaseDate] = useState("")
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
-  const [supplier, setSupplier] = useState<RegisteredEntity | null>(null)
-  const [supplierSearchTerm, setSupplierSearchTerm] = useState("")
+  const [supplierId, setSupplierId] = useState<number | null>(null)
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
   const [paymentMethod, setPaymentMethod] = useState("")
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<PurchaseItem[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [purchasePriceHistory, setPurchasePriceHistory] = useState<any[]>([])
-  
-  // Refs for click outside detection
-  const supplierDropdownRef = useRef<HTMLDivElement>(null)
-  const itemDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
-  // State for supplier dropdown visibility
-  const [supplierDropdownVisible, setSupplierDropdownVisible] = useState(false)
-
-  const handleSupplierSearchInput = (value: string) => {
-    setSupplierSearchTerm(value)
-    setSupplierDropdownVisible(true) // Show dropdown when typing
-  }
-
-  const handleSupplierDropdownClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    console.log('Supplier dropdown clicked')
-    setSupplierSearchTerm("") // Clear search to show all suppliers
-    setSupplierDropdownVisible(!supplierDropdownVisible) // Toggle visibility
-  }
-
-  const handleSupplierSelection = (selectedSupplier: RegisteredEntity) => {
-    console.log('Supplier selected:', selectedSupplier.name)
-    setSupplierSearchTerm(selectedSupplier.name)
-    setSupplierDropdownVisible(false) // Hide dropdown after selection
-    handleSupplierSelect(selectedSupplier)
-  }
-
-  // Real-time subscription
-  useEffect(() => {
-    if (isOpen) {
-      // Subscribe to purchase changes for real-time updates
-      const subscription = supabase
-        .channel('purchase_changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases' }, (payload) => {
-          console.log('Purchase change detected:', payload)
-          // Optionally refresh data or update UI
-        })
-        .subscribe()
-
-      return () => {
-        subscription.unsubscribe()
-      }
-    }
-  }, [isOpen])
-
-
-
+  // Initialize form
   useEffect(() => {
     if (isOpen) {
       if (mode === "create") {
@@ -90,81 +51,33 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       }
       fetchSuppliers()
       fetchStockItems()
-      fetchPurchasePriceHistory()
     }
   }, [isOpen, mode, purchase])
 
-  // Click outside to close dropdowns - Bootstrap-friendly version
+  // Calculate total whenever items change
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      
-      // Close supplier dropdown if clicking outside its container
-      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(target)) {
-        setSupplierDropdownVisible(false)
-      }
-      
-      // Close item dropdowns if clicking outside their containers
-      Object.entries(itemDropdownRefs.current).forEach(([itemId, ref]) => {
-        if (ref && !ref.contains(target)) {
-          // For item dropdowns, we need to update individual item state
-          // This will be handled by each ItemRow's local state
-        }
-      })
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [isOpen])
+    const newTotal = items.reduce((sum, item) => sum + item.total_price, 0)
+    setTotal(newTotal)
+  }, [items])
 
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
     setPurchaseDate(today)
     setPurchaseOrderNumber("")
-    setSupplier(null)
-    setSupplierSearchTerm("")
+    setSupplierId(null)
     setPaymentMethod("")
-    setItems([{ 
-      id: Date.now(), 
-      stock_item_id: null, 
-      stock_item: null,
-      quantity: 1, 
-      unit_price: 0, 
-      total_price: 0
-    }])
+    setItems([createNewItem()])
     setTotal(0)
   }
 
-  const fetchPurchasePriceHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("purchase_price_history")
-        .select("*")
-        .order("purchase_date", { ascending: false })
-
-      if (error) throw error
-      setPurchasePriceHistory(data || [])
-    } catch (error) {
-      console.error("Error fetching purchase price history:", error)
-    }
-  }
-
-  const getLastPurchasePrice = (stockItemId: number, supplierId?: number) => {
-    if (!stockItemId) return 0
-    
-    const history = purchasePriceHistory.filter(h => {
-      if (supplierId) {
-        return h.stock_item_id === stockItemId && h.supplier_id === supplierId
-      }
-      return h.stock_item_id === stockItemId
-    })
-    
-    return history.length > 0 ? history[0].purchase_price : 0
-  }
+  const createNewItem = (): PurchaseItem => ({
+    id: Date.now(),
+    stock_item_id: null,
+    stock_item: null,
+    quantity: 1,
+    unit_price: 0,
+    total_price: 0
+  })
 
   const generatePurchaseOrderNumber = async () => {
     try {
@@ -208,14 +121,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     
     setPurchaseDate(purchase.purchase_date?.split('T')[0] || "")
     setPurchaseOrderNumber(purchase.purchase_order_number || "")
-    setSupplier(purchase.supplier || null)
-    setSupplierSearchTerm(purchase.supplier?.name || "")
+    setSupplierId(purchase.supplier_id || null)
     setPaymentMethod(purchase.payment_method || "")
-    setItems(purchase.items?.map((item: any) => ({
-      ...item,
-      id: item.id || Date.now()
-    })) || [])
-    setTotal(purchase.total_amount || 0)
+    
+    if (purchase.items && purchase.items.length > 0) {
+      setItems(purchase.items.map((item: any) => ({
+        id: item.id || Date.now(),
+        stock_item_id: item.stock_item_id,
+        stock_item: item.stock_item,
+        quantity: item.quantity || 1,
+        unit_price: item.unit_price || 0,
+        total_price: item.total_price || 0
+      })))
+    } else {
+      setItems([createNewItem()])
+    }
   }
 
   const fetchSuppliers = async () => {
@@ -230,6 +150,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       setSuppliers(data || [])
     } catch (error) {
       console.error("Error fetching suppliers:", error)
+      toast.error("Failed to load suppliers")
     }
   }
 
@@ -245,105 +166,47 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       setStockItems(data || [])
     } catch (error) {
       console.error("Error fetching stock items:", error)
+      toast.error("Failed to load stock items")
     }
   }
 
-  const handleSupplierSelect = (selectedSupplier: RegisteredEntity) => {
-    setSupplier(selectedSupplier)
-    setSupplierSearchTerm(selectedSupplier.name)
-    
-    // Update prices for all items based on new supplier
-    setItems(prevItems => prevItems.map(item => {
-      if (item.stock_item_id) {
-        const lastPrice = getLastPurchasePrice(item.stock_item_id, selectedSupplier.id)
-        return {
-          ...item,
-          unit_price: lastPrice,
-          total_price: lastPrice * item.quantity
-        }
-      }
-      return item
-    }))
-  }
-
-  const handleItemSelect = (item: any, selectedStockItem: StockItem) => {
-    const lastPrice = getLastPurchasePrice(selectedStockItem.id, supplier?.id)
-    
-    const updatedItems = items.map(i => {
-      if (i.id === item.id) {
-        return {
-          ...i,
-          stock_item_id: selectedStockItem.id,
-          stock_item: selectedStockItem,
-          unit_price: lastPrice,
-          total_price: lastPrice * i.quantity
-        }
-      }
-      return i
-    })
-    
-    setItems(updatedItems)
-    calculateTotal(updatedItems)
-  }
-
-  const updateItem = useCallback((itemId: any, field: string, value: any) => {
-    console.log('Updating item:', itemId, 'field:', field, 'value:', value)
-    setItems(prevItems => {
-      const updatedItems = prevItems.map(item => {
+  const updateItem = (itemId: number, field: keyof PurchaseItem, value: any) => {
+    setItems(prevItems => 
+      prevItems.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value }
-          if (field === "quantity" || field === "unit_price") {
+          
+          // If stock item changed, update the stock_item object and reset price
+          if (field === 'stock_item_id') {
+            const stockItem = stockItems.find(si => si.id === value)
+            updatedItem.stock_item = stockItem || null
+            updatedItem.unit_price = 0
+            updatedItem.total_price = 0
+          }
+          
+          // Recalculate total price when quantity or unit_price changes
+          if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
+          
           return updatedItem
         }
         return item
       })
-      
-      // Only calculate total if quantity or unit_price changed
-      if (field === "quantity" || field === "unit_price") {
-        calculateTotal(updatedItems)
-      }
-      
-      return updatedItems
-    })
-  }, [])
-
-  const addItem = () => {
-    const newItem = {
-      id: Date.now(),
-      stock_item_id: null,
-      stock_item: null,
-      quantity: 1,
-      unit_price: 0,
-      total_price: 0
-    }
-    setItems(prevItems => [...prevItems, newItem])
+    )
   }
 
-  const removeItem = useCallback((itemId: any) => {
-    console.log('Removing item with ID:', itemId, 'Current items:', items.length)
-    setItems(prevItems => {
-      const updatedItems = prevItems.filter(item => item.id !== itemId)
-      console.log('Items after removal:', updatedItems.length)
-      calculateTotal(updatedItems)
-      
-      // Clean up the dropdown ref
-      if (itemDropdownRefs.current[itemId]) {
-        delete itemDropdownRefs.current[itemId]
-      }
-      
-      return updatedItems
-    })
-  }, [items.length])
+  const addItem = () => {
+    setItems(prevItems => [...prevItems, createNewItem()])
+  }
 
-  const calculateTotal = (itemsList: any[]) => {
-    const newTotal = itemsList.reduce((sum, item) => sum + (item.total_price || 0), 0)
-    setTotal(newTotal)
+  const removeItem = (itemId: number) => {
+    setItems(prevItems => prevItems.filter(item => item.id !== itemId))
   }
 
   const handleSave = async () => {
-    if (!supplier) {
+    // Validation
+    if (!supplierId) {
       toast.error("Please select a supplier")
       return
     }
@@ -363,7 +226,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       const purchaseData = {
         purchase_date: purchaseDate,
         purchase_order_number: purchaseOrderNumber,
-        supplier_id: supplier.id,
+        supplier_id: supplierId,
         payment_method: paymentMethod,
         total_amount: total,
         status: "pending",
@@ -373,20 +236,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           unit_price: item.unit_price,
           total_price: item.total_price
         }))
-      }
-
-      // Save purchase price history
-      for (const item of items) {
-        if (item.stock_item_id && item.unit_price > 0) {
-          await supabase
-            .from("purchase_price_history")
-            .insert({
-              stock_item_id: item.stock_item_id,
-              supplier_id: supplier.id,
-              purchase_price: item.unit_price,
-              purchase_date: purchaseDate
-            })
-        }
       }
 
       await onSave(purchaseData)
@@ -400,195 +249,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
   }
 
-  const ItemRow: React.FC<{ item: any, index: number }> = React.memo(({ item, index }) => {
-    console.log('Rendering ItemRow for item:', item?.id)
-    
-    // Safety checks for undefined item
-    if (!item) {
-      console.error('ItemRow received undefined item')
-      return null
-    }
-    
-    const [itemSearchTerm, setItemSearchTerm] = useState(item.stock_item?.name || "")
-    const [priceInputValue, setPriceInputValue] = useState((item.unit_price || 0).toString())
-    const [quantityInputValue, setQuantityInputValue] = useState((item.quantity || 1).toString())
-    const [dropdownVisible, setDropdownVisible] = useState(false)
-
-    // Add click outside effect for this item's dropdown
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target as HTMLElement
-        const container = itemDropdownRefs.current[item.id]
-        
-        if (container && !container.contains(target)) {
-          setDropdownVisible(false)
-        }
-      }
-
-      if (dropdownVisible) {
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-          document.removeEventListener('mousedown', handleClickOutside)
-        }
-      }
-    }, [dropdownVisible, item.id])
-
-    const filteredStockItems = stockItems.filter(stockItem =>
-      stockItem.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
-      stockItem.description?.toLowerCase().includes(itemSearchTerm.toLowerCase())
-    )
-
-    // Handle item search input - like the working HTML
-    const handleItemSearchInput = (value: string) => {
-      setItemSearchTerm(value)
-      setDropdownVisible(true) // Show dropdown when typing
-    }
-
-    // Handle dropdown button click - like the working HTML  
-    const handleDropdownClick = (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      console.log('Item dropdown clicked for item:', item.id)
-      setItemSearchTerm("") // Clear search to show all items
-      setDropdownVisible(!dropdownVisible) // Toggle visibility
-    }
-
-    // Handle item selection - like the working HTML
-    const handleItemSelection = (selectedStockItem: StockItem) => {
-      console.log('Item selected:', selectedStockItem.name)
-      setItemSearchTerm(selectedStockItem.name)
-      setDropdownVisible(false) // Hide dropdown after selection
-      handleItemSelect(item, selectedStockItem)
-    }
-
-    // Simple input handlers without complex state management
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setPriceInputValue(value)
-      const numValue = parseFloat(value) || 0
-      updateItem(item.id, "unit_price", numValue)
-    }
-
-    const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value  
-      setQuantityInputValue(value)
-      const numValue = parseInt(value) || 1
-      updateItem(item.id, "quantity", numValue)
-    }
-
-    return (
-      <div className="row mb-2 purchase-item">
-        <div className="col-md-4" style={{ paddingLeft: "12px", paddingRight: "6px" }}>
-          <div 
-            className="input-group shadow-sm item-search-container position-relative"
-            ref={(el) => {
-              itemDropdownRefs.current[item.id] = el
-            }}
-          >
-            <input
-              type="text"
-              className="form-control border-0"
-              placeholder="Search and select item..."
-              value={itemSearchTerm}
-              onChange={(e) => handleItemSearchInput(e.target.value)}
-              style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
-            />
-            <button
-              className="btn btn-outline-secondary border-0 item-dropdown"
-              type="button"
-              onClick={handleDropdownClick}
-              style={{
-                borderRadius: "0 16px 16px 0",
-                height: "45px",
-                width: "20%",
-                background: "white",
-                transition: "all 0.3s ease"
-              }}
-            >
-              <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
-            </button>
-            <ul className={`dropdown-menu w-100 ${dropdownVisible ? 'show' : ''}`}>
-              {filteredStockItems.map((stockItem) => (
-                <li key={stockItem.id}>
-                  <button
-                    className="dropdown-item"
-                    type="button"
-                    onClick={() => handleItemSelection(stockItem)}
-                    style={{
-                      padding: "0.5rem 1rem",
-                      border: "none",
-                      background: "none",
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: "pointer"
-                    }}
-                  >
-                    <div>
-                      <strong>{stockItem.name}</strong>
-                      <br />
-                      <small className="text-muted">{stockItem.description}</small>
-                      <br />
-                      <small>Stock: {stockItem.quantity} {stockItem.unit}</small>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
-          <input
-            type="text"
-            className="form-control border-0 shadow-sm"
-            placeholder="Unit"
-            value={item.stock_item?.unit || ""}
-            readOnly
-            style={{ borderRadius: "16px", height: "45px" }}
-          />
-        </div>
-        <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
-          <input
-            type="number"
-            className="form-control border-0 shadow-sm"
-            placeholder="Quantity"
-            value={quantityInputValue}
-            onChange={handleQuantityChange}
-            style={{ borderRadius: "16px", height: "45px" }}
-          />
-        </div>
-        <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
-          <input
-            type="number"
-            step="0.01"
-            className="form-control border-0 shadow-sm"
-            placeholder="Unit Price"
-            value={priceInputValue}
-            onChange={handlePriceChange}
-            style={{ borderRadius: "16px", height: "45px" }}
-          />
-        </div>
-        <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "12px" }}>
-          <div className="d-flex align-items-center h-100 justify-content-between">
-            <span className="me-2">KES {(item.total_price || 0).toFixed(2)}</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-danger"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                console.log('Delete button clicked for item:', item.id)
-                removeItem(item.id)
-              }}
-              style={{ borderRadius: "8px", minWidth: "35px", height: "35px" }}
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  })
-
   if (!isOpen) return null
 
   return (
@@ -600,11 +260,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}>
-              <i className="fas fa-times"></i>
+              <X size={18} />
             </button>
           </div>
+          
           <div className="modal-body pt-2">
             <form className="needs-validation" noValidate>
+              {/* Basic Information */}
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="purchaseDate" className="form-label">Purchase Date</label>
@@ -619,71 +281,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   />
                 </div>
                 <div className="col-md-6">
-                  <label htmlFor="supplierSearch" className="form-label">Supplier</label>
-                  <div 
-                    className="input-group shadow-sm supplier-search-container"
-                    ref={supplierDropdownRef}
-                  >
-                    <input
-                      type="text"
-                      className="form-control border-0"
-                      id="supplierSearch"
-                      placeholder="Search supplier..."
-                      value={supplierSearchTerm}
-                      onChange={(e) => handleSupplierSearchInput(e.target.value)}
-                      required
-                      style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
-                    />
-                    <button
-                      className="btn btn-outline-secondary border-0 supplier-dropdown"
-                      type="button"
-                      onClick={handleSupplierDropdownClick}
-                      style={{
-                        borderRadius: "0 16px 16px 0",
-                        height: "45px",
-                        width: "20%",
-                        background: "white",
-                        transition: "all 0.3s ease"
-                      }}
-                    >
-                      <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
-                    </button>
-                    <ul className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}>
-                      {suppliers
-                        .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
-                        .map((supplier) => (
-                            <li key={supplier.id}>
-                              <button
-                                className="dropdown-item"
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                }}
-                                onClick={() => handleSupplierSelection(supplier)}
-                                style={{
-                                  padding: "0.75rem 1rem",
-                                  border: "none",
-                                  background: "none",
-                                  width: "100%",
-                                  textAlign: "left",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                <div>
-                                  <strong>{supplier.name}</strong>
-                                  <br />
-                                  <small className="text-muted">{supplier.phone}</small>
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="row mb-3">
-                <div className="col-md-6">
                   <label htmlFor="purchaseOrderNumber" className="form-label">Purchase Order Number</label>
                   <input
                     type="text"
@@ -693,6 +290,27 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     readOnly
                     style={{ borderRadius: "16px", height: "45px" }}
                   />
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label htmlFor="supplier" className="form-label">Supplier</label>
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    id="supplier"
+                    value={supplierId || ""}
+                    onChange={(e) => setSupplierId(e.target.value ? parseInt(e.target.value) : null)}
+                    required
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">Select Supplier</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name} - {supplier.phone}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
@@ -712,46 +330,124 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* Items Section */}
               <div className="mb-3">
                 <label className="form-label">Items</label>
-                <div id="purchaseItems" className="mb-2">
-                  {items.map((item, index) => (
-                    <ItemRow key={item.id} item={item} index={index} />
-                  ))}
+                
+                {/* Items Header */}
+                <div className="row mb-2">
+                  <div className="col-md-4"><small className="text-muted">Item</small></div>
+                  <div className="col-md-2"><small className="text-muted">Unit</small></div>
+                  <div className="col-md-2"><small className="text-muted">Quantity</small></div>
+                  <div className="col-md-2"><small className="text-muted">Unit Price</small></div>
+                  <div className="col-md-2"><small className="text-muted">Total</small></div>
                 </div>
+
+                {/* Items List */}
+                {items.map((item, index) => (
+                  <div key={item.id} className="row mb-2 align-items-center">
+                    <div className="col-md-4">
+                      <select
+                        className="form-select border-0 shadow-sm"
+                        value={item.stock_item_id || ""}
+                        onChange={(e) => updateItem(item.id, 'stock_item_id', e.target.value ? parseInt(e.target.value) : null)}
+                        style={{ borderRadius: "16px", height: "45px" }}
+                      >
+                        <option value="">Select Item</option>
+                        {stockItems.map((stockItem) => (
+                          <option key={stockItem.id} value={stockItem.id}>
+                            {stockItem.name} - {stockItem.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-2">
+                      <input
+                        type="text"
+                        className="form-control border-0 shadow-sm"
+                        value={item.stock_item?.unit || ""}
+                        readOnly
+                        style={{ borderRadius: "16px", height: "45px" }}
+                      />
+                    </div>
+                    <div className="col-md-2">
+                      <input
+                        type="number"
+                        className="form-control border-0 shadow-sm"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                        min="1"
+                        style={{ borderRadius: "16px", height: "45px" }}
+                      />
+                    </div>
+                    <div className="col-md-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-control border-0 shadow-sm"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                        min="0"
+                        style={{ borderRadius: "16px", height: "45px" }}
+                      />
+                    </div>
+                    <div className="col-md-1">
+                      <span className="fw-bold">KES {item.total_price.toFixed(2)}</span>
+                    </div>
+                    <div className="col-md-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => removeItem(item.id)}
+                        style={{ borderRadius: "8px" }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Item Button */}
                 <button
                   type="button"
-                  className="btn btn-add"
+                  className="btn btn-outline-primary"
                   onClick={addItem}
+                  style={{ borderRadius: "16px" }}
                 >
-                  <i className="fas fa-plus me-2"></i>
+                  <Plus size={16} className="me-1" />
                   Add Item
                 </button>
               </div>
+
+              {/* Total */}
               <div className="row">
-                <div className="col-md-6"></div>
-                <div className="col-md-6">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="col-md-8"></div>
+                <div className="col-md-4">
+                  <div className="d-flex justify-content-between align-items-center p-3 bg-light rounded">
                     <strong>Total Amount:</strong>
-                    <strong>KES {total.toFixed(2)}</strong>
+                    <strong className="text-primary">KES {total.toFixed(2)}</strong>
                   </div>
                 </div>
               </div>
             </form>
           </div>
+
           <div className="modal-footer border-0">
             <button
               type="button"
-              className="btn-secondary"
+              className="btn btn-secondary"
               onClick={onClose}
+              style={{ borderRadius: "16px" }}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="btn-add"
+              className="btn btn-primary"
               onClick={handleSave}
               disabled={loading}
+              style={{ borderRadius: "16px" }}
             >
               {loading ? "Saving..." : "Save Purchase"}
             </button>
