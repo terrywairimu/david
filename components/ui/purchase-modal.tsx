@@ -390,7 +390,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </div>
                   <div className="col-md-6">
                     <label htmlFor="supplier" className="form-label">Supplier</label>
-                    <div className="input-group shadow-sm supplier-search-container">
+                    <div className="input-group shadow-sm supplier-search-container" style={{ position: "relative" }}>
                     <input
                       type="text"
                       className="form-control border-0"
@@ -428,19 +428,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       
                       {/* Supplier Dropdown */}
                       <ul 
-                        className={`dropdown-menu supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
+                        className={`supplier-list ${supplierDropdownVisible ? 'show' : ''}`}
                         style={{
-                          display: supplierDropdownVisible ? "block" : "none"
+                          display: supplierDropdownVisible ? "block" : "none",
+                          visibility: supplierDropdownVisible ? "visible" : "hidden",
+                          opacity: supplierDropdownVisible ? "1" : "0",
+                          position: "absolute",
+                          top: "100%",
+                          left: "0",
+                          zIndex: 9999,
+                          width: "100%",
+                          backgroundColor: "white",
+                          border: "1px solid #dee2e6",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
                         }}
                         ref={(el) => {
                           if (el && supplierDropdownVisible) {
-                            console.log("Supplier dropdown element:", el);
-                            console.log("Supplier dropdown computed styles:", window.getComputedStyle(el));
-                            console.log("Supplier dropdown className:", el.className);
-                            console.log("Supplier dropdown style.display:", el.style.display);
-                            console.log("Supplier dropdown offsetHeight:", el.offsetHeight);
-                            console.log("Supplier dropdown offsetWidth:", el.offsetWidth);
-                            console.log("Supplier dropdown getBoundingClientRect:", el.getBoundingClientRect());
+                            const computedStyles = window.getComputedStyle(el);
+                            console.log("🔍 SUPPLIER DROPDOWN DEBUG:");
+                            console.log("Element:", el);
+                            console.log("Computed display:", computedStyles.display);
+                            console.log("Computed visibility:", computedStyles.visibility);
+                            console.log("Computed opacity:", computedStyles.opacity);
+                            console.log("Computed z-index:", computedStyles.zIndex);
+                            console.log("Inline style.display:", el.style.display);
+                            console.log("Classes:", el.className);
+                            console.log("Dimensions:", `${el.offsetWidth}x${el.offsetHeight}`);
+                            console.log("Position:", el.getBoundingClientRect());
                           }
                         }}
                       >
@@ -562,18 +577,35 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           <ul 
                             className={`item-list ${itemDropdownVisible[item.id] ? 'show' : ''}`}
                             style={{
-                              display: itemDropdownVisible[item.id] ? "block" : "none"
+                              display: itemDropdownVisible[item.id] ? "block" : "none",
+                              visibility: itemDropdownVisible[item.id] ? "visible" : "hidden",
+                              opacity: itemDropdownVisible[item.id] ? "1" : "0",
+                              position: "absolute",
+                              top: "100%",
+                              left: "0",
+                              zIndex: 9999,
+                              width: "100%",
+                              backgroundColor: "white",
+                              border: "1px solid #dee2e6",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                              maxHeight: "200px",
+                              overflowY: "auto"
                             }}
                             ref={(el) => {
                               if (el && itemDropdownVisible[item.id]) {
-                                console.log(`Item dropdown ${item.id} element:`, el);
-                                console.log(`Item dropdown ${item.id} computed styles:`, window.getComputedStyle(el));
-                                console.log(`Item dropdown ${item.id} className:`, el.className);
-                                console.log(`Item dropdown ${item.id} style.display:`, el.style.display);
-                                console.log(`Item dropdown ${item.id} offsetHeight:`, el.offsetHeight);
-                                console.log(`Item dropdown ${item.id} offsetWidth:`, el.offsetWidth);
-                                console.log(`Item dropdown ${item.id} getBoundingClientRect:`, el.getBoundingClientRect());
-                                console.log(`Item dropdown ${item.id} parent container:`, el.parentElement);
+                                const computedStyles = window.getComputedStyle(el);
+                                console.log(`🔍 ITEM DROPDOWN ${item.id} DEBUG:`);
+                                console.log("Element:", el);
+                                console.log("Computed display:", computedStyles.display);
+                                console.log("Computed visibility:", computedStyles.visibility);
+                                console.log("Computed opacity:", computedStyles.opacity);
+                                console.log("Computed z-index:", computedStyles.zIndex);
+                                console.log("Inline style.display:", el.style.display);
+                                console.log("Classes:", el.className);
+                                console.log("Dimensions:", `${el.offsetWidth}x${el.offsetHeight}`);
+                                console.log("Position:", el.getBoundingClientRect());
+                                console.log("Parent container:", el.parentElement);
                               }
                             }}
                           >
