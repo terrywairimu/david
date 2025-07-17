@@ -501,11 +501,11 @@ input[type="text"]:focus, input[type="tel"]:focus, select:focus {
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(0, 0, 0, 0.85) !important;
     backdrop-filter: blur(10px) !important;
     border-radius: 24px !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
 }
 
 .modal-header {
@@ -687,7 +687,7 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-body {
-    color: white;
+    color: white !important;
     background: transparent !important;
 }
 
@@ -721,17 +721,24 @@ input:checked + .toggle-slider:before {
 .modal-body input[type="text"],
 .modal-body input[type="tel"],
 .modal-body input[type="number"],
-.modal-body select {
-    color: var(--text-primary);
-    background: white;
+.modal-body input[type="date"],
+.modal-body select,
+.modal-body .form-control,
+.modal-body .form-select {
+    color: var(--text-primary) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
 }
 
 /* Ensure client search results are visible in modal */
 .modal-body .client-search-results {
     display: none;
-    background: white;
-    color: rgb(0, 0, 0);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: rgb(0, 0, 0) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
 .modal-body .client-search-results .dropdown-item {
@@ -1358,16 +1365,54 @@ input:checked + .toggle-slider:before {
     border-radius: 2px;
 }
 .supplier-dropdown:hover {
-background: var(--primary-gradient) !important;
+    background: var(--primary-gradient) !important;
 }
 
 .supplier-dropdown:hover i {
-color: white !important;
+    color: white !important;
 }
+
 .item-dropdown:hover {
-background: var(--primary-gradient) !important;
+    background: var(--primary-gradient) !important;
 }
 
 .item-dropdown:hover i {
-color: white !important;
+    color: white !important;
+}
+
+/* Purchase Modal Specific Dropdown Styles */
+.modal-body .dropdown-menu {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    z-index: 1060 !important;
+}
+
+.modal-body .dropdown-menu .dropdown-item {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+.modal-body .dropdown-menu .dropdown-item:hover {
+    background: rgba(99, 102, 241, 0.1) !important;
+    color: var(--text-primary) !important;
+}
+
+.modal-body .supplier-list {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    z-index: 1060 !important;
+}
+
+.modal-body .supplier-list .dropdown-item {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+.modal-body .supplier-list .dropdown-item:hover {
+    background: rgba(99, 102, 241, 0.1) !important;
+    color: var(--text-primary) !important;
 }

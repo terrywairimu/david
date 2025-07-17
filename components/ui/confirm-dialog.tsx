@@ -43,7 +43,9 @@ export default function ConfirmDialog({
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">{title}</h5>
-              <button type="button" className="btn-close" onClick={onCancel}></button>
+              <button type="button" className="btn-close" onClick={onCancel}>
+                <i className="fas fa-times"></i>
+              </button>
             </div>
             <div className="modal-body">
               <p className="mb-0">{message}</p>

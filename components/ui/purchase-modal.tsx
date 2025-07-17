@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { X, Plus, Search, Truck, Box } from "lucide-react"
+import { X, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
@@ -97,6 +97,36 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       fetchPurchasePriceHistory()
     }
   }, [isOpen, mode, purchase])
+
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      
+      // Close supplier dropdown if clicking outside
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(target)) {
+        setShowSupplierResults(false)
+      }
+      
+      // Close item dropdowns if clicking outside
+      Object.values(itemDropdownRefs.current).forEach((ref, index) => {
+        if (ref && !ref.contains(target)) {
+          setItems(prevItems => prevItems.map((item, i) => 
+            i === index ? { ...item, showDropdown: false } : item
+          ))
+        }
+      })
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [isOpen])
+
+  const supplierDropdownRef = useRef<HTMLDivElement>(null)
 
   const resetForm = () => {
     const today = new Date().toISOString().split('T')[0]
@@ -425,7 +455,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <button
               className="btn btn-outline-secondary border-0 item-dropdown"
               type="button"
-              onClick={() => updateItem(item.id, "showDropdown", !item.showDropdown)}
+              onClick={() => {
+                setItemSearchTerm("")  // Clear search to show all items
+                updateItem(item.id, "showDropdown", !item.showDropdown)
+              }}
               style={{
                 borderRadius: "0 16px 16px 0",
                 height: "45px",
@@ -434,7 +467,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 transition: "all 0.3s ease"
               }}
             >
-              <Box size={16} style={{ color: "#6c757d" }} />
+              <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
             </button>
             {item.showDropdown && (
               <ul
@@ -523,7 +556,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               onClick={() => removeItem(item.id)}
               style={{ borderRadius: "8px" }}
             >
-              <X size={16} />
+                                  <i className="fas fa-times"></i>
             </button>
           </div>
         </div>
@@ -536,12 +569,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   return (
     <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
       <div className="modal-dialog modal-lg">
-        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+                  <div className="modal-content">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">
               {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
             </h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+            <button type="button" className="btn-close" onClick={onClose}>
+              <i className="fas fa-times"></i>
+            </button>
           </div>
           <div className="modal-body pt-2">
             <form className="needs-validation" noValidate>
@@ -581,7 +616,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <button
                       className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
-                      onClick={() => setShowSupplierResults(!showSupplierResults)}
+                      onClick={() => {
+                        setSupplierSearchTerm("")  // Clear search to show all suppliers
+                        setShowSupplierResults(!showSupplierResults)
+                      }}
                       style={{
                         borderRadius: "0 16px 16px 0",
                         height: "45px",
@@ -590,7 +628,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         transition: "all 0.3s ease"
                       }}
                     >
-                      <Truck size={16} style={{ color: "#6c757d" }} />
+                      <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
                     </button>
                     {showSupplierResults && (
                       <ul
@@ -682,9 +720,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   type="button"
                   className="btn btn-outline-primary"
                   onClick={addItem}
-                  style={{ borderRadius: "16px" }}
                 >
-                  <Plus size={16} className="me-2" />
+                  <i className="fas fa-plus me-2"></i>
                   Add Item
                 </button>
               </div>
@@ -704,7 +741,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               type="button"
               className="btn btn-secondary"
               onClick={onClose}
-              style={{ borderRadius: "16px" }}
             >
               Cancel
             </button>
@@ -713,7 +749,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               className="btn btn-primary"
               onClick={handleSave}
               disabled={loading}
-              style={{ borderRadius: "16px" }}
             >
               {loading ? "Saving..." : "Save Purchase"}
             </button>

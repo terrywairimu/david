@@ -263,7 +263,9 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
               type="button"
               className="btn-close"
               onClick={onClose}
-            ></button>
+            >
+              <i className="fas fa-times"></i>
+            </button>
           </div>
           <div className="modal-body">
             <form className="a4-document">
