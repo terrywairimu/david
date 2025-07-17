@@ -94,7 +94,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         newFilteredItems[item.id] = stockItems.filter(stockItem => 
           stockItem.name.toLowerCase().includes(search.toLowerCase()) ||
           stockItem.description?.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.code?.toLowerCase().includes(search.toLowerCase())
+          stockItem.sku?.toLowerCase().includes(search.toLowerCase())
         )
       }
     })
@@ -592,7 +592,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                     <div className="d-flex justify-content-between align-items-center">
                                       <div>
                                         <strong>{stockItem.name}</strong>
-                                        <div className="small text-dark">{stockItem.code} - {stockItem.description}</div>
+                                        <div className="small text-dark">{stockItem.sku} - {stockItem.description}</div>
                                       </div>
                                       <div className="small text-dark">KES {stockItem.unit_price?.toFixed(2) || '0.00'}</div>
                                     </div>
