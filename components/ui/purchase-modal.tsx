@@ -470,22 +470,23 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             >
               <i className="fas fa-box" style={{ color: "#6c757d" }}></i>
             </button>
-            {item.showDropdown && (
-              <ul
-                className="dropdown-menu show w-100 position-absolute"
-                style={{
-                  top: "100%",
-                  left: 0,
-                  zIndex: 1050,
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  background: "white",
-                  border: "1px solid #dee2e6",
-                  borderRadius: "0.375rem",
-                  boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
-                  marginTop: "2px"
-                }}
-              >
+            <ul
+              className="dropdown-menu w-100"
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 1050,
+                maxHeight: "200px",
+                overflowY: "auto",
+                background: "white",
+                border: "1px solid #dee2e6",
+                borderRadius: "0.375rem",
+                boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
+                marginTop: "2px",
+                display: item.showDropdown ? "block" : "none"
+              }}
+            >
                 {filteredStockItems.map((stockItem) => (
                   <li key={stockItem.id}>
                     <button
@@ -520,7 +521,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </li>
                 ))}
               </ul>
-            )}
           </div>
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "6px" }}>
@@ -557,7 +557,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           />
         </div>
         <div className="col-md-2" style={{ paddingLeft: "6px", paddingRight: "12px" }}>
-          <div className="d-flex align-items-center h-100">
+          <div className="d-flex align-items-center h-100 justify-content-between">
             <span className="me-2">KES {item.total_price.toFixed(2)}</span>
             <button
               type="button"
@@ -568,22 +568,22 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 console.log('Delete button clicked for item:', item.id)
                 removeItem(item.id)
               }}
-              style={{ borderRadius: "8px" }}
+              style={{ borderRadius: "8px", minWidth: "35px", height: "35px" }}
             >
-                                  <i className="fas fa-times"></i>
+              <i className="fas fa-times"></i>
             </button>
-          </div>
-        </div>
+                  </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   if (!isOpen) return null
 
   return (
     <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
       <div className="modal-dialog modal-lg">
-                  <div className="modal-content">
+                  <div className="modal-content" style={{ overflow: "visible" }}>
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">
               {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
@@ -592,7 +592,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <div className="modal-body pt-2">
+          <div className="modal-body pt-2" style={{ overflow: "visible" }}>
             <form className="needs-validation" noValidate>
               <div className="row mb-3">
                 <div className="col-md-6">
@@ -651,25 +651,25 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     >
                       <i className="fas fa-truck" style={{ color: "#6c757d" }}></i>
                     </button>
-                    {showSupplierResults && (
-                      <ul
-                        className="dropdown-menu show supplier-list"
-                        style={{
-                          width: "100%",
-                          maxHeight: "300px",
-                          overflowY: "auto",
-                          overflowX: "hidden",
-                          marginTop: "2px",
-                          position: "absolute",
-                          top: "100%",
-                          left: 0,
-                          zIndex: 1050,
-                          background: "white",
-                          border: "1px solid #dee2e6",
-                          borderRadius: "0.375rem",
-                          boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)"
-                        }}
-                      >
+                    <ul
+                      className="dropdown-menu supplier-list"
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        width: "100%",
+                        maxHeight: "300px",
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        marginTop: "2px",
+                        zIndex: 1050,
+                        background: "white",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "0.375rem",
+                        boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
+                        display: showSupplierResults ? "block" : "none"
+                      }}
+                    >
                         {suppliers
                           .filter(s => s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()))
                           .map((supplier) => (
@@ -704,7 +704,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             </li>
                           ))}
                       </ul>
-                    )}
                   </div>
                 </div>
               </div>
