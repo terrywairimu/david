@@ -44,9 +44,12 @@ const PortalDropdown: React.FC<{
     }
   }, [isVisible, triggerRef])
 
+  const dropdownRef = useRef<HTMLUListElement>(null)
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node) && 
+          dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         onClose()
       }
     }
@@ -61,6 +64,7 @@ const PortalDropdown: React.FC<{
 
   return createPortal(
     <ul 
+      ref={dropdownRef}
       style={{
         position: 'fixed',
         top: position.top,
@@ -343,16 +347,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   }
 
   const handleSupplierSelect = (supplier: RegisteredEntity) => {
+    console.log("Supplier selected:", supplier.name)
     setSupplierId(supplier.id)
     setSupplierName(supplier.name)
     setSupplierSearch(supplier.name)
     setSupplierDropdownVisible(false)
+    console.log("Supplier search updated to:", supplier.name)
   }
 
   const handleItemSelect = (itemId: number, stockItem: StockItem) => {
+    console.log("Item selected:", stockItem.name, "for item ID:", itemId)
     updateItem(itemId, 'stock_item_id', stockItem.id)
     setItemSearches(prev => ({ ...prev, [itemId]: stockItem.name }))
     setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
+    console.log("Item search updated to:", stockItem.name)
   }
 
   const handleSave = async () => {
@@ -481,6 +489,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                 className="dropdown-item"
                                 onClick={(e) => {
                                   e.preventDefault()
+                                  e.stopPropagation()
                                   handleSupplierSelect(supplier)
                                 }}
                               >
@@ -598,13 +607,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                     className="dropdown-item"
                                     onClick={(e) => {
                                       e.preventDefault()
+                                      e.stopPropagation()
                                       handleItemSelect(item.id, stockItem)
                                     }}
                                   >
                                     <div className="d-flex justify-content-between align-items-center">
                                       <div>
                                         <strong>{stockItem.name}</strong>
-                                        <div className="small text-dark">{stockItem.sku} - {stockItem.description}</div>
+                                        <div className="small text-dark">Code: {stockItem.sku}</div>
                                       </div>
                                       <div className="small text-dark">KES {stockItem.unit_price?.toFixed(2) || '0.00'}</div>
                                     </div>
