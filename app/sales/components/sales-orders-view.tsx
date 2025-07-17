@@ -66,6 +66,27 @@ const SalesOrdersView = () => {
   useEffect(() => {
     fetchSalesOrders()
     fetchClients()
+    
+    // Set up real-time subscription for sales orders
+    const salesOrdersSubscription = supabase
+      .channel('sales_orders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_orders' }, (payload) => {
+        console.log('Sales orders change detected:', payload)
+        fetchSalesOrders() // Refresh sales orders when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_order_items' }, (payload) => {
+        console.log('Sales order items change detected:', payload)
+        fetchSalesOrders() // Refresh sales orders when items change
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(salesOrdersSubscription)
+    }
   }, [])
 
   const fetchSalesOrders = async () => {

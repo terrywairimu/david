@@ -30,6 +30,27 @@ const InvoicesView: React.FC = () => {
   useEffect(() => {
     fetchInvoices()
     fetchClients()
+    
+    // Set up real-time subscription for invoices
+    const invoicesSubscription = supabase
+      .channel('invoices_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, (payload) => {
+        console.log('Invoices change detected:', payload)
+        fetchInvoices() // Refresh invoices when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_items' }, (payload) => {
+        console.log('Invoice items change detected:', payload)
+        fetchInvoices() // Refresh invoices when items change
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(invoicesSubscription)
+    }
   }, [])
 
   const fetchInvoices = async () => {

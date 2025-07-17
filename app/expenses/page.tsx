@@ -17,10 +17,22 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchData()
     
-    // Set up real-time updates
-    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
-    
-    return () => clearInterval(interval)
+    // Set up real-time subscription for expenses
+    const expensesSubscription = supabase
+      .channel('expenses_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
+        console.log('Expenses change detected:', payload)
+        fetchExpenses() // Refresh expenses when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(expensesSubscription)
+    }
   }, [])
 
   const fetchData = async () => {

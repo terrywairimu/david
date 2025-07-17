@@ -29,6 +29,27 @@ const CashSalesView: React.FC = () => {
   useEffect(() => {
     fetchCashSales()
     fetchClients()
+    
+    // Set up real-time subscription for cash sales
+    const cashSalesSubscription = supabase
+      .channel('cash_sales_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_sales' }, (payload) => {
+        console.log('Cash sales change detected:', payload)
+        fetchCashSales() // Refresh cash sales when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_sale_items' }, (payload) => {
+        console.log('Cash sale items change detected:', payload)
+        fetchCashSales() // Refresh cash sales when items change
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(cashSalesSubscription)
+    }
   }, [])
 
   const fetchCashSales = async () => {

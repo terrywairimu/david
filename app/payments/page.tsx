@@ -20,10 +20,26 @@ export default function PaymentsPage() {
   useEffect(() => {
     fetchData()
     
-    // Set up real-time updates
-    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
-    
-    return () => clearInterval(interval)
+    // Set up real-time subscription for payments
+    const paymentsSubscription = supabase
+      .channel('payments_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+        console.log('Payments change detected:', payload)
+        fetchPayments() // Refresh payments when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, (payload) => {
+        console.log('Invoices change detected:', payload)
+        fetchInvoices() // Refresh invoices when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(paymentsSubscription)
+    }
   }, [])
 
   const fetchData = async () => {

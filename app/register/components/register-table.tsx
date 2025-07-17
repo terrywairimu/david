@@ -38,6 +38,19 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
 
   useEffect(() => {
     fetchEntities()
+    
+    // Set up real-time subscription for registered entities
+    const entitiesSubscription = supabase
+      .channel('registered_entities_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchEntities() // Refresh entities when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(entitiesSubscription)
+    }
   }, [refreshTrigger])
 
   const fetchEntities = async () => {

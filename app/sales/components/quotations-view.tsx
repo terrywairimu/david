@@ -65,6 +65,27 @@ const QuotationsView = () => {
   useEffect(() => {
     fetchQuotations()
     fetchClients()
+    
+    // Set up real-time subscription for quotations
+    const quotationsSubscription = supabase
+      .channel('quotations_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quotations' }, (payload) => {
+        console.log('Quotations change detected:', payload)
+        fetchQuotations() // Refresh quotations when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quotation_items' }, (payload) => {
+        console.log('Quotation items change detected:', payload)
+        fetchQuotations() // Refresh quotations when items change
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(quotationsSubscription)
+    }
   }, [])
 
   const fetchQuotations = async () => {
