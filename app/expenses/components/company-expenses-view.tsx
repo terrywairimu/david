@@ -153,10 +153,10 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
 
   return (
     <div className="card">
-      <div className="card-body">
+      <div>
         {/* Add New Company Expense Button */}
-        <div className="d-flex mb-4">
-          <button className="btn btn-add" onClick={handleNewExpense}>
+        <div className="d-flex mb-3">
+          <button className="btn-add" onClick={handleNewExpense}>
           <Plus size={16} className="me-2" />
             Add New Company Expense
           </button>
@@ -261,26 +261,6 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
             )}
           </tbody>
         </table>
-        </div>
-
-        {/* Expense Summary */}
-        <div className="row mt-4">
-          <div className="col-md-6 offset-md-6">
-            <div className="card">
-              <div className="card-body">
-                <div className="d-flex justify-content-between">
-                  <span className="fw-bold">Total Company Expenses:</span>
-                  <span className="fw-bold text-danger">
-                    KES {filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span>Count:</span>
-                  <span>{filteredExpenses.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Expense Modal */}

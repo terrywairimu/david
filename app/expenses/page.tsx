@@ -114,10 +114,9 @@ export default function ExpensesPage() {
             Company Expenses
           </button>
         </SectionHeader>
-      </div>
-
-      {/* Active View Content */}
+        {/* Active View Content */}
       {renderActiveView()}
+      </div>
     </div>
   )
 }

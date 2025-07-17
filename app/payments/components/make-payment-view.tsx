@@ -250,25 +250,8 @@ const MakePaymentView = ({ clients, invoices, payments, onRefresh }: MakePayment
           </table>
         </div>
 
-        {/* Payment Summary */}
-        <div className="row mt-4">
-          <div className="col-md-6 offset-md-6">
-            <div className="card">
-              <div className="card-body">
-                <div className="d-flex justify-content-between">
-                  <span className="fw-bold">Total Payments:</span>
-                  <span className="fw-bold text-success">
-                    KES {filteredPayments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span>Count:</span>
-                  <span>{filteredPayments.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        
+        
       </div>
 
       {/* Payment Modal */}

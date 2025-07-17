@@ -339,7 +339,7 @@ const StockPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div>
         <div className="card">
           <SectionHeader 
             title="Stock Management" 
@@ -354,7 +354,7 @@ const StockPage = () => {
             </button>
           </SectionHeader>
 
-          <div className="card-body">
+          <div>
             {/* Stock Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div

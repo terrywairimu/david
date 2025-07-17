@@ -115,7 +115,7 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
   }, {} as Record<string, number>)
 
   return (
-    <div className="card-body">
+    <div>
       {/* Summary Cards */}
       <div className="row mb-4">
         <div className="col-md-3">
