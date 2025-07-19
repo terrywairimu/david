@@ -220,9 +220,9 @@ const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExp
                         ? "No client expenses found matching your criteria"
                         : "No client expenses found"}
                     </div>
-                  </td>
-                </tr>
-              ) : (
+                </td>
+              </tr>
+            ) : (
               filteredExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td className="fw-bold">{expense.expense_number}</td>

@@ -139,18 +139,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog modal-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
+    <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
+      <div className="modal-dialog modal-lg">
+        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">
               {mode === "create" ? "Make Payment" : mode === "edit" ? "Edit Payment" : "View Payment"}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}>
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
-          <div className="modal-body">
+          <div className="modal-body pt-2">
             <form id="paymentForm" onSubmit={handleSubmit}>
               <div className="row mb-3">
                 <div className="col-md-6">

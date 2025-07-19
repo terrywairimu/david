@@ -172,7 +172,7 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
         {/* Add New Company Expense Button */}
         <div className="d-flex mb-3">
           <button className="btn-add" onClick={handleNewExpense}>
-            <Plus size={16} className="me-2" />
+          <Plus size={16} className="me-2" />
             Add New Company Expense
           </button>
         </div>
@@ -208,15 +208,15 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
           <thead>
             <tr>
               <th>Expense #</th>
-              <th>Date</th>
+                <th>Date</th>
               <th>Department</th>
               <th>Category</th>
               <th>Description</th>
-              <th>Unit</th>
-              <th>Quantity</th>
-              <th>Rate</th>
+                <th>Unit</th>
+                <th>Quantity</th>
+                <th>Rate</th>
               <th>Amount</th>
-              <th>Account Debited</th>
+                <th>Account Debited</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -235,8 +235,8 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
                         ? "No company expenses found matching your criteria"
                         : "No company expenses found"}
                     </div>
-                  </td>
-                </tr>
+                </td>
+              </tr>
             ) : (
               filteredExpenses.map((expense) => (
                 <tr key={expense.id}>
@@ -244,17 +244,17 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
                   <td>{new Date(expense.date_created).toLocaleDateString()}</td>
                   <td>{expense.department || "-"}</td>
                   <td>
-                    <span className="badge bg-secondary">{expense.category}</span>
-                  </td>
-                  <td>{expense.description || "-"}</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td className="fw-bold text-danger">
-                    KES {expense.amount.toFixed(2)}
-                  </td>
-                  <td>{expense.account_debited || "-"}</td>
-                  <td>
+                      <span className="badge bg-secondary">{expense.category}</span>
+                    </td>
+                    <td>{expense.description || "-"}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td className="fw-bold text-danger">
+                      KES {expense.amount.toFixed(2)}
+                    </td>
+                    <td>{expense.account_debited || "-"}</td>
+                    <td>
                       <div className="d-flex gap-1">
                         <button
                           className="btn btn-sm action-btn"

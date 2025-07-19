@@ -137,7 +137,7 @@ export default function ExpensesPage() {
         
         {/* Active View Content */}
         <div className="card-body p-0">
-          {renderActiveView()}
+      {renderActiveView()}
         </div>
       </div>
     </div>

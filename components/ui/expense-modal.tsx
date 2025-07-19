@@ -225,50 +225,50 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog modal-lg" onClick={e => e.stopPropagation()}>
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
+    <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
+      <div className="modal-dialog modal-lg">
+        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">
               {expenseType === "client" ? "Add New Client Expenses" : "Add New Company Expenses"}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}>
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
-          <div className="modal-body">
+          <div className="modal-body pt-2">
             <form id="expenseForm" onSubmit={handleSubmit}>
               {expenseType === "client" ? (
                 <>
                   {/* Client Selection Section */}
                   <div className="mb-4">
                     <div className="row">
-                      <div className="col-md-6">
-                        <label className="form-label">Client</label>
-                        <div className="position-relative">
+                <div className="col-md-6">
+                    <label className="form-label">Client</label>
+                    <div className="position-relative">
                           <div className="input-group shadow-sm">
-                            <input 
-                              type="text" 
+                        <input
+                          type="text"
                               className="form-control border-0" 
-                              placeholder="Search client..."
-                              value={clientSearch}
+                          placeholder="Search client..."
+                          value={clientSearch}
                               onChange={(e) => setClientSearch(e.target.value)}
-                              onFocus={() => setShowClientDropdown(true)}
+                          onFocus={() => setShowClientDropdown(true)}
                               style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px" }}
                               autoComplete="off"
-                              required
+                          required
                               disabled={mode === "view"}
-                            />
-                            <button 
+                        />
+                        <button
                               className="btn btn-light border-0 dropdown-toggle" 
-                              type="button"
-                              onClick={() => setShowClientDropdown(!showClientDropdown)}
+                          type="button"
+                          onClick={() => setShowClientDropdown(!showClientDropdown)}
                               style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
                               disabled={mode === "view"}
-                            >
+                        >
                               <User size={16} className="text-muted" />
-                            </button>
-                          </div>
+                        </button>
+                      </div>
                           {showClientDropdown && mode !== "view" && (
                             <div 
                               className="shadow-sm"
@@ -286,23 +286,23 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                               }}
                             >
                               {filteredClients.map((client) => (
-                                <div
-                                  key={client.id}
-                                  className="dropdown-item"
-                                  onClick={() => handleClientSelect(client)}
+                            <div
+                              key={client.id}
+                              className="dropdown-item"
+                              onClick={() => handleClientSelect(client)}
                                   style={{ cursor: "pointer", padding: "10px 15px" }}
-                                >
+                            >
                                   <strong>{client.name}</strong>
                                   <div className="small text-muted">
                                     {client.phone && `${client.phone} • `}
                                     {client.location}
-                                  </div>
-                                </div>
-                              ))}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
                       <div className="col-md-6">
                         <label className="form-label">Quotation</label>
                         <select 
@@ -340,22 +340,22 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           ))}
                         </select>
                       </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Category</label>
-                        <select 
+                <div className="col-md-6">
+                  <label className="form-label">Category</label>
+                  <select
                           className="form-select border-0 shadow-sm"
-                          value={formData.category}
-                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                           style={{ borderRadius: "16px", height: "45px" }}
-                          required
+                    required
                           disabled={mode === "view"}
-                        >
-                          <option value="">Select Category</option>
+                  >
+                    <option value="">Select Category</option>
                           {companyCategories.map(cat => (
                             <option key={cat.value} value={cat.value}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
+                    ))}
+                  </select>
+                </div>
                     </div>
                   </div>
                 </>
@@ -364,17 +364,17 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               {/* Expense Details Section */}
               <div className="mb-4">
                 <div className="row">
-                  <div className="col-md-6">
+                <div className="col-md-6">
                     <label className="form-label">Date</label>
-                    <input 
+                  <input
                       type="date" 
                       className="form-control border-0 shadow-sm"
                       value={formData.date_created}
                       onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
                       style={{ borderRadius: "16px", height: "45px" }}
-                      required
+                    required
                       disabled={mode === "view"}
-                    />
+                  />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Account Debited</label>
@@ -393,7 +393,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     </select>
                   </div>
                 </div>
-              </div>
+                </div>
 
               {/* Expense Items Section */}
               <div className="mb-4">
@@ -403,8 +403,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     <div key={item.id} className="expense-item mb-3">
                       <div className="row g-3">
                         <div className="col-md-4">
-                          <input 
-                            type="text" 
+                  <input
+                    type="text"
                             className="form-control border-0 shadow-sm"
                             placeholder="Description"
                             value={item.description}
@@ -412,11 +412,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             style={{ borderRadius: "16px", height: "45px" }}
                             required
                             disabled={mode === "view"}
-                          />
-                        </div>
+                  />
+                </div>
                         <div className="col-md-2">
-                          <input 
-                            type="text" 
+                  <input
+                    type="text"
                             className="form-control border-0 shadow-sm"
                             placeholder="Unit"
                             value={item.unit}
@@ -482,7 +482,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     <Plus size={16} className="me-2" />Add Item
                   </button>
                 )}
-              </div>
+                </div>
 
               {/* Total Section */}
               <div className="row mb-3">
@@ -507,7 +507,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 </div>
               </div>
             </form>
-          </div>
+            </div>
           <div className="modal-footer border-0">
             <button 
               type="button" 
@@ -518,17 +518,17 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               Close
             </button>
             {mode !== "view" && (
-              <button 
-                type="submit" 
-                className="btn btn-add"
+                <button
+                  type="submit"
+                  className="btn btn-add"
                 form="expenseForm"
-                disabled={loading}
+                  disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}
-              >
+                >
                 {loading ? "Saving..." : "Save Expense"}
               </button>
             )}
-          </div>
+            </div>
         </div>
       </div>
     </div>

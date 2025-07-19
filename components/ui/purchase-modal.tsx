@@ -353,7 +353,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
           
-          return updatedItem
+        return updatedItem
       }
       return item
     })
@@ -815,7 +815,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         readOnly
                         style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right" }}
                       />
-                    </div>
+                  </div>
                 </div>
               </div>
             </form>

@@ -270,23 +270,23 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
               )}
             </tbody>
           </table>
-        </div>
+      </div>
 
-        {/* Payment Modal */}
-        {showPaymentModal && (
-          <PaymentModal
-            payment={selectedPayment}
-            mode={modalMode}
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          payment={selectedPayment}
+          mode={modalMode}
             onClose={() => {
               setShowPaymentModal(false)
               setSelectedPayment(null)
               setModalMode("create")
             }}
-            onSave={handleSavePayment}
-            clients={clients}
-            invoices={invoices}
-          />
-        )}
+          onSave={handleSavePayment}
+          clients={clients}
+          invoices={invoices}
+        />
+      )}
       </div>
     </div>
   )
