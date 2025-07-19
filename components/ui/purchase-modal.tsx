@@ -117,6 +117,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [filteredStockItems, setFilteredStockItems] = useState<{[key: number]: StockItem[]}>({})
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
   const [priceInputFocused, setPriceInputFocused] = useState<{[key: number]: boolean}>({})
+  const [rawQuantityValues, setRawQuantityValues] = useState<{[key: number]: string}>({})
+  const [rawPriceValues, setRawPriceValues] = useState<{[key: number]: string}>({})
 
   // Refs for dropdown positioning
   const supplierInputRef = useRef<HTMLDivElement>(null)
@@ -225,6 +227,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setFilteredStockItems({})
     setQuantityInputFocused({})
     setPriceInputFocused({})
+    setRawQuantityValues({})
+    setRawPriceValues({})
   }
 
   const createNewItem = (): PurchaseItem => {
@@ -387,6 +391,19 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       const newFocused = { ...prev }
       delete newFocused[itemId]
       return newFocused
+    })
+    
+    // Clean up raw value states
+    setRawQuantityValues(prev => {
+      const newRaw = { ...prev }
+      delete newRaw[itemId]
+      return newRaw
+    })
+    
+    setRawPriceValues(prev => {
+      const newRaw = { ...prev }
+      delete newRaw[itemId]
+      return newRaw
     })
   }
 
@@ -688,13 +705,29 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         <input
                           type="number"
                           className="form-control border-0 shadow-sm"
-                          value={quantityInputFocused[item.id] ? item.quantity : (item.quantity === 1 ? '' : item.quantity)}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                          value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : (item.quantity === 1 ? '' : item.quantity)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setRawQuantityValues(prev => ({ ...prev, [item.id]: value }))
+                            // Allow empty value temporarily, don't force default
+                            if (value === '') {
+                              // Keep the current quantity for calculations but allow empty display
+                              return
+                            }
+                            updateItem(item.id, 'quantity', parseInt(value) || 1)
+                          }}
                           onFocus={(e) => {
                             setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }))
+                            setRawQuantityValues(prev => ({ ...prev, [item.id]: item.quantity.toString() }))
                             e.target.select()
                           }}
-                          onBlur={(e) => setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))}
+                          onBlur={(e) => {
+                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))
+                            const value = e.target.value
+                            // Apply default only on blur if empty
+                            const finalValue = value === '' ? 1 : parseInt(value) || 1
+                            updateItem(item.id, 'quantity', finalValue)
+                          }}
                           placeholder="Qty"
                           min="1"
                           style={{ borderRadius: "16px", height: "45px" }}
@@ -705,13 +738,29 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           type="number"
                           step="0.01"
                           className="form-control border-0 shadow-sm"
-                          value={priceInputFocused[item.id] ? item.unit_price : (item.unit_price === 0 ? '' : item.unit_price)}
-                          onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                          value={priceInputFocused[item.id] ? (rawPriceValues[item.id] ?? item.unit_price) : (item.unit_price === 0 ? '' : item.unit_price)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setRawPriceValues(prev => ({ ...prev, [item.id]: value }))
+                            // Allow empty value temporarily, don't force default
+                            if (value === '') {
+                              // Keep the current price for calculations but allow empty display
+                              return
+                            }
+                            updateItem(item.id, 'unit_price', parseFloat(value) || 0)
+                          }}
                           onFocus={(e) => {
                             setPriceInputFocused(prev => ({ ...prev, [item.id]: true }))
+                            setRawPriceValues(prev => ({ ...prev, [item.id]: item.unit_price.toString() }))
                             e.target.select()
                           }}
-                          onBlur={(e) => setPriceInputFocused(prev => ({ ...prev, [item.id]: false }))}
+                          onBlur={(e) => {
+                            setPriceInputFocused(prev => ({ ...prev, [item.id]: false }))
+                            const value = e.target.value
+                            // Apply default only on blur if empty
+                            const finalValue = value === '' ? 0 : parseFloat(value) || 0
+                            updateItem(item.id, 'unit_price', finalValue)
+                          }}
                           placeholder="Unit Price"
                           min="0"
                           style={{ borderRadius: "16px", height: "45px" }}
