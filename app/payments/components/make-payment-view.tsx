@@ -8,11 +8,15 @@ import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPayments } from "@/lib/workflow-utils"
 import PaymentModal from "@/components/ui/payment-modal"
 
-const MakePaymentView = () => {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [clients, setClients] = useState<RegisteredEntity[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
+interface MakePaymentViewProps {
+  clients: RegisteredEntity[]
+  invoices: Invoice[]
+  payments: Payment[]
+  loading: boolean
+  onRefresh: () => void
+}
+
+const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: MakePaymentViewProps) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -25,100 +29,8 @@ const MakePaymentView = () => {
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
-    fetchData()
-    
-    // Set up real-time subscription for payments
-    const paymentsSubscription = supabase
-      .channel('make_payment_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
-        console.log('Payments change detected:', payload)
-        fetchPayments() // Refresh payments when changes occur
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
-        console.log('Registered entities change detected:', payload)
-        fetchClients() // Refresh clients when changes occur
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, (payload) => {
-        console.log('Invoices change detected:', payload)
-        fetchInvoices() // Refresh invoices when changes occur
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(paymentsSubscription)
-    }
-  }, [])
-
-  useEffect(() => {
     setupClientOptions()
   }, [clients])
-
-  const fetchData = async () => {
-    await Promise.all([fetchPayments(), fetchClients(), fetchInvoices()])
-    setLoading(false)
-  }
-
-  const fetchPayments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("payments")
-        .select(`
-          *,
-          client:registered_entities(*),
-          invoice:invoices(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching payments:", error)
-        toast.error("Failed to load payments")
-      } else {
-        setPayments(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching payments:", error)
-      toast.error("Failed to load payments")
-    }
-  }
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("*")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) {
-        console.error("Error fetching clients:", error)
-      } else {
-        setClients(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching clients:", error)
-    }
-  }
-
-  const fetchInvoices = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("*")
-        .order("date_created", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching invoices:", error)
-      } else {
-        setInvoices(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching invoices:", error)
-    }
-  }
-
-  const handleRefresh = () => {
-    fetchData()
-  }
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -222,7 +134,7 @@ const MakePaymentView = () => {
         if (error) throw error
 
         toast.success("Payment deleted successfully")
-        handleRefresh()
+        onRefresh()
       } catch (error) {
         console.error("Error deleting payment:", error)
         toast.error("Failed to delete payment")
@@ -235,24 +147,11 @@ const MakePaymentView = () => {
   }
 
   const handleSavePayment = (payment: any) => {
-    handleRefresh()
+    onRefresh()
     setShowPaymentModal(false)
   }
 
   const filteredPayments = getFilteredPayments()
-
-  if (loading) {
-    return (
-      <div className="card">
-        <div className="text-center py-5">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3 text-muted">Loading payments...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="card">
@@ -298,7 +197,13 @@ const MakePaymentView = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPayments.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-4">
+                    <div className="text-muted">Loading payments...</div>
+                  </td>
+                </tr>
+              ) : filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-4">
                     <div className="text-muted">

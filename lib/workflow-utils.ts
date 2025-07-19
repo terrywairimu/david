@@ -62,9 +62,9 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 export const exportQuotations = async (quotations: any[]) => {
   try {
     // Dynamic import for jsPDF
-const { jsPDF } = await import('jspdf')
-require('jspdf-autotable')
-
+    const { jsPDF } = await import('jspdf')
+    require('jspdf-autotable')
+    
 const doc = new jsPDF() as any as any
     
     // Add title

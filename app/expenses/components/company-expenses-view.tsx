@@ -8,10 +8,14 @@ import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportCompanyExpenses } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
-const CompanyExpensesView = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [clients, setClients] = useState<RegisteredEntity[]>([])
-  const [loading, setLoading] = useState(true)
+interface CompanyExpensesViewProps {
+  expenses: Expense[]
+  clients: RegisteredEntity[]
+  loading: boolean
+  onRefresh: () => void
+}
+
+const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyExpensesViewProps) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -25,78 +29,8 @@ const CompanyExpensesView = () => {
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
-    fetchData()
-    
-    // Set up real-time subscription for company expenses
-    const expensesSubscription = supabase
-      .channel('company_expenses_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
-        console.log('Company expenses change detected:', payload)
-        fetchExpenses() // Refresh expenses when changes occur
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
-        console.log('Registered entities change detected:', payload)
-        fetchClients() // Refresh clients when changes occur
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(expensesSubscription)
-    }
-  }, [])
-
-  useEffect(() => {
     setupClientOptions()
   }, [clients])
-
-  const fetchData = async () => {
-    await Promise.all([fetchExpenses(), fetchClients()])
-    setLoading(false)
-  }
-
-  const fetchExpenses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select(`
-          *,
-          client:registered_entities(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching expenses:", error)
-        toast.error("Failed to load expenses")
-      } else {
-        setExpenses(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching expenses:", error)
-      toast.error("Failed to load expenses")
-    }
-  }
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("*")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) {
-        console.error("Error fetching clients:", error)
-      } else {
-        setClients(data || [])
-      }
-    } catch (error) {
-      console.error("Error fetching clients:", error)
-    }
-  }
-
-  const handleRefresh = () => {
-    fetchData()
-  }
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -213,7 +147,7 @@ const CompanyExpensesView = () => {
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        handleRefresh()
+        onRefresh()
       } catch (error) {
         console.error("Error deleting expense:", error)
         toast.error("Failed to delete expense")
@@ -226,22 +160,11 @@ const CompanyExpensesView = () => {
   }
 
   const handleSaveExpense = (expense: any) => {
-    handleRefresh()
+    onRefresh()
     setShowExpenseModal(false)
   }
 
   const filteredExpenses = getFilteredExpenses()
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <p className="mt-3 text-muted">Loading company expenses...</p>
-      </div>
-    )
-  }
 
   return (
     <div className="card">
@@ -249,7 +172,7 @@ const CompanyExpensesView = () => {
         {/* Add New Company Expense Button */}
         <div className="d-flex mb-3">
           <button className="btn-add" onClick={handleNewExpense}>
-          <Plus size={16} className="me-2" />
+            <Plus size={16} className="me-2" />
             Add New Company Expense
           </button>
         </div>
@@ -262,7 +185,7 @@ const CompanyExpensesView = () => {
           firstFilter={{
             value: categoryFilter,
             onChange: setCategoryFilter,
-            options: categories,
+            options: categories.map(cat => ({ value: cat.value, label: cat.label })),
             placeholder: "All Categories"
           }}
           dateFilter={{
@@ -276,7 +199,7 @@ const CompanyExpensesView = () => {
             periodEndDate
           }}
           onExport={handleExport}
-          exportLabel="Export"
+          exportLabel="Export Company Expenses"
         />
 
         {/* Company Expenses Table */}
@@ -298,7 +221,13 @@ const CompanyExpensesView = () => {
             </tr>
           </thead>
           <tbody>
-              {filteredExpenses.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="text-center py-4">
+                    <div className="text-muted">Loading company expenses...</div>
+                  </td>
+                </tr>
+              ) : filteredExpenses.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="text-center py-4">
                     <div className="text-muted">

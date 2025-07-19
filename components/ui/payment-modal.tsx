@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Search, Plus, Minus } from "lucide-react"
+import { X, Search, ChevronDown } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generatePaymentNumber } from "@/lib/workflow-utils"
@@ -74,6 +74,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setFilteredClients(filtered)
   }, [clientSearch, clients])
 
+  const handleClientSelect = (client: any) => {
+    setClientSearch(client.name)
+    setFormData(prev => ({ ...prev, client_id: client.id.toString() }))
+    setShowClientDropdown(false)
+  }
+
+  const toggleClientDropdown = () => {
+    setShowClientDropdown(!showClientDropdown)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -120,33 +130,28 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       }
 
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving payment:", error)
-      toast.error("Failed to save payment")
+      toast.error(error.message || "Failed to save payment")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClientSelect = (client: any) => {
-    setFormData(prev => ({ ...prev, client_id: client.id.toString() }))
-    setClientSearch(client.name)
-    setShowClientDropdown(false)
-  }
-
-  const isReadOnly = mode === "view"
-
   return (
-    <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-lg">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-dialog modal-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">Make Payment</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+            <h5 className="modal-title">
+              {mode === "create" ? "Make Payment" : mode === "edit" ? "Edit Payment" : "View Payment"}
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose}>
+              <X size={16} />
+            </button>
           </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="modal-body">
+          <div className="modal-body">
+            <form id="paymentForm" onSubmit={handleSubmit}>
               <div className="row mb-3">
                 <div className="col-md-6">
                   <div className="position-relative">
@@ -154,46 +159,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="client-search-wrapper">
                       <div className="input-group">
                         <span className="input-group-text">
-                          <i className="fas fa-search"></i>
+                          <Search size={16} />
                         </span>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Search client..."
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Search client..." 
                           value={clientSearch}
-                          onChange={(e) => {
-                            setClientSearch(e.target.value)
-                            setShowClientDropdown(true)
-                          }}
+                          onChange={(e) => setClientSearch(e.target.value)}
                           onFocus={() => setShowClientDropdown(true)}
-                          disabled={isReadOnly}
-                          required
-                          autoComplete="off"
+                          autoComplete="off" 
+                          required 
+                          disabled={mode === "view"}
                         />
-                        <button
-                          className="btn btn-light"
-                          type="button"
-                          onClick={() => setShowClientDropdown(!showClientDropdown)}
-                          disabled={isReadOnly}
+                        <button 
+                          className="btn btn-light" 
+                          type="button" 
+                          onClick={toggleClientDropdown}
+                          disabled={mode === "view"}
                         >
-                          <i className="fas fa-chevron-down"></i>
+                          <ChevronDown size={16} />
                         </button>
                       </div>
-                      {showClientDropdown && !isReadOnly && (
+                      {showClientDropdown && mode !== "view" && (
                         <div className="client-search-results">
-                          {filteredClients.map(client => (
+                          {filteredClients.map((client) => (
                             <div
                               key={client.id}
                               className="dropdown-item"
                               onClick={() => handleClientSelect(client)}
-                              style={{ cursor: "pointer" }}
                             >
-                              <div className="fw-bold">{client.name}</div>
-                              <div className="text-muted small">
-                                {client.phone} • {client.location}
+                              <div>
+                                <strong>{client.name}</strong>
+                                <div className="small text-muted">
+                                  {client.phone && `${client.phone} • `}
+                                  {client.location}
+                                </div>
                               </div>
                             </div>
                           ))}
+                          {filteredClients.length === 0 && (
+                            <div className="dropdown-item">
+                              <div className="text-muted">No clients found</div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -201,13 +210,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">Payment Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
+                  <input 
+                    type="date" 
+                    className="form-control" 
                     value={formData.date_created}
                     onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
-                    disabled={isReadOnly}
                     required
+                    disabled={mode === "view"}
                   />
                 </div>
               </div>
@@ -231,45 +240,49 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   <tbody>
                     <tr>
                       <td>
-                        <input
-                          type="text"
-                          className="form-control"
+                        <input 
+                          type="text" 
+                          className="form-control" 
                           value={formData.description}
                           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                          disabled={isReadOnly}
                           required
+                          disabled={mode === "view"}
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-control"
+                        <input 
+                          type="number" 
+                          className="form-control" 
                           step="0.01"
                           value={formData.amount}
                           onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                          disabled={isReadOnly}
                           required
+                          disabled={mode === "view"}
                         />
                       </td>
                       <td>
-                        <select
+                        <select 
                           className="form-select"
                           value={formData.paid_to}
                           onChange={(e) => setFormData(prev => ({ ...prev, paid_to: e.target.value }))}
-                          disabled={isReadOnly}
                           required
+                          disabled={mode === "view"}
                         >
                           <option value="">Select Quotation</option>
-                          {/* Add quotation options here */}
+                          {invoices.map((invoice) => (
+                            <option key={invoice.id} value={invoice.invoice_number}>
+                              {invoice.invoice_number}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td>
-                        <select
+                        <select 
                           className="form-select"
                           value={formData.account_credited}
                           onChange={(e) => setFormData(prev => ({ ...prev, account_credited: e.target.value }))}
-                          disabled={isReadOnly}
                           required
+                          disabled={mode === "view"}
                         >
                           <option value="">Select Account</option>
                           <option value="kim">Kim</option>
@@ -281,23 +294,23 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   </tbody>
                 </table>
               </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Close
+            </form>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Close
+            </button>
+            {mode !== "view" && (
+              <button 
+                type="submit" 
+                className="btn btn-add"
+                form="paymentForm"
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save Payment"}
               </button>
-              {!isReadOnly && (
-                <button
-                  type="submit"
-                  className="btn btn-add"
-                  disabled={loading}
-                >
-                  {loading ? "Saving..." : "Save Payment"}
-                </button>
-              )}
-            </div>
-          </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

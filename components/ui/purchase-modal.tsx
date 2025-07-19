@@ -235,10 +235,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     const newId = Date.now() + Math.random()
     return {
       id: newId,
-      stock_item_id: null,
+      stock_item_id: null, 
       stock_item: null,
-      quantity: 1,
-      unit_price: 0,
+      quantity: 1, 
+      unit_price: 0, 
       total_price: 0
     }
   }
@@ -290,7 +290,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     
     if (purchase.items && purchase.items.length > 0) {
       setItems(purchase.items.map((item: any) => ({
-        id: item.id || Date.now(),
+      id: item.id || Date.now(),
         stock_item_id: item.stock_item_id,
         stock_item: item.stock_item,
         quantity: item.quantity || 1,
@@ -354,9 +354,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           }
           
           return updatedItem
-        }
-        return item
-      })
+      }
+      return item
+    })
     )
   }
 
@@ -477,34 +477,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   return (
     <>
       <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
-        <div className="modal-dialog modal-lg">
+      <div className="modal-dialog modal-lg">
           <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-            <div className="modal-header border-0 pb-0">
-              <h5 className="modal-title fw-bold">
-                {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
-              </h5>
-              <button type="button" className="btn-close" onClick={onClose}>
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">
+              {mode === "create" ? "Add New Purchase" : mode === "edit" ? "Edit Purchase" : "View Purchase"}
+            </h5>
+            <button type="button" className="btn-close" onClick={onClose}>
                 <X size={18} />
-              </button>
-            </div>
+            </button>
+          </div>
             
-            <div className="modal-body pt-2">
-              <form className="needs-validation" noValidate>
+          <div className="modal-body pt-2">
+            <form className="needs-validation" noValidate>
                 {/* Basic Information */}
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label htmlFor="purchaseDate" className="form-label">Purchase Date</label>
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm"
-                      id="purchaseDate"
-                      value={purchaseDate}
-                      onChange={(e) => setPurchaseDate(e.target.value)}
-                      required
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                  </div>
-                  <div className="col-md-6">
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label htmlFor="purchaseDate" className="form-label">Purchase Date</label>
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    id="purchaseDate"
+                    value={purchaseDate}
+                    onChange={(e) => setPurchaseDate(e.target.value)}
+                    required
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  />
+                </div>
+                <div className="col-md-6">
                     <label htmlFor="supplier" className="form-label">Supplier</label>
                     <div className="input-group shadow-sm supplier-search-container" style={{ position: "relative" }} ref={supplierInputRef}>
                     <input
@@ -520,7 +520,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
                     />
                     <button
-                        className="btn btn-outline-secondary border-0 supplier-dropdown"
+                      className="btn btn-outline-secondary border-0 supplier-dropdown"
                       type="button"
                         onClick={() => {
                           setSupplierDropdownVisible(!supplierDropdownVisible)
@@ -569,46 +569,46 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           ))
                         ) : (
                           <li><span className="dropdown-item">No suppliers found</span></li>
-                        )}
+                    )}
                       </PortalDropdown>
                     </div>
                   </div>
                 </div>
 
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label htmlFor="purchaseOrderNumber" className="form-label">Purchase Order Number</label>
-                    <input
-                      type="text"
-                      className="form-control border-0 shadow-sm"
-                      id="purchaseOrderNumber"
-                      value={purchaseOrderNumber}
-                      readOnly
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
-                    <select
-                      className="form-select border-0 shadow-sm"
-                      id="paymentMethod"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      required
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <option value="">Select Payment Method</option>
-                      <option value="David">David</option>
-                      <option value="bank">Bank Transfer</option>
-                      <option value="Kim">Kim</option>
-                      <option value="credit">Credit</option>
-                    </select>
-                  </div>
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label htmlFor="purchaseOrderNumber" className="form-label">Purchase Order Number</label>
+                  <input
+                    type="text"
+                    className="form-control border-0 shadow-sm"
+                    id="purchaseOrderNumber"
+                    value={purchaseOrderNumber}
+                    readOnly
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  />
                 </div>
+                <div className="col-md-6">
+                  <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    id="paymentMethod"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    required
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">Select Payment Method</option>
+                    <option value="David">David</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="Kim">Kim</option>
+                    <option value="credit">Credit</option>
+                  </select>
+                </div>
+              </div>
 
                 {/* Items Section */}
-                <div className="mb-3">
-                  <label className="form-label">Items</label>
+              <div className="mb-3">
+                <label className="form-label">Items</label>
                   
                   {/* Items Header */}
                   <div className="row mb-2">
@@ -784,16 +784,16 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
                   {/* Add Item Button */}
                   <div className="text-start mb-3">
-                    <button
-                      type="button"
+                <button
+                  type="button"
                       className="btn btn-outline-primary shadow-sm"
-                      onClick={addItem}
+                  onClick={addItem}
                       style={{ borderRadius: "16px", height: "45px" }}
-                    >
+                >
                       <Plus size={16} className="me-2" />
-                      Add Item
-                    </button>
-                  </div>
+                  Add Item
+                </button>
+              </div>
                 </div>
 
                 {/* Total */}
@@ -816,33 +816,33 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right" }}
                       />
                     </div>
-                  </div>
                 </div>
-              </form>
-            </div>
+              </div>
+            </form>
+          </div>
 
-            <div className="modal-footer border-0">
-              <button
-                type="button"
+          <div className="modal-footer border-0">
+            <button
+              type="button"
                 className="btn btn-secondary"
-                onClick={onClose}
+              onClick={onClose}
                 style={{ borderRadius: "12px", height: "45px" }}
-              >
+            >
                 Close
-              </button>
-              <button
-                type="button"
+            </button>
+            <button
+              type="button"
                 className="btn btn-primary shadow-sm"
-                onClick={handleSave}
-                disabled={loading}
+              onClick={handleSave}
+              disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}
-              >
-                {loading ? "Saving..." : "Save Purchase"}
-              </button>
-            </div>
+            >
+              {loading ? "Saving..." : "Save Purchase"}
+            </button>
           </div>
         </div>
       </div>
+    </div>
       
 
     </>
