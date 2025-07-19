@@ -115,6 +115,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [itemSearches, setItemSearches] = useState<{[key: number]: string}>({})
   const [itemDropdownVisible, setItemDropdownVisible] = useState<{[key: number]: boolean}>({})
   const [filteredStockItems, setFilteredStockItems] = useState<{[key: number]: StockItem[]}>({})
+  const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
+  const [priceInputFocused, setPriceInputFocused] = useState<{[key: number]: boolean}>({})
 
   // Refs for dropdown positioning
   const supplierInputRef = useRef<HTMLDivElement>(null)
@@ -646,6 +648,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                         <strong>{stockItem.name}</strong>
                                       </div>
                                       <div className="small text-muted">Code: {stockItem.sku || `STK${stockItem.id.toString().padStart(4, '0')}`}</div>
+                                      <div className="small text-muted">Last Price: KES {lastPurchasePrices[stockItem.id]?.toFixed(2) || 'N/A'}</div>
                                     </div>
                                   </a>
                                 </li>
@@ -670,9 +673,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         <input
                           type="number"
                           className="form-control border-0 shadow-sm"
-                          value={item.quantity === 1 ? '' : item.quantity}
+                          value={quantityInputFocused[item.id] ? item.quantity : (item.quantity === 1 ? '' : item.quantity)}
                           onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                          onFocus={(e) => e.target.select()}
+                          onFocus={(e) => {
+                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }))
+                            e.target.select()
+                          }}
+                          onBlur={(e) => setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))}
                           placeholder="Qty"
                           min="1"
                           style={{ borderRadius: "16px", height: "45px" }}
@@ -683,9 +690,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           type="number"
                           step="0.01"
                           className="form-control border-0 shadow-sm"
-                          value={item.unit_price === 0 ? '' : item.unit_price}
+                          value={priceInputFocused[item.id] ? item.unit_price : (item.unit_price === 0 ? '' : item.unit_price)}
                           onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                          onFocus={(e) => e.target.select()}
+                          onFocus={(e) => {
+                            setPriceInputFocused(prev => ({ ...prev, [item.id]: true }))
+                            e.target.select()
+                          }}
+                          onBlur={(e) => setPriceInputFocused(prev => ({ ...prev, [item.id]: false }))}
                           placeholder="Unit Price"
                           min="0"
                           style={{ borderRadius: "16px", height: "45px" }}
