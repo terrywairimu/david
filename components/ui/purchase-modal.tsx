@@ -373,6 +373,19 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       delete newVisible[itemId]
       return newVisible
     })
+    
+    // Clean up focus states
+    setQuantityInputFocused(prev => {
+      const newFocused = { ...prev }
+      delete newFocused[itemId]
+      return newFocused
+    })
+    
+    setPriceInputFocused(prev => {
+      const newFocused = { ...prev }
+      delete newFocused[itemId]
+      return newFocused
+    })
   }
 
   const handleSupplierSelect = (supplier: RegisteredEntity) => {
