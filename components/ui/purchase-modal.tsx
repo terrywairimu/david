@@ -223,6 +223,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setItemSearches({})
     setItemDropdownVisible({})
     setFilteredStockItems({})
+    setQuantityInputFocused({})
+    setPriceInputFocused({})
   }
 
   const createNewItem = (): PurchaseItem => {
