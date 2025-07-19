@@ -680,7 +680,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                         <strong>{stockItem.name}</strong>
                                       </div>
                                       <div className="small text-muted">Code: {stockItem.sku || `STK${stockItem.id.toString().padStart(4, '0')}`}</div>
-                                      <div className="small text-muted">Last Price: KES {lastPurchasePrices[stockItem.id]?.toFixed(2) || 'N/A'}</div>
+                                      <div className="small text-muted">Last purchase Price: KES {lastPurchasePrices[stockItem.id]?.toFixed(2) || 'N/A'}</div>
                                     </div>
                                   </a>
                                 </li>
