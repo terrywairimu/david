@@ -390,7 +390,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     }
     
     setItemSearches(prev => ({ ...prev, [itemId]: stockItem.name }))
-    setItemDropdownVisible(prev => ({ ...prev, [item.id]: false }))
+    setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
   }
 
   const handleSave = async () => {
