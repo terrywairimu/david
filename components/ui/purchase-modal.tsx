@@ -107,6 +107,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState("")
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
+  const [lastPurchasePrices, setLastPurchasePrices] = useState<{[key: number]: number}>({})
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
 
@@ -127,6 +128,31 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     return itemInputRefs.current[itemId]
   }
 
+  // Fetch last purchase prices for all stock items
+  const fetchLastPurchasePrices = async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_last_purchase_prices')
+
+      if (error) {
+        console.error("Error fetching last purchase prices:", error)
+        return
+      }
+
+      // Convert to map for easy lookup
+      const pricesMap: {[key: number]: number} = {}
+      if (data) {
+        data.forEach((item: any) => {
+          pricesMap[item.stock_item_id] = parseFloat(item.unit_price)
+        })
+      }
+
+      setLastPurchasePrices(pricesMap)
+    } catch (error) {
+      console.error("Error fetching last purchase prices:", error)
+    }
+  }
+
   // Initialize form
   useEffect(() => {
     if (isOpen) {
@@ -138,6 +164,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       }
       fetchSuppliers()
       fetchStockItems()
+      fetchLastPurchasePrices()
     }
   }, [isOpen, mode, purchase])
 
@@ -305,12 +332,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value }
           
-          // If stock item changed, update the stock_item object and reset price
+          // If stock item changed, update the stock_item object
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
             updatedItem.stock_item = stockItem || null
-            updatedItem.unit_price = 0
-            updatedItem.total_price = 0
+            // Don't reset unit_price here - it's handled by handleItemSelect
+            updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
           
           // Recalculate total price when quantity or unit_price changes
@@ -355,8 +382,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   const handleItemSelect = (itemId: number, stockItem: StockItem) => {
     updateItem(itemId, 'stock_item_id', stockItem.id)
+    
+    // Auto-populate unit price with last purchase price if available
+    const lastPrice = lastPurchasePrices[stockItem.id]
+    if (lastPrice && lastPrice > 0) {
+      updateItem(itemId, 'unit_price', lastPrice)
+    }
+    
     setItemSearches(prev => ({ ...prev, [itemId]: stockItem.name }))
-    setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
+    setItemDropdownVisible(prev => ({ ...prev, [item.id]: false }))
   }
 
   const handleSave = async () => {
