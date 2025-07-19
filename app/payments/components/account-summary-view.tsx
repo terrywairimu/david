@@ -7,13 +7,10 @@ import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPayments } from "@/lib/workflow-utils"
 
-interface AccountSummaryViewProps {
-  clients: RegisteredEntity[]
-  payments: Payment[]
-  onRefresh: () => void
-}
-
-const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryViewProps) => {
+const AccountSummaryView = () => {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [clients, setClients] = useState<RegisteredEntity[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -23,8 +20,74 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
+    fetchData()
+    
+    // Set up real-time subscription for payments
+    const paymentsSubscription = supabase
+      .channel('account_summary_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+        console.log('Payments change detected:', payload)
+        fetchPayments() // Refresh payments when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(paymentsSubscription)
+    }
+  }, [])
+
+  useEffect(() => {
     setupClientOptions()
   }, [clients])
+
+  const fetchData = async () => {
+    await Promise.all([fetchPayments(), fetchClients()])
+    setLoading(false)
+  }
+
+  const fetchPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("payments")
+        .select(`
+          *,
+          client:registered_entities(*)
+        `)
+        .order("date_created", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching payments:", error)
+        toast.error("Failed to load payments")
+      } else {
+        setPayments(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching payments:", error)
+      toast.error("Failed to load payments")
+    }
+  }
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "client")
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching clients:", error)
+      } else {
+        setClients(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error)
+    }
+  }
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -113,6 +176,17 @@ const AccountSummaryView = ({ clients, payments, onRefresh }: AccountSummaryView
     acc[payment.payment_method] = (acc[payment.payment_method] || 0) + payment.amount
     return acc
   }, {} as Record<string, number>)
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3 text-muted">Loading account summary...</p>
+      </div>
+    )
+  }
 
   return (
     <div>

@@ -8,22 +8,103 @@ import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportCompanyExpenses } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
-interface CompanyExpensesViewProps {
-  expenses: Expense[]
-  clients: RegisteredEntity[]
-  onRefresh: () => void
-}
-
-const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesViewProps) => {
+const CompanyExpensesView = () => {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [clients, setClients] = useState<RegisteredEntity[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
   const [specificDate, setSpecificDate] = useState("")
   const [periodStartDate, setPeriodStartDate] = useState("")
   const [periodEndDate, setPeriodEndDate] = useState("")
+  const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
   const [categoryFilter, setCategoryFilter] = useState("")
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+
+  useEffect(() => {
+    fetchData()
+    
+    // Set up real-time subscription for company expenses
+    const expensesSubscription = supabase
+      .channel('company_expenses_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
+        console.log('Company expenses change detected:', payload)
+        fetchExpenses() // Refresh expenses when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(expensesSubscription)
+    }
+  }, [])
+
+  useEffect(() => {
+    setupClientOptions()
+  }, [clients])
+
+  const fetchData = async () => {
+    await Promise.all([fetchExpenses(), fetchClients()])
+    setLoading(false)
+  }
+
+  const fetchExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select(`
+          *,
+          client:registered_entities(*)
+        `)
+        .order("date_created", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching expenses:", error)
+        toast.error("Failed to load expenses")
+      } else {
+        setExpenses(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+      toast.error("Failed to load expenses")
+    }
+  }
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "client")
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching clients:", error)
+      } else {
+        setClients(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error)
+    }
+  }
+
+  const handleRefresh = () => {
+    fetchData()
+  }
+
+  const setupClientOptions = () => {
+    const options = clients.map(client => ({
+      value: client.id.toString(),
+      label: client.name
+    }))
+    setClientOptions(options)
+  }
 
   const categories = [
     { value: "Travel", label: "Travel" },
@@ -132,7 +213,7 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        onRefresh()
+        handleRefresh()
       } catch (error) {
         console.error("Error deleting expense:", error)
         toast.error("Failed to delete expense")
@@ -145,11 +226,22 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
   }
 
   const handleSaveExpense = (expense: any) => {
-    onRefresh()
+    handleRefresh()
     setShowExpenseModal(false)
   }
 
   const filteredExpenses = getFilteredExpenses()
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3 text-muted">Loading company expenses...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="card">
@@ -193,45 +285,47 @@ const CompanyExpensesView = ({ expenses, clients, onRefresh }: CompanyExpensesVi
           <thead>
             <tr>
               <th>Expense #</th>
-                <th>Date</th>
+              <th>Date</th>
+              <th>Department</th>
               <th>Category</th>
               <th>Description</th>
-                <th>Unit</th>
-                <th>Quantity</th>
-                <th>Rate</th>
+              <th>Unit</th>
+              <th>Quantity</th>
+              <th>Rate</th>
               <th>Amount</th>
-                <th>Account Debited</th>
+              <th>Account Debited</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-4">
+                  <td colSpan={11} className="text-center py-4">
                     <div className="text-muted">
                       {searchTerm || categoryFilter || dateFilter
                         ? "No company expenses found matching your criteria"
                         : "No company expenses found"}
                     </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
             ) : (
               filteredExpenses.map((expense) => (
                 <tr key={expense.id}>
                   <td className="fw-bold">{expense.expense_number}</td>
                   <td>{new Date(expense.date_created).toLocaleDateString()}</td>
+                  <td>{expense.department || "-"}</td>
                   <td>
-                      <span className="badge bg-secondary">{expense.category}</span>
-                    </td>
-                    <td>{expense.description || "-"}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td className="fw-bold text-danger">
-                      KES {expense.amount.toFixed(2)}
-                    </td>
-                    <td>{expense.account_debited || "-"}</td>
-                    <td>
+                    <span className="badge bg-secondary">{expense.category}</span>
+                  </td>
+                  <td>{expense.description || "-"}</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td className="fw-bold text-danger">
+                    KES {expense.amount.toFixed(2)}
+                  </td>
+                  <td>{expense.account_debited || "-"}</td>
+                  <td>
                       <div className="d-flex gap-1">
                         <button
                           className="btn btn-sm action-btn"

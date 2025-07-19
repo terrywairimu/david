@@ -8,13 +8,10 @@ import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportClientExpenses } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
-interface ClientExpensesViewProps {
-  expenses: Expense[]
-  clients: RegisteredEntity[]
-  onRefresh: () => void
-}
-
-const ClientExpensesView = ({ expenses, clients, onRefresh }: ClientExpensesViewProps) => {
+const ClientExpensesView = () => {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [clients, setClients] = useState<RegisteredEntity[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -27,8 +24,78 @@ const ClientExpensesView = ({ expenses, clients, onRefresh }: ClientExpensesView
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
 
   useEffect(() => {
+    fetchData()
+    
+    // Set up real-time subscription for client expenses
+    const expensesSubscription = supabase
+      .channel('client_expenses_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
+        console.log('Client expenses change detected:', payload)
+        fetchExpenses() // Refresh expenses when changes occur
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Registered entities change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(expensesSubscription)
+    }
+  }, [])
+
+  useEffect(() => {
     setupClientOptions()
   }, [clients])
+
+  const fetchData = async () => {
+    await Promise.all([fetchExpenses(), fetchClients()])
+    setLoading(false)
+  }
+
+  const fetchExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select(`
+          *,
+          client:registered_entities(*)
+        `)
+        .order("date_created", { ascending: false })
+
+      if (error) {
+        console.error("Error fetching expenses:", error)
+        toast.error("Failed to load expenses")
+      } else {
+        setExpenses(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+      toast.error("Failed to load expenses")
+    }
+  }
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "client")
+        .order("name")
+
+      if (error) {
+        console.error("Error fetching clients:", error)
+      } else {
+        setClients(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error)
+    }
+  }
+
+  const handleRefresh = () => {
+    fetchData()
+  }
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -132,7 +199,7 @@ const ClientExpensesView = ({ expenses, clients, onRefresh }: ClientExpensesView
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        onRefresh()
+        handleRefresh()
       } catch (error) {
         console.error("Error deleting expense:", error)
         toast.error("Failed to delete expense")
@@ -145,11 +212,22 @@ const ClientExpensesView = ({ expenses, clients, onRefresh }: ClientExpensesView
   }
 
   const handleSaveExpense = (expense: any) => {
-    onRefresh()
+    handleRefresh()
     setShowExpenseModal(false)
   }
 
   const filteredExpenses = getFilteredExpenses()
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3 text-muted">Loading client expenses...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="card">

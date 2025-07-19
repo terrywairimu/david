@@ -300,6 +300,7 @@ export interface Expense {
   expense_number: string
   client_id?: number
   category: string
+  department?: string
   amount: number
   description?: string
   receipt_number?: string
