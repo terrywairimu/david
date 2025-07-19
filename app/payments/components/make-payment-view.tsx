@@ -156,6 +156,14 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
   return (
     <div className="card">
       <div>
+        {/* Add New Payment Button */}
+        <div className="d-flex mb-3">
+          <button className="btn-add" onClick={() => setShowPaymentModal(true)}>
+            <Plus size={16} className="me-2" />
+            Add New Payment
+          </button>
+        </div>
+
         {/* Enhanced Search and Filter Row */}
         <SearchFilterRow
           searchValue={searchTerm}
@@ -217,7 +225,7 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
                 filteredPayments.map((payment) => (
                   <tr key={payment.id}>
                     <td className="fw-bold">{payment.payment_number}</td>
-                    <td>{payment.client?.name || "Unknown"}</td>
+                    <td>{payment.client?.name || "-"}</td>
                     <td>{new Date(payment.date_created).toLocaleDateString()}</td>
                     <td>{payment.paid_to || "-"}</td>
                     <td>{payment.description || "-"}</td>
@@ -242,11 +250,18 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
                           <Edit size={14} />
                         </button>
                         <button
-                          className="btn btn-sm action-btn"
+                          className="btn btn-sm action-btn text-danger"
                           onClick={() => handleDeletePayment(payment)}
                           title="Delete"
                         >
                           <Trash2 size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleExport()}
+                          title="Download"
+                        >
+                          <Download size={14} />
                         </button>
                       </div>
                     </td>
@@ -257,21 +272,22 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
           </table>
         </div>
 
-        
-        
+        {/* Payment Modal */}
+        {showPaymentModal && (
+          <PaymentModal
+            payment={selectedPayment}
+            mode={modalMode}
+            onClose={() => {
+              setShowPaymentModal(false)
+              setSelectedPayment(null)
+              setModalMode("create")
+            }}
+            onSave={handleSavePayment}
+            clients={clients}
+            invoices={invoices}
+          />
+        )}
       </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <PaymentModal
-          payment={selectedPayment}
-          mode={modalMode}
-          onClose={() => setShowPaymentModal(false)}
-          onSave={handleSavePayment}
-          clients={clients}
-          invoices={invoices}
-        />
-      )}
     </div>
   )
 }
