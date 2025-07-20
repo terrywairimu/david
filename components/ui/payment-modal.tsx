@@ -31,7 +31,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     amount: "",
     paid_to: "",
     account_credited: "",
-    status: "completed"
+    status: "completed",
+    payment_method: "cash"
   })
   const [loading, setLoading] = useState(false)
   const [clientSearch, setClientSearch] = useState("")
@@ -51,7 +52,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         amount: payment.amount?.toString() || "",
         paid_to: payment.paid_to || "",
         account_credited: payment.account_credited || "",
-        status: payment.status || "completed"
+        status: payment.status || "completed",
+        payment_method: payment.payment_method || "cash"
       })
       
       // Set client search to selected client name
@@ -150,12 +152,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     try {
       const paymentData = {
-        ...formData,
+        payment_number: formData.payment_number,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
+        description: formData.description,
         amount: parseFloat(formData.amount),
+        paid_to: formData.paid_to || null,
+        account_credited: formData.account_credited,
+        status: formData.status,
+        payment_method: formData.payment_method,
         date_created: new Date(formData.date_created).toISOString(),
-        // Allow paid_to to be null if not selected
-        paid_to: formData.paid_to || null
+        date_paid: new Date(formData.date_created).toISOString()
       }
 
       if (mode === "create") {
@@ -308,7 +314,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                           value={clientSearch}
                           onChange={(e) => setClientSearch(e.target.value)}
                           onFocus={() => setShowClientDropdown(true)}
-                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px" }}
+                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
                           autoComplete="off"
                           required
                           disabled={mode === "view"}
@@ -344,10 +350,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                               key={client.id}
                               className="dropdown-item"
                               onClick={() => handleClientSelect(client)}
-                              style={{ cursor: "pointer", padding: "10px 15px" }}
+                              style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
                             >
-                              <strong>{client.name}</strong>
-                              <div className="small text-muted">
+                              <strong style={{ color: "#000000" }}>{client.name}</strong>
+                              <div className="small" style={{ color: "#6c757d" }}>
                                 {client.phone && `${client.phone} • `}
                                 {client.location}
                               </div>
@@ -377,16 +383,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <div className="row">
                   <div className="col-md-6">
                     <label className="form-label">Description</label>
-                    <input 
-                      type="text" 
-                      className="form-control border-0 shadow-sm"
-                      placeholder="Enter payment description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                      required
-                      disabled={mode === "view"}
-                    />
+                                            <input 
+                          type="text" 
+                          className="form-control border-0 shadow-sm"
+                          placeholder="Enter payment description"
+                          value={formData.description}
+                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                          required
+                          disabled={mode === "view"}
+                        />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Amount</label>
@@ -405,7 +411,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         min="0"
                         value={formData.amount}
                         onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                        style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px", color: "#000000" }}
                         required
                         disabled={mode === "view"}
                       />
@@ -419,13 +425,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <div className="row">
                   <div className="col-md-6">
                     <label className="form-label">Paid To (Optional)</label>
-                    <select 
-                      className="form-select border-0 shadow-sm"
-                      value={formData.paid_to}
-                      onChange={(e) => setFormData(prev => ({ ...prev, paid_to: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                      disabled={mode === "view"}
-                    >
+                                          <select 
+                        className="form-select border-0 shadow-sm"
+                        value={formData.paid_to}
+                        onChange={(e) => setFormData(prev => ({ ...prev, paid_to: e.target.value }))}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        disabled={mode === "view"}
+                      >
                       <option value="">Select Quotation/Order/Invoice (Optional)</option>
                       {availableDocuments.map((doc) => (
                         <option key={doc.id} value={doc.number}>
@@ -440,7 +446,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       className="form-select border-0 shadow-sm"
                       value={formData.account_credited}
                       onChange={(e) => setFormData(prev => ({ ...prev, account_credited: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px" }}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                       disabled={mode === "view"}
                     >

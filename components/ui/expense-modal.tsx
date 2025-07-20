@@ -347,7 +347,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           value={clientSearch}
                               onChange={(e) => setClientSearch(e.target.value)}
                           onFocus={() => setShowClientDropdown(true)}
-                              style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px" }}
+                              style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
                               autoComplete="off"
                           required
                               disabled={mode === "view"}
@@ -383,10 +383,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                               key={client.id}
                               className="dropdown-item"
                               onClick={() => handleClientSelect(client)}
-                                  style={{ cursor: "pointer", padding: "10px 15px" }}
+                                  style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
                             >
-                                  <strong>{client.name}</strong>
-                                  <div className="small text-muted">
+                                  <strong style={{ color: "#000000" }}>{client.name}</strong>
+                                  <div className="small" style={{ color: "#6c757d" }}>
                                     {client.phone && `${client.phone} • `}
                                     {client.location}
                               </div>
@@ -402,7 +402,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           className="form-select border-0 shadow-sm"
                           value={selectedQuotation}
                           onChange={(e) => setSelectedQuotation(e.target.value)}
-                          style={{ borderRadius: "16px", height: "45px" }}
+                          style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                           required
                           disabled={mode === "view"}
                         >
@@ -423,7 +423,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           className="form-select border-0 shadow-sm"
                           value={formData.department}
                           onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                          style={{ borderRadius: "16px", height: "45px" }}
+                          style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                           required
                           disabled={mode === "view"}
                         >
@@ -439,7 +439,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           className="form-select border-0 shadow-sm"
                     value={formData.category}
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                          style={{ borderRadius: "16px", height: "45px" }}
+                          style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                     required
                           disabled={mode === "view"}
                   >
@@ -464,7 +464,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       className="form-control border-0 shadow-sm"
                       value={formData.date_created}
                       onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px" }}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                     required
                       disabled={mode === "view"}
                   />
@@ -475,7 +475,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       className="form-select border-0 shadow-sm"
                       value={formData.account_debited}
                       onChange={(e) => setFormData(prev => ({ ...prev, account_debited: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px" }}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                       disabled={mode === "view"}
                     >
@@ -502,7 +502,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             placeholder="Description"
                             value={item.description}
                             onChange={(e) => updateExpenseItem(item.id, 'description', e.target.value)}
-                            style={{ borderRadius: "16px", height: "45px" }}
+                            style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
                             disabled={mode === "view"}
                   />
@@ -514,7 +514,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             placeholder="Unit"
                             value={item.unit}
                             onChange={(e) => updateExpenseItem(item.id, 'unit', e.target.value)}
-                            style={{ borderRadius: "16px", height: "45px" }}
+                            style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
                             disabled={mode === "view"}
                           />
@@ -545,7 +545,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                               const finalValue = value === '' ? 1 : parseInt(value) || 1
                               updateExpenseItem(item.id, 'quantity', finalValue)
                             }}
-                            style={{ borderRadius: "16px", height: "45px" }}
+                            style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
                             disabled={mode === "view"}
                           />
@@ -574,10 +574,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             onBlur={(e) => {
                               setRateInputFocused(prev => ({ ...prev, [item.id]: false }))
                               const value = e.target.value
-                              const finalValue = value === '' ? 0 : parseFloat(value) || 0
+                              const finalValue = value === '' ? 0 : parseFloat(value) || 1
                               updateExpenseItem(item.id, 'rate', finalValue)
                             }}
-                            style={{ borderRadius: "16px", height: "45px" }}
+                            style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
                             disabled={mode === "view"}
                           />
@@ -630,7 +630,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       className="form-control border-0"
                       value={formData.amount.toFixed(2)}
                       readOnly
-                      style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right" }}
+                      style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
                     />
                   </div>
                 </div>
