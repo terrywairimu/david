@@ -680,7 +680,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                                         <strong>{stockItem.name}</strong>
                                       </div>
                                       <div className="small text-muted">Code: {stockItem.sku || `STK${stockItem.id.toString().padStart(4, '0')}`}</div>
-                                      <div className="small text-muted">Last purchase Price: KES {lastPurchasePrices[stockItem.id]?.toFixed(2) || 'N/A'}</div>
+                                      <div className="small text-muted">Last Price: KES {lastPurchasePrices[stockItem.id]?.toFixed(2) || 'N/A'}</div>
                                     </div>
                                   </a>
                                 </li>
@@ -786,7 +786,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   <div className="text-start mb-3">
                 <button
                   type="button"
-                      className="btn btn-outline-primary shadow-sm"
+                      className="btn-add shadow-sm"
                   onClick={addItem}
                       style={{ borderRadius: "16px", height: "45px" }}
                 >
@@ -832,7 +832,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             </button>
             <button
               type="button"
-                className="btn btn-primary shadow-sm"
+                className="btn-add shadow-sm"
               onClick={handleSave}
               disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}

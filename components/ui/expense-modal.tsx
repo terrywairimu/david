@@ -5,6 +5,7 @@ import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generateExpenseNumber } from "@/lib/workflow-utils"
+import { Expense } from "@/lib/types"
 
 interface ExpenseItem {
   id: number
@@ -237,7 +238,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         date_created: new Date(formData.date_created).toISOString()
       }
 
-      let savedExpense
+      let savedExpense: Expense | null = null
 
       if (mode === "create") {
         const { data, error } = await supabase
@@ -249,24 +250,25 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
           `)
           .single()
 
-        if (error) throw error
+                if (error) throw error
         savedExpense = data
         
         // Save expense items
         const itemsToInsert = expenseItems.map(item => ({
-          expense_id: savedExpense.id,
-          description: item.description,
-          unit: item.unit,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.amount
-        }))
+          expense_id: savedExpense!.id,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            rate: item.rate,
+            amount: item.amount
+          }))
 
-        const { error: itemsError } = await supabase
-          .from("expense_items")
-          .insert(itemsToInsert)
+          const { error: itemsError } = await supabase
+            .from("expense_items")
+            .insert(itemsToInsert)
 
-        if (itemsError) throw itemsError
+          if (itemsError) throw itemsError
+        }
         
         toast.success("Expense created successfully")
       } else if (mode === "edit") {
@@ -307,8 +309,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         toast.success("Expense updated successfully")
       }
 
-      onSave(savedExpense)
-      onClose()
+      if (savedExpense) {
+        onSave(savedExpense)
+        onClose()
+      }
     } catch (error: any) {
       console.error("Error saving expense:", error)
       toast.error(error.message || "Failed to save expense")
@@ -604,7 +608,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 {mode !== "view" && (
                   <button 
                     type="button" 
-                    className="btn btn-add mt-2"
+                    className="btn-add mt-2"
                     onClick={addExpenseItem}
                     style={{ borderRadius: "16px", height: "45px" }}
                   >
@@ -649,7 +653,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
             {mode !== "view" && (
                 <button
                   type="submit"
-                  className="btn btn-add"
+                  className="btn-add"
                 form="expenseForm"
                   disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}

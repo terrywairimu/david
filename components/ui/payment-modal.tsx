@@ -472,7 +472,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             {mode !== "view" && (
               <button 
                 type="submit" 
-                className="btn btn-add"
+                className="btn-add"
                 form="paymentForm"
                 disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}

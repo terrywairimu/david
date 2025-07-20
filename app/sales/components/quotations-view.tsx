@@ -22,11 +22,14 @@ interface Quotation {
   cabinet_total: number
   worktop_total: number
   accessories_total: number
+  appliances_total: number
   labour_percentage: number
   labour_total: number
   total_amount: number
   grand_total: number
+  include_worktop: boolean
   include_accessories: boolean
+  include_appliances: boolean
   status: "pending" | "accepted" | "rejected" | "expired" | "converted_to_sales_order" | "converted_to_cash_sale"
   notes?: string
   terms_conditions?: string
@@ -38,7 +41,7 @@ interface Quotation {
   }
   items?: Array<{
     id: number
-    category: "cabinet" | "worktop" | "accessories"
+    category: "cabinet" | "worktop" | "accessories" | "appliances"
     description: string
     unit: string
     quantity: number
@@ -89,8 +92,8 @@ const QuotationsView = () => {
   }, [])
 
   const fetchQuotations = async () => {
-    setLoading(true)
     try {
+      setLoading(true)
       const { data, error } = await supabase
         .from("quotations")
         .select(`
@@ -103,7 +106,7 @@ const QuotationsView = () => {
       if (error) throw error
       setQuotations(data || [])
     } catch (error) {
-        console.error("Error fetching quotations:", error)
+      console.error("Error fetching quotations:", error)
       toast.error("Failed to load quotations")
     } finally {
       setLoading(false)
@@ -233,21 +236,23 @@ const QuotationsView = () => {
     try {
       if (modalMode === "create") {
         // Create new quotation
-        const { data: newQuotation, error: quotationError } = await supabase
+        const { data: quotation, error: insertError } = await supabase
           .from("quotations")
           .insert({
             quotation_number: quotationData.quotation_number,
             client_id: quotationData.client_id,
             date_created: quotationData.date_created,
-            valid_until: quotationData.valid_until,
             cabinet_total: quotationData.cabinet_total,
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
+            appliances_total: quotationData.appliances_total,
             labour_percentage: quotationData.labour_percentage,
             labour_total: quotationData.labour_total,
             total_amount: quotationData.total_amount,
             grand_total: quotationData.grand_total,
+            include_worktop: quotationData.include_worktop,
             include_accessories: quotationData.include_accessories,
+            include_appliances: quotationData.include_appliances,
             status: quotationData.status,
             notes: quotationData.notes,
             terms_conditions: quotationData.terms_conditions
@@ -255,12 +260,12 @@ const QuotationsView = () => {
           .select()
           .single()
 
-        if (quotationError) throw quotationError
+        if (insertError) throw insertError
 
         // Insert quotation items
         if (quotationData.items && quotationData.items.length > 0) {
           const quotationItems = quotationData.items.map((item: any) => ({
-            quotation_id: newQuotation.id,
+            quotation_id: quotation.id,
             category: item.category,
             description: item.description,
             unit: item.unit,
@@ -285,15 +290,17 @@ const QuotationsView = () => {
           .update({
             client_id: quotationData.client_id,
             date_created: quotationData.date_created,
-            valid_until: quotationData.valid_until,
             cabinet_total: quotationData.cabinet_total,
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
+            appliances_total: quotationData.appliances_total,
             labour_percentage: quotationData.labour_percentage,
             labour_total: quotationData.labour_total,
             total_amount: quotationData.total_amount,
             grand_total: quotationData.grand_total,
+            include_worktop: quotationData.include_worktop,
             include_accessories: quotationData.include_accessories,
+            include_appliances: quotationData.include_appliances,
             status: quotationData.status,
             notes: quotationData.notes,
             terms_conditions: quotationData.terms_conditions
@@ -334,6 +341,7 @@ const QuotationsView = () => {
       }
 
       fetchQuotations()
+      setShowModal(false)
     } catch (error) {
       console.error("Error saving quotation:", error)
       toast.error("Failed to save quotation")
