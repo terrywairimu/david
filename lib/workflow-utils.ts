@@ -4,27 +4,37 @@ import { toast } from "sonner"
 // Number generation functions
 export const generatePaymentNumber = async () => {
   try {
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2) // Last 2 digits
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const prefix = `PN${year}${month}`
+    
     const { data, error } = await supabase
       .from('payments')
       .select('payment_number')
-      .order('id', { ascending: false })
+      .like('payment_number', `PN${year}${month}%`)
+      .order('payment_number', { ascending: false })
       .limit(1)
     
     if (error) throw error
     
     if (data && data.length > 0) {
       const lastNumber = data[0].payment_number
-      const match = lastNumber.match(/PAY-(\d+)/)
-      if (match) {
-        const nextNumber = parseInt(match[1]) + 1
-        return `PAY-${nextNumber.toString().padStart(4, '0')}`
-      }
+      // Extract the sequential part from PNYYMMNNN format
+      const sequentialPart = lastNumber.slice(-3)
+      const nextNumber = parseInt(sequentialPart) + 1
+      return `${prefix}${nextNumber.toString().padStart(3, '0')}`
     }
     
-    return 'PAY-0001'
+    // First payment of the month
+    return `${prefix}001`
   } catch (error) {
     console.error('Error generating payment number:', error)
-    return `PAY-${Date.now().toString().slice(-4)}`
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2)
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const timestamp = Date.now().toString().slice(-3)
+    return `PN${year}${month}${timestamp}`
   }
 }
 

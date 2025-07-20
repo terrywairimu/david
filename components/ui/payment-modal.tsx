@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Search, ChevronDown } from "lucide-react"
+import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generatePaymentNumber } from "@/lib/workflow-utils"
@@ -37,6 +37,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [clientSearch, setClientSearch] = useState("")
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [filteredClients, setFilteredClients] = useState(clients)
+  const [quotations, setQuotations] = useState<any[]>([])
+  const [salesOrders, setSalesOrders] = useState<any[]>([])
+  const [availableDocuments, setAvailableDocuments] = useState<any[]>([])
 
   useEffect(() => {
     if (payment && mode !== "create") {
@@ -74,14 +77,71 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setFilteredClients(filtered)
   }, [clientSearch, clients])
 
+  useEffect(() => {
+    // Load quotations and sales orders for the selected client
+    if (formData.client_id) {
+      loadClientDocuments(parseInt(formData.client_id))
+    }
+  }, [formData.client_id])
+
+  const loadClientDocuments = async (clientId: number) => {
+    try {
+      // Load quotations
+      const { data: quotationsData } = await supabase
+        .from("quotations")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("date_created", { ascending: false })
+
+      // Load sales orders
+      const { data: salesOrdersData } = await supabase
+        .from("sales_orders")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("date_created", { ascending: false })
+
+      // Load invoices
+      const { data: invoicesData } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("date_created", { ascending: false })
+
+      // Combine all documents for paid_to dropdown
+      const allDocuments = [
+        ...(quotationsData || []).map(q => ({ 
+          id: q.quotation_number, 
+          type: 'quotation', 
+          number: q.quotation_number,
+          amount: q.grand_total,
+          date: q.date_created 
+        })),
+        ...(salesOrdersData || []).map(so => ({ 
+          id: so.order_number, 
+          type: 'sales_order', 
+          number: so.order_number,
+          amount: so.grand_total,
+          date: so.date_created 
+        })),
+        ...(invoicesData || []).map(inv => ({ 
+          id: inv.invoice_number, 
+          type: 'invoice', 
+          number: inv.invoice_number,
+          amount: inv.grand_total,
+          date: inv.date_created 
+        }))
+      ]
+
+      setAvailableDocuments(allDocuments)
+    } catch (error) {
+      console.error("Error loading client documents:", error)
+    }
+  }
+
   const handleClientSelect = (client: any) => {
     setClientSearch(client.name)
     setFormData(prev => ({ ...prev, client_id: client.id.toString() }))
     setShowClientDropdown(false)
-  }
-
-  const toggleClientDropdown = () => {
-    setShowClientDropdown(!showClientDropdown)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,6 +154,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
         amount: parseFloat(formData.amount),
         date_created: new Date(formData.date_created).toISOString(),
+        // Allow paid_to to be null if not selected
+        paid_to: formData.paid_to || null
       }
 
       if (mode === "create") {
@@ -102,12 +164,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           .insert([paymentData])
           .select(`
             *,
-            client:registered_entities(*),
-            invoice:invoices(*)
+            client:registered_entities(*)
           `)
           .single()
 
         if (error) throw error
+        
+        // Update related documents if paid_to is specified
+        if (paymentData.paid_to) {
+          await updateRelatedDocuments(paymentData)
+        }
         
         toast.success("Payment created successfully")
         onSave(data)
@@ -118,12 +184,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           .eq("id", payment.id)
           .select(`
             *,
-            client:registered_entities(*),
-            invoice:invoices(*)
+            client:registered_entities(*)
           `)
           .single()
 
         if (error) throw error
+        
+        // Update related documents if paid_to is specified
+        if (paymentData.paid_to) {
+          await updateRelatedDocuments(paymentData)
+        }
         
         toast.success("Payment updated successfully")
         onSave(data)
@@ -135,6 +205,78 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       toast.error(error.message || "Failed to save payment")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updateRelatedDocuments = async (paymentData: any) => {
+    try {
+      const paidTo = paymentData.paid_to
+      const amount = paymentData.amount
+
+      // Update quotations
+      const { data: quotation } = await supabase
+        .from("quotations")
+        .select("*")
+        .eq("quotation_number", paidTo)
+        .single()
+
+      if (quotation) {
+        const totalPaid = (quotation.total_paid || 0) + amount
+        const balance = quotation.grand_total - totalPaid
+        
+        await supabase
+          .from("quotations")
+          .update({
+            total_paid: totalPaid,
+            balance: balance,
+            status: balance <= 0 ? 'paid' : 'pending'
+          })
+          .eq("id", quotation.id)
+      }
+
+      // Update sales orders
+      const { data: salesOrder } = await supabase
+        .from("sales_orders")
+        .select("*")
+        .eq("order_number", paidTo)
+        .single()
+
+      if (salesOrder) {
+        const totalPaid = (salesOrder.total_paid || 0) + amount
+        const balance = salesOrder.grand_total - totalPaid
+        
+        await supabase
+          .from("sales_orders")
+          .update({
+            total_paid: totalPaid,
+            balance: balance,
+            status: balance <= 0 ? 'paid' : 'pending'
+          })
+          .eq("id", salesOrder.id)
+      }
+
+      // Update invoices
+      const { data: invoice } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("invoice_number", paidTo)
+        .single()
+
+      if (invoice) {
+        const totalPaid = (invoice.total_paid || 0) + amount
+        const balance = invoice.grand_total - totalPaid
+        
+        await supabase
+          .from("invoices")
+          .update({
+            total_paid: totalPaid,
+            balance: balance,
+            status: balance <= 0 ? 'paid' : 'pending'
+          })
+          .eq("id", invoice.id)
+      }
+    } catch (error) {
+      console.error("Error updating related documents:", error)
     }
   }
 
@@ -152,152 +294,173 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
           <div className="modal-body pt-2">
             <form id="paymentForm" onSubmit={handleSubmit}>
-              <div className="row mb-3">
-                <div className="col-md-6">
-                  <div className="position-relative">
+              {/* Client Selection Section */}
+              <div className="mb-4">
+                <div className="row">
+                  <div className="col-md-6">
                     <label className="form-label">Client</label>
-                    <div className="client-search-wrapper">
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <Search size={16} />
-                        </span>
+                    <div className="position-relative">
+                      <div className="input-group shadow-sm">
                         <input 
                           type="text" 
-                          className="form-control" 
-                          placeholder="Search client..." 
+                          className="form-control border-0" 
+                          placeholder="Search client..."
                           value={clientSearch}
                           onChange={(e) => setClientSearch(e.target.value)}
                           onFocus={() => setShowClientDropdown(true)}
-                          autoComplete="off" 
-                          required 
+                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px" }}
+                          autoComplete="off"
+                          required
                           disabled={mode === "view"}
                         />
                         <button 
-                          className="btn btn-light" 
-                          type="button" 
-                          onClick={toggleClientDropdown}
+                          className="btn btn-light border-0 dropdown-toggle" 
+                          type="button"
+                          onClick={() => setShowClientDropdown(!showClientDropdown)}
+                          style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
                           disabled={mode === "view"}
                         >
-                          <ChevronDown size={16} />
+                          <User size={16} className="text-muted" />
                         </button>
                       </div>
                       {showClientDropdown && mode !== "view" && (
-                        <div className="client-search-results">
+                        <div 
+                          className="shadow-sm"
+                          style={{
+                            display: "block",
+                            maxHeight: "200px",
+                            overflowY: "auto",
+                            position: "absolute",
+                            width: "100%",
+                            zIndex: 1000,
+                            background: "white",
+                            borderRadius: "16px",
+                            marginTop: "5px",
+                            border: "1px solid #e0e0e0"
+                          }}
+                        >
                           {filteredClients.map((client) => (
                             <div
                               key={client.id}
                               className="dropdown-item"
                               onClick={() => handleClientSelect(client)}
+                              style={{ cursor: "pointer", padding: "10px 15px" }}
                             >
-                              <div>
-                                <strong>{client.name}</strong>
-                                <div className="small text-muted">
-                                  {client.phone && `${client.phone} • `}
-                                  {client.location}
-                                </div>
+                              <strong>{client.name}</strong>
+                              <div className="small text-muted">
+                                {client.phone && `${client.phone} • `}
+                                {client.location}
                               </div>
                             </div>
                           ))}
-                          {filteredClients.length === 0 && (
-                            <div className="dropdown-item">
-                              <div className="text-muted">No clients found</div>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label">Payment Date</label>
-                  <input 
-                    type="date" 
-                    className="form-control" 
-                    value={formData.date_created}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
-                    required
-                    disabled={mode === "view"}
-                  />
+                  <div className="col-md-6">
+                    <label className="form-label">Payment Date</label>
+                    <input 
+                      type="date" 
+                      className="form-control border-0 shadow-sm"
+                      value={formData.date_created}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                      required
+                      disabled={mode === "view"}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="table-responsive">
-                <table className="table table-striped">
-                  <colgroup>
-                    <col style={{ width: "35%" }} />
-                    <col style={{ width: "20%" }} />
-                    <col style={{ width: "25%" }} />
-                    <col style={{ width: "20%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th>Amount</th>
-                      <th>Paid To</th>
-                      <th>Account Credited</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          value={formData.description}
-                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                          required
-                          disabled={mode === "view"}
-                        />
-                      </td>
-                      <td>
-                        <input 
-                          type="number" 
-                          className="form-control" 
-                          step="0.01"
-                          value={formData.amount}
-                          onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                          required
-                          disabled={mode === "view"}
-                        />
-                      </td>
-                      <td>
-                        <select 
-                          className="form-select"
-                          value={formData.paid_to}
-                          onChange={(e) => setFormData(prev => ({ ...prev, paid_to: e.target.value }))}
-                          required
-                          disabled={mode === "view"}
-                        >
-                          <option value="">Select Quotation</option>
-                          {invoices.map((invoice) => (
-                            <option key={invoice.id} value={invoice.invoice_number}>
-                              {invoice.invoice_number}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select 
-                          className="form-select"
-                          value={formData.account_credited}
-                          onChange={(e) => setFormData(prev => ({ ...prev, account_credited: e.target.value }))}
-                          required
-                          disabled={mode === "view"}
-                        >
-                          <option value="">Select Account</option>
-                          <option value="kim">Kim</option>
-                          <option value="david">David</option>
-                          <option value="bank">Bank</option>
-                        </select>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              {/* Payment Details Section */}
+              <div className="mb-4">
+                <div className="row">
+                  <div className="col-md-6">
+                    <label className="form-label">Description</label>
+                    <input 
+                      type="text" 
+                      className="form-control border-0 shadow-sm"
+                      placeholder="Enter payment description"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                      required
+                      disabled={mode === "view"}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Amount</label>
+                    <div className="input-group shadow-sm">
+                      <span 
+                        className="input-group-text border-0"
+                        style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
+                      >
+                        KES
+                      </span>
+                      <input 
+                        type="number" 
+                        className="form-control border-0"
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        value={formData.amount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+                        required
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quotation and Account Section */}
+              <div className="mb-4">
+                <div className="row">
+                  <div className="col-md-6">
+                    <label className="form-label">Paid To (Optional)</label>
+                    <select 
+                      className="form-select border-0 shadow-sm"
+                      value={formData.paid_to}
+                      onChange={(e) => setFormData(prev => ({ ...prev, paid_to: e.target.value }))}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                      disabled={mode === "view"}
+                    >
+                      <option value="">Select Quotation/Order/Invoice (Optional)</option>
+                      {availableDocuments.map((doc) => (
+                        <option key={doc.id} value={doc.number}>
+                          {doc.type === 'quotation' ? 'QT' : doc.type === 'sales_order' ? 'SO' : 'INV'} - {doc.number} (KES {doc.amount?.toFixed(2) || '0.00'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Account Credited</label>
+                    <select 
+                      className="form-select border-0 shadow-sm"
+                      value={formData.account_credited}
+                      onChange={(e) => setFormData(prev => ({ ...prev, account_credited: e.target.value }))}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                      required
+                      disabled={mode === "view"}
+                    >
+                      <option value="">Select Account</option>
+                      <option value="David">David</option>
+                      <option value="Kim">Kim</option>
+                      <option value="bank">Bank</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <div className="modal-footer border-0">
+            <button 
+              type="button" 
+              className="btn btn-secondary"
+              onClick={onClose}
+              style={{ borderRadius: "12px", height: "45px" }}
+            >
               Close
             </button>
             {mode !== "view" && (
@@ -306,6 +469,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 className="btn btn-add"
                 form="paymentForm"
                 disabled={loading}
+                style={{ borderRadius: "12px", height: "45px" }}
               >
                 {loading ? "Saving..." : "Save Payment"}
               </button>
