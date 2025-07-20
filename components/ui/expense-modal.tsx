@@ -525,7 +525,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             className="form-control border-0 shadow-sm"
                             placeholder="Quantity"
                             min="1"
-                            value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : (item.quantity === 1 ? '' : item.quantity)}
+                            value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : item.quantity}
                             onChange={(e) => {
                               const value = e.target.value
                               setRawQuantityValues(prev => ({ ...prev, [item.id]: value }))
@@ -557,7 +557,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             placeholder="Rate"
                             step="0.01"
                             min="0"
-                            value={rateInputFocused[item.id] ? (rawRateValues[item.id] ?? item.rate) : (item.rate === 0 ? '' : item.rate)}
+                            value={rateInputFocused[item.id] ? (rawRateValues[item.id] ?? item.rate) : item.rate}
                             onChange={(e) => {
                               const value = e.target.value
                               setRawRateValues(prev => ({ ...prev, [item.id]: value }))

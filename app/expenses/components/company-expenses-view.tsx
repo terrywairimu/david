@@ -77,9 +77,36 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
     if (items.length === 0) return "-"
     if (items.length === 1) {
       const item = items[0]
-      return `${item.description} (${item.quantity} ${item.unit} @ ${item.rate})`
+      return item.description || "-"
     }
     return `${items.length} items: ${items.map(i => i.description).join(", ")}`
+  }
+
+  const getExpenseUnit = (expenseId: number) => {
+    const items = expenseItems[expenseId] || []
+    if (items.length === 0) return "-"
+    if (items.length === 1) {
+      return items[0].unit || "-"
+    }
+    return `${items.length} items`
+  }
+
+  const getExpenseQuantity = (expenseId: number) => {
+    const items = expenseItems[expenseId] || []
+    if (items.length === 0) return "-"
+    if (items.length === 1) {
+      return items[0].quantity || "-"
+    }
+    return items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+  }
+
+  const getExpenseRate = (expenseId: number) => {
+    const items = expenseItems[expenseId] || []
+    if (items.length === 0) return "-"
+    if (items.length === 1) {
+      return items[0].rate || "-"
+    }
+    return `${items.length} items`
   }
 
   useEffect(() => {
@@ -304,9 +331,9 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
                       <span className="badge bg-secondary">{expense.category}</span>
                     </td>
                     <td>{formatExpenseItems(expense.id)}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
+                    <td>{getExpenseUnit(expense.id)}</td>
+                    <td>{getExpenseQuantity(expense.id)}</td>
+                    <td>{getExpenseRate(expense.id)}</td>
                     <td className="fw-bold text-danger">
                       KES {expense.amount.toFixed(2)}
                     </td>
