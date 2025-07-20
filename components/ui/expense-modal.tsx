@@ -25,14 +25,14 @@ interface ExpenseModalProps {
   expenseType: "client" | "company"
 }
 
-const ExpenseModal: React.FC<ExpenseModalProps> = ({
+const ExpenseModal = ({
   expense,
   mode,
   onClose,
   onSave,
   clients,
   expenseType,
-}) => {
+}: ExpenseModalProps) => {
   const [formData, setFormData] = useState({
     expense_number: "",
     client_id: "",
@@ -256,19 +256,18 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         // Save expense items
         const itemsToInsert = expenseItems.map(item => ({
           expense_id: savedExpense!.id,
-            description: item.description,
-            unit: item.unit,
-            quantity: item.quantity,
-            rate: item.rate,
-            amount: item.amount
-          }))
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount
+        }))
 
-          const { error: itemsError } = await supabase
-            .from("expense_items")
-            .insert(itemsToInsert)
+        const { error: itemsError } = await supabase
+          .from("expense_items")
+          .insert(itemsToInsert)
 
-          if (itemsError) throw itemsError
-        }
+        if (itemsError) throw itemsError
         
         toast.success("Expense created successfully")
       } else if (mode === "edit") {
