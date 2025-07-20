@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { generateExpenseNumber } from "@/lib/workflow-utils"
 
 interface ExpenseItem {
-  id: string
+  id: number
   description: string
   unit: string
   quantity: number
@@ -46,7 +46,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   })
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
     {
-      id: "1",
+      id: 1,
       description: "",
       unit: "",
       quantity: 1,
@@ -59,6 +59,12 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [filteredClients, setFilteredClients] = useState(clients)
   const [selectedQuotation, setSelectedQuotation] = useState("")
+  
+  // Input handling states similar to purchase modal
+  const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
+  const [rateInputFocused, setRateInputFocused] = useState<{[key: number]: boolean}>({})
+  const [rawQuantityValues, setRawQuantityValues] = useState<{[key: number]: string}>({})
+  const [rawRateValues, setRawRateValues] = useState<{[key: number]: string}>({})
 
   const clientCategories = [
     "Travel", "Meals", "Office Supplies", "Marketing", 
@@ -100,6 +106,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         expense_type: expense.expense_type || expenseType
       })
       
+      // Load expense items from expense_items table
+      loadExpenseItems(expense.id)
+      
       // Set client search to selected client name
       if (expense.client_id && expenseType === "client") {
         const selectedClient = clients.find(c => c.id === expense.client_id)
@@ -114,6 +123,31 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       })
     }
   }, [expense, mode, clients, expenseType])
+
+  const loadExpenseItems = async (expenseId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('expense_items')
+        .select('*')
+        .eq('expense_id', expenseId)
+        .order('id', { ascending: true })
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        setExpenseItems(data.map(item => ({
+          id: item.id,
+          description: item.description,
+          unit: item.unit || "",
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount
+        })))
+      }
+    } catch (error) {
+      console.error('Error loading expense items:', error)
+    }
+  }
 
   useEffect(() => {
     // Filter clients based on search
@@ -137,7 +171,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     setShowClientDropdown(false)
   }
 
-  const updateExpenseItem = (id: string, field: keyof ExpenseItem, value: any) => {
+  const updateExpenseItem = (id: number, field: keyof ExpenseItem, value: any) => {
     setExpenseItems(prev => prev.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value }
@@ -155,7 +189,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   const addExpenseItem = () => {
     const newItem: ExpenseItem = {
-      id: Date.now().toString(),
+      id: Date.now(),
       description: "",
       unit: "",
       quantity: 1,
@@ -165,9 +199,30 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     setExpenseItems(prev => [...prev, newItem])
   }
 
-  const removeExpenseItem = (id: string) => {
+  const removeExpenseItem = (id: number) => {
     if (expenseItems.length > 1) {
       setExpenseItems(prev => prev.filter(item => item.id !== id))
+      // Clean up input focus states
+      setQuantityInputFocused(prev => {
+        const newState = { ...prev }
+        delete newState[id]
+        return newState
+      })
+      setRateInputFocused(prev => {
+        const newState = { ...prev }
+        delete newState[id]
+        return newState
+      })
+      setRawQuantityValues(prev => {
+        const newState = { ...prev }
+        delete newState[id]
+        return newState
+      })
+      setRawRateValues(prev => {
+        const newState = { ...prev }
+        delete newState[id]
+        return newState
+      })
     }
   }
 
@@ -179,10 +234,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       const expenseData = {
         ...formData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
-        date_created: new Date(formData.date_created).toISOString(),
-        // Store expense items as JSON in description field for now
-        description: JSON.stringify(expenseItems)
+        date_created: new Date(formData.date_created).toISOString()
       }
+
+      let savedExpense
 
       if (mode === "create") {
         const { data, error } = await supabase
@@ -195,9 +250,25 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
           .single()
 
         if (error) throw error
+        savedExpense = data
+        
+        // Save expense items
+        const itemsToInsert = expenseItems.map(item => ({
+          expense_id: savedExpense.id,
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount
+        }))
+
+        const { error: itemsError } = await supabase
+          .from("expense_items")
+          .insert(itemsToInsert)
+
+        if (itemsError) throw itemsError
         
         toast.success("Expense created successfully")
-        onSave(data)
       } else if (mode === "edit") {
         const { data, error } = await supabase
           .from("expenses")
@@ -210,11 +281,33 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
           .single()
 
         if (error) throw error
+        savedExpense = data
+        
+        // Delete existing expense items and insert new ones
+        await supabase
+          .from("expense_items")
+          .delete()
+          .eq("expense_id", expense.id)
+
+        const itemsToInsert = expenseItems.map(item => ({
+          expense_id: expense.id,
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount
+        }))
+
+        const { error: itemsError } = await supabase
+          .from("expense_items")
+          .insert(itemsToInsert)
+
+        if (itemsError) throw itemsError
         
         toast.success("Expense updated successfully")
-        onSave(data)
       }
 
+      onSave(savedExpense)
       onClose()
     } catch (error: any) {
       console.error("Error saving expense:", error)
@@ -432,8 +525,26 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             className="form-control border-0 shadow-sm"
                             placeholder="Quantity"
                             min="1"
-                            value={item.quantity}
-                            onChange={(e) => updateExpenseItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                            value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : (item.quantity === 1 ? '' : item.quantity)}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setRawQuantityValues(prev => ({ ...prev, [item.id]: value }))
+                              if (value === '') {
+                                return // Allow empty display
+                              }
+                              updateExpenseItem(item.id, 'quantity', parseInt(value) || 1)
+                            }}
+                            onFocus={(e) => {
+                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }))
+                              setRawQuantityValues(prev => ({ ...prev, [item.id]: item.quantity.toString() }))
+                              e.target.select()
+                            }}
+                            onBlur={(e) => {
+                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))
+                              const value = e.target.value
+                              const finalValue = value === '' ? 1 : parseInt(value) || 1
+                              updateExpenseItem(item.id, 'quantity', finalValue)
+                            }}
                             style={{ borderRadius: "16px", height: "45px" }}
                             required
                             disabled={mode === "view"}
@@ -446,8 +557,26 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             placeholder="Rate"
                             step="0.01"
                             min="0"
-                            value={item.rate}
-                            onChange={(e) => updateExpenseItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
+                            value={rateInputFocused[item.id] ? (rawRateValues[item.id] ?? item.rate) : (item.rate === 0 ? '' : item.rate)}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setRawRateValues(prev => ({ ...prev, [item.id]: value }))
+                              if (value === '') {
+                                return // Allow empty display
+                              }
+                              updateExpenseItem(item.id, 'rate', parseFloat(value) || 0)
+                            }}
+                            onFocus={(e) => {
+                              setRateInputFocused(prev => ({ ...prev, [item.id]: true }))
+                              setRawRateValues(prev => ({ ...prev, [item.id]: item.rate.toString() }))
+                              e.target.select()
+                            }}
+                            onBlur={(e) => {
+                              setRateInputFocused(prev => ({ ...prev, [item.id]: false }))
+                              const value = e.target.value
+                              const finalValue = value === '' ? 0 : parseFloat(value) || 0
+                              updateExpenseItem(item.id, 'rate', finalValue)
+                            }}
                             style={{ borderRadius: "16px", height: "45px" }}
                             required
                             disabled={mode === "view"}

@@ -89,24 +89,15 @@ export default function ExpensesPage() {
     switch (activeView) {
       case "client":
         return <ClientExpensesView 
-          expenses={expenses} 
           clients={clients} 
-          loading={loading}
-          onRefresh={handleRefresh} 
         />
       case "company":
         return <CompanyExpensesView 
-          expenses={expenses} 
           clients={clients} 
-          loading={loading}
-          onRefresh={handleRefresh} 
         />
       default:
         return <ClientExpensesView 
-          expenses={expenses} 
           clients={clients} 
-          loading={loading}
-          onRefresh={handleRefresh} 
         />
     }
   }

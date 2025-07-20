@@ -30,31 +30,37 @@ export const generatePaymentNumber = async () => {
 
 export const generateExpenseNumber = async (type: 'client' | 'company') => {
   try {
-    const prefix = type === 'client' ? 'EXP-C' : 'EXP-CO'
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2) // Last 2 digits
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const prefix = `EN${year}${month}`
     
     const { data, error } = await supabase
       .from('expenses')
       .select('expense_number')
-      .like('expense_number', `${prefix}%`)
-      .order('id', { ascending: false })
+      .like('expense_number', `EN${year}${month}%`)
+      .order('expense_number', { ascending: false })
       .limit(1)
     
     if (error) throw error
     
     if (data && data.length > 0) {
       const lastNumber = data[0].expense_number
-      const match = lastNumber.match(new RegExp(`${prefix.replace('-', '\\-')}-(\\d+)`))
-      if (match) {
-        const nextNumber = parseInt(match[1]) + 1
-        return `${prefix}-${nextNumber.toString().padStart(4, '0')}`
-      }
+      // Extract the sequential part from ENYYMMNNN format
+      const sequentialPart = lastNumber.slice(-3)
+      const nextNumber = parseInt(sequentialPart) + 1
+      return `${prefix}${nextNumber.toString().padStart(3, '0')}`
     }
     
-    return `${prefix}-0001`
+    // First expense of the month
+    return `${prefix}001`
   } catch (error) {
     console.error('Error generating expense number:', error)
-    const prefix = type === 'client' ? 'EXP-C' : 'EXP-CO'
-    return `${prefix}-${Date.now().toString().slice(-4)}`
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2)
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const timestamp = Date.now().toString().slice(-3)
+    return `EN${year}${month}${timestamp}`
   }
 }
 

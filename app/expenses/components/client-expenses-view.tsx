@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -9,13 +9,13 @@ import { exportClientExpenses } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
 interface ClientExpensesViewProps {
-  expenses: Expense[]
   clients: RegisteredEntity[]
-  loading: boolean
-  onRefresh: () => void
 }
 
-const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExpensesViewProps) => {
+const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [expenseItems, setExpenseItems] = useState<{[key: number]: any[]}>({}) // Store items by expense_id
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -25,11 +25,66 @@ const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExp
   const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create")
+
+  const fetchExpenses = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data: expensesData, error } = await supabase
+        .from("expenses")
+        .select(`
+          *,
+          client:registered_entities(*)
+        `)
+        .eq("expense_type", "client")
+        .order("date_created", { ascending: false })
+
+      if (error) throw error
+
+      setExpenses(expensesData || [])
+
+      // Fetch expense items for all expenses
+      if (expensesData && expensesData.length > 0) {
+        const expenseIds = expensesData.map(e => e.id)
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("expense_items")
+          .select("*")
+          .in("expense_id", expenseIds)
+
+        if (itemsError) throw itemsError
+
+        // Group items by expense_id
+        const itemsByExpense: {[key: number]: any[]} = {}
+        itemsData?.forEach(item => {
+          if (!itemsByExpense[item.expense_id]) {
+            itemsByExpense[item.expense_id] = []
+          }
+          itemsByExpense[item.expense_id].push(item)
+        })
+        setExpenseItems(itemsByExpense)
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+      toast.error("Failed to fetch expenses")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const formatExpenseItems = (expenseId: number) => {
+    const items = expenseItems[expenseId] || []
+    if (items.length === 0) return "-"
+    if (items.length === 1) {
+      const item = items[0]
+      return `${item.description} (${item.quantity} ${item.unit} @ ${item.rate})`
+    }
+    return `${items.length} items: ${items.map(i => i.description).join(", ")}`
+  }
 
   useEffect(() => {
     setupClientOptions()
-  }, [clients])
+    fetchExpenses()
+  }, [clients, fetchExpenses])
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -133,7 +188,7 @@ const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExp
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        onRefresh()
+        fetchExpenses() // Refresh expenses after deletion
       } catch (error) {
         console.error("Error deleting expense:", error)
         toast.error("Failed to delete expense")
@@ -146,7 +201,7 @@ const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExp
   }
 
   const handleSaveExpense = (expense: any) => {
-    onRefresh()
+    fetchExpenses()
     setShowExpenseModal(false)
   }
 
@@ -228,7 +283,7 @@ const ClientExpensesView = ({ expenses, clients, loading, onRefresh }: ClientExp
                   <td className="fw-bold">{expense.expense_number}</td>
                     <td>{new Date(expense.date_created).toLocaleDateString()}</td>
                     <td>{expense.client?.name || "Unknown"}</td>
-                    <td>{expense.description || "-"}</td>
+                    <td>{formatExpenseItems(expense.id)}</td>
                     <td>-</td>
                     <td>-</td>
                     <td>-</td>

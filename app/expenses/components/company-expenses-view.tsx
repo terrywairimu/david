@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -9,13 +9,13 @@ import { exportCompanyExpenses } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
 interface CompanyExpensesViewProps {
-  expenses: Expense[]
   clients: RegisteredEntity[]
-  loading: boolean
-  onRefresh: () => void
 }
 
-const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyExpensesViewProps) => {
+const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [expenseItems, setExpenseItems] = useState<{[key: number]: any[]}>({}) // Store items by expense_id
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -26,11 +26,66 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
   const [categoryFilter, setCategoryFilter] = useState("")
   const [showExpenseModal, setShowExpenseModal] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+  const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create")
+
+  const fetchExpenses = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data: expensesData, error } = await supabase
+        .from("expenses")
+        .select(`
+          *,
+          client:registered_entities(*)
+        `)
+        .eq("expense_type", "company")
+        .order("date_created", { ascending: false })
+
+      if (error) throw error
+
+      setExpenses(expensesData || [])
+
+      // Fetch expense items for all expenses
+      if (expensesData && expensesData.length > 0) {
+        const expenseIds = expensesData.map(e => e.id)
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("expense_items")
+          .select("*")
+          .in("expense_id", expenseIds)
+
+        if (itemsError) throw itemsError
+
+        // Group items by expense_id
+        const itemsByExpense: {[key: number]: any[]} = {}
+        itemsData?.forEach(item => {
+          if (!itemsByExpense[item.expense_id]) {
+            itemsByExpense[item.expense_id] = []
+          }
+          itemsByExpense[item.expense_id].push(item)
+        })
+        setExpenseItems(itemsByExpense)
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+      toast.error("Failed to fetch expenses")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const formatExpenseItems = (expenseId: number) => {
+    const items = expenseItems[expenseId] || []
+    if (items.length === 0) return "-"
+    if (items.length === 1) {
+      const item = items[0]
+      return `${item.description} (${item.quantity} ${item.unit} @ ${item.rate})`
+    }
+    return `${items.length} items: ${items.map(i => i.description).join(", ")}`
+  }
 
   useEffect(() => {
     setupClientOptions()
-  }, [clients])
+    fetchExpenses()
+  }, [clients, fetchExpenses])
 
   const setupClientOptions = () => {
     const options = clients.map(client => ({
@@ -147,7 +202,8 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        onRefresh()
+        // onRefresh() // This prop is no longer passed, so we'll just re-fetch
+        fetchExpenses()
       } catch (error) {
         console.error("Error deleting expense:", error)
         toast.error("Failed to delete expense")
@@ -160,7 +216,8 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
   }
 
   const handleSaveExpense = (expense: any) => {
-    onRefresh()
+    // onRefresh() // This prop is no longer passed, so we'll just re-fetch
+    fetchExpenses()
     setShowExpenseModal(false)
   }
 
@@ -246,7 +303,7 @@ const CompanyExpensesView = ({ expenses, clients, loading, onRefresh }: CompanyE
                   <td>
                       <span className="badge bg-secondary">{expense.category}</span>
                     </td>
-                    <td>{expense.description || "-"}</td>
+                    <td>{formatExpenseItems(expense.id)}</td>
                     <td>-</td>
                     <td>-</td>
                     <td>-</td>
