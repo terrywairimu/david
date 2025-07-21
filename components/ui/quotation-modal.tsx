@@ -623,10 +623,10 @@ const QuotationModal = ({
                 <FileText size={24} color="white" />
               </div>
               <div>
-                <h5 className="modal-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
+                <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
                   {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
             </h5>
-                <p className="mb-0 text-muted small">Create a detailed quotation for your client</p>
+                <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
               </div>
             </div>
             <button
@@ -644,7 +644,7 @@ const QuotationModal = ({
               <div className="col-md-8">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                       <User size={18} className="me-2" />
                       Client Information
                     </h6>
@@ -657,7 +657,7 @@ const QuotationModal = ({
                           value={clientSearchTerm}
                           onChange={(e) => handleClientSearch(e.target.value)}
                           onFocus={() => setClientDropdownVisible(true)}
-                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
+                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
                           readOnly={isReadOnly}
                         />
                         <button
@@ -689,13 +689,13 @@ const QuotationModal = ({
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                           >
-                            <div style={{ fontWeight: "600", color: "#495057" }}>{client.name}</div>
-                            {client.phone && <div style={{ fontSize: "12px", color: "#6c757d" }}>{client.phone}</div>}
-                            {client.location && <div style={{ fontSize: "12px", color: "#6c757d" }}>{client.location}</div>}
+                            <div style={{ fontWeight: "600", color: "#ffffff" }}>{client.name}</div>
+                            {client.phone && <div style={{ fontSize: "12px", color: "#ffffff" }}>{client.phone}</div>}
+                            {client.location && <div style={{ fontSize: "12px", color: "#ffffff" }}>{client.location}</div>}
                           </li>
                         ))}
                         {filteredClients.length === 0 && (
-                          <li style={{ padding: "12px 16px", color: "#6c757d", fontStyle: "italic" }}>
+                          <li style={{ padding: "12px 16px", color: "#ffffff", fontStyle: "italic" }}>
                             No clients found
                           </li>
                         )}
@@ -710,7 +710,7 @@ const QuotationModal = ({
                   <div className="card-body p-4">
                     
                     <div className="mb-3">
-                      <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
+                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
                         Quotation Number
                       </label>
                     <input
@@ -722,7 +722,7 @@ const QuotationModal = ({
                     />
                   </div>
                     <div>
-                      <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
+                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
                         Date
                       </label>
                       <div className="input-group">
@@ -750,14 +750,14 @@ const QuotationModal = ({
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
-                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
+                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                     <Calculator size={18} className="me-2" />
                     General
                   </h6>
                   
                   {/* Labour Percentage Input */}
                   <div className="mb-3">
-                    <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
+                    <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
                       Labour Percentage
                     </label>
                     <input
@@ -774,7 +774,6 @@ const QuotationModal = ({
 
                   {/* Items Section - Div based design */}
                   <div className="mb-3">
-                    <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                     
                     {/* Column Headers */}
                     <div className="d-flex mb-3" style={{ 
@@ -828,7 +827,7 @@ const QuotationModal = ({
                                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                 >
                                   <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                  <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                  <div style={{ fontSize: "11px", color: "#ffffff" }}>
                                     Unit Price: KES {stockItem.unit_price?.toFixed(2)}
                             </div>
                                 </li>
@@ -877,7 +876,7 @@ const QuotationModal = ({
                           />
                 </div>
                         
-                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                           KES {item.total_price.toFixed(2)}
               </div>
 
@@ -938,8 +937,8 @@ const QuotationModal = ({
                             opacity: includeWorktop ? 1 : 0
                           }}
                         >
-                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                          <span className="fw-bold" style={{ color: "#495057" }}>Worktop</span>
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <span className="fw-bold" style={{ color: "#ffffff" }}>Worktop</span>
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -954,7 +953,7 @@ const QuotationModal = ({
                           <span 
                             className="me-2 small fw-semibold" 
                             style={{ 
-                              color: "#6c757d",
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
@@ -993,7 +992,6 @@ const QuotationModal = ({
                   
                   {includeWorktop && (
                     <div className="mb-3">
-                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
                       <div className="d-flex mb-3" style={{ 
@@ -1047,7 +1045,7 @@ const QuotationModal = ({
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                   >
                                     <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
@@ -1096,7 +1094,7 @@ const QuotationModal = ({
                             />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
@@ -1158,8 +1156,8 @@ const QuotationModal = ({
                             opacity: includeAccessories ? 1 : 0
                           }}
                         >
-                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                          <span className="fw-bold" style={{ color: "#495057" }}>Accessories</span>
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <span className="fw-bold" style={{ color: "#ffffff" }}>Accessories</span>
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -1174,7 +1172,7 @@ const QuotationModal = ({
                           <span 
                             className="me-2 small fw-semibold" 
                             style={{ 
-                              color: "#6c757d",
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
@@ -1213,7 +1211,6 @@ const QuotationModal = ({
                   
                   {includeAccessories && (
                     <div className="mb-3">
-                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
                       <div className="d-flex mb-3" style={{ 
@@ -1267,7 +1264,7 @@ const QuotationModal = ({
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                   >
                                     <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
@@ -1316,7 +1313,7 @@ const QuotationModal = ({
                             />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
@@ -1365,7 +1362,7 @@ const QuotationModal = ({
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex align-items-center mb-3">
-                    {!isReadOnly && (
+                {!isReadOnly && (
                       <div className="d-flex align-items-center w-100">
                         {/* Section Title - Hidden when toggle is off */}
                         <div 
@@ -1378,8 +1375,8 @@ const QuotationModal = ({
                             opacity: includeAppliances ? 1 : 0
                           }}
                         >
-                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                          <span className="fw-bold" style={{ color: "#495057" }}>Appliances</span>
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <span className="fw-bold" style={{ color: "#ffffff" }}>Appliances</span>
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -1394,7 +1391,7 @@ const QuotationModal = ({
                           <span 
                             className="me-2 small fw-semibold" 
                             style={{ 
-                              color: "#6c757d",
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
@@ -1427,13 +1424,12 @@ const QuotationModal = ({
                             />
                           </div>
                         </div>
-                      </div>
-                    )}
                   </div>
+                )}
+              </div>
                   
                   {includeAppliances && (
                     <div className="mb-3">
-                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
                       <div className="d-flex mb-3" style={{ 
@@ -1487,7 +1483,7 @@ const QuotationModal = ({
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                   >
                                     <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
@@ -1536,7 +1532,7 @@ const QuotationModal = ({
                             />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
@@ -1584,47 +1580,47 @@ const QuotationModal = ({
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
-                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
+                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                     <Calculator size={18} className="me-2" />
                     Summary
                   </h6>
                   <div className="row">
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#6c757d" }}>Cabinet Total:</span>
-                        <span style={{ fontWeight: "600" }}>KES {totals.cabinetTotal.toFixed(2)}</span>
+                        <span style={{ color: "#ffffff" }}>Cabinet Total:</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.cabinetTotal.toFixed(2)}</span>
                       </div>
                       {includeWorktop && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#6c757d" }}>Worktop Total:</span>
-                          <span style={{ fontWeight: "600" }}>KES {totals.worktopTotal.toFixed(2)}</span>
+                          <span style={{ color: "#ffffff" }}>Worktop Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
                         </div>
                       )}
                       {includeAccessories && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#6c757d" }}>Accessories Total:</span>
-                          <span style={{ fontWeight: "600" }}>KES {totals.accessoriesTotal.toFixed(2)}</span>
+                          <span style={{ color: "#ffffff" }}>Accessories Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.accessoriesTotal.toFixed(2)}</span>
                         </div>
                       )}
                       {includeAppliances && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#6c757d" }}>Appliances Total:</span>
-                          <span style={{ fontWeight: "600" }}>KES {totals.appliancesTotal.toFixed(2)}</span>
+                          <span style={{ color: "#ffffff" }}>Appliances Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.appliancesTotal.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#6c757d" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600" }}>KES {totals.subtotal.toFixed(2)}</span>
+                        <span style={{ color: "#ffffff" }}>Subtotal:</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.subtotal.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#6c757d" }}>Labour ({labourPercentage}%):</span>
-                        <span style={{ fontWeight: "600" }}>KES {totals.labourAmount.toFixed(2)}</span>
+                        <span style={{ color: "#ffffff" }}>Labour ({labourPercentage}%):</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.labourAmount.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
-                        <span style={{ fontWeight: "700", color: "#495057" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#495057", fontSize: "18px" }}>KES {totals.grandTotal.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {totals.grandTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -1637,7 +1633,7 @@ const QuotationModal = ({
               <div className="col-md-6">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                       Notes
                     </h6>
               <textarea
@@ -1654,7 +1650,7 @@ const QuotationModal = ({
               <div className="col-md-6">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                       Terms & Conditions
                     </h6>
               <textarea
