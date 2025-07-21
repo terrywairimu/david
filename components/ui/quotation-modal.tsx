@@ -163,20 +163,21 @@ const confirmQuotationNumber = (quotationNumber: string) => {
     return true
   }
   return false
-}
+} 
 
-const QuotationModal: React.FC<QuotationModalProps> = ({
+const QuotationModal = ({
   isOpen,
   onClose,
   onSave,
   quotation,
   mode = "create"
-}) => {
+}: QuotationModalProps) => {
   const [quotationNumber, setQuotationNumber] = useState("")
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [clientSearchTerm, setClientSearchTerm] = useState("")
-  const [showClientResults, setShowClientResults] = useState(false)
+  const [clientDropdownVisible, setClientDropdownVisible] = useState(false)
+  const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [labourPercentage, setLabourPercentage] = useState(30)
   const [includeWorktop, setIncludeWorktop] = useState(false)
@@ -198,10 +199,6 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [itemSearches, setItemSearches] = useState<{[key: string]: string}>({})
   const [filteredStockItems, setFilteredStockItems] = useState<{[key: string]: StockItem[]}>({})
   const [itemDropdownVisible, setItemDropdownVisible] = useState<{[key: string]: boolean}>({})
-  
-  // Client dropdown states
-  const [clientDropdownVisible, setClientDropdownVisible] = useState(false)
-  const [filteredClients, setFilteredClients] = useState<Client[]>([])
   
   // Input handling states for better UX
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: string]: boolean}>({})
@@ -284,17 +281,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances"): QuotationItem => {
-    const newId = Date.now() + Math.random()
     return {
-      id: newId,
+      id: Date.now() + Math.random(),
       category,
       description: "",
-      unit: "pieces",
+      unit: "pcs",
       quantity: 1,
       unit_price: 0,
-      total_price: 0,
-      stock_item_id: null,
-      stock_item: null
+      total_price: 0
     }
   }
 
@@ -302,7 +296,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     try {
       const { data, error } = await supabase
         .from("registered_entities")
-        .select("id, name, phone, location")
+        .select("*")
         .eq("type", "client")
         .order("name")
 
@@ -310,6 +304,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       setClients(data || [])
     } catch (error) {
       console.error("Error fetching clients:", error)
+      toast.error("Failed to fetch clients")
     }
   }
 
@@ -318,29 +313,31 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       const { data, error } = await supabase
         .from("stock_items")
         .select("*")
-        .eq("status", "active")
         .order("name")
 
       if (error) throw error
       setStockItems(data || [])
     } catch (error) {
       console.error("Error fetching stock items:", error)
+      toast.error("Failed to fetch stock items")
     }
   }
 
   const loadQuotationData = () => {
     if (!quotation) return
     
-      setQuotationNumber(quotation.quotation_number)
-      setSelectedClient(quotation.client)
+    setQuotationNumber(quotation.quotation_number || "")
+    setSelectedClient(quotation.client || null)
+    setClientSearchTerm(quotation.client?.name || "")
     setLabourPercentage(quotation.labour_percentage || 30)
     setIncludeWorktop(quotation.include_worktop || false)
-      setIncludeAccessories(quotation.include_accessories || false)
+    setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
-      setNotes(quotation.notes || "")
-      setTermsConditions(quotation.terms_conditions || "")
+    setNotes(quotation.notes || "")
+    setTermsConditions(quotation.terms_conditions || "")
     
-    if (quotation.items && quotation.items.length > 0) {
+    // Load items by category
+    if (quotation.items) {
       const cabinet = quotation.items.filter((item: any) => item.category === "cabinet")
       const worktop = quotation.items.filter((item: any) => item.category === "worktop")
       const accessories = quotation.items.filter((item: any) => item.category === "accessories")
@@ -350,19 +347,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       setWorktopItems(worktop)
       setAccessoriesItems(accessories)
       setAppliancesItems(appliances)
-    } else {
-      setCabinetItems([createNewItem("cabinet")])
-      setWorktopItems([])
-      setAccessoriesItems([])
-      setAppliancesItems([])
     }
   }
-
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-    client.phone?.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-    client.location?.toLowerCase().includes(clientSearchTerm.toLowerCase())
-  )
 
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client)
@@ -465,12 +451,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const item = allItems.find(item => item.id?.toString() === itemId)
     
     if (item) {
-      const index = allItems.indexOf(item)
-      updateItem(item.category, index, 'stock_item_id', stockItem.id)
+      const category = item.category
+      const index = allItems.findIndex(item => item.id?.toString() === itemId)
+      
+      updateItem(category, index, "stock_item_id", stockItem.id)
+      updateItem(category, index, "description", stockItem.name)
+      updateItem(category, index, "unit", stockItem.unit)
+      updateItem(category, index, "unit_price", stockItem.selling_price)
+      
+      setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
+      setItemSearches(prev => ({ ...prev, [itemId]: "" }))
     }
-    
-    setItemSearches(prev => ({ ...prev, [itemId]: stockItem.name }))
-    setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
   }
 
   const calculateTotals = () => {
@@ -482,7 +473,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
     const labourAmount = (subtotal * labourPercentage) / 100
     const grandTotal = subtotal + labourAmount
-
+    
     return {
       cabinetTotal,
       worktopTotal,
@@ -511,7 +502,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     setLoading(true)
     try {
-    const totals = calculateTotals()
+      const totals = calculateTotals()
       
       // Add labour item to cabinet items if not exists
       let finalCabinetItems = [...cabinetItems]
@@ -530,33 +521,33 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         })
       }
 
-    const quotationData = {
-      quotation_number: quotationNumber,
-      client_id: selectedClient.id,
+      const quotationData = {
+        quotation_number: quotationNumber,
+        client_id: selectedClient.id,
         date_created: new Date().toISOString(),
-      cabinet_total: totals.cabinetTotal,
-      worktop_total: totals.worktopTotal,
-      accessories_total: totals.accessoriesTotal,
+        cabinet_total: totals.cabinetTotal,
+        worktop_total: totals.worktopTotal,
+        accessories_total: totals.accessoriesTotal,
         appliances_total: totals.appliancesTotal,
-      labour_percentage: labourPercentage,
+        labour_percentage: labourPercentage,
         labour_total: totals.labourAmount,
         total_amount: totals.subtotal,
-      grand_total: totals.grandTotal,
+        grand_total: totals.grandTotal,
         include_worktop: includeWorktop,
-      include_accessories: includeAccessories,
+        include_accessories: includeAccessories,
         include_appliances: includeAppliances,
-      status: "pending",
-      notes,
-      terms_conditions: termsConditions,
+        status: "pending",
+        notes,
+        terms_conditions: termsConditions,
         items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems]
       }
 
       // Confirm quotation number if it's a new quotation
       if (mode === "create") {
         confirmQuotationNumber(quotationNumber)
-    }
+      }
 
-    onSave(quotationData)
+      onSave(quotationData)
       onClose()
     } catch (error) {
       console.error("Error saving quotation:", error)
@@ -592,7 +583,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               <div>
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
                   {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
-            </h5>
+                </h5>
                 <p className="mb-0 text-muted small">Create a detailed quotation for your client</p>
               </div>
             </div>
@@ -602,7 +593,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               onClick={onClose}
               style={{ borderRadius: "12px", padding: "8px" }}
             />
-                </div>
+          </div>
 
           {/* Body */}
           <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
@@ -683,14 +674,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Quotation Number
                       </label>
-                    <input
-                      type="text"
+                      <input
+                        type="text"
                         className="form-control"
                         value={quotationNumber}
-                      readOnly
+                        readOnly
                         style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                    />
-                  </div>
+                      />
+                    </div>
                     <div>
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Date
@@ -712,9 +703,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       </div>
                     </div>
                   </div>
-                  </div>
                 </div>
               </div>
+            </div>
 
             {/* Cabinet Items Section */}
             <div className="mb-4">
@@ -725,163 +716,202 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     Kitchen Cabinets
                   </h6>
                   
-                  <div className="table-responsive" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e9ecef" }}>
-                    <table className="table table-sm mb-0">
-                      <thead style={{ background: "#f8f9fa" }}>
-                        <tr>
-                          <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Description</th>
-                          <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Units</th>
-                          <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Quantity</th>
-                          <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
-                          <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
-                          {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                        {cabinetItems.map((item, index) => (
-                          <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
-                            <td style={{ padding: "12px" }}>
-                              <div className="position-relative">
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            value={item.description}
-                                  onChange={(e) => updateItem("cabinet", index, "description", e.target.value)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  placeholder="Enter description or search stock items"
+                  {/* Labour Percentage Input */}
+                  <div className="mb-3">
+                    <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
+                      Labour Percentage
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={labourPercentage}
+                      onChange={(e) => setLabourPercentage(parseFloat(e.target.value) || 0)}
+                      style={{ borderRadius: "12px", height: "45px", border: "1px solid #e9ecef" }}
+                      readOnly={isReadOnly}
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+
+                  {/* Items Section - Div based design */}
+                  <div className="mb-3">
+                    <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
+                    
+                    {/* Column Headers */}
+                    <div className="d-flex mb-2" style={{ 
+                      background: "#f8f9fa", 
+                      borderRadius: "12px", 
+                      padding: "12px 16px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "#495057"
+                    }}>
+                      <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                      {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                    </div>
+
+                    {/* Item Rows */}
+                    {cabinetItems.map((item, index) => (
+                      <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
+                        padding: "12px 16px",
+                        borderRadius: "12px",
+                        border: "1px solid #e9ecef",
+                        background: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>
+                          <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={item.description}
+                              onChange={(e) => updateItem("cabinet", index, "description", e.target.value)}
+                              placeholder="Search and select item"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                            />
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                className="btn btn-sm position-absolute"
+                                onClick={() => toggleItemDropdown(item.id?.toString() || "")}
+                                style={{ 
+                                  right: "4px", 
+                                  top: "4px", 
+                                  borderRadius: "8px", 
+                                  padding: "4px",
+                                  background: "transparent",
+                                  border: "none"
+                                }}
+                              >
+                                <Package size={14} />
+                              </button>
+                            )}
+                            
+                            <PortalDropdown
+                              isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                              triggerRef={getItemInputRef(item.id?.toString() || "")}
+                              onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                            >
+                              <li style={{ padding: "8px 12px", borderBottom: "1px solid #f1f3f4" }}>
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  placeholder="Search stock items..."
+                                  value={itemSearches[item.id?.toString() || ""] || ""}
+                                  onChange={(e) => handleItemSearch(item.id?.toString() || "", e.target.value)}
+                                  style={{ borderRadius: "8px" }}
                                 />
-                                {!isReadOnly && (
-                                  <div className="position-absolute top-0 end-0 h-100 d-flex align-items-center pe-2">
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-outline-secondary"
-                                      onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                      style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                    >
-                                      <Search size={12} />
-                                    </button>
+                              </li>
+                              {getFilteredItems(item.id?.toString() || "").slice(0, 5).map(stockItem => (
+                                <li
+                                  key={stockItem.id}
+                                  style={{
+                                    padding: "8px 12px",
+                                    cursor: "pointer",
+                                    borderBottom: "1px solid #f1f3f4"
+                                  }}
+                                  onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                >
+                                  <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
+                                  <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                    Selling Price: KES {stockItem.selling_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                   </div>
-                                )}
-                                {itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly && (
-                                  <div className="position-absolute top-100 start-0 w-100 mt-1" style={{ zIndex: 1000 }}>
-                                    <div className="card" style={{ borderRadius: "8px", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
-                                      <div className="card-body p-2">
-                                        <input
-                                          type="text"
-                                          className="form-control form-control-sm mb-2"
-                                          placeholder="Search stock items..."
-                                          value={itemSearches[item.id?.toString() || ""] || ""}
-                                          onChange={(e) => handleItemSearch(item.id?.toString() || "", e.target.value)}
-                                          style={{ borderRadius: "8px" }}
-                                        />
-                                        <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-                                          {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                            <div
-                                              key={stockItem.id}
-                                              className="p-2 border-bottom cursor-pointer"
-                                              style={{ cursor: "pointer" }}
-                                              onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                            >
-                                              <div className="fw-semibold small">{stockItem.name}</div>
-                                              <div className="text-muted small">
-                                                Selling Price: KES {stockItem.selling_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                        </td>
-                            <td style={{ padding: "12px" }}>
+                                </li>
+                              ))}
+                            </PortalDropdown>
+                          </div>
+                        </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="text"
-                            className="form-control border-0"
+                            className="form-control"
                             value={item.unit}
-                                onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
+                            onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
+                            placeholder="Units"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                                style={{ background: "transparent", fontSize: "13px" }}
-                                placeholder="e.g., pcs"
                           />
-                        </td>
-                            <td style={{ padding: "12px" }}>
+                        </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                            className="form-control border-0"
+                            className="form-control"
                             value={item.quantity}
-                                onChange={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 0)}
+                            placeholder="Qty"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                                style={{ background: "transparent", fontSize: "13px" }}
-                                min="0"
-                                step="0.01"
+                            min="0"
+                            step="0.01"
                           />
-                        </td>
-                            <td style={{ padding: "12px" }}>
+                        </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                            className="form-control border-0"
+                            className="form-control"
                             value={item.unit_price}
-                                onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                                style={{ background: "transparent", fontSize: "13px" }}
-                                min="0"
-                                step="0.01"
+                            min="0"
+                            step="0.01"
                           />
-                        </td>
-                            <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </td>
+                        </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                          KES {item.total_price.toFixed(2)}
+                        </div>
+                        
                         {!isReadOnly && (
-                              <td style={{ padding: "12px" }}>
+                          <div style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("cabinet", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => removeItem("cabinet", index)}
+                              style={{ borderRadius: "8px", padding: "4px 8px" }}
                             >
-                                  <Trash2 size={12} />
+                              <X size={12} />
                             </button>
-                          </td>
+                          </div>
                         )}
-                      </tr>
-                        ))}
-                </tbody>
-                      <tfoot style={{ background: "#f8f9fa" }}>
-                        <tr>
-                          <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
-                            Cabinet Total
-                          </td>
-                          <td style={{ padding: "12px", fontWeight: "700", color: "#495057" }}>
-                            KES {totals.cabinetTotal.toFixed(2)}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                  
-                      {!isReadOnly && (
-                    <div className="mt-3">
+                      </div>
+                    ))}
+
+                    {/* Add Item Button */}
+                    {!isReadOnly && (
+                      <div className="mt-3">
                         <button
                           type="button"
-                        className="btn btn-outline-primary"
+                          className="btn btn-primary"
                           onClick={() => addItem("cabinet")}
-                        style={{ borderRadius: "12px", fontSize: "13px" }}
+                          style={{ 
+                            borderRadius: "12px", 
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            border: "none",
+                            padding: "10px 20px"
+                          }}
                         >
-                        <Plus size={16} className="me-2" />
-                          Add Cabinet Item
+                          <Plus size={14} className="me-1" />
+                          Add Item
                         </button>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-              {/* Worktop Section */}
+            {/* Worktop Section with Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
@@ -892,300 +922,376 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </h6>
                     {!isReadOnly && (
                       <div className="d-flex align-items-center gap-3">
-                        <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            checked={includeWorktop}
-                            onChange={(e) => setIncludeWorktop(e.target.checked)}
-                            style={{ borderRadius: "4px" }}
-                          />
-                          <label className="form-check-label small">Include Worktop</label>
+                        <div className="d-flex align-items-center">
+                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                            Include Worktop
+                          </label>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeWorktop ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeWorktop ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => addItem("worktop")}
-                          style={{ borderRadius: "12px", fontSize: "12px" }}
-                        >
-                          <Plus size={14} className="me-1" />
-                          Add Item
-                        </button>
                       </div>
                     )}
                   </div>
                   
                   {includeWorktop && (
-                    <div className="table-responsive" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e9ecef" }}>
-                      <table className="table table-sm mb-0">
-                        <thead style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Description</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Units</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Quantity</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
-                            {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                          {worktopItems.map((item, index) => (
-                            <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
-                              <td style={{ padding: "12px" }}>
-                                <div className="position-relative">
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            value={item.description}
-                                    onChange={(e) => updateItem("worktop", index, "description", e.target.value)}
-                            readOnly={isReadOnly}
-                                    style={{ background: "transparent", fontSize: "13px" }}
-                                    placeholder="Enter description or search stock items"
-                                  />
-                                  {!isReadOnly && (
-                                    <div className="position-absolute top-0 end-0 h-100 d-flex align-items-center pe-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                        style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                      >
-                                        <Search size={12} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            value={item.unit}
-                                  onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  placeholder="e.g., pcs"
-                          />
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="number"
-                            className="form-control border-0"
-                            value={item.quantity}
-                                  onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                          />
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="number"
-                            className="form-control border-0"
-                            value={item.unit_price}
-                                  onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                          />
-                        </td>
-                              <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
-                                KES {item.total_price.toFixed(2)}
-                              </td>
-                        {!isReadOnly && (
-                                <td style={{ padding: "12px" }}>
-                            <button
-                              type="button"
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => removeItem("worktop", index)}
-                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                    <Trash2 size={12} />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                          ))}
-                          {worktopItems.length === 0 && (
-                            <tr>
-                              <td colSpan={isReadOnly ? 5 : 6} className="text-center text-muted py-4">
-                                No worktop items added
-                              </td>
-                            </tr>
+                    <div className="mb-3">
+                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-2" style={{ 
+                        background: "#f8f9fa", 
+                        borderRadius: "12px", 
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#495057"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {worktopItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
+                          padding: "12px 16px",
+                          borderRadius: "12px",
+                          border: "1px solid #e9ecef",
+                          background: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.description}
+                                onChange={(e) => updateItem("worktop", index, "description", e.target.value)}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm position-absolute"
+                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
+                                  style={{ 
+                                    right: "4px", 
+                                    top: "4px", 
+                                    borderRadius: "8px", 
+                                    padding: "4px",
+                                    background: "transparent",
+                                    border: "none"
+                                  }}
+                                >
+                                  <Package size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={item.unit}
+                              onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.quantity}
+                              onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
+                              placeholder="Qty"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.unit_price}
+                              onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              placeholder="Unit Price"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                          {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("worktop", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
                           )}
-                        </tbody>
-                        <tfoot style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
-                              Worktop Total
-                    </td>
-                            <td style={{ padding: "12px", fontWeight: "700", color: "#495057" }}>
-                              KES {totals.worktopTotal.toFixed(2)}
-                            </td>
-                  </tr>
-                </tfoot>
-              </table>
+                        </div>
+                      ))}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("worktop")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                          >
+                            <Plus size={14} className="me-1" />
+                            Add Item
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-              {/* Accessories Section */}
+            {/* Accessories Section with Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="card-title mb-0 fw-bold" style={{ color: "#495057" }}>
                       <Calculator size={18} className="me-2" />
-                Accessories
+                      Accessories
                     </h6>
-                {!isReadOnly && (
+                    {!isReadOnly && (
                       <div className="d-flex align-items-center gap-3">
-                        <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={includeAccessories}
-                      onChange={(e) => setIncludeAccessories(e.target.checked)}
-                            style={{ borderRadius: "4px" }}
-                          />
-                          <label className="form-check-label small">Include Accessories</label>
+                        <div className="d-flex align-items-center">
+                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                            Include Accessories
+                          </label>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAccessories ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAccessories ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => addItem("accessories")}
-                          style={{ borderRadius: "12px", fontSize: "12px" }}
-                        >
-                          <Plus size={14} className="me-1" />
-                          Add Item
-                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
                   
                   {includeAccessories && (
-                    <div className="table-responsive" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e9ecef" }}>
-                      <table className="table table-sm mb-0">
-                        <thead style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Description</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Units</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Quantity</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
-                            {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                          {accessoriesItems.map((item, index) => (
-                            <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
-                              <td style={{ padding: "12px" }}>
-                                <div className="position-relative">
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            value={item.description}
-                                    onChange={(e) => updateItem("accessories", index, "description", e.target.value)}
-                            readOnly={isReadOnly}
-                                    style={{ background: "transparent", fontSize: "13px" }}
-                                    placeholder="Enter description or search stock items"
-                                  />
-                                  {!isReadOnly && (
-                                    <div className="position-absolute top-0 end-0 h-100 d-flex align-items-center pe-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                        style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                      >
-                                        <Search size={12} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            value={item.unit}
-                                  onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  placeholder="e.g., pcs"
-                          />
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="number"
-                            className="form-control border-0"
-                            value={item.quantity}
-                                  onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                          />
-                        </td>
-                              <td style={{ padding: "12px" }}>
-                          <input
-                            type="number"
-                            className="form-control border-0"
-                            value={item.unit_price}
-                                  onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                          />
-                        </td>
-                              <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
-                                KES {item.total_price.toFixed(2)}
-                              </td>
-                        {!isReadOnly && (
-                                <td style={{ padding: "12px" }}>
-                            <button
-                              type="button"
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => removeItem("accessories", index)}
-                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                    <Trash2 size={12} />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                          ))}
-                          {accessoriesItems.length === 0 && (
-                            <tr>
-                              <td colSpan={isReadOnly ? 5 : 6} className="text-center text-muted py-4">
-                                No accessories items added
-                              </td>
-                            </tr>
+                    <div className="mb-3">
+                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-2" style={{ 
+                        background: "#f8f9fa", 
+                        borderRadius: "12px", 
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#495057"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {accessoriesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
+                          padding: "12px 16px",
+                          borderRadius: "12px",
+                          border: "1px solid #e9ecef",
+                          background: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.description}
+                                onChange={(e) => updateItem("accessories", index, "description", e.target.value)}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm position-absolute"
+                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
+                                  style={{ 
+                                    right: "4px", 
+                                    top: "4px", 
+                                    borderRadius: "8px", 
+                                    padding: "4px",
+                                    background: "transparent",
+                                    border: "none"
+                                  }}
+                                >
+                                  <Package size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={item.unit}
+                              onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.quantity}
+                              onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
+                              placeholder="Qty"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.unit_price}
+                              onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              placeholder="Unit Price"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                          {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("accessories", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
                           )}
-                </tbody>
-                        <tfoot style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
-                              Accessories Total
-                            </td>
-                            <td style={{ padding: "12px", fontWeight: "700", color: "#495057" }}>
-                              KES {totals.accessoriesTotal.toFixed(2)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                        </div>
+                      ))}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("accessories")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                          >
+                            <Plus size={14} className="me-1" />
+                            Add Item
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Appliances Section */}
+            {/* Appliances Section with Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
@@ -1194,280 +1300,272 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <Calculator size={18} className="me-2" />
                       Appliances
                     </h6>
-                      {!isReadOnly && (
+                    {!isReadOnly && (
                       <div className="d-flex align-items-center gap-3">
-                        <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            checked={includeAppliances}
-                            onChange={(e) => setIncludeAppliances(e.target.checked)}
-                            style={{ borderRadius: "4px" }}
-                          />
-                          <label className="form-check-label small">Include Appliances</label>
+                        <div className="d-flex align-items-center">
+                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                            Include Appliances
+                          </label>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAppliances ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAppliances ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => addItem("appliances")}
-                          style={{ borderRadius: "12px", fontSize: "12px" }}
-                        >
-                          <Plus size={14} className="me-1" />
-                          Add Item
-                        </button>
                       </div>
                     )}
                   </div>
                   
                   {includeAppliances && (
-                    <div className="table-responsive" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e9ecef" }}>
-                      <table className="table table-sm mb-0">
-                        <thead style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Description</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Units</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Quantity</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
-                            <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
-                            {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {appliancesItems.map((item, index) => (
-                            <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
-                              <td style={{ padding: "12px" }}>
-                                <div className="position-relative">
-                                  <input
-                                    type="text"
-                                    className="form-control border-0"
-                                    value={item.description}
-                                    onChange={(e) => updateItem("appliances", index, "description", e.target.value)}
-                                    readOnly={isReadOnly}
-                                    style={{ background: "transparent", fontSize: "13px" }}
-                                    placeholder="Enter description or search stock items"
-                                  />
-                                  {!isReadOnly && (
-                                    <div className="position-absolute top-0 end-0 h-100 d-flex align-items-center pe-2">
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                        style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                      >
-                                        <Search size={12} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td style={{ padding: "12px" }}>
-                                <input
-                                  type="text"
-                                  className="form-control border-0"
-                                  value={item.unit}
-                                  onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
-                                  readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  placeholder="e.g., pcs"
-                                />
-                              </td>
-                              <td style={{ padding: "12px" }}>
-                      <input
-                        type="number"
-                        className="form-control border-0"
-                                  value={item.quantity}
-                                  onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
-                        readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                      />
-                    </td>
-                              <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
-                                  value={item.unit_price}
-                                  onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
-                                  style={{ background: "transparent", fontSize: "13px" }}
-                                  min="0"
-                                  step="0.01"
-                                />
-                              </td>
-                              <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
-                                KES {item.total_price.toFixed(2)}
-                              </td>
+                    <div className="mb-3">
+                      <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-2" style={{ 
+                        background: "#f8f9fa", 
+                        borderRadius: "12px", 
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "#495057"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {appliancesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
+                          padding: "12px 16px",
+                          borderRadius: "12px",
+                          border: "1px solid #e9ecef",
+                          background: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.description}
+                                onChange={(e) => updateItem("appliances", index, "description", e.target.value)}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
                               {!isReadOnly && (
-                                <td style={{ padding: "12px" }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => removeItem("appliances", index)}
-                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </td>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm position-absolute"
+                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
+                                  style={{ 
+                                    right: "4px", 
+                                    top: "4px", 
+                                    borderRadius: "8px", 
+                                    padding: "4px",
+                                    background: "transparent",
+                                    border: "none"
+                                  }}
+                                >
+                                  <Package size={14} />
+                                </button>
                               )}
-                  </tr>
-                          ))}
-                          {appliancesItems.length === 0 && (
-                            <tr>
-                              <td colSpan={isReadOnly ? 5 : 6} className="text-center text-muted py-4">
-                                No appliances items added
-                              </td>
-                  </tr>
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={item.unit}
+                              onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.quantity}
+                              onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
+                              placeholder="Qty"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.unit_price}
+                              onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              placeholder="Unit Price"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                          {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("appliances", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
                           )}
-                </tbody>
-                        <tfoot style={{ background: "#f8f9fa" }}>
-                          <tr>
-                            <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
-                              Appliances Total
-                            </td>
-                            <td style={{ padding: "12px", fontWeight: "700", color: "#495057" }}>
-                              KES {totals.appliancesTotal.toFixed(2)}
-                            </td>
-                          </tr>
-                        </tfoot>
-              </table>
+                        </div>
+                      ))}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("appliances")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                          >
+                            <Plus size={14} className="me-1" />
+                            Add Item
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Labour Section */}
+            {/* Totals Section */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
                     <Calculator size={18} className="me-2" />
-                    Labour Charges
+                    Summary
                   </h6>
                   <div className="row">
                     <div className="col-md-6">
-                      <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
-                        Labour Percentage
-                      </label>
-                      <div className="input-group">
-                        <input
-                          type="number"
-                className="form-control"
-                          value={labourPercentage}
-                          onChange={(e) => setLabourPercentage(parseFloat(e.target.value) || 0)}
-                readOnly={isReadOnly}
-                          style={{ borderRadius: "12px 0 0 12px", height: "45px" }}
-                          min="0"
-                          max="100"
-                          step="0.01"
-                        />
-                        <span className="input-group-text" style={{ borderRadius: "0 12px 12px 0", borderLeft: "none" }}>
-                          %
-                        </span>
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#6c757d" }}>Cabinet Total:</span>
+                        <span style={{ fontWeight: "600" }}>KES {totals.cabinetTotal.toFixed(2)}</span>
                       </div>
+                      {includeWorktop && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#6c757d" }}>Worktop Total:</span>
+                          <span style={{ fontWeight: "600" }}>KES {totals.worktopTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeAccessories && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#6c757d" }}>Accessories Total:</span>
+                          <span style={{ fontWeight: "600" }}>KES {totals.accessoriesTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeAppliances && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#6c757d" }}>Appliances Total:</span>
+                          <span style={{ fontWeight: "600" }}>KES {totals.appliancesTotal.toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
-                        Labour Amount
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={`KES ${totals.labourAmount.toFixed(2)}`}
-                        readOnly
-                        style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                      />
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#6c757d" }}>Subtotal:</span>
+                        <span style={{ fontWeight: "600" }}>KES {totals.subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#6c757d" }}>Labour ({labourPercentage}%):</span>
+                        <span style={{ fontWeight: "600" }}>KES {totals.labourAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
+                        <span style={{ fontWeight: "700", color: "#495057" }}>Grand Total:</span>
+                        <span style={{ fontWeight: "700", color: "#495057", fontSize: "18px" }}>KES {totals.grandTotal.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Notes and Terms */}
+            {/* Notes and Terms Section */}
             <div className="row mb-4">
               <div className="col-md-6">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
-                      <FileText size={18} className="me-2" />
                       Notes
                     </h6>
-              <textarea
-                className="form-control"
-                      rows={4}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                readOnly={isReadOnly}
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", resize: "none" }}
-                      placeholder="Add any additional notes..."
-              />
-          </div>
+                    <textarea
+                      className="form-control"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes..."
+                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
+                      readOnly={isReadOnly}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="col-md-6">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
-                      <FileText size={18} className="me-2" />
                       Terms & Conditions
                     </h6>
                     <textarea
                       className="form-control"
-                      rows={4}
                       value={termsConditions}
                       onChange={(e) => setTermsConditions(e.target.value)}
+                      placeholder="Terms and conditions..."
+                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
                       readOnly={isReadOnly}
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", resize: "none" }}
-                      placeholder="Enter terms and conditions..."
                     />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Totals Summary */}
-            <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-              <div className="card-body p-4">
-                <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
-                  <Calculator size={18} className="me-2" />
-                  Summary
-                </h6>
-                <div className="row">
-                  <div className="col-md-8">
-                    <div className="d-flex justify-content-between mb-2">
-                      <strong style={{ fontSize: "14px" }}>Cabinet Total:</strong>
-                      <span style={{ fontSize: "14px" }}>KES {totals.cabinetTotal.toFixed(2)}</span>
-                    </div>
-                    {includeWorktop && (
-                      <div className="d-flex justify-content-between mb-2">
-                        <strong style={{ fontSize: "14px" }}>Worktop Total:</strong>
-                        <span style={{ fontSize: "14px" }}>KES {totals.worktopTotal.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {includeAccessories && (
-                      <div className="d-flex justify-content-between mb-2">
-                        <strong style={{ fontSize: "14px" }}>Accessories Total:</strong>
-                        <span style={{ fontSize: "14px" }}>KES {totals.accessoriesTotal.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {includeAppliances && (
-                      <div className="d-flex justify-content-between mb-2">
-                        <strong style={{ fontSize: "14px" }}>Appliances Total:</strong>
-                        <span style={{ fontSize: "14px" }}>KES {totals.appliancesTotal.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="d-flex justify-content-between mb-2">
-                      <strong style={{ fontSize: "14px" }}>Labour:</strong>
-                      <span style={{ fontSize: "14px" }}>KES {totals.labourAmount.toFixed(2)}</span>
-                    </div>
-                    <hr style={{ margin: "12px 0" }} />
-                    <div className="d-flex justify-content-between">
-                      <strong style={{ fontSize: "16px", color: "#495057" }}>Grand Total:</strong>
-                      <span style={{ fontSize: "18px", fontWeight: "700", color: "#495057" }}>
-                        KES {totals.grandTotal.toFixed(2)}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1478,28 +1576,34 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           <div className="modal-footer border-0" style={{ padding: "16px 32px 24px" }}>
             <button
               type="button"
-              className="btn btn-outline-secondary"
+              className="btn btn-light"
               onClick={onClose}
-              style={{ borderRadius: "12px", padding: "10px 20px" }}
+              style={{ borderRadius: "12px", padding: "10px 24px" }}
+              disabled={loading}
             >
               Cancel
             </button>
-            {!isReadOnly && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={loading}
-                style={{ 
-                  borderRadius: "12px", 
-                  padding: "10px 24px",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  border: "none"
-                }}
-              >
-                {loading ? "Saving..." : mode === "create" ? "Create Quotation" : "Update Quotation"}
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSave}
+              style={{ 
+                borderRadius: "12px", 
+                padding: "10px 24px",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                border: "none"
+              }}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Saving...
+                </>
+              ) : (
+                "Save Quotation"
+              )}
+            </button>
           </div>
         </div>
       </div>
