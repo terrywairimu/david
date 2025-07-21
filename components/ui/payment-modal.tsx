@@ -451,9 +451,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       disabled={mode === "view"}
                     >
                       <option value="">Select Account</option>
-                      <option value="David">David</option>
-                      <option value="Kim">Kim</option>
-                      <option value="bank">Bank</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Cooperative Bank">Cooperative Bank</option>
+                      <option value="Credit">Credit</option>
+                      <option value="Cheque">Cheque</option>
                     </select>
                   </div>
                 </div>
