@@ -108,61 +108,37 @@ const PortalDropdown: React.FC<{
   )
 }
 
-// Quotation number generation logic from old implementation
-const generateQuotationNumber = () => {
+// Quotation number generation logic (now using Supabase, not localStorage)
+const generateQuotationNumber = async () => {
   try {
-    const lastNumbers = JSON.parse(localStorage.getItem('lastNumbers') || '{}')
-    const currentYear = new Date().getFullYear().toString().slice(-2)
-    const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0')
-    
-    if (!lastNumbers[currentYear]) {
-      lastNumbers[currentYear] = {}
-    }
-    if (!lastNumbers[currentYear][currentMonth]) {
-      lastNumbers[currentYear][currentMonth] = {
-        QT: 0,
-        lastGenerated: {
-          QT: null
-        }
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    // Query Supabase for the latest quotation number for this year/month
+    const { data, error } = await supabase
+      .from("quotations")
+      .select("quotation_number")
+      .ilike("quotation_number", `QT${year}${month}%`)
+      .order("quotation_number", { ascending: false })
+      .limit(1)
+    if (error) throw error
+    let nextNumber = 1
+    if (data && data.length > 0) {
+      const match = data[0].quotation_number.match(/QT\d{4}(\d{3})/)
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1
       }
     }
-    
-    if (typeof lastNumbers[currentYear][currentMonth].QT !== 'number') {
-      lastNumbers[currentYear][currentMonth].QT = 0
-    }
-    
-    if (!lastNumbers[currentYear][currentMonth].lastGenerated) {
-      lastNumbers[currentYear][currentMonth].lastGenerated = {}
-    }
-    
-    const nextNumber = lastNumbers[currentYear][currentMonth].QT + 1
-    const formattedNumber = `QT${currentYear}${currentMonth}${nextNumber.toString().padStart(3, '0')}`
-    
-    lastNumbers[currentYear][currentMonth].lastGenerated.QT = formattedNumber
-    localStorage.setItem('lastNumbers', JSON.stringify(lastNumbers))
-    
-    return formattedNumber
+    return `QT${year}${month}${nextNumber.toString().padStart(3, '0')}`
   } catch (error) {
     console.error('Error generating quotation number:', error)
-    const timestamp = Date.now()
-    const currentYear = new Date().getFullYear().toString().slice(-2)
-    const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0')
-    return `QT${currentYear}${currentMonth}${timestamp.toString().slice(-3)}`
+    const timestamp = Date.now().toString().slice(-3)
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    return `QT${year}${month}${timestamp}`
   }
 }
-
-const confirmQuotationNumber = (quotationNumber: string) => {
-  const lastNumbers = JSON.parse(localStorage.getItem('lastNumbers') || '{}')
-  const year = quotationNumber.slice(2, 4)
-  const month = quotationNumber.slice(4, 6)
-  
-  if (lastNumbers[year]?.[month]?.lastGenerated?.QT === quotationNumber) {
-    lastNumbers[year][month].QT++
-    localStorage.setItem('lastNumbers', JSON.stringify(lastNumbers))
-    return true
-  }
-  return false
-} 
 
 const QuotationModal = ({
   isOpen,
@@ -222,7 +198,7 @@ const QuotationModal = ({
       fetchClients()
       fetchStockItems()
       if (mode === "create") {
-        setQuotationNumber(generateQuotationNumber())
+        generateQuotationNumber().then(setQuotationNumber)
         resetForm()
       } else if (quotation) {
         loadQuotationData()
@@ -585,9 +561,8 @@ const QuotationModal = ({
       }
 
       // Confirm quotation number if it's a new quotation
-      if (mode === "create") {
-        confirmQuotationNumber(quotationNumber)
-    }
+      // Removed localStorage logic, so this block is effectively removed.
+      // The generateQuotationNumber function now handles the number generation.
 
     onSave(quotationData)
       onClose()
