@@ -18,7 +18,6 @@ interface StockItem {
   name: string
   description?: string
   unit_price: number
-  selling_price: number
   unit: string
   category: string
   sku?: string
@@ -316,7 +315,15 @@ const QuotationModal = ({
         .order("name")
 
       if (error) throw error
-      setStockItems(data || [])
+      
+      // Convert numeric strings to numbers for unit_price
+      const processedData = (data || []).map(item => ({
+        ...item,
+        unit_price: parseFloat(item.unit_price) || 0
+      }))
+      
+      console.log("Fetched stock items:", processedData)
+      setStockItems(processedData)
     } catch (error) {
       console.error("Error fetching stock items:", error)
       toast.error("Failed to fetch stock items")
@@ -328,13 +335,13 @@ const QuotationModal = ({
     
     setQuotationNumber(quotation.quotation_number || "")
     setSelectedClient(quotation.client || null)
-    setClientSearchTerm(quotation.client?.name || "")
+      setClientSearchTerm(quotation.client?.name || "")
     setLabourPercentage(quotation.labour_percentage || 30)
     setIncludeWorktop(quotation.include_worktop || false)
-    setIncludeAccessories(quotation.include_accessories || false)
+      setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
-    setNotes(quotation.notes || "")
-    setTermsConditions(quotation.terms_conditions || "")
+      setNotes(quotation.notes || "")
+      setTermsConditions(quotation.terms_conditions || "")
     
     // Load items by category
     if (quotation.items) {
@@ -406,11 +413,16 @@ const QuotationModal = ({
           
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
-            updatedItem.stock_item = stockItem || null
+            console.log("Found stock item for ID", value, ":", stockItem)
+            console.log("Stock item unit_price:", stockItem?.unit_price, typeof stockItem?.unit_price)
+            
+            updatedItem.stock_item = stockItem || undefined
             updatedItem.description = stockItem?.name || ""
             updatedItem.unit = stockItem?.unit || "pieces"
-            updatedItem.unit_price = stockItem?.selling_price || 0
+            updatedItem.unit_price = Number(stockItem?.unit_price) || 0
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
+            
+            console.log("Updated item unit_price:", updatedItem.unit_price)
           } else if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
@@ -446,21 +458,51 @@ const QuotationModal = ({
   }
 
   const selectStockItem = (itemId: string, stockItem: StockItem) => {
-    // Find which category this item belongs to
-    const allItems = [...cabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems]
-    const item = allItems.find(item => item.id?.toString() === itemId)
+    console.log("Selecting stock item:", stockItem)
+    console.log("Stock item unit_price:", stockItem.unit_price, typeof stockItem.unit_price)
     
-    if (item) {
-      const category = item.category
-      const index = allItems.findIndex(item => item.id?.toString() === itemId)
+    // Find which category this item belongs to and get the correct index within that category
+    let category: "cabinet" | "worktop" | "accessories" | "appliances" | null = null
+    let index = -1
+    
+    // Check cabinet items
+    const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
+    if (cabinetIndex !== -1) {
+      category = "cabinet"
+      index = cabinetIndex
+    } else {
+      // Check worktop items
+      const worktopIndex = worktopItems.findIndex(item => item.id?.toString() === itemId)
+      if (worktopIndex !== -1) {
+        category = "worktop"
+        index = worktopIndex
+      } else {
+        // Check accessories items
+        const accessoriesIndex = accessoriesItems.findIndex(item => item.id?.toString() === itemId)
+        if (accessoriesIndex !== -1) {
+          category = "accessories"
+          index = accessoriesIndex
+        } else {
+          // Check appliances items
+          const appliancesIndex = appliancesItems.findIndex(item => item.id?.toString() === itemId)
+          if (appliancesIndex !== -1) {
+            category = "appliances"
+            index = appliancesIndex
+          }
+        }
+      }
+    }
+    
+    if (category && index !== -1) {
+      console.log(`Updating ${category} item at index ${index}`)
       
+      // Single call to updateItem with stock_item_id will automatically populate all fields
       updateItem(category, index, "stock_item_id", stockItem.id)
-      updateItem(category, index, "description", stockItem.name)
-      updateItem(category, index, "unit", stockItem.unit)
-      updateItem(category, index, "unit_price", stockItem.selling_price)
       
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
+    } else {
+      console.error("Could not find item with ID:", itemId)
     }
   }
 
@@ -473,7 +515,7 @@ const QuotationModal = ({
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
     const labourAmount = (subtotal * labourPercentage) / 100
     const grandTotal = subtotal + labourAmount
-    
+
     return {
       cabinetTotal,
       worktopTotal,
@@ -502,7 +544,7 @@ const QuotationModal = ({
 
     setLoading(true)
     try {
-      const totals = calculateTotals()
+    const totals = calculateTotals()
       
       // Add labour item to cabinet items if not exists
       let finalCabinetItems = [...cabinetItems]
@@ -517,37 +559,37 @@ const QuotationModal = ({
           quantity: 1,
           unit_price: totals.labourAmount,
           total_price: totals.labourAmount,
-          stock_item_id: null
+          stock_item_id: undefined
         })
       }
 
-      const quotationData = {
-        quotation_number: quotationNumber,
-        client_id: selectedClient.id,
+    const quotationData = {
+      quotation_number: quotationNumber,
+      client_id: selectedClient.id,
         date_created: new Date().toISOString(),
-        cabinet_total: totals.cabinetTotal,
-        worktop_total: totals.worktopTotal,
-        accessories_total: totals.accessoriesTotal,
+      cabinet_total: totals.cabinetTotal,
+      worktop_total: totals.worktopTotal,
+      accessories_total: totals.accessoriesTotal,
         appliances_total: totals.appliancesTotal,
-        labour_percentage: labourPercentage,
+      labour_percentage: labourPercentage,
         labour_total: totals.labourAmount,
         total_amount: totals.subtotal,
-        grand_total: totals.grandTotal,
+      grand_total: totals.grandTotal,
         include_worktop: includeWorktop,
-        include_accessories: includeAccessories,
+      include_accessories: includeAccessories,
         include_appliances: includeAppliances,
-        status: "pending",
-        notes,
-        terms_conditions: termsConditions,
+      status: "pending",
+      notes,
+      terms_conditions: termsConditions,
         items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems]
       }
 
       // Confirm quotation number if it's a new quotation
       if (mode === "create") {
         confirmQuotationNumber(quotationNumber)
-      }
+    }
 
-      onSave(quotationData)
+    onSave(quotationData)
       onClose()
     } catch (error) {
       console.error("Error saving quotation:", error)
@@ -583,7 +625,7 @@ const QuotationModal = ({
               <div>
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
                   {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
-                </h5>
+            </h5>
                 <p className="mb-0 text-muted small">Create a detailed quotation for your client</p>
               </div>
             </div>
@@ -635,7 +677,7 @@ const QuotationModal = ({
                         triggerRef={clientInputRef}
                         onClose={() => setClientDropdownVisible(false)}
                       >
-                        {filteredClients.slice(0, 5).map(client => (
+                        {filteredClients.map(client => (
                           <li
                             key={client.id}
                             style={{
@@ -662,32 +704,29 @@ const QuotationModal = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="col-md-4">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
-                      <FileText size={18} className="me-2" />
-                      Quotation Details
-                    </h6>
+                    
                     <div className="mb-3">
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Quotation Number
                       </label>
-                      <input
-                        type="text"
+                    <input
+                      type="text"
                         className="form-control"
-                        value={quotationNumber}
-                        readOnly
+                      value={quotationNumber}
+                      readOnly
                         style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                      />
-                    </div>
+                    />
+                  </div>
                     <div>
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Date
                       </label>
                       <div className="input-group">
-                        <input
+                    <input
                           type="date"
                           className="form-control"
                           value={new Date().toISOString().split('T')[0]}
@@ -700,7 +739,7 @@ const QuotationModal = ({
                         <span className="input-group-text" style={{ borderRadius: "0 12px 12px 0", borderLeft: "none", backgroundColor: "#f8f9fa" }}>
                           <Calendar size={16} />
                         </span>
-                      </div>
+                  </div>
                     </div>
                   </div>
                 </div>
@@ -713,7 +752,7 @@ const QuotationModal = ({
                 <div className="card-body p-4">
                   <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
                     <Calculator size={18} className="me-2" />
-                    Kitchen Cabinets
+                    General
                   </h6>
                   
                   {/* Labour Percentage Input */}
@@ -738,13 +777,10 @@ const QuotationModal = ({
                     <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                     
                     {/* Column Headers */}
-                    <div className="d-flex mb-2" style={{ 
-                      background: "#f8f9fa", 
-                      borderRadius: "12px", 
-                      padding: "12px 16px",
+                    <div className="d-flex mb-3" style={{ 
                       fontSize: "13px",
                       fontWeight: "600",
-                      color: "#495057"
+                      color: "white"
                     }}>
                       <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
                       <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
@@ -752,61 +788,34 @@ const QuotationModal = ({
                       <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
                       <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
                       {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                    </div>
+                </div>
 
                     {/* Item Rows */}
                     {cabinetItems.map((item, index) => (
-                      <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
-                        padding: "12px 16px",
-                        borderRadius: "12px",
-                        border: "1px solid #e9ecef",
-                        background: "white"
-                      }}>
+                      <div key={item.id} className="d-flex align-items-center mb-2">
                         <div style={{ flex: "2", marginRight: "16px" }}>
                           <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                            <input
-                              type="text"
+                      <input
+                        type="text"
                               className="form-control"
                               value={item.description}
-                              onChange={(e) => updateItem("cabinet", index, "description", e.target.value)}
+                        onChange={(e) => {
+                                updateItem("cabinet", index, "description", e.target.value)
+                                handleItemSearch(item.id?.toString() || "", e.target.value)
+                                setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                        }}
+                              onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
                               placeholder="Search and select item"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                className="btn btn-sm position-absolute"
-                                onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                style={{ 
-                                  right: "4px", 
-                                  top: "4px", 
-                                  borderRadius: "8px", 
-                                  padding: "4px",
-                                  background: "transparent",
-                                  border: "none"
-                                }}
-                              >
-                                <Package size={14} />
-                              </button>
-                            )}
+                        readOnly={isReadOnly}
+                      />
                             
                             <PortalDropdown
                               isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
                               triggerRef={getItemInputRef(item.id?.toString() || "")}
                               onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
                             >
-                              <li style={{ padding: "8px 12px", borderBottom: "1px solid #f1f3f4" }}>
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  placeholder="Search stock items..."
-                                  value={itemSearches[item.id?.toString() || ""] || ""}
-                                  onChange={(e) => handleItemSearch(item.id?.toString() || "", e.target.value)}
-                                  style={{ borderRadius: "8px" }}
-                                />
-                              </li>
-                              {getFilteredItems(item.id?.toString() || "").slice(0, 5).map(stockItem => (
+                              {getFilteredItems(item.id?.toString() || "").map(stockItem => (
                                 <li
                                   key={stockItem.id}
                                   style={{
@@ -820,28 +829,28 @@ const QuotationModal = ({
                                 >
                                   <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
                                   <div style={{ fontSize: "11px", color: "#6c757d" }}>
-                                    Selling Price: KES {stockItem.selling_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                  </div>
+                                    Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                            </div>
                                 </li>
-                              ))}
+                          ))}
                             </PortalDropdown>
-                          </div>
                         </div>
+                    </div>
                         
                         <div style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
+                    <input
+                      type="text"
                             className="form-control"
                             value={item.unit}
                             onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
                             placeholder="Units"
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                          />
-                        </div>
+                    />
+                  </div>
                         
                         <div style={{ flex: "1", marginRight: "16px" }}>
-                          <input
+                    <input
                             type="number"
                             className="form-control"
                             value={item.quantity}
@@ -851,14 +860,14 @@ const QuotationModal = ({
                             readOnly={isReadOnly}
                             min="0"
                             step="0.01"
-                          />
-                        </div>
+                    />
+                  </div>
                         
                         <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                             className="form-control"
-                            value={item.unit_price}
+                            value={item.unit_price || ""}
                             onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
                             placeholder="Unit Price"
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
@@ -866,12 +875,12 @@ const QuotationModal = ({
                             min="0"
                             step="0.01"
                           />
-                        </div>
+                </div>
                         
                         <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#495057" }}>
                           KES {item.total_price.toFixed(2)}
-                        </div>
-                        
+              </div>
+
                         {!isReadOnly && (
                           <div style={{ flex: "0 0 40px" }}>
                             <button
@@ -915,43 +924,39 @@ const QuotationModal = ({
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="card-title mb-0 fw-bold" style={{ color: "#495057" }}>
-                      <Calculator size={18} className="me-2" />
-                      Worktop
-                    </h6>
+                  <div className="d-flex align-items-center mb-3">
+                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Worktop</span>
                     {!isReadOnly && (
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="d-flex align-items-center">
-                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                            Include Worktop
-                          </label>
-                          <div 
-                            className="position-relative"
+                      <div className="d-flex align-items-center">
+                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                          Include Worktop
+                        </span>
+                        <div 
+                          className="position-relative"
+                          style={{
+                            width: "44px",
+                            height: "24px",
+                            borderRadius: "12px",
+                            background: includeWorktop ? "#667eea" : "#e9ecef",
+                            cursor: isReadOnly ? "default" : "pointer",
+                            transition: "background-color 0.2s"
+                          }}
+                          onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
+                        >
+                          <div
                             style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeWorktop ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
+                              position: "absolute",
+                              top: "2px",
+                              left: includeWorktop ? "22px" : "2px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "white",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                              transition: "left 0.2s"
                             }}
-                            onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeWorktop ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
+                          />
                         </div>
                       </div>
                     )}
@@ -962,13 +967,10 @@ const QuotationModal = ({
                       <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
-                      <div className="d-flex mb-2" style={{ 
-                        background: "#f8f9fa", 
-                        borderRadius: "12px", 
-                        padding: "12px 16px",
+                      <div className="d-flex mb-3" style={{ 
                         fontSize: "13px",
                         fontWeight: "600",
-                        color: "#495057"
+                        color: "white"
                       }}>
                         <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
                         <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
@@ -980,78 +982,86 @@ const QuotationModal = ({
 
                       {/* Item Rows */}
                       {worktopItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
-                          padding: "12px 16px",
-                          borderRadius: "12px",
-                          border: "1px solid #e9ecef",
-                          background: "white"
-                        }}>
+                        <div key={item.id} className="d-flex align-items-center mb-2">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                              <input
-                                type="text"
+                          <input
+                            type="text"
                                 className="form-control"
-                                value={item.description}
-                                onChange={(e) => updateItem("worktop", index, "description", e.target.value)}
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("worktop", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
                                 placeholder="Search and select item"
                                 style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                              {!isReadOnly && (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm position-absolute"
-                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                  style={{ 
-                                    right: "4px", 
-                                    top: "4px", 
-                                    borderRadius: "8px", 
-                                    padding: "4px",
-                                    background: "transparent",
-                                    border: "none"
-                                  }}
-                                >
-                                  <Package size={14} />
-                                </button>
-                              )}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
                             </div>
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
+                          <input
+                            type="text"
                               className="form-control"
-                              value={item.unit}
+                            value={item.unit}
                               onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
                               placeholder="Units"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
+                            readOnly={isReadOnly}
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.quantity}
+                            value={item.quantity}
                               onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
                               placeholder="Qty"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
-                            />
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.unit_price}
+                            value={item.unit_price}
                               onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
                               placeholder="Unit Price"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
                             />
@@ -1061,16 +1071,16 @@ const QuotationModal = ({
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
-                          {!isReadOnly && (
+                        {!isReadOnly && (
                             <div style={{ flex: "0 0 40px" }}>
-                              <button
-                                type="button"
+                            <button
+                              type="button"
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => removeItem("worktop", index)}
                                 style={{ borderRadius: "8px", padding: "4px 8px" }}
-                              >
+                            >
                                 <X size={12} />
-                              </button>
+                            </button>
                             </div>
                           )}
                         </div>
@@ -1079,8 +1089,8 @@ const QuotationModal = ({
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                          <button
-                            type="button"
+                        <button
+                          type="button"
                             className="btn btn-primary"
                             onClick={() => addItem("worktop")}
                             style={{ 
@@ -1089,10 +1099,10 @@ const QuotationModal = ({
                               border: "none",
                               padding: "10px 20px"
                             }}
-                          >
-                            <Plus size={14} className="me-1" />
+                        >
+                          <Plus size={14} className="me-1" />
                             Add Item
-                          </button>
+                        </button>
                         </div>
                       )}
                     </div>
@@ -1105,43 +1115,39 @@ const QuotationModal = ({
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="card-title mb-0 fw-bold" style={{ color: "#495057" }}>
-                      <Calculator size={18} className="me-2" />
-                      Accessories
-                    </h6>
+                  <div className="d-flex align-items-center mb-3">
+                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Accessories</span>
                     {!isReadOnly && (
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="d-flex align-items-center">
-                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                            Include Accessories
-                          </label>
-                          <div 
-                            className="position-relative"
+                      <div className="d-flex align-items-center">
+                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                          Include Accessories
+                        </span>
+                        <div 
+                          className="position-relative"
+                          style={{
+                            width: "44px",
+                            height: "24px",
+                            borderRadius: "12px",
+                            background: includeAccessories ? "#667eea" : "#e9ecef",
+                            cursor: isReadOnly ? "default" : "pointer",
+                            transition: "background-color 0.2s"
+                          }}
+                          onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                        >
+                          <div
                             style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeAccessories ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
+                              position: "absolute",
+                              top: "2px",
+                              left: includeAccessories ? "22px" : "2px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "white",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                              transition: "left 0.2s"
                             }}
-                            onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeAccessories ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
+                          />
                         </div>
                       </div>
                     )}
@@ -1152,13 +1158,10 @@ const QuotationModal = ({
                       <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
-                      <div className="d-flex mb-2" style={{ 
-                        background: "#f8f9fa", 
-                        borderRadius: "12px", 
-                        padding: "12px 16px",
+                      <div className="d-flex mb-3" style={{ 
                         fontSize: "13px",
                         fontWeight: "600",
-                        color: "#495057"
+                        color: "white"
                       }}>
                         <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
                         <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
@@ -1170,78 +1173,86 @@ const QuotationModal = ({
 
                       {/* Item Rows */}
                       {accessoriesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
-                          padding: "12px 16px",
-                          borderRadius: "12px",
-                          border: "1px solid #e9ecef",
-                          background: "white"
-                        }}>
+                        <div key={item.id} className="d-flex align-items-center mb-2">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                              <input
-                                type="text"
+                          <input
+                            type="text"
                                 className="form-control"
-                                value={item.description}
-                                onChange={(e) => updateItem("accessories", index, "description", e.target.value)}
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("accessories", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
                                 placeholder="Search and select item"
                                 style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                              {!isReadOnly && (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm position-absolute"
-                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                  style={{ 
-                                    right: "4px", 
-                                    top: "4px", 
-                                    borderRadius: "8px", 
-                                    padding: "4px",
-                                    background: "transparent",
-                                    border: "none"
-                                  }}
-                                >
-                                  <Package size={14} />
-                                </button>
-                              )}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
                             </div>
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
+                          <input
+                            type="text"
                               className="form-control"
-                              value={item.unit}
+                            value={item.unit}
                               onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
                               placeholder="Units"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
+                            readOnly={isReadOnly}
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.quantity}
+                            value={item.quantity}
                               onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
                               placeholder="Qty"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
-                            />
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.unit_price}
+                            value={item.unit_price}
                               onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
                               placeholder="Unit Price"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
                             />
@@ -1251,16 +1262,16 @@ const QuotationModal = ({
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
-                          {!isReadOnly && (
+                        {!isReadOnly && (
                             <div style={{ flex: "0 0 40px" }}>
-                              <button
-                                type="button"
+                            <button
+                              type="button"
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => removeItem("accessories", index)}
                                 style={{ borderRadius: "8px", padding: "4px 8px" }}
-                              >
+                            >
                                 <X size={12} />
-                              </button>
+                            </button>
                             </div>
                           )}
                         </div>
@@ -1269,8 +1280,8 @@ const QuotationModal = ({
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                          <button
-                            type="button"
+                        <button
+                          type="button"
                             className="btn btn-primary"
                             onClick={() => addItem("accessories")}
                             style={{ 
@@ -1279,10 +1290,10 @@ const QuotationModal = ({
                               border: "none",
                               padding: "10px 20px"
                             }}
-                          >
-                            <Plus size={14} className="me-1" />
+                        >
+                          <Plus size={14} className="me-1" />
                             Add Item
-                          </button>
+                        </button>
                         </div>
                       )}
                     </div>
@@ -1295,60 +1306,53 @@ const QuotationModal = ({
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="card-title mb-0 fw-bold" style={{ color: "#495057" }}>
-                      <Calculator size={18} className="me-2" />
-                      Appliances
-                    </h6>
-                    {!isReadOnly && (
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="d-flex align-items-center">
-                          <label className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                            Include Appliances
-                          </label>
-                          <div 
-                            className="position-relative"
+                  <div className="d-flex align-items-center mb-3">
+                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Appliances</span>
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center">
+                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
+                          Include Appliances
+                        </span>
+                        <div 
+                          className="position-relative"
+                          style={{
+                            width: "44px",
+                            height: "24px",
+                            borderRadius: "12px",
+                            background: includeAppliances ? "#667eea" : "#e9ecef",
+                            cursor: isReadOnly ? "default" : "pointer",
+                            transition: "background-color 0.2s"
+                          }}
+                          onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
+                        >
+                          <div
                             style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeAppliances ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
+                              position: "absolute",
+                              top: "2px",
+                              left: includeAppliances ? "22px" : "2px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "white",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                              transition: "left 0.2s"
                             }}
-                            onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeAppliances ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
+                          />
                         </div>
-                      </div>
-                    )}
                   </div>
+                )}
+              </div>
                   
                   {includeAppliances && (
                     <div className="mb-3">
                       <h6 className="fw-semibold mb-3" style={{ color: "#495057" }}>Items</h6>
                       
                       {/* Column Headers */}
-                      <div className="d-flex mb-2" style={{ 
-                        background: "#f8f9fa", 
-                        borderRadius: "12px", 
-                        padding: "12px 16px",
+                      <div className="d-flex mb-3" style={{ 
                         fontSize: "13px",
                         fontWeight: "600",
-                        color: "#495057"
+                        color: "white"
                       }}>
                         <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
                         <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
@@ -1360,78 +1364,86 @@ const QuotationModal = ({
 
                       {/* Item Rows */}
                       {appliancesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2" style={{ 
-                          padding: "12px 16px",
-                          borderRadius: "12px",
-                          border: "1px solid #e9ecef",
-                          background: "white"
-                        }}>
+                        <div key={item.id} className="d-flex align-items-center mb-2">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                              <input
-                                type="text"
+                          <input
+                            type="text"
                                 className="form-control"
-                                value={item.description}
-                                onChange={(e) => updateItem("appliances", index, "description", e.target.value)}
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("appliances", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
                                 placeholder="Search and select item"
                                 style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                              {!isReadOnly && (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm position-absolute"
-                                  onClick={() => toggleItemDropdown(item.id?.toString() || "")}
-                                  style={{ 
-                                    right: "4px", 
-                                    top: "4px", 
-                                    borderRadius: "8px", 
-                                    padding: "4px",
-                                    background: "transparent",
-                                    border: "none"
-                                  }}
-                                >
-                                  <Package size={14} />
-                                </button>
-                              )}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#6c757d" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
                             </div>
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
+                          <input
+                            type="text"
                               className="form-control"
-                              value={item.unit}
+                            value={item.unit}
                               onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
                               placeholder="Units"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
+                            readOnly={isReadOnly}
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.quantity}
+                            value={item.quantity}
                               onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
                               placeholder="Qty"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
-                            />
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.unit_price}
+                            value={item.unit_price}
                               onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
                               placeholder="Unit Price"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                               min="0"
                               step="0.01"
                             />
@@ -1441,16 +1453,16 @@ const QuotationModal = ({
                             KES {item.total_price.toFixed(2)}
                           </div>
                           
-                          {!isReadOnly && (
+                        {!isReadOnly && (
                             <div style={{ flex: "0 0 40px" }}>
-                              <button
-                                type="button"
+                            <button
+                              type="button"
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => removeItem("appliances", index)}
                                 style={{ borderRadius: "8px", padding: "4px 8px" }}
-                              >
+                            >
                                 <X size={12} />
-                              </button>
+                            </button>
                             </div>
                           )}
                         </div>
@@ -1459,8 +1471,8 @@ const QuotationModal = ({
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                          <button
-                            type="button"
+                        <button
+                          type="button"
                             className="btn btn-primary"
                             onClick={() => addItem("appliances")}
                             style={{ 
@@ -1469,10 +1481,10 @@ const QuotationModal = ({
                               border: "none",
                               padding: "10px 20px"
                             }}
-                          >
-                            <Plus size={14} className="me-1" />
+                        >
+                          <Plus size={14} className="me-1" />
                             Add Item
-                          </button>
+                        </button>
                         </div>
                       )}
                     </div>
@@ -1541,14 +1553,14 @@ const QuotationModal = ({
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
                       Notes
                     </h6>
-                    <textarea
-                      className="form-control"
+              <textarea
+                className="form-control"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Additional notes..."
                       style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                      readOnly={isReadOnly}
-                    />
+                readOnly={isReadOnly}
+              />
                   </div>
                 </div>
               </div>
@@ -1558,15 +1570,15 @@ const QuotationModal = ({
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#495057" }}>
                       Terms & Conditions
                     </h6>
-                    <textarea
-                      className="form-control"
+              <textarea
+                className="form-control"
                       value={termsConditions}
                       onChange={(e) => setTermsConditions(e.target.value)}
                       placeholder="Terms and conditions..."
                       style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                      readOnly={isReadOnly}
-                    />
-                  </div>
+                readOnly={isReadOnly}
+              />
+          </div>
                 </div>
               </div>
             </div>
