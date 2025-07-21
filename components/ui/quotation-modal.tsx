@@ -210,7 +210,17 @@ const QuotationModal = ({
         }
       }
     }
-  }, [isOpen, mode, quotation])
+    // Real-time subscription for stock_items
+    const stockItemsChannel = supabase
+      .channel('stock_items_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, (payload) => {
+        fetchStockItems();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(stockItemsChannel);
+    };
+  }, [isOpen, mode, quotation]);
 
   useEffect(() => {
     // Update filtered items when searches change
