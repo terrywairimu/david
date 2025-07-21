@@ -193,6 +193,8 @@ const QuotationModal = ({
     return itemInputRefs.current[itemId]
   }
 
+  const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     if (isOpen) {
       fetchClients()
@@ -200,8 +202,12 @@ const QuotationModal = ({
       if (mode === "create") {
         generateQuotationNumber().then(setQuotationNumber)
         resetForm()
+        setQuotationDate(new Date().toISOString().split('T')[0])
       } else if (quotation) {
         loadQuotationData()
+        if (quotation.date_created) {
+          setQuotationDate(quotation.date_created.split('T')[0])
+        }
       }
     }
   }, [isOpen, mode, quotation])
@@ -542,7 +548,7 @@ const QuotationModal = ({
     const quotationData = {
       quotation_number: quotationNumber,
       client_id: selectedClient.id,
-        date_created: new Date().toISOString(),
+      date_created: quotationDate ? new Date(quotationDate).toISOString() : new Date().toISOString(),
       cabinet_total: totals.cabinetTotal,
       worktop_total: totals.worktopTotal,
       accessories_total: totals.accessoriesTotal,
@@ -694,10 +700,8 @@ const QuotationModal = ({
                     <input
                           type="date"
                           className="form-control"
-                          value={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            // Handle date change if needed
-                          }}
+                          value={quotationDate}
+                          onChange={e => setQuotationDate(e.target.value)}
                           style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
                           readOnly={isReadOnly}
                         />
