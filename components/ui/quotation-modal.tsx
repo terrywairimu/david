@@ -615,57 +615,58 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <User size={18} className="me-2" />
                       Client Information
                     </h6>
-                    <div className="position-relative">
+                    <div className="position-relative" ref={clientInputRef}>
                       <div className="input-group">
-                      <input
-                        type="text"
+                        <input
+                          type="text"
                           className="form-control"
-                        placeholder="Search client..."
+                          placeholder="Search client..."
                           value={clientSearchTerm}
                           onChange={(e) => handleClientSearch(e.target.value)}
-                          onFocus={() => setShowClientResults(true)}
+                          onFocus={() => setClientDropdownVisible(true)}
                           style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
-                        readOnly={isReadOnly}
-                      />
+                          readOnly={isReadOnly}
+                        />
                         <button
                           className="btn btn-outline-secondary"
                           type="button"
+                          onClick={() => setClientDropdownVisible(!clientDropdownVisible)}
                           style={{ borderRadius: "0 16px 16px 0", borderLeft: "none" }}
                           disabled={isReadOnly}
                         >
-                          <Search size={16} />
+                          <User size={16} />
+                          <ChevronDown size={12} className="ms-1" />
                         </button>
                       </div>
                       
-                      {showClientResults && clientSearchTerm && !isReadOnly && (
-                        <div className="position-absolute w-100 mt-1" style={{ zIndex: 1000 }}>
-                          <div className="card" style={{ borderRadius: "12px", boxShadow: "0 8px 32px rgba(0,0,0,0.1)" }}>
-                            <div className="card-body p-0">
-                              {clients
-                                .filter(client => 
-                                  client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-                                  client.phone?.includes(clientSearchTerm) ||
-                                  client.location?.toLowerCase().includes(clientSearchTerm.toLowerCase())
-                                )
-                                .slice(0, 5)
-                                .map(client => (
-                            <div
-                              key={client.id}
-                                    className="p-3 border-bottom cursor-pointer hover-bg-light"
-                                    style={{ cursor: "pointer" }}
-                              onClick={() => handleClientSelect(client)}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                            >
-                                    <div className="fw-semibold" style={{ color: "#495057" }}>{client.name}</div>
-                                    {client.phone && <div className="small text-muted">{client.phone}</div>}
-                                    {client.location && <div className="small text-muted">{client.location}</div>}
-                            </div>
-                          ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <PortalDropdown
+                        isVisible={clientDropdownVisible && !isReadOnly}
+                        triggerRef={clientInputRef}
+                        onClose={() => setClientDropdownVisible(false)}
+                      >
+                        {filteredClients.slice(0, 5).map(client => (
+                          <li
+                            key={client.id}
+                            style={{
+                              padding: "12px 16px",
+                              cursor: "pointer",
+                              borderBottom: "1px solid #f1f3f4"
+                            }}
+                            onClick={() => handleClientSelect(client)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                          >
+                            <div style={{ fontWeight: "600", color: "#495057" }}>{client.name}</div>
+                            {client.phone && <div style={{ fontSize: "12px", color: "#6c757d" }}>{client.phone}</div>}
+                            {client.location && <div style={{ fontSize: "12px", color: "#6c757d" }}>{client.location}</div>}
+                          </li>
+                        ))}
+                        {filteredClients.length === 0 && (
+                          <li style={{ padding: "12px 16px", color: "#6c757d", fontStyle: "italic" }}>
+                            No clients found
+                          </li>
+                        )}
+                      </PortalDropdown>
                     </div>
                   </div>
                 </div>
@@ -694,13 +695,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Date
                       </label>
-                    <input
-                      type="text"
-                        className="form-control"
-                        value={new Date().toLocaleDateString()}
-                      readOnly
-                        style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                    />
+                      <div className="input-group">
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            // Handle date change if needed
+                          }}
+                          style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
+                          readOnly={isReadOnly}
+                        />
+                        <span className="input-group-text" style={{ borderRadius: "0 12px 12px 0", borderLeft: "none", backgroundColor: "#f8f9fa" }}>
+                          <Calendar size={16} />
+                        </span>
+                      </div>
                     </div>
                   </div>
                   </div>
