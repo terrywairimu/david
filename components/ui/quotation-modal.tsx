@@ -657,29 +657,49 @@ const QuotationModal = ({
                         isVisible={clientDropdownVisible && !isReadOnly}
                         triggerRef={clientInputRef}
                         onClose={() => setClientDropdownVisible(false)}
+                        // Add marginTop and full borderRadius to the dropdown container
                       >
-                        {filteredClients.map(client => (
-                          <li
-                            key={client.id}
-                            style={{
-                              padding: "12px 16px",
-                              cursor: "pointer",
-                              borderBottom: "1px solid #f1f3f4"
-                            }}
-                            onClick={() => handleClientSelect(client)}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                          >
-                            <div style={{ fontWeight: "600", color: "#ffffff" }}>{client.name}</div>
-                            {client.phone && <div style={{ fontSize: "12px", color: "#ffffff" }}>{client.phone}</div>}
-                            {client.location && <div style={{ fontSize: "12px", color: "#ffffff" }}>{client.location}</div>}
-                          </li>
-                        ))}
-                        {filteredClients.length === 0 && (
-                          <li style={{ padding: "12px 16px", color: "#ffffff", fontStyle: "italic" }}>
-                            No clients found
-                          </li>
-                        )}
+                        <ul style={{
+                          marginTop: "8px",
+                          borderRadius: "16px",
+                          boxShadow: "0 1px 8px rgba(0,0,0,0.08)",
+                          background: "#fff",
+                          padding: 0,
+                          listStyle: "none",
+                          border: "none"
+                        }}>
+                          {filteredClients.map(client => (
+                            <li
+                              key={client.id}
+                              style={{
+                                padding: "12px 16px",
+                                cursor: "pointer",
+                                background: "#fff",
+                                color: "#212529",
+                                borderRadius: "16px",
+                                margin: "6px 8px",
+                                transition: "background 0.2s"
+                              }}
+                              onClick={() => handleClientSelect(client)}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                            >
+                              <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
+                              {(client.phone || client.location) && (
+                                <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
+                                  {client.phone}
+                                  {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
+                                  {client.location}
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                          {filteredClients.length === 0 && (
+                            <li style={{ padding: "12px 16px", color: "#495057", fontStyle: "italic", background: "#fff", borderRadius: "16px", margin: "6px 8px" }}>
+                              No clients found
+                            </li>
+                          )}
+                        </ul>
                       </PortalDropdown>
                     </div>
                   </div>
@@ -796,14 +816,16 @@ const QuotationModal = ({
                                   style={{
                                     padding: "8px 12px",
                                     cursor: "pointer",
-                                    borderBottom: "1px solid #f1f3f4"
+                                    borderBottom: "1px solid #f1f3f4",
+                                    background: "#fff",
+                                    color: "#212529"
                                   }}
                                   onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
                                 >
-                                  <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                  <div style={{ fontSize: "11px", color: "#ffffff" }}>
+                                  <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                  <div style={{ fontSize: "11px", color: "#495057" }}>
                                     Unit Price: KES {stockItem.unit_price?.toFixed(2)}
                             </div>
                                 </li>
@@ -1014,14 +1036,16 @@ const QuotationModal = ({
                                     style={{
                                       padding: "8px 12px",
                                       cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4"
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
                                     }}
                                     onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
                                   >
-                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
@@ -1233,14 +1257,16 @@ const QuotationModal = ({
                                     style={{
                                       padding: "8px 12px",
                                       cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4"
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
                                     }}
                                     onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
                                   >
-                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
@@ -1452,14 +1478,16 @@ const QuotationModal = ({
                                     style={{
                                       padding: "8px 12px",
                                       cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4"
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
                                     }}
                                     onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
                                   >
-                                    <div style={{ fontWeight: "600", fontSize: "13px" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#ffffff" }}>
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
                                       Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
