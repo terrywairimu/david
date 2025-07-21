@@ -60,6 +60,7 @@ const ExpenseModal = ({
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [filteredClients, setFilteredClients] = useState(clients)
   const [selectedQuotation, setSelectedQuotation] = useState("")
+  const [clientQuotations, setClientQuotations] = useState<{quotation_number: string, grand_total?: number}[]>([])
   
   // Input handling states similar to purchase modal
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
@@ -124,6 +125,19 @@ const ExpenseModal = ({
       })
     }
   }, [expense, mode, clients, expenseType])
+
+  useEffect(() => {
+    if (formData.client_id) {
+      supabase
+        .from("quotations")
+        .select("*")
+        .eq("client_id", formData.client_id)
+        .order("date_created", { ascending: false })
+        .then(({ data }) => setClientQuotations(data || []))
+    } else {
+      setClientQuotations([])
+    }
+  }, [formData.client_id])
 
   const loadExpenseItems = async (expenseId: number) => {
     try {
@@ -410,6 +424,11 @@ const ExpenseModal = ({
                           disabled={mode === "view"}
                         >
                           <option value="">Select Quotation</option>
+                          {clientQuotations.map(q => (
+                            <option key={q.quotation_number} value={q.quotation_number}>
+                              {q.quotation_number} (KES {q.grand_total?.toFixed(2) || '0.00'})
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
