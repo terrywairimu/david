@@ -660,16 +660,6 @@ const QuotationModal = ({
                           style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
                           readOnly={isReadOnly}
                         />
-                        <button
-                          className="btn btn-outline-secondary"
-                          type="button"
-                          onClick={() => setClientDropdownVisible(!clientDropdownVisible)}
-                          style={{ borderRadius: "0 16px 16px 0", borderLeft: "none" }}
-                          disabled={isReadOnly}
-                        >
-                          <User size={16} />
-                          <ChevronDown size={12} className="ms-1" />
-                        </button>
                       </div>
                       
                       <PortalDropdown
@@ -718,7 +708,7 @@ const QuotationModal = ({
                         className="form-control"
                       value={quotationNumber}
                       readOnly
-                        style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                        style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
                     />
                   </div>
                     <div>
@@ -736,9 +726,6 @@ const QuotationModal = ({
                           style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
                           readOnly={isReadOnly}
                         />
-                        <span className="input-group-text" style={{ borderRadius: "0 12px 12px 0", borderLeft: "none", backgroundColor: "#f8f9fa" }}>
-                          <Calendar size={16} />
-                        </span>
                   </div>
                     </div>
                   </div>
