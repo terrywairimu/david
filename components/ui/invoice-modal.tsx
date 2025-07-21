@@ -96,28 +96,29 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   const generateInvoiceNumber = async () => {
     try {
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2);
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      const prefix = `INV${year}${month}`;
       const { data, error } = await supabase
-        .from("invoices")
-        .select("invoice_number")
-        .order("id", { ascending: false })
-        .limit(1)
-
-      if (error) throw error
-
-      let nextNumber = 1
+        .from('invoices')
+        .select('invoice_number')
+        .like('invoice_number', `${prefix}%`)
+        .order('invoice_number', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].invoice_number.match(/\d+/)
-        if (lastNumber) {
-          nextNumber = parseInt(lastNumber[0]) + 1
-        }
+        const lastNumber = data[0].invoice_number;
+        const sequentialPart = lastNumber.slice(-3);
+        nextNumber = parseInt(sequentialPart) + 1;
       }
-
       setFormData(prev => ({
         ...prev,
-        invoice_number: `INV-${nextNumber.toString().padStart(4, "0")}`
-      }))
+        invoice_number: `${prefix}${nextNumber.toString().padStart(3, '0')}`
+      }));
     } catch (error) {
-      console.error("Error generating invoice number:", error)
+      console.error('Error generating invoice number:', error);
     }
   }
 

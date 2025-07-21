@@ -89,28 +89,29 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
 
   const generateSaleNumber = async () => {
     try {
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2);
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      const prefix = `CS${year}${month}`;
       const { data, error } = await supabase
-        .from("cash_sales")
-        .select("sale_number")
-        .order("id", { ascending: false })
-        .limit(1)
-
-      if (error) throw error
-
-      let nextNumber = 1
+        .from('cash_sales')
+        .select('sale_number')
+        .like('sale_number', `${prefix}%`)
+        .order('sale_number', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].sale_number.match(/\d+/)
-        if (lastNumber) {
-          nextNumber = parseInt(lastNumber[0]) + 1
-        }
+        const lastNumber = data[0].sale_number;
+        const sequentialPart = lastNumber.slice(-3);
+        nextNumber = parseInt(sequentialPart) + 1;
       }
-
       setFormData(prev => ({
         ...prev,
-        sale_number: `CS-${nextNumber.toString().padStart(4, "0")}`
-      }))
+        sale_number: `${prefix}${nextNumber.toString().padStart(3, '0')}`
+      }));
     } catch (error) {
-      console.error("Error generating sale number:", error)
+      console.error('Error generating sale number:', error);
     }
   }
 

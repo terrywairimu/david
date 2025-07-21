@@ -624,7 +624,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         <Card className="p-4">
           <div className="text-right">
             <div className="text-2xl font-bold">
-              Grand Total: ${calculateGrandTotal().toFixed(2)}
+              Grand Total: KES {calculateGrandTotal().toFixed(2)}
             </div>
           </div>
         </Card>

@@ -559,7 +559,7 @@ const QuotationsView = () => {
                     <td>{quotation.quotation_number}</td>
                   <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
                     <td>{quotation.client?.name || "Unknown"}</td>
-                    <td>${quotation.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>KES {quotation.grand_total?.toFixed(2) || "0.00"}</td>
                   <td>
                       <span className={`badge ${getStatusBadge(quotation.status)}`}>
                       {quotation.status}

@@ -547,7 +547,7 @@ const SalesOrdersView = () => {
                     <td>{salesOrder.order_number}</td>
                     <td>{new Date(salesOrder.date_created).toLocaleDateString()}</td>
                     <td>{salesOrder.client?.name || "Unknown"}</td>
-                    <td>${salesOrder.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>KES {salesOrder.grand_total?.toFixed(2) || "0.00"}</td>
                     <td>
                       <span className={`badge ${getStatusBadge(salesOrder.status)}`}>
                         {salesOrder.status.replace(/_/g, " ")}
