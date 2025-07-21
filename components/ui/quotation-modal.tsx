@@ -229,14 +229,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const loadQuotationData = () => {
     if (!quotation) return
     
-    setQuotationNumber(quotation.quotation_number)
-    setSelectedClient(quotation.client)
+      setQuotationNumber(quotation.quotation_number)
+      setSelectedClient(quotation.client)
     setLabourPercentage(quotation.labour_percentage || 30)
     setIncludeWorktop(quotation.include_worktop || false)
-    setIncludeAccessories(quotation.include_accessories || false)
+      setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
-    setNotes(quotation.notes || "")
-    setTermsConditions(quotation.terms_conditions || "")
+      setNotes(quotation.notes || "")
+      setTermsConditions(quotation.terms_conditions || "")
     
     if (quotation.items && quotation.items.length > 0) {
       const cabinet = quotation.items.filter((item: any) => item.category === "cabinet")
@@ -380,7 +380,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
     const labourAmount = (subtotal * labourPercentage) / 100
     const grandTotal = subtotal + labourAmount
-    
+
     return {
       cabinetTotal,
       worktopTotal,
@@ -409,7 +409,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     setLoading(true)
     try {
-      const totals = calculateTotals()
+    const totals = calculateTotals()
       
       // Add labour item to cabinet items if not exists
       let finalCabinetItems = [...cabinetItems]
@@ -428,33 +428,33 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         })
       }
 
-      const quotationData = {
-        quotation_number: quotationNumber,
-        client_id: selectedClient.id,
+    const quotationData = {
+      quotation_number: quotationNumber,
+      client_id: selectedClient.id,
         date_created: new Date().toISOString(),
-        cabinet_total: totals.cabinetTotal,
-        worktop_total: totals.worktopTotal,
-        accessories_total: totals.accessoriesTotal,
+      cabinet_total: totals.cabinetTotal,
+      worktop_total: totals.worktopTotal,
+      accessories_total: totals.accessoriesTotal,
         appliances_total: totals.appliancesTotal,
-        labour_percentage: labourPercentage,
+      labour_percentage: labourPercentage,
         labour_total: totals.labourAmount,
         total_amount: totals.subtotal,
-        grand_total: totals.grandTotal,
+      grand_total: totals.grandTotal,
         include_worktop: includeWorktop,
-        include_accessories: includeAccessories,
+      include_accessories: includeAccessories,
         include_appliances: includeAppliances,
-        status: "pending",
-        notes,
-        terms_conditions: termsConditions,
+      status: "pending",
+      notes,
+      terms_conditions: termsConditions,
         items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems]
       }
 
       // Confirm quotation number if it's a new quotation
       if (mode === "create") {
         confirmQuotationNumber(quotationNumber)
-      }
+    }
 
-      onSave(quotationData)
+    onSave(quotationData)
       onClose()
     } catch (error) {
       console.error("Error saving quotation:", error)
@@ -490,7 +490,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               <div>
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#2c3e50" }}>
                   {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
-                </h5>
+            </h5>
                 <p className="mb-0 text-muted small">Create a detailed quotation for your client</p>
               </div>
             </div>
@@ -500,7 +500,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               onClick={onClose}
               style={{ borderRadius: "12px", padding: "8px" }}
             />
-          </div>
+                </div>
 
           {/* Body */}
           <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
@@ -515,16 +515,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </h6>
                     <div className="position-relative">
                       <div className="input-group">
-                        <input
-                          type="text"
+                      <input
+                        type="text"
                           className="form-control"
-                          placeholder="Search client..."
+                        placeholder="Search client..."
                           value={clientSearchTerm}
                           onChange={(e) => handleClientSearch(e.target.value)}
                           onFocus={() => setShowClientResults(true)}
                           style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
-                          readOnly={isReadOnly}
-                        />
+                        readOnly={isReadOnly}
+                      />
                         <button
                           className="btn btn-outline-secondary"
                           type="button"
@@ -547,19 +547,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 )
                                 .slice(0, 5)
                                 .map(client => (
-                                  <div
-                                    key={client.id}
+                            <div
+                              key={client.id}
                                     className="p-3 border-bottom cursor-pointer hover-bg-light"
                                     style={{ cursor: "pointer" }}
-                                    onClick={() => handleClientSelect(client)}
+                              onClick={() => handleClientSelect(client)}
                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fa"}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                  >
+                            >
                                     <div className="fw-semibold" style={{ color: "#495057" }}>{client.name}</div>
                                     {client.phone && <div className="small text-muted">{client.phone}</div>}
                                     {client.location && <div className="small text-muted">{client.location}</div>}
-                                  </div>
-                                ))}
+                            </div>
+                          ))}
                             </div>
                           </div>
                         </div>
@@ -580,30 +580,30 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Quotation Number
                       </label>
-                      <input
-                        type="text"
+                    <input
+                      type="text"
                         className="form-control"
                         value={quotationNumber}
-                        readOnly
+                      readOnly
                         style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                      />
-                    </div>
+                    />
+                  </div>
                     <div>
                       <label className="form-label small fw-semibold" style={{ color: "#6c757d" }}>
                         Date
                       </label>
-                      <input
-                        type="text"
+                    <input
+                      type="text"
                         className="form-control"
                         value={new Date().toLocaleDateString()}
-                        readOnly
+                      readOnly
                         style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                      />
+                    />
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
-            </div>
 
             {/* Cabinet Items Section */}
             <div className="mb-4">
@@ -624,19 +624,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
                           <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
                           {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                        </tr>
-                      </thead>
-                      <tbody>
+                  </tr>
+                </thead>
+                <tbody>
                         {cabinetItems.map((item, index) => (
                           <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
                             <td style={{ padding: "12px" }}>
                               <div className="position-relative">
-                                <input
-                                  type="text"
-                                  className="form-control border-0"
-                                  value={item.description}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.description}
                                   onChange={(e) => updateItem("cabinet", index, "description", e.target.value)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   placeholder="Enter description or search stock items"
                                 />
@@ -686,60 +686,60 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   </div>
                                 )}
                               </div>
-                            </td>
+                        </td>
                             <td style={{ padding: "12px" }}>
-                              <input
-                                type="text"
-                                className="form-control border-0"
-                                value={item.unit}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.unit}
                                 onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
-                                readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                 style={{ background: "transparent", fontSize: "13px" }}
                                 placeholder="e.g., pcs"
-                              />
-                            </td>
+                          />
+                        </td>
                             <td style={{ padding: "12px" }}>
-                              <input
-                                type="number"
-                                className="form-control border-0"
-                                value={item.quantity}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.quantity}
                                 onChange={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 0)}
-                                readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                 style={{ background: "transparent", fontSize: "13px" }}
                                 min="0"
                                 step="0.01"
-                              />
-                            </td>
+                          />
+                        </td>
                             <td style={{ padding: "12px" }}>
-                              <input
-                                type="number"
-                                className="form-control border-0"
-                                value={item.unit_price}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.unit_price}
                                 onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                 style={{ background: "transparent", fontSize: "13px" }}
                                 min="0"
                                 step="0.01"
-                              />
-                            </td>
+                          />
+                        </td>
                             <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
                               KES {item.total_price.toFixed(2)}
                             </td>
-                            {!isReadOnly && (
+                        {!isReadOnly && (
                               <td style={{ padding: "12px" }}>
-                                <button
-                                  type="button"
+                            <button
+                              type="button"
                                   className="btn btn-sm btn-outline-danger"
                                   onClick={() => removeItem("cabinet", index)}
                                   style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
+                            >
                                   <Trash2 size={12} />
-                                </button>
-                              </td>
-                            )}
-                          </tr>
+                            </button>
+                          </td>
+                        )}
+                      </tr>
                         ))}
-                      </tbody>
+                </tbody>
                       <tfoot style={{ background: "#f8f9fa" }}>
                         <tr>
                           <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
@@ -753,24 +753,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </table>
                   </div>
                   
-                  {!isReadOnly && (
+                      {!isReadOnly && (
                     <div className="mt-3">
-                      <button
-                        type="button"
+                        <button
+                          type="button"
                         className="btn btn-outline-primary"
-                        onClick={() => addItem("cabinet")}
+                          onClick={() => addItem("cabinet")}
                         style={{ borderRadius: "12px", fontSize: "13px" }}
-                      >
+                        >
                         <Plus size={16} className="me-2" />
-                        Add Cabinet Item
-                      </button>
+                          Add Cabinet Item
+                        </button>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Worktop Section */}
+              {/* Worktop Section */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
@@ -815,19 +815,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
                             <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
                             {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
+                  </tr>
+                </thead>
+                <tbody>
                           {worktopItems.map((item, index) => (
                             <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
                               <td style={{ padding: "12px" }}>
                                 <div className="position-relative">
-                                  <input
-                                    type="text"
-                                    className="form-control border-0"
-                                    value={item.description}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.description}
                                     onChange={(e) => updateItem("worktop", index, "description", e.target.value)}
-                                    readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                     style={{ background: "transparent", fontSize: "13px" }}
                                     placeholder="Enter description or search stock items"
                                   />
@@ -844,58 +844,58 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                     </div>
                                   )}
                                 </div>
-                              </td>
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="text"
-                                  className="form-control border-0"
-                                  value={item.unit}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.unit}
                                   onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   placeholder="e.g., pcs"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
-                                  value={item.quantity}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.quantity}
                                   onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   min="0"
                                   step="0.01"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
-                                  value={item.unit_price}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.unit_price}
                                   onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   min="0"
                                   step="0.01"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
                                 KES {item.total_price.toFixed(2)}
                               </td>
-                              {!isReadOnly && (
+                        {!isReadOnly && (
                                 <td style={{ padding: "12px" }}>
-                                  <button
-                                    type="button"
+                            <button
+                              type="button"
                                     className="btn btn-sm btn-outline-danger"
                                     onClick={() => removeItem("worktop", index)}
                                     style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                  >
+                            >
                                     <Trash2 size={12} />
-                                  </button>
-                                </td>
-                              )}
-                            </tr>
+                            </button>
+                          </td>
+                        )}
+                      </tr>
                           ))}
                           {worktopItems.length === 0 && (
                             <tr>
@@ -909,36 +909,36 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           <tr>
                             <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
                               Worktop Total
-                            </td>
+                    </td>
                             <td style={{ padding: "12px", fontWeight: "700", color: "#495057" }}>
                               KES {totals.worktopTotal.toFixed(2)}
                             </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                  </tr>
+                </tfoot>
+              </table>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Accessories Section */}
+              {/* Accessories Section */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="card-title mb-0 fw-bold" style={{ color: "#495057" }}>
                       <Calculator size={18} className="me-2" />
-                      Accessories
+                Accessories
                     </h6>
-                    {!isReadOnly && (
+                {!isReadOnly && (
                       <div className="d-flex align-items-center gap-3">
                         <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            checked={includeAccessories}
-                            onChange={(e) => setIncludeAccessories(e.target.checked)}
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={includeAccessories}
+                      onChange={(e) => setIncludeAccessories(e.target.checked)}
                             style={{ borderRadius: "4px" }}
                           />
                           <label className="form-check-label small">Include Accessories</label>
@@ -952,9 +952,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           <Plus size={14} className="me-1" />
                           Add Item
                         </button>
-                      </div>
-                    )}
                   </div>
+                )}
+              </div>
                   
                   {includeAccessories && (
                     <div className="table-responsive" style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e9ecef" }}>
@@ -967,19 +967,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Unit Price</th>
                             <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Total</th>
                             {!isReadOnly && <th style={{ border: "none", padding: "12px", fontSize: "13px", fontWeight: "600" }}>Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
+                  </tr>
+                </thead>
+                <tbody>
                           {accessoriesItems.map((item, index) => (
                             <tr key={item.id} style={{ borderBottom: "1px solid #f1f3f4" }}>
                               <td style={{ padding: "12px" }}>
                                 <div className="position-relative">
-                                  <input
-                                    type="text"
-                                    className="form-control border-0"
-                                    value={item.description}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.description}
                                     onChange={(e) => updateItem("accessories", index, "description", e.target.value)}
-                                    readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                     style={{ background: "transparent", fontSize: "13px" }}
                                     placeholder="Enter description or search stock items"
                                   />
@@ -996,58 +996,58 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                     </div>
                                   )}
                                 </div>
-                              </td>
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="text"
-                                  className="form-control border-0"
-                                  value={item.unit}
+                          <input
+                            type="text"
+                            className="form-control border-0"
+                            value={item.unit}
                                   onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   placeholder="e.g., pcs"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
-                                  value={item.quantity}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.quantity}
                                   onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   min="0"
                                   step="0.01"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
-                                  value={item.unit_price}
+                          <input
+                            type="number"
+                            className="form-control border-0"
+                            value={item.unit_price}
                                   onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
+                            readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   min="0"
                                   step="0.01"
-                                />
-                              </td>
+                          />
+                        </td>
                               <td style={{ padding: "12px", fontWeight: "600", color: "#495057" }}>
                                 KES {item.total_price.toFixed(2)}
                               </td>
-                              {!isReadOnly && (
+                        {!isReadOnly && (
                                 <td style={{ padding: "12px" }}>
-                                  <button
-                                    type="button"
+                            <button
+                              type="button"
                                     className="btn btn-sm btn-outline-danger"
                                     onClick={() => removeItem("accessories", index)}
                                     style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                  >
+                            >
                                     <Trash2 size={12} />
-                                  </button>
-                                </td>
-                              )}
-                            </tr>
+                            </button>
+                          </td>
+                        )}
+                      </tr>
                           ))}
                           {accessoriesItems.length === 0 && (
                             <tr>
@@ -1056,7 +1056,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               </td>
                             </tr>
                           )}
-                        </tbody>
+                </tbody>
                         <tfoot style={{ background: "#f8f9fa" }}>
                           <tr>
                             <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
@@ -1083,7 +1083,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <Calculator size={18} className="me-2" />
                       Appliances
                     </h6>
-                    {!isReadOnly && (
+                      {!isReadOnly && (
                       <div className="d-flex align-items-center gap-3">
                         <div className="form-check">
                           <input
@@ -1161,17 +1161,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 />
                               </td>
                               <td style={{ padding: "12px" }}>
-                                <input
-                                  type="number"
-                                  className="form-control border-0"
+                      <input
+                        type="number"
+                        className="form-control border-0"
                                   value={item.quantity}
                                   onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
-                                  readOnly={isReadOnly}
+                        readOnly={isReadOnly}
                                   style={{ background: "transparent", fontSize: "13px" }}
                                   min="0"
                                   step="0.01"
-                                />
-                              </td>
+                      />
+                    </td>
                               <td style={{ padding: "12px" }}>
                                 <input
                                   type="number"
@@ -1199,16 +1199,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   </button>
                                 </td>
                               )}
-                            </tr>
+                  </tr>
                           ))}
                           {appliancesItems.length === 0 && (
                             <tr>
                               <td colSpan={isReadOnly ? 5 : 6} className="text-center text-muted py-4">
                                 No appliances items added
                               </td>
-                            </tr>
+                  </tr>
                           )}
-                        </tbody>
+                </tbody>
                         <tfoot style={{ background: "#f8f9fa" }}>
                           <tr>
                             <td colSpan={isReadOnly ? 4 : 5} style={{ padding: "12px", fontWeight: "600" }}>
@@ -1219,7 +1219,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </td>
                           </tr>
                         </tfoot>
-                      </table>
+              </table>
                     </div>
                   )}
                 </div>
@@ -1242,10 +1242,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <div className="input-group">
                         <input
                           type="number"
-                          className="form-control"
+                className="form-control"
                           value={labourPercentage}
                           onChange={(e) => setLabourPercentage(parseFloat(e.target.value) || 0)}
-                          readOnly={isReadOnly}
+                readOnly={isReadOnly}
                           style={{ borderRadius: "12px 0 0 12px", height: "45px" }}
                           min="0"
                           max="100"
@@ -1282,16 +1282,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       <FileText size={18} className="me-2" />
                       Notes
                     </h6>
-                    <textarea
-                      className="form-control"
+              <textarea
+                className="form-control"
                       rows={4}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      readOnly={isReadOnly}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                readOnly={isReadOnly}
                       style={{ borderRadius: "12px", border: "1px solid #e9ecef", resize: "none" }}
                       placeholder="Add any additional notes..."
-                    />
-                  </div>
+              />
+          </div>
                 </div>
               </div>
               <div className="col-md-6">
