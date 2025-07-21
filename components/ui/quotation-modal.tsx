@@ -920,43 +920,72 @@ const QuotationModal = ({
               </div>
             </div>
 
-            {/* Worktop Section with Toggle */}
+            {/* Worktop Section with Animated Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex align-items-center mb-3">
-                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Worktop</span>
                     {!isReadOnly && (
-                      <div className="d-flex align-items-center">
-                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                          Include Worktop
-                        </span>
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
                         <div 
-                          className="position-relative"
                           style={{
-                            width: "44px",
-                            height: "24px",
-                            borderRadius: "12px",
-                            background: includeWorktop ? "#667eea" : "#e9ecef",
-                            cursor: isReadOnly ? "default" : "pointer",
-                            transition: "background-color 0.2s"
+                            display: includeWorktop ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeWorktop ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeWorktop ? 1 : 0
                           }}
-                          onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
                         >
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "2px",
-                              left: includeWorktop ? "22px" : "2px",
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              background: "white",
-                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                              transition: "left 0.2s"
+                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                          <span className="fw-bold" style={{ color: "#495057" }}>Worktop</span>
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeWorktop ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeWorktop ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#6c757d",
+                              transition: "all 0.3s ease"
                             }}
-                          />
+                          >
+                            {includeWorktop ? "Remove Worktop" : "Include Worktop"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeWorktop ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeWorktop ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1111,43 +1140,72 @@ const QuotationModal = ({
               </div>
             </div>
 
-            {/* Accessories Section with Toggle */}
+            {/* Accessories Section with Animated Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex align-items-center mb-3">
-                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Accessories</span>
                     {!isReadOnly && (
-                      <div className="d-flex align-items-center">
-                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                          Include Accessories
-                        </span>
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
                         <div 
-                          className="position-relative"
                           style={{
-                            width: "44px",
-                            height: "24px",
-                            borderRadius: "12px",
-                            background: includeAccessories ? "#667eea" : "#e9ecef",
-                            cursor: isReadOnly ? "default" : "pointer",
-                            transition: "background-color 0.2s"
+                            display: includeAccessories ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeAccessories ? 1 : 0
                           }}
-                          onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
                         >
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "2px",
-                              left: includeAccessories ? "22px" : "2px",
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              background: "white",
-                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                              transition: "left 0.2s"
+                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                          <span className="fw-bold" style={{ color: "#495057" }}>Accessories</span>
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeAccessories ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeAccessories ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#6c757d",
+                              transition: "all 0.3s ease"
                             }}
-                          />
+                          >
+                            {includeAccessories ? "Remove Accessories" : "Include Accessories"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAccessories ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAccessories ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1302,47 +1360,76 @@ const QuotationModal = ({
               </div>
             </div>
 
-            {/* Appliances Section with Toggle */}
+            {/* Appliances Section with Animated Toggle */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                 <div className="card-body p-4">
                   <div className="d-flex align-items-center mb-3">
-                    <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
-                    <span className="fw-bold me-3" style={{ color: "#495057" }}>Appliances</span>
-                {!isReadOnly && (
-                      <div className="d-flex align-items-center">
-                        <span className="me-2 small fw-semibold" style={{ color: "#6c757d" }}>
-                          Include Appliances
-                        </span>
+                    {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
                         <div 
-                          className="position-relative"
                           style={{
-                            width: "44px",
-                            height: "24px",
-                            borderRadius: "12px",
-                            background: includeAppliances ? "#667eea" : "#e9ecef",
-                            cursor: isReadOnly ? "default" : "pointer",
-                            transition: "background-color 0.2s"
+                            display: includeAppliances ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeAppliances ? 1 : 0
                           }}
-                          onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
                         >
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "2px",
-                              left: includeAppliances ? "22px" : "2px",
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              background: "white",
-                              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                              transition: "left 0.2s"
-                            }}
-                          />
+                          <Calculator size={18} className="me-2" style={{ color: "#495057" }} />
+                          <span className="fw-bold" style={{ color: "#495057" }}>Appliances</span>
                         </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeAppliances ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeAppliances ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#6c757d",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            {includeAppliances ? "Remove Appliances" : "Include Appliances"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAppliances ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAppliances ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
                   
                   {includeAppliances && (
                     <div className="mb-3">
