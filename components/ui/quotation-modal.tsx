@@ -657,27 +657,23 @@ const QuotationModal = ({
                         isVisible={clientDropdownVisible && !isReadOnly}
                         triggerRef={clientInputRef}
                         onClose={() => setClientDropdownVisible(false)}
-                        // Add marginTop and full borderRadius to the dropdown container
                       >
-                        <ul style={{
-                          marginTop: "8px",
+                        <div style={{
+                          marginTop: "5px",
                           borderRadius: "16px",
-                          boxShadow: "0 1px 8px rgba(0,0,0,0.08)",
+                          boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
                           background: "#fff",
-                          padding: 0,
-                          listStyle: "none",
-                          border: "none"
+                          minWidth: "100%",
+                          padding: "8px 0"
                         }}>
                           {filteredClients.map(client => (
-                            <li
+                            <div
                               key={client.id}
                               style={{
-                                padding: "12px 16px",
+                                padding: "12px 20px",
                                 cursor: "pointer",
                                 background: "#fff",
                                 color: "#212529",
-                                borderRadius: "16px",
-                                margin: "6px 8px",
                                 transition: "background 0.2s"
                               }}
                               onClick={() => handleClientSelect(client)}
@@ -692,14 +688,14 @@ const QuotationModal = ({
                                   {client.location}
                                 </div>
                               )}
-                            </li>
+                            </div>
                           ))}
                           {filteredClients.length === 0 && (
-                            <li style={{ padding: "12px 16px", color: "#495057", fontStyle: "italic", background: "#fff", borderRadius: "16px", margin: "6px 8px" }}>
+                            <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
                               No clients found
-                            </li>
+                            </div>
                           )}
-                        </ul>
+                        </div>
                       </PortalDropdown>
                     </div>
                   </div>

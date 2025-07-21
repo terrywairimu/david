@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -41,6 +41,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [quotations, setQuotations] = useState<any[]>([])
   const [salesOrders, setSalesOrders] = useState<any[]>([])
   const [availableDocuments, setAvailableDocuments] = useState<any[]>([])
+
+  const clientInputGroupRef = useRef<HTMLDivElement>(null);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (payment && mode !== "create") {
@@ -85,6 +88,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       loadClientDocuments(parseInt(formData.client_id))
     }
   }, [formData.client_id])
+
+  useEffect(() => {
+    if (!showClientDropdown) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        clientInputGroupRef.current &&
+        !clientInputGroupRef.current.contains(event.target as Node) &&
+        clientDropdownRef.current &&
+        !clientDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowClientDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showClientDropdown]);
 
   const loadClientDocuments = async (clientId: number) => {
     try {
@@ -306,7 +325,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   <div className="col-md-6">
                     <label className="form-label">Client</label>
                     <div className="position-relative">
-                      <div className="input-group shadow-sm">
+                      <div className="input-group shadow-sm" ref={clientInputGroupRef}>
                         <input 
                           type="text" 
                           className="form-control border-0" 
@@ -332,6 +351,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       {showClientDropdown && mode !== "view" && (
                         <div 
                           className="shadow-sm"
+                          ref={clientDropdownRef}
                           style={{
                             display: "block",
                             maxHeight: "200px",
