@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight } from "lucide-react"
+import React, { useState, useEffect, useRef } from "react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import { createPortal } from "react-dom"
 
 interface Client {
   id: number
@@ -41,6 +42,71 @@ interface QuotationModalProps {
   onSave: (quotation: any) => void
   quotation?: any
   mode: "view" | "edit" | "create"
+}
+
+// Portal Dropdown Component
+const PortalDropdown: React.FC<{
+  isVisible: boolean
+  triggerRef: React.RefObject<HTMLDivElement | null>
+  onClose: () => void
+  children: React.ReactNode
+}> = ({ isVisible, triggerRef, onClose, children }) => {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
+
+  useEffect(() => {
+    if (isVisible && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }, [isVisible, triggerRef])
+
+  const dropdownRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node) && 
+          dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isVisible, triggerRef, onClose])
+
+  if (!isVisible) return null
+
+  return createPortal(
+    <ul 
+      ref={dropdownRef}
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        maxHeight: '200px',
+        overflowY: 'auto',
+        backgroundColor: 'white',
+        border: '1px solid #dee2e6',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        zIndex: 9999,
+        listStyle: 'none',
+        margin: 0,
+        padding: 0
+      }}
+      className="portal-dropdown"
+    >
+      {children}
+    </ul>,
+    document.body
+  )
 }
 
 // Quotation number generation logic from old implementation
@@ -132,6 +198,28 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [itemSearches, setItemSearches] = useState<{[key: string]: string}>({})
   const [filteredStockItems, setFilteredStockItems] = useState<{[key: string]: StockItem[]}>({})
   const [itemDropdownVisible, setItemDropdownVisible] = useState<{[key: string]: boolean}>({})
+  
+  // Client dropdown states
+  const [clientDropdownVisible, setClientDropdownVisible] = useState(false)
+  const [filteredClients, setFilteredClients] = useState<Client[]>([])
+  
+  // Input handling states for better UX
+  const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: string]: boolean}>({})
+  const [priceInputFocused, setPriceInputFocused] = useState<{[key: string]: boolean}>({})
+  const [rawQuantityValues, setRawQuantityValues] = useState<{[key: string]: string}>({})
+  const [rawPriceValues, setRawPriceValues] = useState<{[key: string]: string}>({})
+  
+  // Refs for dropdown positioning
+  const clientInputRef = useRef<HTMLDivElement>(null)
+  const itemInputRefs = useRef<{[key: string]: React.RefObject<HTMLDivElement | null>}>({})
+  
+  // Function to get or create ref for item
+  const getItemInputRef = (itemId: string): React.RefObject<HTMLDivElement | null> => {
+    if (!itemInputRefs.current[itemId]) {
+      itemInputRefs.current[itemId] = { current: null }
+    }
+    return itemInputRefs.current[itemId]
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -163,6 +251,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     })
     setFilteredStockItems(newFilteredItems)
   }, [itemSearches, stockItems])
+
+  // Filter clients based on search
+  useEffect(() => {
+    if (clientSearchTerm.trim() === "") {
+      setFilteredClients(clients)
+    } else {
+      const filtered = clients.filter(client => 
+        client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.phone?.includes(clientSearchTerm) ||
+        client.location?.toLowerCase().includes(clientSearchTerm.toLowerCase())
+      )
+      setFilteredClients(filtered)
+    }
+  }, [clientSearchTerm, clients])
 
   const resetForm = () => {
     setSelectedClient(null)
@@ -265,12 +367,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client)
     setClientSearchTerm(client.name)
-    setShowClientResults(false)
+    setClientDropdownVisible(false)
   }
 
   const handleClientSearch = (searchTerm: string) => {
     setClientSearchTerm(searchTerm)
-    setShowClientResults(searchTerm.length > 0)
+    setClientDropdownVisible(searchTerm.length > 0)
   }
 
   const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances") => {
