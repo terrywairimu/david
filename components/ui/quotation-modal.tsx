@@ -345,15 +345,14 @@ const QuotationModal = ({
     
     // Load items by category
     if (quotation.items) {
-      const cabinet = quotation.items.filter((item: any) => item.category === "cabinet")
-      const worktop = quotation.items.filter((item: any) => item.category === "worktop")
-      const accessories = quotation.items.filter((item: any) => item.category === "accessories")
-      const appliances = quotation.items.filter((item: any) => item.category === "appliances")
-      
-      setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")])
-      setWorktopItems(worktop)
-      setAccessoriesItems(accessories)
-      setAppliancesItems(appliances)
+      const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
+      const worktop = quotation.items.filter((item: any) => item.category === "worktop");
+      const accessories = quotation.items.filter((item: any) => item.category === "accessories");
+      const appliances = quotation.items.filter((item: any) => item.category === "appliances");
+      setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
+      setWorktopItems(worktop);
+      setAccessoriesItems(accessories);
+      setAppliancesItems(appliances);
     }
   }
 
@@ -553,14 +552,13 @@ const QuotationModal = ({
     const totals = calculateTotals()
       
       // Add labour item to cabinet items if not exists
-      let finalCabinetItems = [...cabinetItems]
-      const labourItemExists = finalCabinetItems.some(item => item.description.includes("Labour Charge"))
+      let finalCabinetItems = [...cabinetItems].filter(item => !item.description.includes("Labour Charge"));
       
       const cabinetSectionTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0);
       const cabinetLabour = (cabinetSectionTotal * cabinetLabourPercentage) / 100;
       
       if (
-        !labourItemExists &&
+        !finalCabinetItems.some(item => item.description.includes("Labour Charge")) &&
         cabinetItems.length > 0 &&
         cabinetSectionTotal > 0 &&
         cabinetLabour > 0
