@@ -255,7 +255,12 @@ const QuotationsView = () => {
             include_appliances: quotationData.include_appliances,
             status: quotationData.status,
             notes: quotationData.notes,
-            terms_conditions: quotationData.terms_conditions
+            terms_conditions: quotationData.terms_conditions,
+            cabinet_labour_percentage: quotationData.cabinet_labour_percentage,
+            accessories_labour_percentage: quotationData.accessories_labour_percentage,
+            appliances_labour_percentage: quotationData.appliances_labour_percentage,
+            worktop_labor_qty: quotationData.worktop_labor_qty,
+            worktop_labor_unit_price: quotationData.worktop_labor_unit_price
           })
           .select()
           .single()
@@ -303,7 +308,12 @@ const QuotationsView = () => {
             include_appliances: quotationData.include_appliances,
             status: quotationData.status,
             notes: quotationData.notes,
-            terms_conditions: quotationData.terms_conditions
+            terms_conditions: quotationData.terms_conditions,
+            cabinet_labour_percentage: quotationData.cabinet_labour_percentage,
+            accessories_labour_percentage: quotationData.accessories_labour_percentage,
+            appliances_labour_percentage: quotationData.appliances_labour_percentage,
+            worktop_labor_qty: quotationData.worktop_labor_qty,
+            worktop_labor_unit_price: quotationData.worktop_labor_unit_price
           })
           .eq("id", selectedQuotation?.id)
 
