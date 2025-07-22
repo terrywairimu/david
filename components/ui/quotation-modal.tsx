@@ -556,17 +556,25 @@ const QuotationModal = ({
       let finalCabinetItems = [...cabinetItems]
       const labourItemExists = finalCabinetItems.some(item => item.description.includes("Labour Charge"))
       
-      if (!labourItemExists && totals.labourAmount > 0) {
+      const cabinetSectionTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0);
+      const cabinetLabour = (cabinetSectionTotal * cabinetLabourPercentage) / 100;
+      
+      if (
+        !labourItemExists &&
+        cabinetItems.length > 0 &&
+        cabinetSectionTotal > 0 &&
+        cabinetLabour > 0
+      ) {
         finalCabinetItems.push({
           id: Date.now() + Math.random(),
           category: "cabinet",
-          description: `Labour Charge (${labourPercentage}%)`,
+          description: `Labour Charge (${cabinetLabourPercentage}%)`,
           unit: "sum",
           quantity: 1,
-          unit_price: totals.labourAmount,
-          total_price: totals.labourAmount,
+          unit_price: cabinetLabour,
+          total_price: cabinetLabour,
           stock_item_id: undefined
-        })
+        });
       }
 
     const quotationData = {
