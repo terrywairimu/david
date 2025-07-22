@@ -195,6 +195,10 @@ const QuotationModal = ({
 
   const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // Add state at the top of QuotationModal:
+  const [worktopLaborQty, setWorktopLaborQty] = useState(1);
+  const [worktopLaborUnitPrice, setWorktopLaborUnitPrice] = useState(300);
+
   useEffect(() => {
     if (isOpen) {
       fetchClients()
@@ -500,7 +504,7 @@ const QuotationModal = ({
 
   const calculateTotals = () => {
     const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
-    const worktopTotal = worktopItems.reduce((sum, item) => sum + item.total_price, 0)
+    const worktopTotal = worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice);
     const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
     const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
     
@@ -1228,23 +1232,85 @@ const QuotationModal = ({
                         </div>
                       ))}
 
-                      {/* Add Item Button */}
+                      {/* Render the Worktop Installation Labor footer row after the item rows: */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>per slab</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={worktopLaborQty}
+                              onChange={e => setWorktopLaborQty(Number(e.target.value) || 1)}
+                              placeholder="1"
+                              style={{
+                                width: "100%",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                background: "transparent",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none",
+                                textAlign: "center"
+                              }}
+                              min="1"
+                              step="1"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={worktopLaborUnitPrice}
+                              onChange={e => setWorktopLaborUnitPrice(Number(e.target.value) || 0)}
+                              placeholder="300"
+                              style={{
+                                width: "100%",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                background: "transparent",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none",
+                                textAlign: "center"
+                              }}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>
+                            KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
+                          </div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Move the Add Item button to be the last element: */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                        <button
-                          type="button"
+                          <button
+                            type="button"
                             className="btn btn-primary"
                             onClick={() => addItem("worktop")}
-                            style={{ 
-                              borderRadius: "12px", 
+                            style={{
+                              borderRadius: "12px",
                               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                               border: "none",
                               padding: "10px 20px"
                             }}
-                        >
-                          <Plus size={14} className="me-1" />
+                          >
+                            <Plus size={14} className="me-1" />
                             Add Item
-                        </button>
+                          </button>
                         </div>
                       )}
                     </div>
