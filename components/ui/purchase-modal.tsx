@@ -518,6 +518,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     onChange={(e) => setPurchaseDate(e.target.value)}
                     required
                     style={{ borderRadius: "16px", height: "45px" }}
+                    readOnly={mode === "view"}
                   />
                 </div>
                 <div className="col-md-6">
@@ -534,6 +535,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       }}
                         onFocus={() => setSupplierDropdownVisible(true)}
                       style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+                      readOnly={mode === "view"}
                     />
                     <button
                       className="btn btn-outline-secondary border-0 supplier-dropdown"
@@ -612,6 +614,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     required
                     style={{ borderRadius: "16px", height: "45px" }}
+                    disabled={mode === "view"}
                   >
                     <option value="">Select Payment Method</option>
                     <option value="cash">Cash</option>
@@ -834,6 +837,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 )}
 
                   {/* Add Item Button */}
+                  {mode !== "view" && (
                   <div className="text-start mb-3">
                 <button
                   type="button"
@@ -845,6 +849,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   Add Item
                 </button>
               </div>
+                )}
                 </div>
 
                 {/* Total */}
@@ -881,6 +886,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             >
                 Close
             </button>
+            {mode !== "view" && (
             <button
               type="button"
                 className="btn-add shadow-sm"
@@ -890,6 +896,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
             >
               {loading ? "Saving..." : "Save Purchase"}
             </button>
+            )}
           </div>
         </div>
       </div>
