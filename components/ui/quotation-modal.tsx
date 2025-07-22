@@ -902,7 +902,10 @@ const QuotationModal = ({
                             type="number"
                             className="form-control"
                             value={cabinetLabourPercentage === 30 ? "" : cabinetLabourPercentage}
-                            onFocus={e => setCabinetLabourPercentage(0)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setCabinetLabourPercentage(0);
+                            }}
                             onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
                             onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
                             placeholder="30"
@@ -913,7 +916,10 @@ const QuotationModal = ({
                               color: "#fff", 
                               border: "none",
                               paddingLeft: "0",
-                              boxShadow: "none"
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield"
                             }}
                             min="0"
                             max="100"
@@ -1377,7 +1383,10 @@ const QuotationModal = ({
                               type="number"
                               className="form-control"
                               value={accessoriesLabourPercentage === 30 ? "" : accessoriesLabourPercentage}
-                              onFocus={e => setAccessoriesLabourPercentage(0)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setAccessoriesLabourPercentage(0);
+                              }}
                               onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
                               onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
                               placeholder="30"
@@ -1388,7 +1397,10 @@ const QuotationModal = ({
                                 color: "#fff", 
                                 border: "none",
                                 paddingLeft: "0",
-                                boxShadow: "none"
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield"
                               }}
                               min="0"
                               max="100"
@@ -1632,7 +1644,10 @@ const QuotationModal = ({
                               type="number"
                               className="form-control"
                               value={appliancesLabourPercentage === 30 ? "" : appliancesLabourPercentage}
-                              onFocus={e => setAppliancesLabourPercentage(0)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setAppliancesLabourPercentage(0);
+                              }}
                               onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
                               onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
                               placeholder="30"
@@ -1643,7 +1658,10 @@ const QuotationModal = ({
                                 color: "#fff", 
                                 border: "none",
                                 paddingLeft: "0",
-                                boxShadow: "none"
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield"
                               }}
                               min="0"
                               max="100"
