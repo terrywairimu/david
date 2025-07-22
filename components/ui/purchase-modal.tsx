@@ -292,21 +292,27 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   const loadPurchaseData = () => {
     if (!purchase) return
-    
     setPurchaseDate(purchase.purchase_date?.split('T')[0] || "")
     setPurchaseOrderNumber(purchase.purchase_order_number || "")
     setSupplierId(purchase.supplier_id || null)
     setPaymentMethod(purchase.payment_method || "")
-    
+
     if (purchase.items && purchase.items.length > 0) {
-      setItems(purchase.items.map((item: any) => ({
-      id: item.id || Date.now(),
-        stock_item_id: item.stock_item_id,
-        stock_item: item.stock_item,
-        quantity: item.quantity || 1,
-        unit_price: item.unit_price || 0,
-        total_price: item.total_price || 0
-      })))
+      setItems(purchase.items.map((item: any) => {
+        let stock_item = item.stock_item;
+        // Patch: If stock_item is missing but stock_item_id is present, try to find it from stockItems
+        if (!stock_item && item.stock_item_id) {
+          stock_item = stockItems.find(si => si.id === item.stock_item_id) || null;
+        }
+        return {
+          id: item.id || Date.now(),
+          stock_item_id: item.stock_item_id,
+          stock_item,
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0,
+          total_price: item.total_price || 0
+        }
+      }))
     } else {
       setItems([createNewItem()])
     }
@@ -631,7 +637,37 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   </div>
 
                   {/* Items List */}
-                  {items.map((item) => (
+                  {mode === "view" ? (
+  items.map((item) => (
+    <div key={item.id} className="row mb-2 align-items-center" data-item-container={item.id}>
+      <div className="col-md-4">
+        <div className="form-control-plaintext">
+          {(
+            item.stock_item?.description && item.stock_item.description.trim() !== ''
+              ? item.stock_item.description
+              : (item.stock_item?.name && item.stock_item.name.trim() !== ''
+                  ? item.stock_item.name
+                  : 'N/A')
+          )}
+        </div>
+      </div>
+      <div className="col-md-2">
+        <div className="form-control-plaintext">{item.stock_item?.unit || 'N/A'}</div>
+      </div>
+      <div className="col-md-2">
+        <div className="form-control-plaintext">{item.quantity}</div>
+      </div>
+      <div className="col-md-2">
+        <div className="form-control-plaintext">KES {item.unit_price.toFixed(2)}</div>
+      </div>
+      <div className="col-md-1">
+        <div className="form-control-plaintext">KES {item.total_price.toFixed(2)}</div>
+      </div>
+      <div className="col-md-1"></div>
+    </div>
+  ))
+) : (
+  items.map((item) => (
                     <div key={item.id} className="row mb-2 align-items-center" data-item-container={item.id}>
                       <div className="col-md-4">
                         <div className="input-group shadow-sm item-search-container" style={{ position: "relative" }} ref={getItemInputRef(item.id)}>
@@ -794,7 +830,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         </button>
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
 
                   {/* Add Item Button */}
                   <div className="text-start mb-3">

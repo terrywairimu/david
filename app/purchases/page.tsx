@@ -642,7 +642,13 @@ const PurchasesPage = () => {
                         <div style={{ maxHeight: "60px", overflowY: "auto" }}>
                           {purchase.items.map((item, index) => (
                             <div key={index} className="small">
-                              {item.stock_item?.description || 'N/A'} ({item.quantity} {item.stock_item?.unit || 'N/A'})
+                              {(
+                                item.stock_item?.description && item.stock_item.description.trim() !== ''
+                                  ? item.stock_item.description
+                                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
+                                      ? item.stock_item.name
+                                      : 'N/A')
+                              )} ({item.quantity} {item.stock_item?.unit || 'N/A'})
                             </div>
                           ))}
                         </div>
