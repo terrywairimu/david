@@ -249,7 +249,8 @@ const ExpenseModal = ({
       const expenseData = {
         ...formData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
-        date_created: new Date(formData.date_created).toISOString()
+        date_created: new Date(formData.date_created).toISOString(),
+        quotation_number: selectedQuotation || null
       }
 
       let savedExpense: Expense | null = null
