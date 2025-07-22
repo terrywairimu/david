@@ -1127,14 +1127,32 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                              className="form-control"
-                            value={item.quantity}
-                              onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
-                              placeholder="Qty"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              updateItem("worktop", index, "quantity", 0);
+                            }}
+                            onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
+                            onBlur={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 1)}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
+                            min="0"
+                            step="0.01"
                           />
                           </div>
                           
@@ -1348,14 +1366,32 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                              className="form-control"
-                            value={item.quantity}
-                              onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
-                              placeholder="Qty"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              updateItem("accessories", index, "quantity", 0);
+                            }}
+                            onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
+                            onBlur={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 1)}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
+                            min="0"
+                            step="0.01"
                           />
                           </div>
                           
@@ -1610,14 +1646,32 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                              className="form-control"
-                            value={item.quantity}
-                              onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
-                              placeholder="Qty"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              updateItem("appliances", index, "quantity", 0);
+                            }}
+                            onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
+                            onBlur={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 1)}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
+                            min="0"
+                            step="0.01"
                           />
                           </div>
                           
