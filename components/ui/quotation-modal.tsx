@@ -857,13 +857,28 @@ const QuotationModal = ({
                         <div style={{ flex: "1", marginRight: "16px" }}>
                                         <input
                       type="number"
-                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
                             onFocus={e => {
-                              e.target.value = "";
-                              updateItem("cabinet", index, "quantity", 0);
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
                             }}
-                            onChange={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 0)}
-                            onBlur={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 1)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
                             placeholder="1"
                             style={{ 
                               width: "100%",
@@ -1136,13 +1151,28 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
                             onFocus={e => {
-                              e.target.value = "";
-                              updateItem("worktop", index, "quantity", 0);
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
                             }}
-                            onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
-                            onBlur={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 1)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
                             placeholder="1"
                             style={{ 
                               width: "100%",
@@ -1375,13 +1405,28 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
                             onFocus={e => {
-                              e.target.value = "";
-                              updateItem("accessories", index, "quantity", 0);
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
                             }}
-                            onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
-                            onBlur={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 1)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
                             placeholder="1"
                             style={{ 
                               width: "100%",
@@ -1655,13 +1700,28 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
-                            value={item.quantity === 1 ? "" : (item.quantity === 0 ? "" : item.quantity)}
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
                             onFocus={e => {
-                              e.target.value = "";
-                              updateItem("appliances", index, "quantity", 0);
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
                             }}
-                            onChange={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 0)}
-                            onBlur={(e) => updateItem("appliances", index, "quantity", parseFloat(e.target.value) || 1)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
                             placeholder="1"
                             style={{ 
                               width: "100%",
