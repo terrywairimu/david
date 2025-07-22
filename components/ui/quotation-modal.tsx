@@ -678,7 +678,7 @@ const QuotationModal = ({
               onClick={onClose}
               style={{ borderRadius: "12px", padding: "8px" }}
             />
-          </div>
+              </div>
 
           {/* Body */}
           <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
@@ -693,8 +693,8 @@ const QuotationModal = ({
                     </h6>
                     <div className="position-relative" ref={clientInputRef}>
                       <div className="input-group">
-                        <input
-                          type="text"
+                    <input
+                      type="text"
                           className="form-control"
                           placeholder="Search client..."
                           value={clientSearchTerm}
@@ -702,8 +702,8 @@ const QuotationModal = ({
                           onFocus={() => setClientDropdownVisible(true)}
                           style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
                           readOnly={isReadOnly}
-                        />
-                      </div>
+                    />
+                  </div>
                       
                       <PortalDropdown
                         isVisible={clientDropdownVisible && !isReadOnly}
@@ -787,8 +787,8 @@ const QuotationModal = ({
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                  </div>
+                </div>
 
             {/* Cabinet Items Section */}
             <div className="mb-4">
@@ -878,7 +878,7 @@ const QuotationModal = ({
                   </div>
                         
                         <div style={{ flex: "1", marginRight: "16px" }}>
-                                        <input
+                    <input
                       type="number"
                             value={
                               rawQuantityValues[item.id?.toString() || ""] !== undefined
@@ -1330,8 +1330,8 @@ const QuotationModal = ({
                       {/* Move the Add Item button to be the last element: */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                          <button
-                            type="button"
+                        <button
+                          type="button"
                             className="btn btn-primary"
                             onClick={() => addItem("worktop")}
                             style={{
@@ -1340,10 +1340,10 @@ const QuotationModal = ({
                               border: "none",
                               padding: "10px 20px"
                             }}
-                          >
-                            <Plus size={14} className="me-1" />
+                        >
+                          <Plus size={14} className="me-1" />
                             Add Item
-                          </button>
+                        </button>
                         </div>
                       )}
                     </div>
@@ -1983,8 +1983,8 @@ const QuotationModal = ({
                       <div className="d-flex justify-content-between mb-2">
                         <div className="d-flex align-items-center">
                           <span style={{ color: "#ffffff", marginRight: "8px" }}>VAT:</span>
-                          <input
-                            type="number"
+                      <input
+                        type="number"
                             value={vatPercentage === 16 ? "" : (vatPercentage === 0 ? "" : vatPercentage)}
                             onFocus={e => {
                               e.target.value = "";
@@ -2011,8 +2011,8 @@ const QuotationModal = ({
                             min="0"
                             max="100"
                             step="0.01"
-                            readOnly={isReadOnly}
-                          />
+                        readOnly={isReadOnly}
+                      />
                           <span style={{ color: "#ffffff", marginLeft: "4px" }}>%</span>
                         </div>
                         <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>

@@ -107,6 +107,7 @@ const ExpenseModal = ({
         date_created: expense.date_created ? new Date(expense.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expense_type: expense.expense_type || expenseType
       })
+      setSelectedQuotation(expense.quotation_number || "");
       
       // Load expense items from expense_items table
       loadExpenseItems(expense.id)
@@ -549,25 +550,30 @@ const ExpenseModal = ({
                             className="form-control border-0 shadow-sm"
                             placeholder="Quantity"
                             min="1"
-                            value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : item.quantity}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              setRawQuantityValues(prev => ({ ...prev, [item.id]: value }))
-                              if (value === '') {
-                                return // Allow empty display
-                              }
-                              updateExpenseItem(item.id, 'quantity', parseInt(value) || 1)
+                            value={
+                              quantityInputFocused[item.id]
+                                ? (rawQuantityValues[item.id] ?? "")
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onChange={e => {
+                              const value = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id]: value }));
                             }}
-                            onFocus={(e) => {
-                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }))
-                              setRawQuantityValues(prev => ({ ...prev, [item.id]: item.quantity.toString() }))
-                              e.target.select()
+                            onFocus={e => {
+                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }));
+                              setRawQuantityValues(prev => ({ ...prev, [item.id]: "" }));
+                              e.target.select();
                             }}
-                            onBlur={(e) => {
-                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))
-                              const value = e.target.value
-                              const finalValue = value === '' ? 1 : parseInt(value) || 1
-                              updateExpenseItem(item.id, 'quantity', finalValue)
+                            onBlur={e => {
+                              setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }));
+                              const value = e.target.value;
+                              const finalValue = value === '' ? 1 : parseInt(value) || 1;
+                              updateExpenseItem(item.id, 'quantity', finalValue);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id];
+                                return copy;
+                              });
                             }}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
@@ -581,25 +587,30 @@ const ExpenseModal = ({
                             placeholder="Rate"
                             step="0.01"
                             min="0"
-                            value={rateInputFocused[item.id] ? (rawRateValues[item.id] ?? item.rate) : item.rate}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              setRawRateValues(prev => ({ ...prev, [item.id]: value }))
-                              if (value === '') {
-                                return // Allow empty display
-                              }
-                              updateExpenseItem(item.id, 'rate', parseFloat(value) || 0)
+                            value={
+                              rateInputFocused[item.id]
+                                ? (rawRateValues[item.id] ?? "")
+                                : (item.rate === 0 ? "" : item.rate)
+                            }
+                            onChange={e => {
+                              const value = e.target.value;
+                              setRawRateValues(prev => ({ ...prev, [item.id]: value }));
                             }}
-                            onFocus={(e) => {
-                              setRateInputFocused(prev => ({ ...prev, [item.id]: true }))
-                              setRawRateValues(prev => ({ ...prev, [item.id]: item.rate.toString() }))
-                              e.target.select()
+                            onFocus={e => {
+                              setRateInputFocused(prev => ({ ...prev, [item.id]: true }));
+                              setRawRateValues(prev => ({ ...prev, [item.id]: "" }));
+                              e.target.select();
                             }}
-                            onBlur={(e) => {
-                              setRateInputFocused(prev => ({ ...prev, [item.id]: false }))
-                              const value = e.target.value
-                              const finalValue = value === '' ? 0 : parseFloat(value) || 1
-                              updateExpenseItem(item.id, 'rate', finalValue)
+                            onBlur={e => {
+                              setRateInputFocused(prev => ({ ...prev, [item.id]: false }));
+                              const value = e.target.value;
+                              const finalValue = value === '' ? 0 : parseFloat(value) || 0;
+                              updateExpenseItem(item.id, 'rate', finalValue);
+                              setRawRateValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id];
+                                return copy;
+                              });
                             }}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required

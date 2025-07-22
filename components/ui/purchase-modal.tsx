@@ -715,30 +715,32 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         <input
                           type="number"
                           className="form-control border-0 shadow-sm"
-                          value={quantityInputFocused[item.id] ? (rawQuantityValues[item.id] ?? item.quantity) : (item.quantity === 1 ? '' : item.quantity)}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setRawQuantityValues(prev => ({ ...prev, [item.id]: value }))
-                            // Allow empty value temporarily, don't force default
-                            if (value === '') {
-                              // Keep the current quantity for calculations but allow empty display
-                              return
-                            }
-                            updateItem(item.id, 'quantity', parseInt(value) || 1)
+                          value={
+                            quantityInputFocused[item.id]
+                              ? (rawQuantityValues[item.id] ?? "")
+                              : (item.quantity === 1 ? "" : item.quantity)
+                          }
+                          onChange={e => {
+                            const value = e.target.value;
+                            setRawQuantityValues(prev => ({ ...prev, [item.id]: value }));
                           }}
-                          onFocus={(e) => {
-                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }))
-                            setRawQuantityValues(prev => ({ ...prev, [item.id]: item.quantity.toString() }))
-                            e.target.select()
+                          onFocus={e => {
+                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: true }));
+                            setRawQuantityValues(prev => ({ ...prev, [item.id]: "" }));
+                            e.target.select();
                           }}
-                          onBlur={(e) => {
-                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }))
-                            const value = e.target.value
-                            // Apply default only on blur if empty
-                            const finalValue = value === '' ? 1 : parseInt(value) || 1
-                            updateItem(item.id, 'quantity', finalValue)
+                          onBlur={e => {
+                            setQuantityInputFocused(prev => ({ ...prev, [item.id]: false }));
+                            const value = e.target.value;
+                            const finalValue = value === '' ? 1 : parseInt(value) || 1;
+                            updateItem(item.id, 'quantity', finalValue);
+                            setRawQuantityValues(prev => {
+                              const copy = { ...prev };
+                              delete copy[item.id];
+                              return copy;
+                            });
                           }}
-                          placeholder="Qty"
+                          placeholder="1"
                           min="1"
                           style={{ borderRadius: "16px", height: "45px" }}
                         />
@@ -748,28 +750,30 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           type="number"
                           step="0.01"
                           className="form-control border-0 shadow-sm"
-                          value={priceInputFocused[item.id] ? (rawPriceValues[item.id] ?? item.unit_price) : (item.unit_price === 0 ? '' : item.unit_price)}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setRawPriceValues(prev => ({ ...prev, [item.id]: value }))
-                            // Allow empty value temporarily, don't force default
-                            if (value === '') {
-                              // Keep the current price for calculations but allow empty display
-                              return
-                            }
-                            updateItem(item.id, 'unit_price', parseFloat(value) || 0)
+                          value={
+                            priceInputFocused[item.id]
+                              ? (rawPriceValues[item.id] ?? "")
+                              : (item.unit_price === 0 ? "" : item.unit_price)
+                          }
+                          onChange={e => {
+                            const value = e.target.value;
+                            setRawPriceValues(prev => ({ ...prev, [item.id]: value }));
                           }}
-                          onFocus={(e) => {
-                            setPriceInputFocused(prev => ({ ...prev, [item.id]: true }))
-                            setRawPriceValues(prev => ({ ...prev, [item.id]: item.unit_price.toString() }))
-                            e.target.select()
+                          onFocus={e => {
+                            setPriceInputFocused(prev => ({ ...prev, [item.id]: true }));
+                            setRawPriceValues(prev => ({ ...prev, [item.id]: "" }));
+                            e.target.select();
                           }}
-                          onBlur={(e) => {
-                            setPriceInputFocused(prev => ({ ...prev, [item.id]: false }))
-                            const value = e.target.value
-                            // Apply default only on blur if empty
-                            const finalValue = value === '' ? 0 : parseFloat(value) || 0
-                            updateItem(item.id, 'unit_price', finalValue)
+                          onBlur={e => {
+                            setPriceInputFocused(prev => ({ ...prev, [item.id]: false }));
+                            const value = e.target.value;
+                            const finalValue = value === '' ? 0 : parseFloat(value) || 0;
+                            updateItem(item.id, 'unit_price', finalValue);
+                            setRawPriceValues(prev => {
+                              const copy = { ...prev };
+                              delete copy[item.id];
+                              return copy;
+                            });
                           }}
                           placeholder="Unit Price"
                           min="0"
