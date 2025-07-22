@@ -505,8 +505,15 @@ const QuotationModal = ({
     const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
     
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
-    const labourAmount = (subtotal * labourPercentage) / 100
-    const grandTotal = subtotal + labourAmount
+    
+    // Calculate individual labour amounts
+    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
+    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
+    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
+    const worktopLabour = (worktopTotal * labourPercentage) / 100
+    
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour
+    const grandTotal = subtotal + totalLabour
 
     return {
       cabinetTotal,
@@ -514,7 +521,7 @@ const QuotationModal = ({
       accessoriesTotal,
       appliancesTotal,
       subtotal,
-      labourAmount,
+      labourAmount: totalLabour,
       grandTotal
     }
   }
@@ -590,10 +597,23 @@ const QuotationModal = ({
     }
   }
 
+  const [labourPercentageInput, setLabourPercentageInput] = useState(labourPercentage.toString());
+
+  // Add individual labour percentage states for each section
+  const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(30);
+  const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(30);
+  const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
+
   const totals = calculateTotals()
   const isReadOnly = mode === "view"
 
   if (!isOpen) return null
+
+  // Calculate section totals with labour included
+  const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+  const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+  const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+  const worktopLabour = (totals.worktopTotal * labourPercentage) / 100;
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -747,23 +767,6 @@ const QuotationModal = ({
                     General
                   </h6>
                   
-                  {/* Labour Percentage Input */}
-                  <div className="mb-3">
-                    <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                      Labour Percentage
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={labourPercentage}
-                      onChange={(e) => setLabourPercentage(parseFloat(e.target.value) || 0)}
-                      style={{ borderRadius: "12px", height: "45px", border: "1px solid #e9ecef" }}
-                      readOnly={isReadOnly}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-
                   {/* Items Section - Div based design */}
                   <div className="mb-3">
                     
@@ -888,6 +891,40 @@ const QuotationModal = ({
                         )}
                       </div>
                     ))}
+
+                    {/* Minimalistic Labour Footer for Cabinet Section */}
+                    {mode !== "view" && (
+                      <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                        <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={cabinetLabourPercentage === 30 ? "" : cabinetLabourPercentage}
+                            onFocus={e => setCabinetLabourPercentage(0)}
+                            onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
+                            onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
+                            placeholder="30"
+                            style={{ 
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              paddingLeft: "0",
+                              boxShadow: "none"
+                            }}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                          />
+                        </div>
+                        <div style={{ flex: "1", marginRight: "16px" }}></div>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().cabinetTotal * (cabinetLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+                    )}
 
                     {/* Add Item Button */}
                     {!isReadOnly && (
@@ -1330,6 +1367,40 @@ const QuotationModal = ({
                         </div>
                       ))}
 
+                      {/* Minimalistic Labour Footer for Accessories Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={accessoriesLabourPercentage === 30 ? "" : accessoriesLabourPercentage}
+                              onFocus={e => setAccessoriesLabourPercentage(0)}
+                              onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                paddingLeft: "0",
+                                boxShadow: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().accessoriesTotal * (accessoriesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
@@ -1551,6 +1622,40 @@ const QuotationModal = ({
                         </div>
                       ))}
 
+                      {/* Minimalistic Labour Footer for Appliances Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={appliancesLabourPercentage === 30 ? "" : appliancesLabourPercentage}
+                              onFocus={e => setAppliancesLabourPercentage(0)}
+                              onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                paddingLeft: "0",
+                                boxShadow: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().appliancesTotal * (appliancesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
@@ -1588,35 +1693,31 @@ const QuotationModal = ({
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: "#ffffff" }}>Cabinet Total:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.cabinetTotal.toFixed(2)}</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
                       </div>
                       {includeWorktop && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>Worktop Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.worktopTotal + worktopLabour).toFixed(2)}</span>
                         </div>
                       )}
                       {includeAccessories && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>Accessories Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.accessoriesTotal.toFixed(2)}</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
                         </div>
                       )}
                       {includeAppliances && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>Appliances Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.appliancesTotal.toFixed(2)}</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>Labour ({labourPercentage}%):</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.labourAmount.toFixed(2)}</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour).toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
