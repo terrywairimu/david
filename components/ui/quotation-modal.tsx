@@ -508,7 +508,7 @@ const QuotationModal = ({
 
   const calculateTotals = () => {
     const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
-    const worktopTotal = worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice);
+    const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
     const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
     const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
     
