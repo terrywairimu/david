@@ -603,6 +603,9 @@ const QuotationModal = ({
   const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(30);
   const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(30);
   const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
+  
+  // Add VAT percentage state
+  const [vatPercentage, setVatPercentage] = useState(16);
 
   const totals = calculateTotals()
   const isReadOnly = mode === "view"
@@ -614,6 +617,12 @@ const QuotationModal = ({
   const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
   const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
   const worktopLabour = (totals.worktopTotal * labourPercentage) / 100;
+  
+  // Calculate VAT based on subtotal with labour included
+  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour;
+  // Reverse calculate VAT: if subtotal includes VAT, extract the original amount
+  const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
+  const vatAmount = subtotalWithLabour - originalAmount;
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -1810,11 +1819,48 @@ const QuotationModal = ({
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour).toFixed(2)}</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <div className="d-flex align-items-center">
+                          <span style={{ color: "#ffffff", marginRight: "8px" }}>VAT:</span>
+                          <input
+                            type="number"
+                            value={vatPercentage === 16 ? "" : (vatPercentage === 0 ? "" : vatPercentage)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setVatPercentage(0);
+                            }}
+                            onChange={e => setVatPercentage(Number(e.target.value) || 0)}
+                            onBlur={e => setVatPercentage(Number(e.target.value) || 16)}
+                            placeholder="16"
+                            style={{ 
+                              width: "60px",
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "4px 8px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none",
+                              textAlign: "center"
+                            }}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            readOnly={isReadOnly}
+                          />
+                          <span style={{ color: "#ffffff", marginLeft: "4px" }}>%</span>
+                        </div>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {totals.grandTotal.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
