@@ -354,6 +354,12 @@ const QuotationModal = ({
       setAccessoriesItems(accessories);
       setAppliancesItems(appliances);
     }
+
+    setCabinetLabourPercentage(quotation.cabinet_labour_percentage ?? 30)
+    setAccessoriesLabourPercentage(quotation.accessories_labour_percentage ?? 30)
+    setAppliancesLabourPercentage(quotation.appliances_labour_percentage ?? 30)
+    setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
+    setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
   }
 
   const handleClientSelect = (client: Client) => {
@@ -593,7 +599,12 @@ const QuotationModal = ({
       status: "pending",
       notes,
       terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems]
+        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems],
+      cabinet_labour_percentage: cabinetLabourPercentage,
+      accessories_labour_percentage: accessoriesLabourPercentage,
+      appliances_labour_percentage: appliancesLabourPercentage,
+      worktop_labor_qty: worktopLaborQty,
+      worktop_labor_unit_price: worktopLaborUnitPrice
       }
 
       // Confirm quotation number if it's a new quotation
