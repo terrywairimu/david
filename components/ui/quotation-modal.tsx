@@ -1201,14 +1201,14 @@ const QuotationModal = ({
                           <input
                             type="number"
                               className="form-control"
-                            value={item.unit_price}
-                              onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
@@ -1517,14 +1517,14 @@ const QuotationModal = ({
                           <input
                             type="number"
                               className="form-control"
-                            value={item.unit_price}
-                              onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
@@ -1812,14 +1812,14 @@ const QuotationModal = ({
                           <input
                             type="number"
                               className="form-control"
-                            value={item.unit_price}
-                              onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
