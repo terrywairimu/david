@@ -197,7 +197,11 @@ const QuotationModal = ({
 
   // Add state at the top of QuotationModal:
   const [worktopLaborQty, setWorktopLaborQty] = useState(1);
-  const [worktopLaborUnitPrice, setWorktopLaborUnitPrice] = useState(300);
+  const [worktopLaborUnitPrice, setWorktopLaborUnitPrice] = useState(3000);
+
+  // Add state for raw editing values for Worktop Installation Labor
+  const [rawWorktopLaborQty, setRawWorktopLaborQty] = useState<string | undefined>(undefined);
+  const [rawWorktopLaborUnitPrice, setRawWorktopLaborUnitPrice] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (isOpen) {
@@ -1238,8 +1242,15 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                             <input
                               type="number"
-                              value={worktopLaborQty}
-                              onChange={e => setWorktopLaborQty(Number(e.target.value) || 1)}
+                              value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
+                              onFocus={e => setRawWorktopLaborQty(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
+                              onChange={e => setRawWorktopLaborQty(e.target.value)}
+                              onBlur={e => {
+                                const val = rawWorktopLaborQty ?? "";
+                                const num = val === '' ? 1 : Number(val);
+                                setWorktopLaborQty(isNaN(num) ? 1 : num);
+                                setRawWorktopLaborQty(undefined);
+                              }}
                               placeholder="1"
                               style={{
                                 width: "100%",
@@ -1254,7 +1265,7 @@ const QuotationModal = ({
                                 WebkitAppearance: "none",
                                 MozAppearance: "textfield",
                                 outline: "none",
-                                textAlign: "center"
+                                textAlign: "left"
                               }}
                               min="1"
                               step="1"
@@ -1263,9 +1274,16 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                             <input
                               type="number"
-                              value={worktopLaborUnitPrice}
-                              onChange={e => setWorktopLaborUnitPrice(Number(e.target.value) || 0)}
-                              placeholder="300"
+                              value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000? "" : worktopLaborUnitPrice)}
+                              onFocus={e => setRawWorktopLaborUnitPrice(worktopLaborUnitPrice === 3000? "" : String(worktopLaborUnitPrice))}
+                              onChange={e => setRawWorktopLaborUnitPrice(e.target.value)}
+                              onBlur={e => {
+                                const val = rawWorktopLaborUnitPrice ?? "";
+                                const num = val === '' ? 3000: Number(val);
+                                setWorktopLaborUnitPrice(isNaN(num) ? 3000: num);
+                                setRawWorktopLaborUnitPrice(undefined);
+                              }}
+                              placeholder="3000"
                               style={{
                                 width: "100%",
                                 borderRadius: "8px",
@@ -1279,7 +1297,7 @@ const QuotationModal = ({
                                 WebkitAppearance: "none",
                                 MozAppearance: "textfield",
                                 outline: "none",
-                                textAlign: "center"
+                                textAlign: "left"
                               }}
                               min="0"
                               step="0.01"
