@@ -587,8 +587,8 @@ const QuotationModal = ({
       // Removed localStorage logic, so this block is effectively removed.
       // The generateQuotationNumber function now handles the number generation.
 
-    onSave(quotationData)
-      onClose()
+    await onSave(quotationData)
+    onClose()
     } catch (error) {
       console.error("Error saving quotation:", error)
       toast.error("Failed to save quotation")
