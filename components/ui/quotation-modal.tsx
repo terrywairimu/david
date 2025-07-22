@@ -504,19 +504,18 @@ const QuotationModal = ({
 
   const calculateTotals = () => {
     const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
-    const worktopTotal = worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice);
+    const worktopTotal = worktopItems.reduce((sum, item) => sum + item.total_price, 0)
     const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
     const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
     
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
     
-    // Calculate individual labour amounts
+    // Calculate individual labour amounts (no worktopLabour)
     const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
     const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
     const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
-    const worktopLabour = (worktopTotal * labourPercentage) / 100
     
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour
     const grandTotal = subtotal + totalLabour
 
     return {
@@ -620,10 +619,9 @@ const QuotationModal = ({
   const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
   const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
   const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-  const worktopLabour = (totals.worktopTotal * labourPercentage) / 100;
   
   // Calculate VAT based on subtotal with labour included
-  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + worktopLabour;
+  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour;
   // Reverse calculate VAT: if subtotal includes VAT, extract the original amount
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
   const vatAmount = subtotalWithLabour - originalAmount;
@@ -1926,7 +1924,7 @@ const QuotationModal = ({
                       {includeWorktop && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>Worktop Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.worktopTotal + worktopLabour).toFixed(2)}</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
                         </div>
                       )}
                       {includeAccessories && (
