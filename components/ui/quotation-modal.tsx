@@ -900,8 +900,7 @@ const QuotationModal = ({
                         <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                           <input
                             type="number"
-                            className="form-control"
-                            value={cabinetLabourPercentage === 30 ? "" : cabinetLabourPercentage}
+                            value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
                             onFocus={e => {
                               e.target.value = "";
                               setCabinetLabourPercentage(0);
@@ -910,16 +909,18 @@ const QuotationModal = ({
                             onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
                             placeholder="30"
                             style={{ 
+                              width: "100%",
                               borderRadius: "8px", 
                               fontSize: "13px", 
                               background: "transparent", 
                               color: "#fff", 
                               border: "none",
-                              paddingLeft: "0",
+                              padding: "8px 0",
                               boxShadow: "none",
                               backgroundColor: "transparent",
                               WebkitAppearance: "none",
-                              MozAppearance: "textfield"
+                              MozAppearance: "textfield",
+                              outline: "none"
                             }}
                             min="0"
                             max="100"
@@ -1381,8 +1382,7 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                             <input
                               type="number"
-                              className="form-control"
-                              value={accessoriesLabourPercentage === 30 ? "" : accessoriesLabourPercentage}
+                              value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
                               onFocus={e => {
                                 e.target.value = "";
                                 setAccessoriesLabourPercentage(0);
@@ -1391,16 +1391,18 @@ const QuotationModal = ({
                               onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
                               placeholder="30"
                               style={{ 
+                                width: "100%",
                                 borderRadius: "8px", 
                                 fontSize: "13px", 
                                 background: "transparent", 
                                 color: "#fff", 
                                 border: "none",
-                                paddingLeft: "0",
+                                padding: "8px 0",
                                 boxShadow: "none",
                                 backgroundColor: "transparent",
                                 WebkitAppearance: "none",
-                                MozAppearance: "textfield"
+                                MozAppearance: "textfield",
+                                outline: "none"
                               }}
                               min="0"
                               max="100"
@@ -1642,8 +1644,7 @@ const QuotationModal = ({
                           <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                             <input
                               type="number"
-                              className="form-control"
-                              value={appliancesLabourPercentage === 30 ? "" : appliancesLabourPercentage}
+                              value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
                               onFocus={e => {
                                 e.target.value = "";
                                 setAppliancesLabourPercentage(0);
@@ -1652,16 +1653,18 @@ const QuotationModal = ({
                               onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
                               placeholder="30"
                               style={{ 
+                                width: "100%",
                                 borderRadius: "8px", 
                                 fontSize: "13px", 
                                 background: "transparent", 
                                 color: "#fff", 
                                 border: "none",
-                                paddingLeft: "0",
+                                padding: "8px 0",
                                 boxShadow: "none",
                                 backgroundColor: "transparent",
                                 WebkitAppearance: "none",
-                                MozAppearance: "textfield"
+                                MozAppearance: "textfield",
+                                outline: "none"
                               }}
                               min="0"
                               max="100"
