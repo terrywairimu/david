@@ -608,10 +608,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     style={{ borderRadius: "16px", height: "45px" }}
                   >
                     <option value="">Select Payment Method</option>
-                    <option value="David">David</option>
-                    <option value="bank">Bank Transfer</option>
-                    <option value="Kim">Kim</option>
+                    <option value="cash">Cash</option>
+                    <option value="cooperative_bank">Cooperative Bank</option>
                     <option value="credit">Credit</option>
+                    <option value="cheque">Cheque</option>
                   </select>
                 </div>
               </div>
