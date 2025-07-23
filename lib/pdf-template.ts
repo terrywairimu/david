@@ -22,10 +22,7 @@ export const quotationTemplate = {
       { name: 'mobileNoValue', type: 'text', position: { x: 41, y: 85 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'dateLabel', type: 'text', position: { x: 16, y: 91 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'dateValue', type: 'text', position: { x: 41, y: 91 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'deliveryNoteLabel', type: 'text', position: { x: 80, y: 73 }, width: 40, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'deliveryNoteValue', type: 'text', position: { x: 120, y: 73 }, width: 30, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'quotationNoLabel', type: 'text', position: { x: 170, y: 73 }, width: 15, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'quotationNoValue', type: 'text', position: { x: 185, y: 73 }, width: 15, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'quotationNoFull', type: 'text', position: { x: 15, y: 73 }, width: 180, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
       { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 105 }, width: 180, height: 10, color: '#E5E5E5' },
       // Table header with Item number column
       { name: 'itemHeader', type: 'text', position: { x: 17, y: 108 }, width: 12, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
@@ -35,7 +32,6 @@ export const quotationTemplate = {
       { name: 'unitPriceHeader', type: 'text', position: { x: 137, y: 108 }, width: 30, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit Price' },
       { name: 'totalHeader', type: 'text', position: { x: 167, y: 108 }, width: 28, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Total' },
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
-      { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 135 }, width: 90, height: 90, opacity: 0.08 },
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 20, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'totalsBox', type: 'rectangle', position: { x: 150, y: 245 }, width: 45, height: 24, color: '#E5E5E5', radius: 4 },
@@ -48,7 +44,8 @@ export const quotationTemplate = {
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
       { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'approvedByLine', type: 'line', position: { x: 145, y: 283 }, width: 60, height: 0, color: '#000' }
+      { name: 'approvedByLine', type: 'line', position: { x: 145, y: 283 }, width: 60, height: 0, color: '#000' },
+      { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 135 }, width: 90, height: 90 },
     ]
   ]
 };
@@ -97,6 +94,7 @@ export interface QuotationData {
   // Signatures
   preparedBy: string;
   approvedBy: string;
+  watermarkLogo?: string; // Base64 image data for watermark
 }
 
 // Default values for the template
@@ -128,7 +126,8 @@ export const defaultValues: QuotationData = {
   },
   
   preparedBy: "",
-  approvedBy: ""
+  approvedBy: "",
+  watermarkLogo: ""
 };
 
 // Function to convert image to base64
@@ -196,19 +195,10 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   let currentY;
   pages.forEach((rows: string[][], pageIdx: number) => {
     let pageSchemas: any[] = [];
-    // Add watermark logo as the first schema on every page
-    pageSchemas.push({
-      name: `watermarkLogo${pageIdx}`,
-      type: 'image',
-      position: { x: 60, y: 135 }, // same as your original watermark position
-      width: 90,
-      height: 90,
-      opacity: 0.3
-    });
     // Header (first page only)
     if (pageIdx === 0) {
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-        'logo','companyName','companyLocation','companyPhone','companyEmail','quotationHeaderBg','quotationTitle','clientInfoBox','clientNamesLabel','clientNamesValue','siteLocationLabel','siteLocationValue','mobileNoLabel','mobileNoValue','dateLabel','dateValue','deliveryNoteLabel','deliveryNoteValue','quotationNoLabel','quotationNoValue'
+        'logo','companyName','companyLocation','companyPhone','companyEmail','quotationHeaderBg','quotationTitle','clientInfoBox','clientNamesLabel','clientNamesValue','siteLocationLabel','siteLocationValue','mobileNoLabel','mobileNoValue','dateLabel','dateValue','quotationNoFull'
       ].includes(s.name)));
     }
     // Table header (every page)
@@ -258,9 +248,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       companyPhone: mergedData.companyPhone,
       companyEmail: mergedData.companyEmail,
       companyLogo: mergedData.companyLogo,
-      watermarkLogo: mergedData.companyLogo,
+      watermarkLogo: mergedData.watermarkLogo,
       logo: mergedData.companyLogo,
-      clientNamesLabel: "CLIENT NAMES:",
+      clientNamesLabel: "CLIENT NAME:",
       clientNamesValue: mergedData.clientNames,
       siteLocationLabel: "SITE LOCATION:",
       siteLocationValue: mergedData.siteLocation,
@@ -270,8 +260,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       dateValue: mergedData.date,
       quotationTitle: "QUOTATION",
       deliveryNoteLabel: mergedData.deliveryNoteNo,
-      quotationNoLabel: "NO.:",
-      quotationNoValue: mergedData.quotationNumber,
+      quotationNoFull: `Quotation No: ${mergedData.quotationNumber}`,
       quantityHeader: "Quantity",
       unitHeader: "Unit",
       descriptionHeader: "Description",

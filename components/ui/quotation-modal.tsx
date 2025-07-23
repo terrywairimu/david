@@ -634,37 +634,47 @@ const QuotationModal = ({
         });
       });
       
+      // Fetch watermark image as base64
+      async function fetchImageAsBase64(url: string): Promise<string> {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+      console.log('watermarkLogoBase64:', watermarkLogoBase64?.slice(0, 100));
       // Prepare quotation data
       const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
         clientNames: selectedClient?.name || "",
         siteLocation: selectedClient?.location || "",
         mobileNo: selectedClient?.phone || "",
         date: quotationDate || new Date().toLocaleDateString(),
-        
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotationNumber,
-        
         items: items,
-        
         subtotal: subtotalWithLabour,
         vat: vat,
         total: grandTotal,
-        
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
           term2: "   in quantity or specifications and market rates.",
           term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
           term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
         },
-        
         preparedBy: "",
-        approvedBy: ""
+        approvedBy: "",
+        watermarkLogo: watermarkLogoBase64,
+        companyLogo: watermarkLogoBase64,
       };
+      console.log('quotationData:', quotationData);
       
       // Generate PDF using PDF.me template
       const { template, inputs } = await generateQuotationPDF(quotationData);
