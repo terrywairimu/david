@@ -1,10 +1,13 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
+import jsPDF from "jspdf"
+import "jspdf-autotable"
+import type { QuotationData } from '@/lib/pdf-template';
 
 interface Client {
   id: number
@@ -596,6 +599,94 @@ const QuotationModal = ({
 
   const getFilteredItems = (itemId: string) => {
     return filteredStockItems[itemId] || stockItems
+  }
+
+  const generatePDF = async () => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF } = await import('@/lib/pdf-template');
+      
+      // Calculate totals
+      const totals = calculateTotals();
+      const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+      const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+      const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+      const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+      const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+      
+      const subtotal = totals.cabinetTotal + totals.worktopTotal + totals.accessoriesTotal + 
+                      totals.appliancesTotal + totals.wardrobesTotal + totals.tvUnitTotal;
+      const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+      const subtotalWithLabour = subtotal + totalLabour;
+      const vat = subtotalWithLabour * (vatPercentage / 100);
+      const grandTotal = subtotalWithLabour + vat;
+      
+      // Prepare items data as objects for QuotationData
+      const items: Array<{quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
+      [...cabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems].forEach(item => {
+        items.push({
+          quantity: item.quantity,
+          unit: item.unit,
+          description: item.description,
+          unitPrice: item.unit_price,
+          total: item.total_price
+        });
+      });
+      
+      // Prepare quotation data
+      const quotationData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        
+        clientNames: selectedClient?.name || "",
+        siteLocation: selectedClient?.location || "",
+        mobileNo: selectedClient?.phone || "",
+        date: quotationDate || new Date().toLocaleDateString(),
+        
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: quotationNumber,
+        
+        items: items,
+        
+        subtotal: subtotalWithLabour,
+        vat: vat,
+        total: grandTotal,
+        
+        terms: {
+          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
+          term2: "   in quantity or specifications and market rates.",
+          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
+          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
+        },
+        
+        preparedBy: "",
+        approvedBy: ""
+      };
+      
+      // Generate PDF using PDF.me template
+      const { template, inputs } = await generateQuotationPDF(quotationData);
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+      
+      // Download the PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `quotation-${quotationNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("PDF generated successfully!");
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
   }
 
   const handleSave = async () => {
@@ -2743,6 +2834,22 @@ const QuotationModal = ({
             >
               Cancel
             </button>
+            {mode === "view" && (
+              <button
+                type="button"
+                className="btn btn-success me-2"
+                onClick={generatePDF}
+                style={{ 
+                  borderRadius: "12px", 
+                  padding: "10px 24px",
+                  background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                  border: "none"
+                }}
+              >
+                <Download className="me-2" size={16} />
+                Download PDF
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-primary"

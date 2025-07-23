@@ -23,6 +23,8 @@ interface Quotation {
   worktop_total: number
   accessories_total: number
   appliances_total: number
+  wardrobes_total: number
+  tvunit_total: number
   labour_percentage: number
   labour_total: number
   total_amount: number
@@ -30,6 +32,8 @@ interface Quotation {
   include_worktop: boolean
   include_accessories: boolean
   include_appliances: boolean
+  include_wardrobes: boolean
+  include_tvunit: boolean
   status: "pending" | "accepted" | "rejected" | "expired" | "converted_to_sales_order" | "converted_to_cash_sale"
   notes?: string
   terms_conditions?: string
@@ -41,7 +45,7 @@ interface Quotation {
   }
   items?: Array<{
     id: number
-    category: "cabinet" | "worktop" | "accessories" | "appliances"
+    category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
     description: string
     unit: string
     quantity: number
@@ -246,6 +250,8 @@ const QuotationsView = () => {
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
             appliances_total: quotationData.appliances_total,
+            wardrobes_total: quotationData.wardrobes_total,
+            tvunit_total: quotationData.tvunit_total,
             labour_percentage: quotationData.labour_percentage,
             labour_total: quotationData.labour_total,
             total_amount: quotationData.total_amount,
@@ -253,6 +259,8 @@ const QuotationsView = () => {
             include_worktop: quotationData.include_worktop,
             include_accessories: quotationData.include_accessories,
             include_appliances: quotationData.include_appliances,
+            include_wardrobes: quotationData.include_wardrobes,
+            include_tvunit: quotationData.include_tvunit,
             status: quotationData.status,
             notes: quotationData.notes,
             terms_conditions: quotationData.terms_conditions,
@@ -299,6 +307,8 @@ const QuotationsView = () => {
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
             appliances_total: quotationData.appliances_total,
+            wardrobes_total: quotationData.wardrobes_total,
+            tvunit_total: quotationData.tvunit_total,
             labour_percentage: quotationData.labour_percentage,
             labour_total: quotationData.labour_total,
             total_amount: quotationData.total_amount,
@@ -306,6 +316,8 @@ const QuotationsView = () => {
             include_worktop: quotationData.include_worktop,
             include_accessories: quotationData.include_accessories,
             include_appliances: quotationData.include_appliances,
+            include_wardrobes: quotationData.include_wardrobes,
+            include_tvunit: quotationData.include_tvunit,
             status: quotationData.status,
             notes: quotationData.notes,
             terms_conditions: quotationData.terms_conditions,
@@ -409,13 +421,138 @@ const QuotationsView = () => {
     }
   }
 
-  const handlePrint = (quotation: Quotation) => {
-    printDocument(`quotation-${quotation.id}`, `Quotation-${quotation.quotation_number}`)
-  }
+  const handlePrint = async (quotation: Quotation) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
 
-  const handleDownload = (quotation: Quotation) => {
-    downloadDocument(`quotation-${quotation.id}`, `Quotation-${quotation.quotation_number}`)
-  }
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+
+      // Prepare items data
+      const items = quotation.items?.map(item => ({
+        quantity: item.quantity,
+        unit: item.unit,
+        description: item.description,
+        unitPrice: item.unit_price,
+        total: item.total_price
+      })) || [];
+
+      // Prepare quotation data
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: quotation.client?.name || "",
+        siteLocation: quotation.client?.location || "",
+        mobileNo: quotation.client?.phone || "",
+        date: new Date(quotation.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: quotation.quotation_number,
+        items,
+        subtotal: (quotation.cabinet_total || 0) + (quotation.worktop_total || 0) + (quotation.accessories_total || 0) + (quotation.appliances_total || 0) + (quotation.wardrobes_total || 0) + (quotation.tvunit_total || 0) + (quotation.labour_total || 0),
+        vat: 0, // You can calculate VAT as needed
+        total: quotation.grand_total || 0,
+        terms: {
+          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
+          term2: "   in quantity or specifications and market rates.",
+          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
+          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
+        },
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error printing quotation:', error);
+      toast.error("Failed to print quotation. Please try again.");
+    }
+  };
+
+  const handleDownload = async (quotation: Quotation) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+
+      // Prepare items data
+      const items = quotation.items?.map(item => ({
+        quantity: item.quantity,
+        unit: item.unit,
+        description: item.description,
+        unitPrice: item.unit_price,
+        total: item.total_price
+      })) || [];
+
+      // Prepare quotation data
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: quotation.client?.name || "",
+        siteLocation: quotation.client?.location || "",
+        mobileNo: quotation.client?.phone || "",
+        date: new Date(quotation.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: quotation.quotation_number,
+        items,
+        subtotal: (quotation.cabinet_total || 0) + (quotation.worktop_total || 0) + (quotation.accessories_total || 0) + (quotation.appliances_total || 0) + (quotation.wardrobes_total || 0) + (quotation.tvunit_total || 0) + (quotation.labour_total || 0),
+        vat: 0, // You can calculate VAT as needed
+        total: quotation.grand_total || 0,
+        terms: {
+          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
+          term2: "   in quantity or specifications and market rates.",
+          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
+          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
+        },
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `quotation-${quotation.quotation_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF downloaded successfully!");
+    } catch (error) {
+      console.error('Error downloading quotation:', error);
+      toast.error("Failed to download quotation. Please try again.");
+    }
+  };
 
   const handleNewQuotation = () => {
     setSelectedQuotation(undefined)
