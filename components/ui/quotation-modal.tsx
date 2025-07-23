@@ -25,7 +25,7 @@ interface StockItem {
 
 interface QuotationItem {
   id?: number
-  category: "cabinet" | "worktop" | "accessories" | "appliances"
+  category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
   description: string
   unit: string
   quantity: number
@@ -158,6 +158,8 @@ const QuotationModal = ({
   const [includeWorktop, setIncludeWorktop] = useState(false)
   const [includeAccessories, setIncludeAccessories] = useState(false)
   const [includeAppliances, setIncludeAppliances] = useState(false)
+  const [includeWardrobes, setIncludeWardrobes] = useState(false)
+  const [includeTvUnit, setIncludeTvUnit] = useState(false)
   const [notes, setNotes] = useState("")
   const [termsConditions, setTermsConditions] = useState(
     "1. All work to be completed within agreed timeframe.\n2. Client to provide necessary measurements and specifications.\n3. Final payment due upon completion.\n4. Any changes to the original design may incur additional charges."
@@ -169,6 +171,8 @@ const QuotationModal = ({
   const [worktopItems, setWorktopItems] = useState<QuotationItem[]>([])
   const [accessoriesItems, setAccessoriesItems] = useState<QuotationItem[]>([])
   const [appliancesItems, setAppliancesItems] = useState<QuotationItem[]>([])
+  const [wardrobesItems, setWardrobesItems] = useState<QuotationItem[]>([])
+  const [tvUnitItems, setTvUnitItems] = useState<QuotationItem[]>([])
   
   // Search states for each section
   const [itemSearches, setItemSearches] = useState<{[key: string]: string}>({})
@@ -269,17 +273,23 @@ const QuotationModal = ({
     setWorktopItems([])
     setAccessoriesItems([])
     setAppliancesItems([])
+    setWardrobesItems([])
+    setTvUnitItems([])
     setLabourPercentage(30)
     setIncludeWorktop(false)
     setIncludeAccessories(false)
     setIncludeAppliances(false)
+    setIncludeWardrobes(false)
+    setIncludeTvUnit(false)
+    setWardrobesLabourPercentage(30)
+    setTvUnitLabourPercentage(30)
     setNotes("")
     setItemSearches({})
     setItemDropdownVisible({})
     setFilteredStockItems({})
   }
 
-  const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances"): QuotationItem => {
+  const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
     return {
       id: Date.now() + Math.random(),
       category,
@@ -340,6 +350,8 @@ const QuotationModal = ({
     setIncludeWorktop(quotation.include_worktop || false)
       setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
+    setIncludeWardrobes(quotation.include_wardrobes || false)
+    setIncludeTvUnit(quotation.include_tvunit || false)
       setNotes(quotation.notes || "")
       setTermsConditions(quotation.terms_conditions || "")
     
@@ -349,15 +361,21 @@ const QuotationModal = ({
       const worktop = quotation.items.filter((item: any) => item.category === "worktop");
       const accessories = quotation.items.filter((item: any) => item.category === "accessories");
       const appliances = quotation.items.filter((item: any) => item.category === "appliances");
+      const wardrobes = quotation.items.filter((item: any) => item.category === "wardrobes");
+      const tvunit = quotation.items.filter((item: any) => item.category === "tvunit");
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
       setAccessoriesItems(accessories);
       setAppliancesItems(appliances);
+      setWardrobesItems(wardrobes);
+      setTvUnitItems(tvunit);
     }
 
     setCabinetLabourPercentage(quotation.cabinet_labour_percentage ?? 30)
     setAccessoriesLabourPercentage(quotation.accessories_labour_percentage ?? 30)
-    setAppliancesLabourPercentage(quotation.appliances_labour_percentage ?? 30)
+          setAppliancesLabourPercentage(quotation.appliances_labour_percentage ?? 30)
+      setWardrobesLabourPercentage(quotation.wardrobes_labour_percentage ?? 30)
+      setTvUnitLabourPercentage(quotation.tvunit_labour_percentage ?? 30)
     setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
   }
@@ -373,7 +391,7 @@ const QuotationModal = ({
     setClientDropdownVisible(searchTerm.length > 0)
   }
 
-  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances") => {
+  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit") => {
     const newItem = createNewItem(category)
     switch (category) {
       case "cabinet":
@@ -388,10 +406,16 @@ const QuotationModal = ({
       case "appliances":
         setAppliancesItems([...appliancesItems, newItem])
         break
+      case "wardrobes":
+        setWardrobesItems([...wardrobesItems, newItem])
+        break
+      case "tvunit":
+        setTvUnitItems([...tvUnitItems, newItem])
+        break
     }
   }
 
-  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances", index: number) => {
+  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number) => {
     switch (category) {
       case "cabinet":
         if (cabinetItems.length > 1) {
@@ -407,10 +431,16 @@ const QuotationModal = ({
       case "appliances":
         setAppliancesItems(appliancesItems.filter((_, i) => i !== index))
         break
+      case "wardrobes":
+        setWardrobesItems(wardrobesItems.filter((_, i) => i !== index))
+        break
+      case "tvunit":
+        setTvUnitItems(tvUnitItems.filter((_, i) => i !== index))
+        break
     }
   }
 
-  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances", index: number, field: keyof QuotationItem, value: any) => {
+  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof QuotationItem, value: any) => {
     const updateItems = (items: QuotationItem[]) => {
       return items.map((item, i) => {
         if (i === index) {
@@ -451,6 +481,12 @@ const QuotationModal = ({
       case "appliances":
         setAppliancesItems(updateItems(appliancesItems))
         break
+      case "wardrobes":
+        setWardrobesItems(updateItems(wardrobesItems))
+        break
+      case "tvunit":
+        setTvUnitItems(updateItems(tvUnitItems))
+        break
     }
   }
 
@@ -467,7 +503,7 @@ const QuotationModal = ({
     console.log("Stock item unit_price:", stockItem.unit_price, typeof stockItem.unit_price)
     
     // Find which category this item belongs to and get the correct index within that category
-    let category: "cabinet" | "worktop" | "accessories" | "appliances" | null = null
+    let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
     let index = -1
     
     // Check cabinet items
@@ -493,6 +529,20 @@ const QuotationModal = ({
           if (appliancesIndex !== -1) {
             category = "appliances"
             index = appliancesIndex
+          } else {
+            // Check wardrobes items
+            const wardrobesIndex = wardrobesItems.findIndex(item => item.id?.toString() === itemId)
+            if (wardrobesIndex !== -1) {
+              category = "wardrobes"
+              index = wardrobesIndex
+            } else {
+              // Check tvunit items
+              const tvunitIndex = tvUnitItems.findIndex(item => item.id?.toString() === itemId)
+              if (tvunitIndex !== -1) {
+                category = "tvunit"
+                index = tvunitIndex
+              }
+            }
           }
         }
       }
@@ -516,15 +566,19 @@ const QuotationModal = ({
     const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
     const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
     const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
     
-    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal
+    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
     
     // Calculate individual labour amounts (no worktopLabour)
     const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
     const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
     const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
+    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
+    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
     
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
     const grandTotal = subtotal + totalLabour
 
     return {
@@ -532,6 +586,8 @@ const QuotationModal = ({
       worktopTotal,
       accessoriesTotal,
       appliancesTotal,
+      wardrobesTotal,
+      tvUnitTotal,
       subtotal,
       labourAmount: totalLabour,
       grandTotal
@@ -548,7 +604,7 @@ const QuotationModal = ({
       return
     }
 
-    if (cabinetItems.length === 0 && worktopItems.length === 0 && accessoriesItems.length === 0 && appliancesItems.length === 0) {
+    if (cabinetItems.length === 0 && worktopItems.length === 0 && accessoriesItems.length === 0 && appliancesItems.length === 0 && wardrobesItems.length === 0 && tvUnitItems.length === 0) {
       toast.error("Please add at least one item")
       return
     }
@@ -589,6 +645,8 @@ const QuotationModal = ({
       worktop_total: totals.worktopTotal,
       accessories_total: totals.accessoriesTotal,
         appliances_total: totals.appliancesTotal,
+      wardrobes_total: totals.wardrobesTotal,
+      tvunit_total: totals.tvUnitTotal,
       labour_percentage: labourPercentage,
         labour_total: totals.labourAmount,
         total_amount: totals.subtotal,
@@ -596,13 +654,17 @@ const QuotationModal = ({
         include_worktop: includeWorktop,
       include_accessories: includeAccessories,
         include_appliances: includeAppliances,
+      include_wardrobes: includeWardrobes,
+      include_tvunit: includeTvUnit,
       status: "pending",
       notes,
       terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems],
+        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
       cabinet_labour_percentage: cabinetLabourPercentage,
       accessories_labour_percentage: accessoriesLabourPercentage,
       appliances_labour_percentage: appliancesLabourPercentage,
+      wardrobes_labour_percentage: wardrobesLabourPercentage,
+      tvunit_labour_percentage: tvUnitLabourPercentage,
       worktop_labor_qty: worktopLaborQty,
       worktop_labor_unit_price: worktopLaborUnitPrice
       }
@@ -627,6 +689,8 @@ const QuotationModal = ({
   const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(30);
   const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(30);
   const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
+  const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
+  const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
   
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
@@ -1942,6 +2006,596 @@ const QuotationModal = ({
               </div>
             </div>
 
+            {/* Wardrobes Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeWardrobes ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeWardrobes ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <span className="fw-bold" style={{ color: "#ffffff" }}>Wardrobes</span>
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeWardrobes ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeWardrobes ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeWardrobes ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeWardrobes ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
+                        </div>
+                  </div>
+                )}
+              </div>
+                  
+                  {includeWardrobes && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {wardrobesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("wardrobes", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                        {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("wardrobes", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                                <X size={12} />
+                            </button>
+                            </div>
+                          )}
+                        </div>
+                      )                      )}
+
+                      {/* Minimalistic Labour Footer for Wardrobes Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setWardrobesLabourPercentage(0);
+                              }}
+                              onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("wardrobes")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TV Unit Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeTvUnit ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeTvUnit ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <span className="fw-bold" style={{ color: "#ffffff" }}>TV Unit</span>
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeTvUnit ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeTvUnit ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeTvUnit ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeTvUnit ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
+                        </div>
+                  </div>
+                )}
+              </div>
+                  
+                  {includeTvUnit && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {tvUnitItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("tvunit", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                        {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("tvunit", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                                <X size={12} />
+                            </button>
+                            </div>
+                          )}
+                        </div>
+                      )                      )}
+
+                      {/* Minimalistic Labour Footer for TV Unit Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setTvUnitLabourPercentage(0);
+                              }}
+                              onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("tvunit")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Totals Section */}
             <div className="mb-4">
               <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -1972,6 +2626,18 @@ const QuotationModal = ({
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>Appliances Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeWardrobes && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>Wardrobes Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeTvUnit && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>TV Unit Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
