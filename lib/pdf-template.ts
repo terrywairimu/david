@@ -11,7 +11,7 @@ export const quotationTemplate = {
       { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'quotationHeaderBg', type: 'rectangle', position: { x: 0, y: 47 }, width: 210, height: 18, color: '#E5E5E5' },
+      { name: 'quotationHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
       { name: 'quotationTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
       { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 70 }, width: 60, height: 28, color: '#E5E5E5', radius: 4 },
       { name: 'clientNamesLabel', type: 'text', position: { x: 16, y: 73 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
@@ -23,7 +23,7 @@ export const quotationTemplate = {
       { name: 'dateLabel', type: 'text', position: { x: 16, y: 91 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'dateValue', type: 'text', position: { x: 41, y: 91 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'quotationNoFull', type: 'text', position: { x: 15, y: 73 }, width: 180, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 105 }, width: 180, height: 10, color: '#E5E5E5' },
+      { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 105 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
       // Table header with Item number column
       { name: 'itemHeader', type: 'text', position: { x: 17, y: 108 }, width: 12, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
       { name: 'descriptionHeader', type: 'text', position: { x: 29, y: 108 }, width: 68, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Description' },
