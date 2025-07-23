@@ -153,7 +153,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   // Layout constants (in mm)
   const pageHeight = 297;
   const topMargin = 20;
-  const bottomMargin = 10;
+  const bottomMargin = 15;
   const headerHeight = 60; // header block (first page only)
   const tableHeaderHeight = 10;
   const footerHeight = 40; // footer block (last page only)
@@ -196,6 +196,15 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   let currentY;
   pages.forEach((rows: string[][], pageIdx: number) => {
     let pageSchemas: any[] = [];
+    // Add watermark logo as the first schema on every page
+    pageSchemas.push({
+      name: `watermarkLogo${pageIdx}`,
+      type: 'image',
+      position: { x: 60, y: 135 }, // same as your original watermark position
+      width: 90,
+      height: 90,
+      opacity: 0.3
+    });
     // Header (first page only)
     if (pageIdx === 0) {
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
