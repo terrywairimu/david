@@ -150,31 +150,107 @@ export const imageToBase64 = async (imagePath: string): Promise<string> => {
 
 // Function to generate PDF with dynamic content
 export const generateQuotationPDF = async (data: QuotationData) => {
+  // Layout constants (in mm)
+  const pageHeight = 297;
+  const topMargin = 20;
+  const bottomMargin = 10;
+  const headerHeight = 60; // header block (first page only)
+  const tableHeaderHeight = 10;
+  const footerHeight = 40; // footer block (last page only)
+  const rowHeight = 8;
+  const firstPageTableStartY = 101; // adjusted so 23 rows fit on first page
+
   // Merge default values with provided data
   const mergedData = { ...defaultValues, ...data };
 
   // Transform items to table row format for the template
-  const tableRows = (mergedData.items || []).map((item, idx) => [
-    idx + 1,
-    item.description,
-    item.unit,
-    item.quantity,
-    item.unitPrice,
-    item.total
+  const tableRows: string[][] = (mergedData.items || []).map((item, idx) => [
+    String(idx + 1),
+    String(item.description),
+    String(item.unit),
+    String(item.quantity),
+    String(item.unitPrice),
+    String(item.total)
   ]);
+
+  // Calculate rows per page
+  const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - footerHeight;
+  const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
+  const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
+  const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
+
+  // Paginate rows
+  const pages: string[][][] = [];
+  let rowIndex = 0;
+  // First page
+  pages.push(tableRows.slice(0, firstPageRows));
+  rowIndex += firstPageRows;
+  // Subsequent pages
+  while (rowIndex < tableRows.length) {
+    pages.push(tableRows.slice(rowIndex, rowIndex + otherPageRows));
+    rowIndex += otherPageRows;
+  }
+
+  // Build schemas for all pages
+  let schemas: any[][] = [];
+  let currentY;
+  pages.forEach((rows: string[][], pageIdx: number) => {
+    let pageSchemas: any[] = [];
+    // Header (first page only)
+    if (pageIdx === 0) {
+      pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+        'logo','companyName','companyLocation','companyPhone','companyEmail','quotationHeaderBg','quotationTitle','clientInfoBox','clientNamesLabel','clientNamesValue','siteLocationLabel','siteLocationValue','mobileNoLabel','mobileNoValue','dateLabel','dateValue','deliveryNoteLabel','deliveryNoteValue','quotationNoLabel','quotationNoValue'
+      ].includes(s.name)));
+    }
+    // Table header (every page)
+    const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
+    pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+      'tableHeaderBg','itemHeader','descriptionHeader','unitHeader','quantityHeader','unitPriceHeader','totalHeader'
+    ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: tableHeaderY + (s.position.y - 105) }})));
+    // Table rows
+    rows.forEach((row: string[], rowIdx: number) => {
+      const y = tableHeaderY + tableHeaderHeight + rowIdx * rowHeight;
+      pageSchemas.push({ name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 12, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[0] });
+      pageSchemas.push({ name: `desc${pageIdx}_${rowIdx}`, type: 'text', position: { x: 29, y }, width: 68, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[1] });
+      pageSchemas.push({ name: `unit${pageIdx}_${rowIdx}`, type: 'text', position: { x: 97, y }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[2] });
+      pageSchemas.push({ name: `qty${pageIdx}_${rowIdx}`, type: 'text', position: { x: 117, y }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[3] });
+      pageSchemas.push({ name: `unitPrice${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[4] });
+      pageSchemas.push({ name: `total${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[5] });
+    });
+    // Footer (last page only)
+    if (pageIdx === pages.length - 1) {
+      // Place footer at the bottom of the page
+      const footerY = pageHeight - bottomMargin - footerHeight;
+      pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+        'termsTitle','termsContent','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+      ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+    }
+    schemas.push(pageSchemas);
+  });
+
+  // Build dynamic row values for inputs
+  const dynamicRowInputs: Record<string, string> = {};
+  pages.forEach((rows: string[][], pageIdx: number) => {
+    rows.forEach((row: string[], rowIdx: number) => {
+      dynamicRowInputs[`item${pageIdx}_${rowIdx}`] = row[0];
+      dynamicRowInputs[`desc${pageIdx}_${rowIdx}`] = row[1];
+      dynamicRowInputs[`unit${pageIdx}_${rowIdx}`] = row[2];
+      dynamicRowInputs[`qty${pageIdx}_${rowIdx}`] = row[3];
+      dynamicRowInputs[`unitPrice${pageIdx}_${rowIdx}`] = row[4];
+      dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = row[5];
+    });
+  });
 
   // Create input values for the template
   const inputs = [
     {
-      // Static company information
       companyName: mergedData.companyName,
       companyLocation: mergedData.companyLocation,
       companyPhone: mergedData.companyPhone,
       companyEmail: mergedData.companyEmail,
       companyLogo: mergedData.companyLogo,
       watermarkLogo: mergedData.companyLogo,
-      logo: mergedData.companyLogo, // <-- Added for header logo
-      // Form data
+      logo: mergedData.companyLogo,
       clientNamesLabel: "CLIENT NAMES:",
       clientNamesValue: mergedData.clientNames,
       siteLocationLabel: "SITE LOCATION:",
@@ -183,41 +259,34 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       mobileNoValue: mergedData.mobileNo,
       dateLabel: "DATE:",
       dateValue: mergedData.date,
-      
-      // Headers
       quotationTitle: "QUOTATION",
       deliveryNoteLabel: mergedData.deliveryNoteNo,
       quotationNoLabel: "NO.:",
       quotationNoValue: mergedData.quotationNumber,
-      
-      // Table headers
       quantityHeader: "Quantity",
       unitHeader: "Unit",
       descriptionHeader: "Description",
       unitPriceHeader: "Unit Price",
       totalHeader: "Total",
-      
-      // Totals
       subtotalLabel: "Sub Total:",
       subtotalValue: `KES ${mergedData.subtotal.toFixed(2)}`,
       vatLabel: "V.A.T:",
       vatValue: `KES ${mergedData.vat.toFixed(2)}`,
       totalLabel: "Total:",
       totalValue: `KES ${mergedData.total.toFixed(2)}`,
-      
-      // Terms
       termsTitle: "TERMS AND CONDITIONS:",
       termsContent: mergedData.terms.term1 + "\n" + mergedData.terms.term2 + "\n" + mergedData.terms.term3 + "\n" + mergedData.terms.term4,
-      
-      // Signatures
       preparedByLabel: "Prepared by:",
       approvedByLabel: "Approved by:",
-      tableRows // pass to template if needed
+      ...dynamicRowInputs
     }
   ];
 
   return {
-    template: quotationTemplate,
-    inputs: inputs
+    template: {
+      ...quotationTemplate,
+      schemas
+    },
+    inputs
   };
 }; 
