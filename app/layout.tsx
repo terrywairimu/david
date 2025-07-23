@@ -5,12 +5,14 @@ import "bootstrap/dist/css/bootstrap.min.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import Sidebar from "@/components/sidebar"
+import MobileHeader from "@/components/mobile-header"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Business Management System",
   description: "Complete business management solution",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
 }
 
 export default function RootLayout({
@@ -30,13 +32,20 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="container-fluid">
-            <div className="row">
-              <Sidebar />
-              <div className="col-md-10 content">
-                {children}
-              </div>
-            </div>
+          <div className="app-container">
+            {/* Mobile Header */}
+            <MobileHeader />
+            
+            {/* Sidebar */}
+            <Sidebar />
+            
+            {/* Main Content */}
+            <main className="main-content">
+              {children}
+            </main>
+            
+            {/* Mobile Overlay */}
+            <div className="mobile-overlay" id="mobileOverlay"></div>
           </div>
           <Toaster />
         </ThemeProvider>
