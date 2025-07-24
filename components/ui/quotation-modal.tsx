@@ -782,8 +782,23 @@ const QuotationModal = ({
     const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
     
     const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
-    const saveVatAmount = saveSubtotalWithLabour * (vatPercentage / 100);
+    const saveVatPercentageNum = Number(vatPercentage);
+    const saveVatAmount = saveSubtotalWithLabour * (saveVatPercentageNum / 100);
     const saveGrandTotalWithVAT = saveSubtotalWithLabour + saveVatAmount;
+    
+    console.log('handleSave VAT Calculation Debug:', {
+      totals_subtotal: totals.subtotal,
+      saveCabinetLabour,
+      saveAccessoriesLabour,
+      saveAppliancesLabour,
+      saveWardrobesLabour,
+      saveTvUnitLabour,
+      saveSubtotalWithLabour,
+      vatPercentage,
+      saveVatPercentageNum,
+      saveVatAmount,
+      saveGrandTotalWithVAT
+    });
 
     const quotationData = {
       quotation_number: quotationNumber,
@@ -800,7 +815,7 @@ const QuotationModal = ({
       total_amount: saveSubtotalWithLabour, // Subtotal with labour included
       grand_total: saveGrandTotalWithVAT, // Grand total with VAT included
       vat_amount: saveVatAmount, // VAT amount
-      vat_percentage: vatPercentage, // VAT percentage
+      vat_percentage: saveVatPercentageNum, // VAT percentage
       include_worktop: includeWorktop,
       include_accessories: includeAccessories,
       include_appliances: includeAppliances,
