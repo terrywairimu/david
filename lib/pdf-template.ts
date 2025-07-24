@@ -129,10 +129,10 @@ export const defaultValues: QuotationData = {
   notes: "",
   
   terms: [
-    "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
-    "   in quantity or specifications and market rates.",
-    "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
-    "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
+    "1. All work to be completed within agreed timeframe.",
+    "2. Client to provide necessary measurements and specifications.",
+    "3. Final payment due upon completion.",
+    "4. Any changes to the original design may incur additional charges."
   ],
   
   preparedBy: "",
@@ -165,7 +165,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   const bottomMargin = 15;
   const headerHeight = 60; // header block (first page only)
   const tableHeaderHeight = 10;
-  const footerHeight = 40; // footer block (last page only)
+  const baseFooterHeight = 40; // base footer block (last page only)
   const rowHeight = 8;
   const firstPageTableStartY = 101; // adjusted so 23 rows fit on first page
 
@@ -191,8 +191,12 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     String(item.total)
   ]);
 
+  // Calculate dynamic footer height based on terms
+  const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
+  const dynamicFooterHeight = baseFooterHeight + (termsHeight - 20); // Adjust footer height based on terms
+  
   // Calculate rows per page
-  const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - footerHeight;
+  const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - dynamicFooterHeight;
   const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
   const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
   const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
@@ -238,10 +242,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     // Footer (last page only)
     if (pageIdx === pages.length - 1) {
       // Place footer at the bottom of the page
-      const footerY = pageHeight - bottomMargin - footerHeight;
-      
-      // Calculate dynamic height for terms based on number of lines
-      const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
+      const footerY = pageHeight - bottomMargin - dynamicFooterHeight;
       
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
         'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'

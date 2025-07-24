@@ -695,12 +695,7 @@ const QuotationModal = ({
         vat: vat, // Extracted VAT amount
         vatPercentage: vatPercentageNum,
         total: subtotalWithLabour, // Total amount including VAT
-        terms: {
-          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
-          term2: "   in quantity or specifications and market rates.",
-          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
-          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
-        },
+        terms: termsConditions.split('\n').filter(line => line.trim()),
         preparedBy: "",
         approvedBy: "",
         watermarkLogo: watermarkLogoBase64,
