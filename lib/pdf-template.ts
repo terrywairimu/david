@@ -81,6 +81,16 @@ export interface QuotationData {
     total?: string | number;
   }>;
   
+  // Custom section names
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  };
+  
   // Totals
   subtotal: number;
   vat: number;
@@ -123,6 +133,16 @@ export const defaultValues: QuotationData = {
   quotationNumber: "",
   
   items: [],
+  
+  // Default section names
+  section_names: {
+    cabinet: "General",
+    worktop: "Worktop",
+    accessories: "Accessories",
+    appliances: "Appliances",
+    wardrobes: "Wardrobes",
+    tvunit: "TV Unit"
+  },
   
   subtotal: 0,
   vat: 0,
@@ -210,12 +230,12 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         row: ["", String(item.description).toUpperCase(), "", "", "", ""]
       };
     } else if (item.isSectionSummary) {
-      // Section summary row: label in unitPrice, value in total, others empty
+      // Section summary row: label in description, value in total, others empty
       console.log('Processing section summary row:', item);
       return {
         isSection: false,
         isSectionSummary: true,
-        row: ["", "", "", "", String(item.unitPrice), String(item.total)]
+        row: ["", String(item.description), "", "", "", String(item.total)]
       };
     } else {
       // Item row: use itemNumber, description, etc.
@@ -235,6 +255,10 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   // Debug: Log the transformed table rows
   console.log('Transformed table rows:', tableRows);
+  console.log('mergedData.section_names:', mergedData.section_names);
+  console.log('mergedData.items:', mergedData.items);
+  console.log('Section headers in mergedData.items:', (mergedData.items || []).filter(item => item.isSection));
+  console.log('Section summaries in mergedData.items:', (mergedData.items || []).filter(item => item.isSectionSummary));
 
   // Calculate dynamic footer height based on terms
   const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
@@ -302,10 +326,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           content: rowObj.row[1]
         });
       } else if (rowObj.isSectionSummary) {
-        // Section summary: label in unitPrice, value in total, bold
-        console.log('Creating section summary schema for row:', rowIdx, 'with content:', rowObj.row[4], rowObj.row[5]);
-        pageSchemas.push({ name: `unitPriceSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[4] });
-        pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[5] });
+        // Section summary: label in description, value in total, bold
+        console.log('Creating section summary schema for row:', rowIdx, 'with content:', rowObj.row[1], rowObj.row[5]);
+        console.log('Section summary rowObj:', rowObj);
+        // Format section summary values with currency formatting
+        let totalSummaryContent = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
+        pageSchemas.push({ name: `descSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 29, y }, width: 68, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left', content: rowObj.row[1] });
+        pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: totalSummaryContent });
       } else {
         // Normal item row
         pageSchemas.push({ name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 12, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: rowObj.row[0] });
@@ -394,9 +421,11 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       if (rowObj.isSection) {
         dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = rowObj.row[1];
       } else if (rowObj.isSectionSummary) {
-        console.log('Creating section summary inputs for row:', rowIdx, 'with content:', rowObj.row[4], rowObj.row[5]);
-        dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = rowObj.row[4];
-        dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5];
+        console.log('Creating section summary inputs for row:', rowIdx, 'with content:', rowObj.row[1], rowObj.row[5]);
+        console.log('Section summary inputs rowObj:', rowObj);
+        // Format section summary values with currency formatting for inputs
+        dynamicRowInputs[`descSummary${pageIdx}_${rowIdx}`] = rowObj.row[1];
+        dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
       } else {
         dynamicRowInputs[`item${pageIdx}_${rowIdx}`] = rowObj.row[0];
         dynamicRowInputs[`desc${pageIdx}_${rowIdx}`] = rowObj.row[1];

@@ -41,6 +41,14 @@ interface Quotation {
   terms_conditions?: string
   worktop_labor_qty?: number
   worktop_labor_unit_price?: number
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  };
   client?: {
     id: number
     name: string
@@ -281,7 +289,8 @@ const QuotationsView = () => {
             worktop_labor_qty: quotationData.worktop_labor_qty,
             worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
             vat_amount: quotationData.vat_amount,
-            vat_percentage: quotationData.vat_percentage
+            vat_percentage: quotationData.vat_percentage,
+            section_names: quotationData.section_names
           })
           .select()
           .single()
@@ -340,7 +349,8 @@ const QuotationsView = () => {
             worktop_labor_qty: quotationData.worktop_labor_qty,
             worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
             vat_amount: quotationData.vat_amount,
-            vat_percentage: quotationData.vat_percentage
+            vat_percentage: quotationData.vat_percentage,
+            section_names: quotationData.section_names
           })
           .eq("id", selectedQuotation?.id)
 
@@ -459,13 +469,22 @@ const QuotationsView = () => {
         // Debug: Log each category and its items
         console.log(`Processing category: ${category}`, itemsInCategory);
         
+        // Use dynamic section name if available, type-safe
+        const allowedKeys = [
+          'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
+        ] as const;
+        type SectionKey = typeof allowedKeys[number];
+        const safeCategory = allowedKeys.includes(category as SectionKey) ? category as SectionKey : undefined;
+        const sectionLabel = safeCategory && quotation.section_names?.[safeCategory]
+          ? quotation.section_names[safeCategory]
+          : category.charAt(0).toUpperCase() + category.slice(1);
         // Insert section heading row (all caps, large font, special flag)
         items.push({
           isSection: true,
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: category.toUpperCase(),
+          description: sectionLabel.toUpperCase(),
           unitPrice: "",
           total: ""
         });
@@ -520,8 +539,8 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: "",
-          unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
         };
         
@@ -602,13 +621,22 @@ const QuotationsView = () => {
         // Debug: Log each category and its items
         console.log(`Processing category: ${category}`, itemsInCategory);
         
+        // Use dynamic section name if available, type-safe
+        const allowedKeys = [
+          'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
+        ] as const;
+        type SectionKey = typeof allowedKeys[number];
+        const safeCategory = allowedKeys.includes(category as SectionKey) ? category as SectionKey : undefined;
+        const sectionLabel = safeCategory && quotation.section_names?.[safeCategory]
+          ? quotation.section_names[safeCategory]
+          : category.charAt(0).toUpperCase() + category.slice(1);
         // Insert section heading row (all caps, large font, special flag)
         items.push({
           isSection: true,
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: category.toUpperCase(),
+          description: sectionLabel.toUpperCase(),
           unitPrice: "",
           total: ""
         });
@@ -663,8 +691,8 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: "",
-          unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
         };
         

@@ -72,6 +72,14 @@ export interface Quotation {
   terms_conditions?: string
   client?: RegisteredEntity
   sections: QuotationSection[]
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  };
   created_by?: string
   last_modified: string
 }

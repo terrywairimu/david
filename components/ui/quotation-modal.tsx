@@ -169,6 +169,20 @@ const QuotationModal = ({
   )
   const [loading, setLoading] = useState(false)
   
+  // Custom section names state
+  const [sectionNames, setSectionNames] = useState({
+    cabinet: "General",
+    worktop: "Worktop",
+    accessories: "Accessories",
+    appliances: "Appliances",
+    wardrobes: "Wardrobes",
+    tvunit: "TV Unit"
+  })
+  
+  // Section name editing state
+  const [editingSection, setEditingSection] = useState<string | null>(null)
+  const [editingSectionName, setEditingSectionName] = useState("")
+  
   // Items state for each section
   const [cabinetItems, setCabinetItems] = useState<QuotationItem[]>([])
   const [worktopItems, setWorktopItems] = useState<QuotationItem[]>([])
@@ -198,6 +212,130 @@ const QuotationModal = ({
       itemInputRefs.current[itemId] = { current: null }
     }
     return itemInputRefs.current[itemId]
+  }
+
+  // Function to handle section name editing
+  const handleSectionNameEdit = (sectionKey: string) => {
+    setEditingSection(sectionKey)
+    setEditingSectionName(sectionNames[sectionKey as keyof typeof sectionNames])
+  }
+
+  const handleSectionNameSave = (sectionKey: string) => {
+    if (editingSectionName.trim()) {
+      setSectionNames(prev => ({
+        ...prev,
+        [sectionKey]: editingSectionName.trim()
+      }))
+    }
+    setEditingSection(null)
+    setEditingSectionName("")
+  }
+
+  const handleSectionNameCancel = () => {
+    setEditingSection(null)
+    setEditingSectionName("")
+  }
+
+  const handleSectionNameKeyPress = (e: React.KeyboardEvent, sectionKey: string) => {
+    if (e.key === 'Enter') {
+      handleSectionNameSave(sectionKey)
+    } else if (e.key === 'Escape') {
+      handleSectionNameCancel()
+    }
+  }
+
+  // Editable Section Header Component
+  const EditableSectionHeader = ({ sectionKey, currentName, onEdit, onSave, onCancel, onKeyPress, isEditing, editingName, onEditingNameChange, isReadOnly }: {
+    sectionKey: string
+    currentName: string
+    onEdit: () => void
+    onSave: () => void
+    onCancel: () => void
+    onKeyPress: (e: React.KeyboardEvent) => void
+    isEditing: boolean
+    editingName: string
+    onEditingNameChange: (value: string) => void
+    isReadOnly: boolean
+  }) => {
+    if (isEditing) {
+      return (
+        <div className="d-flex align-items-center">
+          <input
+            type="text"
+            value={editingName}
+            onChange={(e) => onEditingNameChange(e.target.value)}
+            onKeyDown={onKeyPress}
+            onBlur={onSave}
+            autoFocus
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "16px",
+              fontWeight: "bold",
+              outline: "none",
+              borderBottom: "2px solid #ffffff",
+              padding: "2px 4px",
+              marginRight: "8px"
+            }}
+          />
+          <button
+            type="button"
+            onClick={onSave}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontSize: "12px",
+              padding: "2px 6px",
+              marginRight: "4px"
+            }}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontSize: "12px",
+              padding: "2px 6px"
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div 
+        className="d-flex align-items-center"
+        style={{ cursor: isReadOnly ? "default" : "pointer" }}
+        onClick={() => !isReadOnly && onEdit()}
+        title={isReadOnly ? "" : "Click to edit section name"}
+      >
+        <span className="fw-bold" style={{ color: "#ffffff" }}>
+          {currentName}
+        </span>
+        {!isReadOnly && (
+          <span 
+            style={{ 
+              color: "#ffffff", 
+              fontSize: "12px", 
+              marginLeft: "8px",
+              opacity: 0.7 
+            }}
+          >
+            ✏️
+          </span>
+        )}
+      </div>
+    )
   }
 
   const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -289,6 +427,17 @@ const QuotationModal = ({
     setNotes("")
     setItemSearches({})
     setItemDropdownVisible({})
+    // Reset section names to defaults
+    setSectionNames({
+      cabinet: "General",
+      worktop: "Worktop",
+      accessories: "Accessories",
+      appliances: "Appliances",
+      wardrobes: "Wardrobes",
+      tvunit: "TV Unit"
+    })
+    setEditingSection(null)
+    setEditingSectionName("")
     setFilteredStockItems({})
   }
 
@@ -357,6 +506,14 @@ const QuotationModal = ({
     setIncludeTvUnit(quotation.include_tvunit || false)
       setNotes(quotation.notes || "")
       setTermsConditions(quotation.terms_conditions || "")
+    
+    // Load custom section names if available
+    if (quotation.section_names) {
+      setSectionNames(prev => ({
+        ...prev,
+        ...quotation.section_names
+      }))
+    }
     
     // Load items by category
     if (quotation.items) {
@@ -653,17 +810,200 @@ const QuotationModal = ({
       
 
       
-      // Prepare items data as objects for QuotationData
-      const items: Array<{quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
-      [...cabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems].forEach(item => {
+      // Prepare items data as objects for QuotationData with custom section names
+      const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
+      
+      // Add cabinet section header and items
+      if (cabinetItems.length > 0) {
         items.push({
-          quantity: item.quantity,
-          unit: item.unit,
-          description: item.description,
-          unitPrice: item.unit_price,
-          total: item.total_price
+          isSection: true,
+          description: sectionNames.cabinet,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-      });
+        cabinetItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add cabinet section summary
+        if (totals.cabinetTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.cabinet} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.cabinetTotal,
+            total: totals.cabinetTotal + cabinetLabour
+          });
+        }
+      }
+      
+      // Add worktop section header and items
+      if (worktopItems.length > 0) {
+        items.push({
+          isSection: true,
+          description: sectionNames.worktop,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
+        });
+        worktopItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add worktop section summary
+        if (totals.worktopTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.worktop} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.worktopTotal,
+            total: totals.worktopTotal
+          });
+        }
+      }
+      
+      // Add accessories section header and items
+      if (accessoriesItems.length > 0) {
+        items.push({
+          isSection: true,
+          description: sectionNames.accessories,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
+        });
+        accessoriesItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add accessories section summary
+        if (totals.accessoriesTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.accessories} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.accessoriesTotal,
+            total: totals.accessoriesTotal + accessoriesLabour
+          });
+        }
+      }
+      
+      // Add appliances section header and items
+      if (appliancesItems.length > 0) {
+        items.push({
+          isSection: true,
+          description: sectionNames.appliances,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
+        });
+        appliancesItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add appliances section summary
+        if (totals.appliancesTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.appliances} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.appliancesTotal,
+            total: totals.appliancesTotal + appliancesLabour
+          });
+        }
+      }
+      
+      // Add wardrobes section header and items
+      if (wardrobesItems.length > 0) {
+        items.push({
+          isSection: true,
+          description: sectionNames.wardrobes,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
+        });
+        wardrobesItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add wardrobes section summary
+        if (totals.wardrobesTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.wardrobes} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.wardrobesTotal,
+            total: totals.wardrobesTotal + wardrobesLabour
+          });
+        }
+      }
+      
+      // Add TV Unit section header and items
+      if (tvUnitItems.length > 0) {
+        items.push({
+          isSection: true,
+          description: sectionNames.tvunit,
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
+        });
+        tvUnitItems.forEach(item => {
+          items.push({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price,
+            total: item.total_price
+          });
+        });
+        // Add TV Unit section summary
+        if (totals.tvUnitTotal > 0) {
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.tvunit} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.tvUnitTotal,
+            total: totals.tvUnitTotal + tvUnitLabour
+          });
+        }
+      }
       
       // Fetch watermark image as base64
       async function fetchImageAsBase64(url: string): Promise<string> {
@@ -691,6 +1031,7 @@ const QuotationModal = ({
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotationNumber,
         items: items,
+        section_names: sectionNames, // Add custom section names
         subtotal: originalAmount, // Amount before VAT
         vat: vat, // Extracted VAT amount
         vatPercentage: vatPercentageNum,
@@ -702,6 +1043,12 @@ const QuotationModal = ({
         companyLogo: watermarkLogoBase64,
       };
       console.log('quotationData:', quotationData);
+      console.log('sectionNames being passed:', sectionNames);
+      console.log('items array for PDF:', items);
+      console.log('Section headers in items:', items.filter(item => item.isSection));
+      console.log('Section summaries in items:', items.filter(item => item.isSectionSummary));
+      console.log('Current sectionNames state:', sectionNames);
+      console.log('Current editingSection state:', editingSection);
       console.log('Debug totals:', {
         subtotal: subtotalWithLabour,
         vat: vat,
@@ -839,7 +1186,8 @@ const QuotationModal = ({
       wardrobes_labour_percentage: wardrobesLabourPercentage,
       tvunit_labour_percentage: tvUnitLabourPercentage,
       worktop_labor_qty: worktopLaborQty,
-      worktop_labor_unit_price: worktopLaborUnitPrice
+      worktop_labor_unit_price: worktopLaborUnitPrice,
+      section_names: sectionNames
     }
 
       // Confirm quotation number if it's a new quotation
@@ -1037,7 +1385,18 @@ const QuotationModal = ({
                 <div className="card-body p-4">
                   <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                     <Calculator size={18} className="me-2" />
-                    General
+                    <EditableSectionHeader
+                      sectionKey="cabinet"
+                      currentName={sectionNames.cabinet}
+                      onEdit={() => handleSectionNameEdit("cabinet")}
+                      onSave={() => handleSectionNameSave("cabinet")}
+                      onCancel={handleSectionNameCancel}
+                      onKeyPress={(e) => handleSectionNameKeyPress(e, "cabinet")}
+                      isEditing={editingSection === "cabinet"}
+                      editingName={editingSectionName}
+                      onEditingNameChange={setEditingSectionName}
+                      isReadOnly={isReadOnly}
+                    />
                   </h6>
                   
                   {/* Items Section - Div based design */}
@@ -1282,7 +1641,18 @@ const QuotationModal = ({
                           }}
                         >
                           <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <span className="fw-bold" style={{ color: "#ffffff" }}>Worktop</span>
+                          <EditableSectionHeader
+                            sectionKey="worktop"
+                            currentName={sectionNames.worktop}
+                            onEdit={() => handleSectionNameEdit("worktop")}
+                            onSave={() => handleSectionNameSave("worktop")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "worktop")}
+                            isEditing={editingSection === "worktop"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -1612,7 +1982,18 @@ const QuotationModal = ({
                           }}
                         >
                           <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <span className="fw-bold" style={{ color: "#ffffff" }}>Accessories</span>
+                          <EditableSectionHeader
+                            sectionKey="accessories"
+                            currentName={sectionNames.accessories}
+                            onEdit={() => handleSectionNameEdit("accessories")}
+                            onSave={() => handleSectionNameSave("accessories")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
+                            isEditing={editingSection === "accessories"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -1907,7 +2288,18 @@ const QuotationModal = ({
                           }}
                         >
                           <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <span className="fw-bold" style={{ color: "#ffffff" }}>Appliances</span>
+                          <EditableSectionHeader
+                            sectionKey="appliances"
+                            currentName={sectionNames.appliances}
+                            onEdit={() => handleSectionNameEdit("appliances")}
+                            onSave={() => handleSectionNameSave("appliances")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
+                            isEditing={editingSection === "appliances"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -2202,7 +2594,18 @@ const QuotationModal = ({
                           }}
                         >
                           <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <span className="fw-bold" style={{ color: "#ffffff" }}>Wardrobes</span>
+                          <EditableSectionHeader
+                            sectionKey="wardrobes"
+                            currentName={sectionNames.wardrobes}
+                            onEdit={() => handleSectionNameEdit("wardrobes")}
+                            onSave={() => handleSectionNameSave("wardrobes")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
+                            isEditing={editingSection === "wardrobes"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -2497,7 +2900,18 @@ const QuotationModal = ({
                           }}
                         >
                           <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <span className="fw-bold" style={{ color: "#ffffff" }}>TV Unit</span>
+                          <EditableSectionHeader
+                            sectionKey="tvunit"
+                            currentName={sectionNames.tvunit}
+                            onEdit={() => handleSectionNameEdit("tvunit")}
+                            onSave={() => handleSectionNameSave("tvunit")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
+                            isEditing={editingSection === "tvunit"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
                         
                         {/* Toggle Text and Switch */}
@@ -2784,36 +3198,36 @@ const QuotationModal = ({
                   <div className="row">
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>Cabinet Total:</span>
+                        <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
                         <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
                       </div>
                       {includeWorktop && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>Worktop Total:</span>
+                          <span style={{ color: "#ffffff" }}>{sectionNames.worktop} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
                         </div>
                       )}
                       {includeAccessories && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>Accessories Total:</span>
+                          <span style={{ color: "#ffffff" }}>{sectionNames.accessories} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
                         </div>
                       )}
                       {includeAppliances && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>Appliances Total:</span>
+                          <span style={{ color: "#ffffff" }}>{sectionNames.appliances} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
                         </div>
                       )}
                       {includeWardrobes && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>Wardrobes Total:</span>
+                          <span style={{ color: "#ffffff" }}>{sectionNames.wardrobes} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
                         </div>
                       )}
                       {includeTvUnit && (
                         <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>TV Unit Total:</span>
+                          <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
                         </div>
                       )}
