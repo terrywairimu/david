@@ -29,6 +29,8 @@ interface Quotation {
   labour_total: number
   total_amount: number
   grand_total: number
+  vat_amount?: number
+  vat_percentage?: number
   include_worktop: boolean
   include_accessories: boolean
   include_appliances: boolean
@@ -452,8 +454,9 @@ const QuotationsView = () => {
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotation.quotation_number,
         items,
-        subtotal: (quotation.cabinet_total || 0) + (quotation.worktop_total || 0) + (quotation.accessories_total || 0) + (quotation.appliances_total || 0) + (quotation.wardrobes_total || 0) + (quotation.tvunit_total || 0) + (quotation.labour_total || 0),
-        vat: 0, // You can calculate VAT as needed
+        subtotal: quotation.total_amount || 0,
+        vat: quotation.vat_amount || 0,
+        vatPercentage: quotation.vat_percentage || 16,
         total: quotation.grand_total || 0,
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
@@ -518,8 +521,9 @@ const QuotationsView = () => {
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotation.quotation_number,
         items,
-        subtotal: (quotation.cabinet_total || 0) + (quotation.worktop_total || 0) + (quotation.accessories_total || 0) + (quotation.appliances_total || 0) + (quotation.wardrobes_total || 0) + (quotation.tvunit_total || 0) + (quotation.labour_total || 0),
-        vat: 0, // You can calculate VAT as needed
+        subtotal: quotation.total_amount || 0,
+        vat: quotation.vat_amount || 0,
+        vatPercentage: quotation.vat_percentage || 16,
         total: quotation.grand_total || 0,
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",

@@ -65,6 +65,8 @@ export interface Quotation {
   total_amount: number
   labour_total: number
   grand_total: number
+  vat_amount?: number
+  vat_percentage?: number
   status: "draft" | "pending" | "accepted" | "rejected" | "expired"
   notes?: string
   terms_conditions?: string
