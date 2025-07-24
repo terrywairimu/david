@@ -239,6 +239,13 @@ const QuotationsView = () => {
   }
 
   const handleModalSave = async (quotationData: any) => {
+    console.log('handleModalSave - Received quotationData:', {
+      total_amount: quotationData.total_amount,
+      grand_total: quotationData.grand_total,
+      vat_amount: quotationData.vat_amount,
+      vat_percentage: quotationData.vat_percentage
+    });
+    
     try {
       if (modalMode === "create") {
         // Create new quotation
@@ -270,7 +277,9 @@ const QuotationsView = () => {
             accessories_labour_percentage: quotationData.accessories_labour_percentage,
             appliances_labour_percentage: quotationData.appliances_labour_percentage,
             worktop_labor_qty: quotationData.worktop_labor_qty,
-            worktop_labor_unit_price: quotationData.worktop_labor_unit_price
+            worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
+            vat_amount: quotationData.vat_amount,
+            vat_percentage: quotationData.vat_percentage
           })
           .select()
           .single()
@@ -327,7 +336,9 @@ const QuotationsView = () => {
             accessories_labour_percentage: quotationData.accessories_labour_percentage,
             appliances_labour_percentage: quotationData.appliances_labour_percentage,
             worktop_labor_qty: quotationData.worktop_labor_qty,
-            worktop_labor_unit_price: quotationData.worktop_labor_unit_price
+            worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
+            vat_amount: quotationData.vat_amount,
+            vat_percentage: quotationData.vat_percentage
           })
           .eq("id", selectedQuotation?.id)
 

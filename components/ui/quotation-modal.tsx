@@ -805,6 +805,13 @@ const QuotationModal = ({
       saveGrandTotalWithVAT,
       calculation: `${saveSubtotalWithLabour} - (${saveSubtotalWithLabour} / (1 + ${saveVatPercentageNum} / 100))`
     });
+    
+    console.log('handleSave Final quotationData:', {
+      total_amount: saveOriginalAmount,
+      grand_total: saveSubtotalWithLabour,
+      vat_amount: saveVatAmount,
+      vat_percentage: saveVatPercentageNum
+    });
 
     const quotationData = {
       quotation_number: quotationNumber,
