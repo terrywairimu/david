@@ -602,7 +602,10 @@ const QuotationModal = ({
   }
 
   const generatePDF = async () => {
+    alert('generatePDF function called');
+    console.log('generatePDF function called');
     try {
+      console.log('Starting PDF generation...');
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
@@ -619,8 +622,36 @@ const QuotationModal = ({
                       totals.appliancesTotal + totals.wardrobesTotal + totals.tvUnitTotal;
       const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
       const subtotalWithLabour = subtotal + totalLabour;
+      
+      console.log('State values:', {
+        vatPercentage,
+        subtotalWithLabour,
+        type: typeof vatPercentage
+      });
+      
+      // Test calculation
+      const testVat = 522712.5 * (16 / 100);
+      console.log('Test VAT calculation:', testVat);
+      
+      // Calculate VAT using forward calculation (add VAT to subtotal)
+      console.log('Before VAT calculation:', {
+        subtotalWithLabour,
+        vatPercentage,
+        calculation: `${subtotalWithLabour} * (${vatPercentage} / 100)`,
+        result: subtotalWithLabour * (vatPercentage / 100)
+      });
+      
       const vat = subtotalWithLabour * (vatPercentage / 100);
       const grandTotal = subtotalWithLabour + vat;
+      
+      console.log('VAT Calculation Debug:', {
+        subtotal,
+        totalLabour,
+        subtotalWithLabour,
+        vatPercentage,
+        vat,
+        grandTotal
+      });
       
       // Prepare items data as objects for QuotationData
       const items: Array<{quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
@@ -662,6 +693,7 @@ const QuotationModal = ({
         items: items,
         subtotal: subtotalWithLabour,
         vat: vat,
+        vatPercentage: vatPercentage,
         total: grandTotal,
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
@@ -675,6 +707,12 @@ const QuotationModal = ({
         companyLogo: watermarkLogoBase64,
       };
       console.log('quotationData:', quotationData);
+      console.log('Debug totals:', {
+        subtotal: subtotalWithLabour,
+        vat: vat,
+        vatPercentage: vatPercentage,
+        total: grandTotal
+      });
       
       // Generate PDF using PDF.me template
       const { template, inputs } = await generateQuotationPDF(quotationData);

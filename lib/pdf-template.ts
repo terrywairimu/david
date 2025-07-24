@@ -34,13 +34,13 @@ export const quotationTemplate = {
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 20, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalsBox', type: 'rectangle', position: { x: 150, y: 245 }, width: 45, height: 24, color: '#E5E5E5', radius: 4 },
-      { name: 'subtotalLabel', type: 'text', position: { x: 152, y: 249 }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'subtotalValue', type: 'text', position: { x: 175, y: 249 }, width: 18, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'vatLabel', type: 'text', position: { x: 152, y: 257 }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'vatValue', type: 'text', position: { x: 175, y: 257 }, width: 18, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'totalLabel', type: 'text', position: { x: 152, y: 265 }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'totalValue', type: 'text', position: { x: 175, y: 265 }, width: 18, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+      { name: 'totalsBox', type: 'rectangle', position: { x: 130, y: 245 }, width: 65, height: 24, color: '#E5E5E5', radius: 4 },
+      { name: 'subtotalLabel', type: 'text', position: { x: 132, y: 249 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'subtotalValue', type: 'text', position: { x: 157, y: 249 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'vatLabel', type: 'text', position: { x: 132, y: 257 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'vatValue', type: 'text', position: { x: 157, y: 257 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'totalLabel', type: 'text', position: { x: 132, y: 265 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'totalValue', type: 'text', position: { x: 157, y: 265 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
       { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
@@ -81,6 +81,7 @@ export interface QuotationData {
   // Totals
   subtotal: number;
   vat: number;
+  vatPercentage: number; // V.A.T percentage (e.g., 16 for 16%)
   total: number;
   
   // Terms and Conditions
@@ -96,6 +97,14 @@ export interface QuotationData {
   approvedBy: string;
   watermarkLogo?: string; // Base64 image data for watermark
 }
+
+// Currency formatting function
+const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
 
 // Default values for the template
 export const defaultValues: QuotationData = {
@@ -116,6 +125,7 @@ export const defaultValues: QuotationData = {
   
   subtotal: 0,
   vat: 0,
+  vatPercentage: 16, // Default 16% V.A.T
   total: 0,
   
   terms: {
@@ -235,9 +245,21 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       dynamicRowInputs[`desc${pageIdx}_${rowIdx}`] = row[1];
       dynamicRowInputs[`unit${pageIdx}_${rowIdx}`] = row[2];
       dynamicRowInputs[`qty${pageIdx}_${rowIdx}`] = row[3];
-      dynamicRowInputs[`unitPrice${pageIdx}_${rowIdx}`] = row[4];
-      dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = row[5];
+      // Format Unit Price with currency formatting
+      const unitPrice = parseFloat(row[4]);
+      dynamicRowInputs[`unitPrice${pageIdx}_${rowIdx}`] = formatCurrency(unitPrice);
+      // Format Total with currency formatting
+      const total = parseFloat(row[5]);
+      dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = formatCurrency(total);
     });
+  });
+
+  // Debug logging
+  console.log('PDF Template Debug - mergedData:', {
+    subtotal: mergedData.subtotal,
+    vat: mergedData.vat,
+    vatPercentage: mergedData.vatPercentage,
+    total: mergedData.total
   });
 
   // Create input values for the template
@@ -268,11 +290,11 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       unitPriceHeader: "Unit Price",
       totalHeader: "Total",
       subtotalLabel: "Sub Total:",
-      subtotalValue: `KES ${mergedData.subtotal.toFixed(2)}`,
-      vatLabel: "V.A.T:",
-      vatValue: `KES ${mergedData.vat.toFixed(2)}`,
+      subtotalValue: `KES ${formatCurrency(mergedData.subtotal)}`,
+      vatLabel: `${mergedData.vatPercentage}% V.A.T:`,
+      vatValue: `KES ${formatCurrency(mergedData.vat)}`,
       totalLabel: "Total:",
-      totalValue: `KES ${mergedData.total.toFixed(2)}`,
+      totalValue: `KES ${formatCurrency(mergedData.total)}`,
       termsTitle: "TERMS AND CONDITIONS:",
       termsContent: mergedData.terms.term1 + "\n" + mergedData.terms.term2 + "\n" + mergedData.terms.term3 + "\n" + mergedData.terms.term4,
       preparedByLabel: "Prepared by:",
