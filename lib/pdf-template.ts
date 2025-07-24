@@ -33,7 +33,7 @@ export const quotationTemplate = {
       { name: 'totalHeader', type: 'text', position: { x: 167, y: 102 }, width: 28, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Total' },
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 20, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'totalsBox', type: 'rectangle', position: { x: 130, y: 245 }, width: 65, height: 24, color: '#E5E5E5', radius: 4 },
       { name: 'subtotalLabel', type: 'text', position: { x: 132, y: 249 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'subtotalValue', type: 'text', position: { x: 157, y: 249 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
@@ -84,13 +84,11 @@ export interface QuotationData {
   vatPercentage: number; // V.A.T percentage (e.g., 16 for 16%)
   total: number;
   
-  // Terms and Conditions
-  terms: {
-    term1: string;
-    term2: string;
-    term3: string;
-    term4: string;
-  };
+  // Notes
+  notes?: string;
+  
+  // Terms and Conditions (dynamic array)
+  terms: string[];
   
   // Signatures
   preparedBy: string;
@@ -128,12 +126,14 @@ export const defaultValues: QuotationData = {
   vatPercentage: 16, // Default 16% V.A.T
   total: 0,
   
-  terms: {
-    term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
-    term2: "   in quantity or specifications and market rates.",
-    term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
-    term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
-  },
+  notes: "",
+  
+  terms: [
+    "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
+    "   in quantity or specifications and market rates.",
+    "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
+    "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
+  ],
   
   preparedBy: "",
   approvedBy: "",
@@ -239,9 +239,26 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     if (pageIdx === pages.length - 1) {
       // Place footer at the bottom of the page
       const footerY = pageHeight - bottomMargin - footerHeight;
+      
+      // Calculate dynamic height for terms based on number of lines
+      const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
+      
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-        'termsTitle','termsContent','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+        'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
       ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+      
+      // Add terms content with dynamic height
+      pageSchemas.push({ 
+        name: 'termsContent', 
+        type: 'text', 
+        position: { x: 15, y: footerY + 5 }, 
+        width: 120, 
+        height: termsHeight, 
+        fontSize: 8, 
+        fontColor: '#000', 
+        fontName: 'Helvetica', 
+        alignment: 'left' 
+      });
     }
     schemas.push(pageSchemas);
   });
@@ -315,7 +332,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       totalLabel: "Total:",
       totalValue: `KES ${formatCurrency(mergedData.total)}`,
       termsTitle: "TERMS AND CONDITIONS:",
-      termsContent: mergedData.terms.term1 + "\n" + mergedData.terms.term2 + "\n" + mergedData.terms.term3 + "\n" + mergedData.terms.term4,
+      termsContent: mergedData.terms.join("\n"),
       preparedByLabel: "Prepared by:",
       approvedByLabel: "Approved by:",
       ...dynamicRowInputs

@@ -469,12 +469,8 @@ const QuotationsView = () => {
         vat: quotation.vat_amount || 0,
         vatPercentage: quotation.vat_percentage || 16,
         total: quotation.grand_total || 0,
-        terms: {
-          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
-          term2: "   in quantity or specifications and market rates.",
-          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
-          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
-        },
+        notes: quotation.notes || "",
+        terms: parseTermsAndConditions(quotation.terms_conditions || ""),
         preparedBy: "",
         approvedBy: "",
         companyLogo: logoBase64
@@ -536,12 +532,8 @@ const QuotationsView = () => {
         vat: quotation.vat_amount || 0,
         vatPercentage: quotation.vat_percentage || 16,
         total: quotation.grand_total || 0,
-        terms: {
-          term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
-          term2: "   in quantity or specifications and market rates.",
-          term3: "2. Material cost is payable either directly to the supplying company or through our Pay Bill No. below",
-          term4: "3. DESIGN and LABOUR COST must be paid through our Pay Bill No. below PAYBILL NUMBER: 400200 ACCOUNT NUMBER: 845763"
-        },
+        notes: quotation.notes || "",
+        terms: parseTermsAndConditions(quotation.terms_conditions || ""),
         preparedBy: "",
         approvedBy: "",
         companyLogo: logoBase64
@@ -579,6 +571,11 @@ const QuotationsView = () => {
   const exportQuotations = () => {
     exportQuotationsReport(quotations)
   }
+
+  // Parse terms and conditions from database
+  const parseTermsAndConditions = (termsText: string) => {
+    return (termsText || "").split('\n').filter(line => line.trim());
+  };
 
 
 
