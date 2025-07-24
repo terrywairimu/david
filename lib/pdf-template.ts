@@ -211,6 +211,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       };
     } else if (item.isSectionSummary) {
       // Section summary row: label in unitPrice, value in total, others empty
+      console.log('Processing section summary row:', item);
       return {
         isSection: false,
         isSectionSummary: true,
@@ -232,6 +233,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     }
   });
 
+  // Debug: Log the transformed table rows
+  console.log('Transformed table rows:', tableRows);
+
   // Calculate dynamic footer height based on terms
   const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
   const dynamicFooterHeight = baseFooterHeight + (termsHeight - 20); // Adjust footer height based on terms
@@ -247,12 +251,20 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   let rowIndex = 0;
   // First page
   pages.push(tableRows.slice(0, firstPageRows));
+  console.log('First page rows:', firstPageRows, 'Total rows in first page:', pages[0].length);
   rowIndex += firstPageRows;
   // Subsequent pages
   while (rowIndex < tableRows.length) {
     pages.push(tableRows.slice(rowIndex, rowIndex + otherPageRows));
+    console.log('Page', pages.length, 'rows:', otherPageRows, 'Total rows in this page:', pages[pages.length - 1].length);
     rowIndex += otherPageRows;
   }
+  
+  // Debug: Log the distribution of section summary rows across pages
+  pages.forEach((pageRows, pageIdx) => {
+    const sectionSummaryRows = pageRows.filter(row => row.isSectionSummary);
+    console.log(`Page ${pageIdx + 1} has ${sectionSummaryRows.length} section summary rows:`, sectionSummaryRows.map(row => row.row[4]));
+  });
 
   // Build schemas for all pages
   let schemas: any[][] = [];
@@ -291,6 +303,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         });
       } else if (rowObj.isSectionSummary) {
         // Section summary: label in unitPrice, value in total, bold
+        console.log('Creating section summary schema for row:', rowIdx, 'with content:', rowObj.row[4], rowObj.row[5]);
         pageSchemas.push({ name: `unitPriceSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[4] });
         pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[5] });
       } else {
@@ -381,6 +394,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       if (rowObj.isSection) {
         dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = rowObj.row[1];
       } else if (rowObj.isSectionSummary) {
+        console.log('Creating section summary inputs for row:', rowIdx, 'with content:', rowObj.row[4], rowObj.row[5]);
         dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = rowObj.row[4];
         dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5];
       } else {
@@ -461,4 +475,4 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     },
     inputs
   };
-}; 
+};

@@ -39,6 +39,8 @@ interface Quotation {
   status: "pending" | "accepted" | "rejected" | "expired" | "converted_to_sales_order" | "converted_to_cash_sale"
   notes?: string
   terms_conditions?: string
+  worktop_labor_qty?: number
+  worktop_labor_unit_price?: number
   client?: {
     id: number
     name: string
@@ -450,7 +452,13 @@ const QuotationsView = () => {
         return acc;
       }, {} as Record<string, typeof quotation.items>) || {};
 
+      // Debug: Log the grouped items structure
+      console.log('Grouped items by category:', grouped);
+
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Debug: Log each category and its items
+        console.log(`Processing category: ${category}`, itemsInCategory);
+        
         // Insert section heading row (all caps, large font, special flag)
         items.push({
           isSection: true,
@@ -461,6 +469,10 @@ const QuotationsView = () => {
           unitPrice: "",
           total: ""
         });
+        
+        // Debug: Log section heading added
+        console.log(`Added section heading for ${category}:`, items[items.length - 1]);
+        
         // Insert all items in this category, numbering starts from 1
         itemsInCategory.forEach((item, idx) => {
           items.push({
@@ -473,9 +485,37 @@ const QuotationsView = () => {
             total: item.total_price != null ? item.total_price : ""
           });
         });
+        
+        // Debug: Log items added for this category
+        console.log(`Added ${itemsInCategory.length} items for ${category}`);
+        
+        // Special handling for worktop category: add worktop labor item if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          const worktopLaborItem = {
+            isSection: false,
+            itemNumber: String(itemsInCategory.length + 1),
+            quantity: quotation.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: quotation.worktop_labor_unit_price,
+            total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
+          };
+          items.push(worktopLaborItem);
+          console.log('Added worktop labor item:', worktopLaborItem);
+        }
+        
         // Insert section summary row after all items in this section
-        const sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-        items.push({
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        
+        // Debug: Log section total calculation
+        console.log(`Section total for ${category}:`, sectionTotal);
+        
+        const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
           quantity: "",
@@ -483,8 +523,16 @@ const QuotationsView = () => {
           description: "",
           unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
-        });
+        };
+        
+        items.push(summaryRow);
+        
+        // Debug: Log summary row added
+        console.log(`Added summary row for ${category}:`, summaryRow);
       });
+
+      // Debug: Log the final items array
+      console.log('Final items array for PDF:', items);
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
@@ -547,7 +595,13 @@ const QuotationsView = () => {
         return acc;
       }, {} as Record<string, typeof quotation.items>) || {};
 
+      // Debug: Log the grouped items structure
+      console.log('Grouped items by category:', grouped);
+
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Debug: Log each category and its items
+        console.log(`Processing category: ${category}`, itemsInCategory);
+        
         // Insert section heading row (all caps, large font, special flag)
         items.push({
           isSection: true,
@@ -558,6 +612,10 @@ const QuotationsView = () => {
           unitPrice: "",
           total: ""
         });
+        
+        // Debug: Log section heading added
+        console.log(`Added section heading for ${category}:`, items[items.length - 1]);
+        
         // Insert all items in this category, numbering starts from 1
         itemsInCategory.forEach((item, idx) => {
           items.push({
@@ -570,9 +628,37 @@ const QuotationsView = () => {
             total: item.total_price != null ? item.total_price : ""
           });
         });
+        
+        // Debug: Log items added for this category
+        console.log(`Added ${itemsInCategory.length} items for ${category}`);
+        
+        // Special handling for worktop category: add worktop labor item if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          const worktopLaborItem = {
+            isSection: false,
+            itemNumber: String(itemsInCategory.length + 1),
+            quantity: quotation.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: quotation.worktop_labor_unit_price,
+            total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
+          };
+          items.push(worktopLaborItem);
+          console.log('Added worktop labor item:', worktopLaborItem);
+        }
+        
         // Insert section summary row after all items in this section
-        const sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-        items.push({
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        
+        // Debug: Log section total calculation
+        console.log(`Section total for ${category}:`, sectionTotal);
+        
+        const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
           quantity: "",
@@ -580,8 +666,16 @@ const QuotationsView = () => {
           description: "",
           unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
-        });
+        };
+        
+        items.push(summaryRow);
+        
+        // Debug: Log summary row added
+        console.log(`Added summary row for ${category}:`, summaryRow);
       });
+
+      // Debug: Log the final items array
+      console.log('Final items array for PDF:', items);
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
@@ -621,8 +715,7 @@ const QuotationsView = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("PDF downloaded successfully!");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Error downloading quotation:', error);
       toast.error("Failed to download quotation. Please try again.");
