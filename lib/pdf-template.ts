@@ -171,6 +171,15 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   // Merge default values with provided data
   const mergedData = { ...defaultValues, ...data };
+  
+  console.log('PDF Template Debug - Data merging:', {
+    defaultVat: defaultValues.vat,
+    defaultVatPercentage: defaultValues.vatPercentage,
+    providedVat: data.vat,
+    providedVatPercentage: data.vatPercentage,
+    mergedVat: mergedData.vat,
+    mergedVatPercentage: mergedData.vatPercentage
+  });
 
   // Transform items to table row format for the template
   const tableRows: string[][] = (mergedData.items || []).map((item, idx) => [
@@ -260,6 +269,16 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     vat: mergedData.vat,
     vatPercentage: mergedData.vatPercentage,
     total: mergedData.total
+  });
+
+  // Debug logging for currency formatting
+  console.log('PDF Template Debug - Currency formatting:', {
+    subtotal: mergedData.subtotal,
+    vat: mergedData.vat,
+    total: mergedData.total,
+    formattedSubtotal: formatCurrency(mergedData.subtotal),
+    formattedVat: formatCurrency(mergedData.vat),
+    formattedTotal: formatCurrency(mergedData.total)
   });
 
   // Create input values for the template

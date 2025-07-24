@@ -610,7 +610,7 @@ const QuotationModal = ({
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
       
-      // Calculate totals
+      // Use the same calculation as the UI display for consistency
       const totals = calculateTotals();
       const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
       const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
@@ -618,40 +618,38 @@ const QuotationModal = ({
       const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
       const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
       
-      const subtotal = totals.cabinetTotal + totals.worktopTotal + totals.accessoriesTotal + 
-                      totals.appliancesTotal + totals.wardrobesTotal + totals.tvUnitTotal;
-      const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
-      const subtotalWithLabour = subtotal + totalLabour;
-      
-      console.log('State values:', {
-        vatPercentage,
-        subtotalWithLabour,
-        type: typeof vatPercentage
-      });
-      
-      // Test calculation
-      const testVat = 522712.5 * (16 / 100);
-      console.log('Test VAT calculation:', testVat);
+      // Calculate subtotal with all labour included (consistent with UI display)
+      const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
       
       // Calculate VAT using forward calculation (add VAT to subtotal)
-      console.log('Before VAT calculation:', {
+      const vatPercentageNum = Number(vatPercentage);
+      console.log('VAT Calculation Test:', {
         subtotalWithLabour,
         vatPercentage,
-        calculation: `${subtotalWithLabour} * (${vatPercentage} / 100)`,
-        result: subtotalWithLabour * (vatPercentage / 100)
+        vatPercentageNum,
+        vatPercentageType: typeof vatPercentage,
+        calculation: `${subtotalWithLabour} * (${vatPercentageNum} / 100)`,
+        result: subtotalWithLabour * (vatPercentageNum / 100)
       });
       
-      const vat = subtotalWithLabour * (vatPercentage / 100);
+      const vat = subtotalWithLabour * (vatPercentageNum / 100);
       const grandTotal = subtotalWithLabour + vat;
       
-      console.log('VAT Calculation Debug:', {
-        subtotal,
-        totalLabour,
+      console.log('PDF Generation Debug - Detailed:', {
+        totals_subtotal: totals.subtotal,
+        cabinetLabour,
+        accessoriesLabour,
+        appliancesLabour,
+        wardrobesLabour,
+        tvUnitLabour,
         subtotalWithLabour,
         vatPercentage,
         vat,
-        grandTotal
+        grandTotal,
+        calculation: `${subtotalWithLabour} * (${vatPercentage} / 100) = ${vat}`
       });
+      
+
       
       // Prepare items data as objects for QuotationData
       const items: Array<{quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
@@ -693,7 +691,7 @@ const QuotationModal = ({
         items: items,
         subtotal: subtotalWithLabour,
         vat: vat,
-        vatPercentage: vatPercentage,
+        vatPercentage: vatPercentageNum,
         total: grandTotal,
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
@@ -776,6 +774,17 @@ const QuotationModal = ({
         });
       }
 
+    // Calculate totals with VAT (consistent with UI display and PDF generation)
+    const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+    const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+    const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+    const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+    const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+    
+    const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
+    const saveVatAmount = saveSubtotalWithLabour * (vatPercentage / 100);
+    const saveGrandTotalWithVAT = saveSubtotalWithLabour + saveVatAmount;
+
     const quotationData = {
       quotation_number: quotationNumber,
       client_id: selectedClient.id,
@@ -783,22 +792,24 @@ const QuotationModal = ({
       cabinet_total: totals.cabinetTotal,
       worktop_total: totals.worktopTotal,
       accessories_total: totals.accessoriesTotal,
-        appliances_total: totals.appliancesTotal,
+      appliances_total: totals.appliancesTotal,
       wardrobes_total: totals.wardrobesTotal,
       tvunit_total: totals.tvUnitTotal,
       labour_percentage: labourPercentage,
-        labour_total: totals.labourAmount,
-        total_amount: totals.subtotal,
-      grand_total: totals.grandTotal,
-        include_worktop: includeWorktop,
+      labour_total: totals.labourAmount,
+      total_amount: saveSubtotalWithLabour, // Subtotal with labour included
+      grand_total: saveGrandTotalWithVAT, // Grand total with VAT included
+      vat_amount: saveVatAmount, // VAT amount
+      vat_percentage: vatPercentage, // VAT percentage
+      include_worktop: includeWorktop,
       include_accessories: includeAccessories,
-        include_appliances: includeAppliances,
+      include_appliances: includeAppliances,
       include_wardrobes: includeWardrobes,
       include_tvunit: includeTvUnit,
       status: "pending",
       notes,
       terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
+      items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
       cabinet_labour_percentage: cabinetLabourPercentage,
       accessories_labour_percentage: accessoriesLabourPercentage,
       appliances_labour_percentage: appliancesLabourPercentage,
@@ -806,7 +817,7 @@ const QuotationModal = ({
       tvunit_labour_percentage: tvUnitLabourPercentage,
       worktop_labor_qty: worktopLaborQty,
       worktop_labor_unit_price: worktopLaborUnitPrice
-      }
+    }
 
       // Confirm quotation number if it's a new quotation
       // Removed localStorage logic, so this block is effectively removed.
@@ -839,16 +850,19 @@ const QuotationModal = ({
 
   if (!isOpen) return null
 
-  // Calculate section totals with labour included
+  // Calculate section totals with labour included (consistent with PDF generation)
   const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
   const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
   const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+  const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+  const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
   
-  // Calculate VAT based on subtotal with labour included
-  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour;
-  // Reverse calculate VAT: if subtotal includes VAT, extract the original amount
-  const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
-  const vatAmount = subtotalWithLabour - originalAmount;
+  // Calculate subtotal with all labour included (consistent with PDF generation)
+  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+  
+  // Calculate VAT using forward calculation (add VAT to subtotal)
+  const vatAmount = subtotalWithLabour * (vatPercentage / 100);
+  const grandTotal = subtotalWithLabour + vatAmount;
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -2783,7 +2797,7 @@ const QuotationModal = ({
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {subtotalWithLabour.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between mb-2">
                         <div className="d-flex align-items-center">
@@ -2824,7 +2838,7 @@ const QuotationModal = ({
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {grandTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
