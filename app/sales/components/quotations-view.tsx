@@ -443,14 +443,48 @@ const QuotationsView = () => {
       // Convert logo to base64
       const logoBase64 = await imageToBase64('/logo.png');
 
-      // Prepare items data
-      const items = quotation.items?.map(item => ({
-        quantity: item.quantity,
-        unit: item.unit,
-        description: item.description,
-        unitPrice: item.unit_price,
-        total: item.total_price
-      })) || [];
+      // Prepare items data with section headings and improved formatting
+      const items: any[] = [];
+      const grouped = quotation.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof quotation.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Insert section heading row (all caps, large font, special flag)
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: category.toUpperCase(),
+          unitPrice: "",
+          total: ""
+        });
+        // Insert all items in this category, numbering starts from 1
+        itemsInCategory.forEach((item, idx) => {
+          items.push({
+            isSection: false,
+            itemNumber: String(idx + 1),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price != null ? item.unit_price : "",
+            total: item.total_price != null ? item.total_price : ""
+          });
+        });
+        // Insert section summary row after all items in this section
+        const sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        items.push({
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: "",
+          unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
+          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+        });
+      });
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
@@ -506,14 +540,48 @@ const QuotationsView = () => {
       // Convert logo to base64
       const logoBase64 = await imageToBase64('/logo.png');
 
-      // Prepare items data
-      const items = quotation.items?.map(item => ({
-        quantity: item.quantity,
-        unit: item.unit,
-        description: item.description,
-        unitPrice: item.unit_price,
-        total: item.total_price
-      })) || [];
+      // Prepare items data with section headings and improved formatting
+      const items: any[] = [];
+      const grouped = quotation.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof quotation.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Insert section heading row (all caps, large font, special flag)
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: category.toUpperCase(),
+          unitPrice: "",
+          total: ""
+        });
+        // Insert all items in this category, numbering starts from 1
+        itemsInCategory.forEach((item, idx) => {
+          items.push({
+            isSection: false,
+            itemNumber: String(idx + 1),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price != null ? item.unit_price : "",
+            total: item.total_price != null ? item.total_price : ""
+          });
+        });
+        // Insert section summary row after all items in this section
+        const sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        items.push({
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: "",
+          unitPrice: `${category.charAt(0).toUpperCase() + category.slice(1)} Total:`,
+          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+        });
+      });
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({

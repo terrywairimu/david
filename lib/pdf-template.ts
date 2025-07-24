@@ -13,34 +13,34 @@ export const quotationTemplate = {
       { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'quotationHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
       { name: 'quotationTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
-      { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 60, height: 28, color: '#E5E5E5', radius: 4 },
-      { name: 'clientNamesLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'clientNamesValue', type: 'text', position: { x: 41, y: 67 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'siteLocationLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'siteLocationValue', type: 'text', position: { x: 41, y: 73 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'mobileNoLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'mobileNoValue', type: 'text', position: { x: 41, y: 79 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'dateLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'dateValue', type: 'text', position: { x: 41, y: 85 }, width: 32, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'quotationNoFull', type: 'text', position: { x: 15, y: 67 }, width: 180, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 90, height: 28, color: '#E5E5E5', radius: 4 },
+      { name: 'clientNamesLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'clientNamesValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'siteLocationLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'siteLocationValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'mobileNoLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'mobileNoValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'dateLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'dateValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'quotationNoFull', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
       { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
       // Table header with Item number column
-      { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 12, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
-      { name: 'descriptionHeader', type: 'text', position: { x: 29, y: 102 }, width: 68, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Description' },
-      { name: 'unitHeader', type: 'text', position: { x: 97, y: 102 }, width: 20, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit' },
-      { name: 'quantityHeader', type: 'text', position: { x: 117, y: 102 }, width: 20, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Qty' },
-      { name: 'unitPriceHeader', type: 'text', position: { x: 137, y: 102 }, width: 30, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit Price' },
-      { name: 'totalHeader', type: 'text', position: { x: 167, y: 102 }, width: 28, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Total' },
+      { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 12, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
+      { name: 'descriptionHeader', type: 'text', position: { x: 24, y: 102 }, width: 68, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Description' },
+      { name: 'unitHeader', type: 'text', position: { x: 97, y: 102 }, width: 20, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit' },
+      { name: 'quantityHeader', type: 'text', position: { x: 117, y: 102 }, width: 20, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Qty' },
+      { name: 'unitPriceHeader', type: 'text', position: { x: 145, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit Price' },
+      { name: 'totalHeader', type: 'text', position: { x: 173, y: 102 }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Total' },
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'totalsBox', type: 'rectangle', position: { x: 144, y: 245 }, width: 52, height:27, color: '#E5E5E5', radius: 4 },
-      { name: 'subtotalLabel', type: 'text', position: { x: 146, y: 249 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'subtotalValue', type: 'text', position: { x:  157, y: 249 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'vatLabel', type: 'text', position: { x: 146, y: 257 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'vatValue', type: 'text', position: { x:  157, y: 257 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'totalLabel', type: 'text', position: { x: 146, y: 265 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'totalValue', type: 'text', position: { x: 157, y: 265 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+      { name: 'subtotalLabel', type: 'text', position: { x: 146, y: 249 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'subtotalValue', type: 'text', position: { x:  157, y: 249 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'vatLabel', type: 'text', position: { x: 146, y: 257 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'vatValue', type: 'text', position: { x:  157, y: 257 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'totalLabel', type: 'text', position: { x: 146, y: 265 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'totalValue', type: 'text', position: { x: 157, y: 265 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
       { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
@@ -71,11 +71,14 @@ export interface QuotationData {
   
   // Items (dynamic array)
   items: Array<{
-    quantity: number;
-    unit: string;
+    isSection?: boolean;
+    isSectionSummary?: boolean;
+    itemNumber?: string;
+    quantity?: string | number;
+    unit?: string;
     description: string;
-    unitPrice: number;
-    total: number;
+    unitPrice?: string | number;
+    total?: string | number;
   }>;
   
   // Totals
@@ -157,6 +160,23 @@ export const imageToBase64 = async (imagePath: string): Promise<string> => {
   }
 };
 
+// Helper function to estimate text width for Helvetica, font size 10 (approximation)
+function estimateTextWidth(text: string, fontSize: number = 10, fontName: string = 'Helvetica-Bold'): number {
+  // Helvetica average width per character at font size 10 is about 5.5 (bold) or 5 (regular)
+  // This is a rough estimate; for more accuracy, use a font metrics library
+  const avgWidth = fontName.includes('Bold') ? 5.5 : 5;
+  return text.length * avgWidth * (fontSize / 10);
+}
+
+// Helper function to deep clone the template (use structuredClone if available, else fallback)
+function deepClone(obj: any) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(obj);
+  } else {
+    return JSON.parse(JSON.stringify(obj));
+  }
+}
+
 // Function to generate PDF with dynamic content
 export const generateQuotationPDF = async (data: QuotationData) => {
   // Layout constants (in mm)
@@ -181,15 +201,36 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     mergedVatPercentage: mergedData.vatPercentage
   });
 
-  // Transform items to table row format for the template
-  const tableRows: string[][] = (mergedData.items || []).map((item, idx) => [
-    String(idx + 1),
-    String(item.description),
-    String(item.unit),
-    String(item.quantity),
-    String(item.unitPrice),
-    String(item.total)
-  ]);
+  // Transform items to table row format for the template, supporting section headings
+  const tableRows: { isSection: boolean, isSectionSummary?: boolean, row: string[] }[] = (mergedData.items || []).map((item, idx) => {
+    if (item.isSection) {
+      // Section heading row: only description, all caps, large font, others empty
+      return {
+        isSection: true,
+        row: ["", String(item.description).toUpperCase(), "", "", "", ""]
+      };
+    } else if (item.isSectionSummary) {
+      // Section summary row: label in unitPrice, value in total, others empty
+      return {
+        isSection: false,
+        isSectionSummary: true,
+        row: ["", "", "", "", String(item.unitPrice), String(item.total)]
+      };
+    } else {
+      // Item row: use itemNumber, description, etc.
+      return {
+        isSection: false,
+        row: [
+          item.itemNumber || String(idx + 1),
+          String(item.description),
+          item.unit ? String(item.unit) : "",
+          item.quantity != null ? String(item.quantity) : "",
+          item.unitPrice != null && item.unitPrice !== "" ? String(item.unitPrice) : "",
+          item.total != null && item.total !== "" ? String(item.total) : ""
+        ]
+      };
+    }
+  });
 
   // Calculate dynamic footer height based on terms
   const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
@@ -202,7 +243,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
 
   // Paginate rows
-  const pages: string[][][] = [];
+  const pages: Array<Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>> = [];
   let rowIndex = 0;
   // First page
   pages.push(tableRows.slice(0, firstPageRows));
@@ -215,39 +256,63 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   // Build schemas for all pages
   let schemas: any[][] = [];
-  let currentY;
-  pages.forEach((rows: string[][], pageIdx: number) => {
+  pages.forEach((rows: Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>, pageIdx: number) => {
     let pageSchemas: any[] = [];
     // Header (first page only)
     if (pageIdx === 0) {
-      pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+      pageSchemas.push(...quotationTemplate.schemas[0].filter((s: any) => [
         'logo','companyName','companyLocation','companyPhone','companyEmail','quotationHeaderBg','quotationTitle','clientInfoBox','clientNamesLabel','clientNamesValue','siteLocationLabel','siteLocationValue','mobileNoLabel','mobileNoValue','dateLabel','dateValue','quotationNoFull'
       ].includes(s.name)));
     }
     // Table header (every page)
     const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
-    pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-      'tableHeaderBg','itemHeader','descriptionHeader','unitHeader','quantityHeader','unitPriceHeader','totalHeader'
-    ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: tableHeaderY + (s.position.y - 105) }})));
+    pageSchemas.push(...quotationTemplate.schemas[0]
+      .filter((s: any) => [
+        'tableHeaderBg','itemHeader','descriptionHeader','unitHeader','quantityHeader','unitPriceHeader','totalHeader'
+      ].includes(s.name))
+      .map((s: any) => ({ ...s, position: { ...s.position, y: tableHeaderY + (s.position.y - 105) }}))
+    );
     // Table rows
-    rows.forEach((row: string[], rowIdx: number) => {
+    rows.forEach((rowObj, rowIdx) => {
       const y = tableHeaderY + tableHeaderHeight + rowIdx * rowHeight;
-      pageSchemas.push({ name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 12, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[0] });
-      pageSchemas.push({ name: `desc${pageIdx}_${rowIdx}`, type: 'text', position: { x: 29, y }, width: 68, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[1] });
-      pageSchemas.push({ name: `unit${pageIdx}_${rowIdx}`, type: 'text', position: { x: 97, y }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[2] });
-      pageSchemas.push({ name: `qty${pageIdx}_${rowIdx}`, type: 'text', position: { x: 117, y }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[3] });
-      pageSchemas.push({ name: `unitPrice${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[4] });
-      pageSchemas.push({ name: `total${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[5] });
+      if (rowObj.isSection) {
+        // Section heading: large, bold, all caps, span description column
+        pageSchemas.push({
+          name: `descSection${pageIdx}_${rowIdx}`,
+          type: 'text',
+          position: { x: 29, y },
+          width: 68, // span description column
+          height: 7,
+          fontSize: 11, // changed from 12 to 11
+          fontColor: '#000',
+          fontName: 'Helvetica-Bold',
+          alignment: 'left',
+          content: rowObj.row[1]
+        });
+      } else if (rowObj.isSectionSummary) {
+        // Section summary: label in unitPrice, value in total, bold
+        pageSchemas.push({ name: `unitPriceSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[4] });
+        pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: rowObj.row[5] });
+      } else {
+        // Normal item row
+        pageSchemas.push({ name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 12, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: rowObj.row[0] });
+        pageSchemas.push({ name: `desc${pageIdx}_${rowIdx}`, type: 'text', position: { x: 29, y }, width: 68, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: rowObj.row[1] });
+        pageSchemas.push({ name: `unit${pageIdx}_${rowIdx}`, type: 'text', position: { x: 97, y }, width: 20, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: rowObj.row[2] });
+        pageSchemas.push({ name: `qty${pageIdx}_${rowIdx}`, type: 'text', position: { x: 117, y }, width: 20, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: rowObj.row[3] });
+        // Format Unit Price and Total only if not empty
+        let unitPriceContent = rowObj.row[4] !== "" ? formatCurrency(parseFloat(rowObj.row[4])) : "";
+        let totalContent = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
+        pageSchemas.push({ name: `unitPrice${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: unitPriceContent });
+        pageSchemas.push({ name: `total${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: totalContent });
+      }
     });
     // Footer (last page only)
     if (pageIdx === pages.length - 1) {
       // Place footer at the bottom of the page
       const footerY = pageHeight - bottomMargin - dynamicFooterHeight;
-      
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
         'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
       ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
-      
       // Add terms content with dynamic height
       pageSchemas.push({ 
         name: 'termsContent', 
@@ -264,20 +329,69 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     schemas.push(pageSchemas);
   });
 
+  // Deep clone the template before patching
+  const templateClone = deepClone(quotationTemplate);
+
+  // Calculate the widest client info line (label + value)
+  const clientInfoFontSize = 10;
+  const clientInfoFields = [
+    { label: 'CLIENT NAME:', value: mergedData.clientNames },
+    { label: 'SITE LOCATION:', value: mergedData.siteLocation },
+    { label: 'MOBILE NO.:', value: mergedData.mobileNo },
+    { label: 'DATE:', value: mergedData.date }
+  ];
+  let maxClientInfoWidth = 0;
+  clientInfoFields.forEach(field => {
+    const labelWidth = estimateTextWidth(field.label, clientInfoFontSize, 'Helvetica-Bold');
+    const valueWidth = estimateTextWidth(field.value, clientInfoFontSize, 'Helvetica');
+    const totalWidth = labelWidth + 6 + valueWidth; // 6mm gap between label and value
+    if (totalWidth > maxClientInfoWidth) maxClientInfoWidth = totalWidth;
+  });
+  const clientInfoBoxWidth = maxClientInfoWidth + 1; // 1mm padding, no minimum width
+
+  // Patch the schema for clientInfoBox and value fields on the clone
+  templateClone.schemas[0] = templateClone.schemas[0].map((s: any) => {
+    if (s.name === 'clientInfoBox') {
+      return { ...s, width: 20 };
+    }
+    if (s.name === 'clientNamesValue') {
+      return { ...s, position: { ...s.position, x: 18 + estimateTextWidth('CLIENT NAME:', clientInfoFontSize, 'Helvetica-Bold') + 6 }, width: clientInfoBoxWidth - (estimateTextWidth('CLIENT NAME:', clientInfoFontSize, 'Helvetica-Bold') + 18 + 1) };
+    }
+    if (s.name === 'siteLocationValue') {
+      return { ...s, position: { ...s.position, x: 18 + estimateTextWidth('SITE LOCATION:', clientInfoFontSize, 'Helvetica-Bold') + 6 }, width: clientInfoBoxWidth - (estimateTextWidth('SITE LOCATION:', clientInfoFontSize, 'Helvetica-Bold') + 18 + 1) };
+    }
+    if (s.name === 'mobileNoValue') {
+      return { ...s, position: { ...s.position, x: 18 + estimateTextWidth('MOBILE NO.:', clientInfoFontSize, 'Helvetica-Bold') + 6 }, width: clientInfoBoxWidth - (estimateTextWidth('MOBILE NO.:', clientInfoFontSize, 'Helvetica-Bold') + 18 + 1) };
+    }
+    if (s.name === 'dateValue') {
+      return { ...s, position: { ...s.position, x: 18 + estimateTextWidth('DATE:', clientInfoFontSize, 'Helvetica-Bold') + 6 }, width: clientInfoBoxWidth - (estimateTextWidth('DATE:', clientInfoFontSize, 'Helvetica-Bold') + 18 + 1) };
+    }
+    return s;
+  });
+
+  // Debug logs
+  console.log('Calculated clientInfoBoxWidth:', clientInfoBoxWidth);
+  const patchedBox = templateClone.schemas[0].find((s: any) => s.name === 'clientInfoBox');
+  console.log('Patched schema width for clientInfoBox:', patchedBox ? patchedBox.width : 'not found');
+
   // Build dynamic row values for inputs
   const dynamicRowInputs: Record<string, string> = {};
-  pages.forEach((rows: string[][], pageIdx: number) => {
-    rows.forEach((row: string[], rowIdx: number) => {
-      dynamicRowInputs[`item${pageIdx}_${rowIdx}`] = row[0];
-      dynamicRowInputs[`desc${pageIdx}_${rowIdx}`] = row[1];
-      dynamicRowInputs[`unit${pageIdx}_${rowIdx}`] = row[2];
-      dynamicRowInputs[`qty${pageIdx}_${rowIdx}`] = row[3];
-      // Format Unit Price with currency formatting
-      const unitPrice = parseFloat(row[4]);
-      dynamicRowInputs[`unitPrice${pageIdx}_${rowIdx}`] = formatCurrency(unitPrice);
-      // Format Total with currency formatting
-      const total = parseFloat(row[5]);
-      dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = formatCurrency(total);
+  pages.forEach((rows: Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>, pageIdx: number) => {
+    rows.forEach((rowObj, rowIdx) => {
+      if (rowObj.isSection) {
+        dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = rowObj.row[1];
+      } else if (rowObj.isSectionSummary) {
+        dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = rowObj.row[4];
+        dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5];
+      } else {
+        dynamicRowInputs[`item${pageIdx}_${rowIdx}`] = rowObj.row[0];
+        dynamicRowInputs[`desc${pageIdx}_${rowIdx}`] = rowObj.row[1];
+        dynamicRowInputs[`unit${pageIdx}_${rowIdx}`] = rowObj.row[2];
+        dynamicRowInputs[`qty${pageIdx}_${rowIdx}`] = rowObj.row[3];
+        // Only format if not empty
+        dynamicRowInputs[`unitPrice${pageIdx}_${rowIdx}`] = rowObj.row[4] !== "" ? formatCurrency(parseFloat(rowObj.row[4])) : "";
+        dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
+      }
     });
   });
 
@@ -313,7 +427,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       clientNamesValue: mergedData.clientNames,
       siteLocationLabel: "SITE LOCATION:",
       siteLocationValue: mergedData.siteLocation,
-      mobileNoLabel: "MOBILE NO.:",
+      mobileNoLabel: "MOBILE NO:",
       mobileNoValue: mergedData.mobileNo,
       dateLabel: "DATE:",
       dateValue: mergedData.date,
@@ -342,8 +456,8 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   return {
     template: {
-      ...quotationTemplate,
-      schemas
+      ...templateClone,
+      schemas: schemas.map((page: any[]) => page.map((schema: any) => schema))
     },
     inputs
   };
