@@ -621,19 +621,21 @@ const QuotationModal = ({
       // Calculate subtotal with all labour included (consistent with UI display)
       const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
       
-      // Calculate VAT using forward calculation (add VAT to subtotal)
+      // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
       const vatPercentageNum = Number(vatPercentage);
       console.log('VAT Calculation Test:', {
         subtotalWithLabour,
         vatPercentage,
         vatPercentageNum,
         vatPercentageType: typeof vatPercentage,
-        calculation: `${subtotalWithLabour} * (${vatPercentageNum} / 100)`,
-        result: subtotalWithLabour * (vatPercentageNum / 100)
+        calculation: `${subtotalWithLabour} - (${subtotalWithLabour} / (1 + ${vatPercentageNum} / 100))`,
+        result: subtotalWithLabour - (subtotalWithLabour / (1 + vatPercentageNum / 100))
       });
       
-      const vat = subtotalWithLabour * (vatPercentageNum / 100);
-      const grandTotal = subtotalWithLabour + vat;
+      // Reverse calculate VAT: if total includes VAT, extract the VAT amount
+      const originalAmount = subtotalWithLabour / (1 + (vatPercentageNum / 100));
+      const vat = subtotalWithLabour - originalAmount;
+      const grandTotal = subtotalWithLabour; // Grand total remains the same
       
       console.log('PDF Generation Debug - Detailed:', {
         totals_subtotal: totals.subtotal,
@@ -689,10 +691,10 @@ const QuotationModal = ({
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotationNumber,
         items: items,
-        subtotal: subtotalWithLabour,
-        vat: vat,
+        subtotal: originalAmount, // Amount before VAT
+        vat: vat, // Extracted VAT amount
         vatPercentage: vatPercentageNum,
-        total: grandTotal,
+        total: subtotalWithLabour, // Total amount including VAT
         terms: {
           term1: "1. Please NOTE, the above prices are subject to changes incase of VARIATION",
           term2: "   in quantity or specifications and market rates.",
@@ -783,8 +785,10 @@ const QuotationModal = ({
     
     const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
     const saveVatPercentageNum = Number(vatPercentage);
-    const saveVatAmount = saveSubtotalWithLabour * (saveVatPercentageNum / 100);
-    const saveGrandTotalWithVAT = saveSubtotalWithLabour + saveVatAmount;
+    // Reverse calculate VAT: if total includes VAT, extract the VAT amount
+    const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
+    const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
+    const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
     
     console.log('handleSave VAT Calculation Debug:', {
       totals_subtotal: totals.subtotal,
@@ -796,8 +800,10 @@ const QuotationModal = ({
       saveSubtotalWithLabour,
       vatPercentage,
       saveVatPercentageNum,
+      saveOriginalAmount,
       saveVatAmount,
-      saveGrandTotalWithVAT
+      saveGrandTotalWithVAT,
+      calculation: `${saveSubtotalWithLabour} - (${saveSubtotalWithLabour} / (1 + ${saveVatPercentageNum} / 100))`
     });
 
     const quotationData = {
@@ -812,8 +818,8 @@ const QuotationModal = ({
       tvunit_total: totals.tvUnitTotal,
       labour_percentage: labourPercentage,
       labour_total: totals.labourAmount,
-      total_amount: saveSubtotalWithLabour, // Subtotal with labour included
-      grand_total: saveGrandTotalWithVAT, // Grand total with VAT included
+      total_amount: saveOriginalAmount, // Amount before VAT
+      grand_total: saveSubtotalWithLabour, // Total amount including VAT
       vat_amount: saveVatAmount, // VAT amount
       vat_percentage: saveVatPercentageNum, // VAT percentage
       include_worktop: includeWorktop,
@@ -875,9 +881,10 @@ const QuotationModal = ({
   // Calculate subtotal with all labour included (consistent with PDF generation)
   const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
   
-  // Calculate VAT using forward calculation (add VAT to subtotal)
-  const vatAmount = subtotalWithLabour * (vatPercentage / 100);
-  const grandTotal = subtotalWithLabour + vatAmount;
+  // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
+  const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
+  const vatAmount = subtotalWithLabour - originalAmount;
+  const grandTotal = subtotalWithLabour; // Grand total remains the same
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -2812,7 +2819,7 @@ const QuotationModal = ({
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
                         <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {subtotalWithLabour.toFixed(2)}</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between mb-2">
                         <div className="d-flex align-items-center">
@@ -2853,7 +2860,7 @@ const QuotationModal = ({
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {grandTotal.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
