@@ -7,7 +7,7 @@ export const quotationTemplate = {
   schemas: [
     [
       { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
-      { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 10, fontSize: 16, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'bold', characterSpacing: 0.5 },
+      { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
       { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
@@ -34,12 +34,12 @@ export const quotationTemplate = {
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalsBox', type: 'rectangle', position: { x: 130, y: 245 }, width: 65, height: 24, color: '#E5E5E5', radius: 4 },
-      { name: 'subtotalLabel', type: 'text', position: { x: 132, y: 249 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'subtotalValue', type: 'text', position: { x: 157, y: 249 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'vatLabel', type: 'text', position: { x: 132, y: 257 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'vatValue', type: 'text', position: { x: 157, y: 257 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'totalLabel', type: 'text', position: { x: 132, y: 265 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'totalsBox', type: 'rectangle', position: { x: 144, y: 245 }, width: 52, height:27, color: '#E5E5E5', radius: 4 },
+      { name: 'subtotalLabel', type: 'text', position: { x: 146, y: 249 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'subtotalValue', type: 'text', position: { x:  157, y: 249 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'vatLabel', type: 'text', position: { x: 146, y: 257 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'vatValue', type: 'text', position: { x:  157, y: 257 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'totalLabel', type: 'text', position: { x: 146, y: 265 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'totalValue', type: 'text', position: { x: 157, y: 265 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
