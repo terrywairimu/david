@@ -456,6 +456,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     formattedTotal: formatCurrency(mergedData.total)
   });
 
+  // Debug logging for watermark logo
+  console.log('PDF Template Debug - Watermark logo:', {
+    hasWatermarkLogo: !!mergedData.watermarkLogo,
+    watermarkLogoLength: mergedData.watermarkLogo ? mergedData.watermarkLogo.length : 0,
+    watermarkLogoPreview: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 50) + '...' : 'none'
+  });
+
   // Create input values for the template
   const inputs = [
     {

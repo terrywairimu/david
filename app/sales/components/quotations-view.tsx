@@ -454,6 +454,8 @@ const QuotationsView = () => {
 
       // Convert logo to base64
       const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
@@ -574,7 +576,8 @@ const QuotationsView = () => {
         terms: parseTermsAndConditions(quotation.terms_conditions || ""),
         preparedBy: "",
         approvedBy: "",
-        companyLogo: logoBase64
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
       });
 
       const pdf = await generate({
@@ -606,6 +609,8 @@ const QuotationsView = () => {
 
       // Convert logo to base64
       const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
@@ -726,7 +731,8 @@ const QuotationsView = () => {
         terms: parseTermsAndConditions(quotation.terms_conditions || ""),
         preparedBy: "",
         approvedBy: "",
-        companyLogo: logoBase64
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
       });
 
       const pdf = await generate({
