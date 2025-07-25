@@ -539,8 +539,8 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: `${sectionLabel} Total`,
-          unitPrice: "",
+          description: "",
+          unitPrice: `${sectionLabel} Total:`,
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
         };
         
@@ -691,7 +691,7 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: `${sectionLabel} Total`,
+          description: `${sectionLabel} Total`, // FIX: set the label here!
           unitPrice: "",
           total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
         };
@@ -737,9 +737,15 @@ const QuotationsView = () => {
 
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      // Build the filename as clientname-projectlocation-quotation-<quotationNumber>.pdf
+      const sanitize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const clientName = sanitize(quotation.client?.name || 'client');
+      const projectLocation = sanitize(quotation.client?.location || 'location');
+      const quotationNumber = quotation.quotation_number || 'quotation';
+      const filename = `${clientName}-${projectLocation}-quotation-${quotationNumber}.pdf`;
       const link = document.createElement('a');
       link.href = url;
-      link.download = `quotation-${quotation.quotation_number}.pdf`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

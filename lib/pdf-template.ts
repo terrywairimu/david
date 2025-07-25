@@ -231,7 +231,6 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       };
     } else if (item.isSectionSummary) {
       // Section summary row: label in description, value in total, others empty
-      console.log('Processing section summary row:', item);
       return {
         isSection: false,
         isSectionSummary: true,
@@ -326,13 +325,14 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           content: rowObj.row[1]
         });
       } else if (rowObj.isSectionSummary) {
-        // Section summary: label in description, value in total, bold
-        console.log('Creating section summary schema for row:', rowIdx, 'with content:', rowObj.row[1], rowObj.row[5]);
-        console.log('Section summary rowObj:', rowObj);
-        // Format section summary values with currency formatting
+        // Section summary: label spans Description to Unit Price, value in Total, both on one line
+        // Make the summary label span multiple columns (overflow left), right-aligned, bold
+        let unitPriceSummaryContent = rowObj.row[1] !== "" ? rowObj.row[1] + ":" : "";
         let totalSummaryContent = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
-        pageSchemas.push({ name: `descSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 29, y }, width: 68, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left', content: rowObj.row[1] });
-        pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: totalSummaryContent });
+        const summaryY = y + 2;
+        // Wider label, shifted left to overflow into other columns
+        pageSchemas.push({ name: `unitPriceSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 67, y: summaryY }, width: 100, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: unitPriceSummaryContent });
+        pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y: summaryY }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: totalSummaryContent });
       } else {
         // Normal item row
         pageSchemas.push({ name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 12, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: rowObj.row[0] });
@@ -424,7 +424,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         console.log('Creating section summary inputs for row:', rowIdx, 'with content:', rowObj.row[1], rowObj.row[5]);
         console.log('Section summary inputs rowObj:', rowObj);
         // Format section summary values with currency formatting for inputs
-        dynamicRowInputs[`descSummary${pageIdx}_${rowIdx}`] = rowObj.row[1];
+        dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = rowObj.row[1] !== "" ? rowObj.row[1] + ":" : "";
         dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
       } else {
         dynamicRowInputs[`item${pageIdx}_${rowIdx}`] = rowObj.row[0];
