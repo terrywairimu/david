@@ -188,13 +188,12 @@ function estimateTextWidth(text: string, fontSize: number = 10, fontName: string
   return text.length * avgWidth * (fontSize / 10);
 }
 
-// Helper function to deep clone the template (use structuredClone if available, else fallback)
-function deepClone(obj: any) {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(obj);
-  } else {
-    return JSON.parse(JSON.stringify(obj));
-  }
+// Helper function to efficiently clone the template (shallow clone + schema array clone)
+function cloneTemplate(template: any) {
+  return {
+    ...template,
+    schemas: template.schemas.map((schema: any[]) => [...schema])
+  };
 }
 
 // Function to generate PDF with dynamic content
