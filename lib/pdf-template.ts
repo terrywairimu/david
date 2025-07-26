@@ -264,7 +264,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   const dynamicFooterHeight = baseFooterHeight + (termsHeight - 20); // Adjust footer height based on terms
   
   // Calculate rows per page
-  const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - dynamicFooterHeight;
+  // First page: reserve some space for better layout (target ~22 rows instead of 24)
+  const firstPageReservedSpace = 16; // Reserve 16mm for better spacing
+  const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace;
   const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
   const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
   const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
@@ -272,16 +274,35 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   // Paginate rows
   const pages: Array<Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>> = [];
   let rowIndex = 0;
+  
   // First page
-  pages.push(tableRows.slice(0, firstPageRows));
-  console.log('First page rows:', firstPageRows, 'Total rows in first page:', pages[0].length);
-  rowIndex += firstPageRows;
-  // Subsequent pages
+  const firstPageActualRows = Math.min(firstPageRows, tableRows.length);
+  pages.push(tableRows.slice(0, firstPageActualRows));
+  rowIndex += firstPageActualRows;
+  
+  // Subsequent pages (only if there are remaining rows)
   while (rowIndex < tableRows.length) {
-    pages.push(tableRows.slice(rowIndex, rowIndex + otherPageRows));
-    console.log('Page', pages.length, 'rows:', otherPageRows, 'Total rows in this page:', pages[pages.length - 1].length);
-    rowIndex += otherPageRows;
+    const remainingRows = tableRows.length - rowIndex;
+    const rowsForThisPage = Math.min(otherPageRows, remainingRows);
+    if (rowsForThisPage > 0) {
+      pages.push(tableRows.slice(rowIndex, rowIndex + rowsForThisPage));
+    }
+    rowIndex += rowsForThisPage;
   }
+  
+  console.log('Layout Debug - Space calculations:', {
+    firstPageAvailable: firstPageAvailable,
+    firstPageRows: firstPageRows,
+    firstPageActualRows: firstPageActualRows,
+    otherPageAvailable: otherPageAvailable,
+    otherPageRows: otherPageRows,
+    totalRows: tableRows.length,
+    totalPages: pages.length
+  });
+  
+  pages.forEach((pageRows, idx) => {
+    console.log(`Page ${idx + 1}: ${pageRows.length} rows`);
+  });
   
   // Debug: Log the distribution of section summary rows across pages
   pages.forEach((pageRows, pageIdx) => {
@@ -362,8 +383,21 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     });
     // Footer (last page only)
     if (pageIdx === pages.length - 1) {
-      // Place footer at the bottom of the page
-      const footerY = pageHeight - bottomMargin - dynamicFooterHeight;
+      // Position footer right after the last row with some spacing
+      const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
+      const lastRowY = tableHeaderY + tableHeaderHeight + (rows.length * rowHeight);
+      const footerStartY = lastRowY + 10; // 10mm spacing after last row
+      const footerY = Math.min(footerStartY, pageHeight - bottomMargin - dynamicFooterHeight);
+      
+      console.log('Footer positioning debug:', {
+        pageIndex: pageIdx,
+        tableHeaderY,
+        lastRowY,
+        footerStartY,
+        footerY,
+        rowsOnLastPage: rows.length
+      });
+      
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
         'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
       ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
