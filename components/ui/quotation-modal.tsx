@@ -168,6 +168,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   )
   const [loading, setLoading] = useState(false)
   
+  // PDF viewing state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
     cabinet: "General",
@@ -422,6 +426,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     return () => clearTimeout(timeoutId)
   }, [clientSearchTerm, clients])
+
+  // Generate PDF for viewing when modal opens in view mode
+  useEffect(() => {
+    if (isOpen && mode === "view" && quotation) {
+      generatePDFForViewing();
+    }
+    
+    // Cleanup PDF URL when component unmounts or modal closes
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+        setPdfUrl(null);
+      }
+    }
+  }, [isOpen, mode, quotation?.id]);
 
   const resetForm = () => {
     setSelectedClient(null)
@@ -1026,6 +1045,144 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }
   }
 
+  const generatePDFForViewing = async () => {
+    if (!quotation) return;
+    
+    try {
+      setPdfLoading(true)
+      
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
+
+      // Prepare items data with section headings and improved formatting (same as working download PDF)
+      const items: any[] = [];
+      const grouped = quotation.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof quotation.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Section mapping
+        const sectionLabels: { [key: string]: string } = {
+          cabinet: quotation.section_names?.cabinet || "General",
+          worktop: quotation.section_names?.worktop || "Worktop", 
+          accessories: quotation.section_names?.accessories || "Accessories",
+          appliances: quotation.section_names?.appliances || "Appliances",
+          wardrobes: quotation.section_names?.wardrobes || "Wardrobes",
+          tvunit: quotation.section_names?.tvunit || "TV Unit"
+        };
+
+        const sectionLabel = sectionLabels[category] || category;
+
+        // Insert section header
+        const sectionHeaderRow = {
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: sectionLabel,
+          unitPrice: "",
+          total: ""
+        };
+        items.push(sectionHeaderRow);
+
+        // Insert items for this section
+        let itemNumber = 1;
+        itemsInCategory.forEach((item: any) => {
+          const itemRow = {
+            itemNumber: itemNumber.toString(),
+            quantity: item.quantity?.toString() || "",
+            unit: item.unit || "",
+            description: item.description || "",
+            unitPrice: item.unit_price?.toFixed(2) || "",
+            total: item.total_price?.toFixed(2) || ""
+          };
+          items.push(itemRow);
+          itemNumber++;
+        });
+
+        // Insert section summary row after all items in this section
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        
+        const summaryRow = {
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
+          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+        };
+        
+        items.push(summaryRow);
+      });
+
+      // Parse terms and conditions from database
+      const parseTermsAndConditions = (termsText: string) => {
+        return (termsText || "").split('\n').filter(line => line.trim());
+      };
+
+      // Prepare quotation data (same as working download PDF)
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: quotation.client?.name || "",
+        siteLocation: quotation.client?.location || "",
+        mobileNo: quotation.client?.phone || "",
+        date: new Date(quotation.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: quotation.quotation_number,
+        items,
+        subtotal: quotation.total_amount || 0,
+        vat: quotation.vat_amount || 0,
+        vatPercentage: quotation.vat_percentage || 16,
+        total: quotation.grand_total || 0,
+        notes: quotation.notes || "",
+        terms: parseTermsAndConditions(quotation.terms_conditions || ""),
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+      
+      // Create blob URL for viewing
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Clean up previous URL
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+      
+      setPdfUrl(url);
+      
+    } catch (error) {
+      console.error('Error generating PDF for viewing:', error);
+      toast.error("Failed to generate PDF for viewing. Please try again.");
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   const handleSave = async () => {
     if (!selectedClient) {
       toast.error("Please select a client")
@@ -1203,7 +1360,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-xl modal-dialog-centered">
+      <div 
+        className={`modal-dialog ${mode === "view" && pdfUrl ? "" : "modal-xl"} modal-dialog-centered`}
+        style={mode === "view" && pdfUrl ? {
+          maxWidth: "794px", // A4 width at 96 DPI (210mm = 794px)
+          width: "794px",
+          margin: "1.75rem auto"
+        } : {}}
+      >
         <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
           {/* Header */}
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
@@ -1223,7 +1387,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
                   {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
             </h5>
-                <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
+                {mode !== "view" && (
+                  <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
+                )}
               </div>
             </div>
             <button
@@ -1235,8 +1401,42 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               </div>
 
           {/* Body */}
-          <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
-            {/* Client and Quotation Number Section */}
+          <div className="modal-body" style={{ 
+            padding: mode === "view" && pdfUrl ? "0" : "0 32px 24px", 
+            maxHeight: "70vh", 
+            overflowY: mode === "view" && pdfUrl ? "hidden" : "auto",
+            display: "flex",
+            justifyContent: "center"
+          }}>
+            {mode === "view" && pdfUrl ? (
+              <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
+                <iframe
+                  src={pdfUrl}
+                  style={{
+                    width: "794px", // Exact A4 width
+                    height: "70vh",
+                    border: "none",
+                    borderRadius: "0"
+                  }}
+                  title="Quotation PDF"
+                />
+              </div>
+            ) : mode === "view" && pdfLoading ? (
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "center", 
+                alignItems: "center", 
+                height: "50vh",
+                flexDirection: "column"
+              }}>
+                <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p className="mt-3 text-muted">Generating PDF...</p>
+              </div>
+            ) : (
+              <>
+                {/* Client and Quotation Number Section */}
             <div className="row mb-4">
               <div className="col-md-8">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -3286,56 +3486,71 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 </div>
               </div>
             </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
           <div className="modal-footer border-0" style={{ padding: "16px 32px 24px" }}>
-            <button
-              type="button"
-              className="btn btn-light"
-              onClick={onClose}
-              style={{ borderRadius: "12px", padding: "10px 24px" }}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            {mode === "view" && (
-              <button
-                type="button"
-                className="btn btn-success me-2"
-                onClick={generatePDF}
-                style={{ 
-                  borderRadius: "12px", 
-                  padding: "10px 24px",
-                  background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
-                  border: "none"
-                }}
-              >
-                <Download className="me-2" size={16} />
-                Download PDF
-              </button>
+            {mode === "view" ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={onClose}
+                  style={{ borderRadius: "12px", padding: "10px 24px" }}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={generatePDF}
+                  style={{ 
+                    borderRadius: "12px", 
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                    border: "none"
+                  }}
+                >
+                  <Download className="me-2" size={16} />
+                  Download
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={onClose}
+                  style={{ borderRadius: "12px", padding: "10px 24px" }}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  style={{ 
+                    borderRadius: "12px", 
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none"
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Quotation"
+                  )}
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSave}
-              style={{ 
-                borderRadius: "12px", 
-                padding: "10px 24px",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                border: "none"
-              }}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Saving...
-                </>
-              ) : (
-                "Save Quotation"
-              )}
-            </button>
           </div>
         </div>
       </div>

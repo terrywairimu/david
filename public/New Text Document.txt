@@ -1,0 +1,6 @@
+Item - numbering chronologically eg 1  for 1st item row then 2...
+Description -map to items
+Unit - map to unit or units of measuremnts
+Qty - map to quantity or qty
+Unit Price- map to unit price
+Total - map to amount or total row a specific row 
