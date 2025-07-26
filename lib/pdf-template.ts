@@ -211,14 +211,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   // Merge default values with provided data
   const mergedData = { ...defaultValues, ...data };
   
-  console.log('PDF Template Debug - Data merging:', {
-    defaultVat: defaultValues.vat,
-    defaultVatPercentage: defaultValues.vatPercentage,
-    providedVat: data.vat,
-    providedVatPercentage: data.vatPercentage,
-    mergedVat: mergedData.vat,
-    mergedVatPercentage: mergedData.vatPercentage
-  });
+
 
   // Transform items to table row format for the template, supporting section headings
   const tableRows: { isSection: boolean, isSectionSummary?: boolean, row: string[] }[] = (mergedData.items || []).map((item, idx) => {
@@ -251,12 +244,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     }
   });
 
-  // Debug: Log the transformed table rows
-  console.log('Transformed table rows:', tableRows);
-  console.log('mergedData.section_names:', mergedData.section_names);
-  console.log('mergedData.items:', mergedData.items);
-  console.log('Section headers in mergedData.items:', (mergedData.items || []).filter(item => item.isSection));
-  console.log('Section summaries in mergedData.items:', (mergedData.items || []).filter(item => item.isSectionSummary));
+
 
   // Calculate dynamic footer height based on terms
   const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
@@ -289,43 +277,26 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     rowIndex += rowsForThisPage;
   }
   
-  console.log('Layout Debug - Space calculations:', {
-    firstPageAvailable: firstPageAvailable,
-    firstPageRows: firstPageRows,
-    firstPageActualRows: firstPageActualRows,
-    otherPageAvailable: otherPageAvailable,
-    otherPageRows: otherPageRows,
-    totalRows: tableRows.length,
-    totalPages: pages.length
-  });
-  
-  pages.forEach((pageRows, idx) => {
-    console.log(`Page ${idx + 1}: ${pageRows.length} rows`);
-  });
-  
-  // Debug: Log the distribution of section summary rows across pages
-  pages.forEach((pageRows, pageIdx) => {
-    const sectionSummaryRows = pageRows.filter(row => row.isSectionSummary);
-    console.log(`Page ${pageIdx + 1} has ${sectionSummaryRows.length} section summary rows:`, sectionSummaryRows.map(row => row.row[4]));
-  });
 
-  // Build schemas for all pages
+  
+
+
+  // Build schemas for all pages (with async yielding for performance)
   let schemas: any[][] = [];
-  pages.forEach((rows: Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>, pageIdx: number) => {
+  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+    const rows = pages[pageIdx];
+    
+    // Yield control to prevent blocking main thread
+    if (pageIdx > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
     let pageSchemas: any[] = [];
     
     // Add watermark logo to every page as background
     const watermarkSchema = quotationTemplate.schemas[0].filter((s: any) => s.name === 'watermarkLogo');
     pageSchemas.push(...watermarkSchema);
     
-    // Debug: Log watermark schema addition
-    if (pageIdx === 0) {
-      console.log('PDF Template Debug - Watermark schema added to page:', {
-        pageIndex: pageIdx,
-        watermarkSchemaFound: watermarkSchema.length > 0,
-        watermarkSchema: watermarkSchema[0]
-      });
-    }
+
     
     // Header (first page only)
     if (pageIdx === 0) {
@@ -388,14 +359,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       const footerStartY = lastRowY + 10; // 10mm spacing after last row
       const footerY = Math.min(footerStartY, pageHeight - bottomMargin - dynamicFooterHeight);
       
-      console.log('Footer positioning debug:', {
-        pageIndex: pageIdx,
-        tableHeaderY,
-        lastRowY,
-        footerStartY,
-        footerY,
-        rowsOnLastPage: rows.length
-      });
+
       
       pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
         'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
@@ -414,10 +378,10 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       });
     }
     schemas.push(pageSchemas);
-  });
+  }
 
-  // Deep clone the template before patching
-  const templateClone = deepClone(quotationTemplate);
+  // Efficiently clone the template before patching
+  const templateClone = cloneTemplate(quotationTemplate);
 
   // Calculate the widest client info line (label + value)
   const clientInfoFontSize = 10;
@@ -456,20 +420,17 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     return s;
   });
 
-  // Debug logs
-  console.log('Calculated clientInfoBoxWidth:', clientInfoBoxWidth);
-  const patchedBox = templateClone.schemas[0].find((s: any) => s.name === 'clientInfoBox');
-  console.log('Patched schema width for clientInfoBox:', patchedBox ? patchedBox.width : 'not found');
 
-  // Build dynamic row values for inputs
+
+  // Build dynamic row values for inputs (optimized)
   const dynamicRowInputs: Record<string, string> = {};
-  pages.forEach((rows: Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>, pageIdx: number) => {
+  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+    const rows = pages[pageIdx];
     rows.forEach((rowObj, rowIdx) => {
       if (rowObj.isSection) {
         dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = rowObj.row[1];
       } else if (rowObj.isSectionSummary) {
-        console.log('Creating section summary inputs for row:', rowIdx, 'with content:', rowObj.row[1], rowObj.row[5]);
-        console.log('Section summary inputs rowObj:', rowObj);
+  
         // Format section summary values with currency formatting for inputs
         dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = rowObj.row[1] !== "" ? rowObj.row[1] + ":" : "";
         dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
@@ -483,33 +444,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         dynamicRowInputs[`total${pageIdx}_${rowIdx}`] = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
       }
     });
-  });
+  }
 
-  // Debug logging
-  console.log('PDF Template Debug - mergedData:', {
-    subtotal: mergedData.subtotal,
-    vat: mergedData.vat,
-    vatPercentage: mergedData.vatPercentage,
-    total: mergedData.total
-  });
 
-  // Debug logging for currency formatting
-  console.log('PDF Template Debug - Currency formatting:', {
-    subtotal: mergedData.subtotal,
-    vat: mergedData.vat,
-    total: mergedData.total,
-    formattedSubtotal: formatCurrency(mergedData.subtotal),
-    formattedVat: formatCurrency(mergedData.vat),
-    formattedTotal: formatCurrency(mergedData.total)
-  });
-
-  // Debug logging for watermark logo
-  console.log('PDF Template Debug - Watermark logo:', {
-    hasWatermarkLogo: !!mergedData.watermarkLogo,
-    watermarkLogoLength: mergedData.watermarkLogo ? mergedData.watermarkLogo.length : 0,
-    watermarkLogoPreview: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 50) + '...' : 'none',
-    watermarkLogoStartsWith: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 20) : 'none'
-  });
 
   // Create input values for the template
   const inputs = [
@@ -561,32 +498,3 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   };
 };
 
-// Test function using jsPDF to see if watermark works with a different library
-export const testJSPDFWatermark = async (watermarkBase64: string) => {
-  const { jsPDF } = await import('jspdf');
-  
-  const doc = new jsPDF();
-  
-  // Add some test content
-  doc.setFontSize(20);
-  doc.text('Test Document', 20, 20);
-  doc.setFontSize(12);
-  doc.text('This is a test to see if watermark works with jsPDF', 20, 40);
-  
-  // Try to add watermark
-  if (watermarkBase64) {
-    try {
-      // Remove the data:image/png;base64, prefix if present
-      const base64Data = watermarkBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-      
-      // Add watermark as background
-      doc.addImage(base64Data, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
-      
-      console.log('jsPDF watermark test: Added watermark image');
-    } catch (error) {
-      console.error('jsPDF watermark test error:', error);
-    }
-  }
-  
-  return doc.output('blob');
-};

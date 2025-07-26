@@ -464,12 +464,9 @@ const QuotationsView = () => {
         return acc;
       }, {} as Record<string, typeof quotation.items>) || {};
 
-      // Debug: Log the grouped items structure
-      console.log('Grouped items by category:', grouped);
+
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
-        // Debug: Log each category and its items
-        console.log(`Processing category: ${category}`, itemsInCategory);
         
         // Use dynamic section name if available, type-safe
         const allowedKeys = [
@@ -491,8 +488,7 @@ const QuotationsView = () => {
           total: ""
         });
         
-        // Debug: Log section heading added
-        console.log(`Added section heading for ${category}:`, items[items.length - 1]);
+
         
         // Insert all items in this category, numbering starts from 1
         itemsInCategory.forEach((item, idx) => {
@@ -522,7 +518,7 @@ const QuotationsView = () => {
             total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
           };
           items.push(worktopLaborItem);
-          console.log('Added worktop labor item:', worktopLaborItem);
+          // Worktop labor item added
         }
         
         // Insert section summary row after all items in this section
@@ -601,32 +597,7 @@ const QuotationsView = () => {
     }
   };
 
-  const handleTestJSPDF = async (quotation: Quotation) => {
-    try {
-      const { testJSPDFWatermark, imageToBase64 } = await import('@/lib/pdf-template');
-      
-      // Convert watermark logo to base64
-      const watermarkBase64 = await imageToBase64('/logo.png');
-      
-      console.log('Testing jsPDF watermark with:', {
-        hasWatermarkBase64: !!watermarkBase64,
-        watermarkLength: watermarkBase64 ? watermarkBase64.length : 0
-      });
-      
-      const blob = await testJSPDFWatermark(watermarkBase64);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'test-jsPDF-watermark.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-      console.error('Error testing jsPDF watermark:', error);
-      toast.error("Failed to test jsPDF watermark. Please try again.");
-    }
-  };
+
 
   const handleDownload = async (quotation: Quotation) => {
     try {
@@ -639,12 +610,7 @@ const QuotationsView = () => {
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
       
-      // Debug: Log watermark logo loading
-      console.log('Watermark logo debug:', {
-        hasWatermarkBase64: !!watermarkBase64,
-        watermarkLength: watermarkBase64 ? watermarkBase64.length : 0,
-        watermarkStartsWith: watermarkBase64 ? watermarkBase64.substring(0, 30) : 'none'
-      });
+
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
@@ -654,12 +620,10 @@ const QuotationsView = () => {
       }, {} as Record<string, typeof quotation.items>) || {};
 
       // Debug: Log the grouped items structure
-      console.log('Grouped items by category:', grouped);
+
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
         // Debug: Log each category and its items
-        console.log(`Processing category: ${category}`, itemsInCategory);
-        
         // Use dynamic section name if available, type-safe
         const allowedKeys = [
           'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
@@ -681,7 +645,7 @@ const QuotationsView = () => {
         });
         
         // Debug: Log section heading added
-        console.log(`Added section heading for ${category}:`, items[items.length - 1]);
+        // Section heading added
         
         // Insert all items in this category, numbering starts from 1
         itemsInCategory.forEach((item, idx) => {
@@ -697,7 +661,7 @@ const QuotationsView = () => {
         });
         
         // Debug: Log items added for this category
-        console.log(`Added ${itemsInCategory.length} items for ${category}`);
+
         
         // Special handling for worktop category: add worktop labor item if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
@@ -711,7 +675,7 @@ const QuotationsView = () => {
             total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
           };
           items.push(worktopLaborItem);
-          console.log('Added worktop labor item:', worktopLaborItem);
+          // Worktop labor item added
         }
         
         // Insert section summary row after all items in this section
@@ -996,14 +960,7 @@ const QuotationsView = () => {
                         >
                           <FileText size={14} />
                         </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleTestJSPDF(quotation)}
-                          title="Test jsPDF Watermark"
-                          style={{ backgroundColor: '#ff6b6b', color: 'white' }}
-                        >
-                          <FileText size={14} />
-                        </button>
+
                         
                         {quotation.status === "accepted" && (
                           <>
