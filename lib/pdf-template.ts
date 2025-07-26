@@ -23,6 +23,7 @@ export const quotationTemplate = {
       { name: 'dateLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'dateValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'quotationNoFull', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
       { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
       // Table header with Item number column
       { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 12, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
@@ -45,7 +46,6 @@ export const quotationTemplate = {
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
       { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'approvedByLine', type: 'line', position: { x: 145, y: 283 }, width: 60, height: 0, color: '#000' },
-      { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 135 }, width: 90, height: 90 },
     ]
   ]
 };
@@ -293,6 +293,20 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   let schemas: any[][] = [];
   pages.forEach((rows: Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>, pageIdx: number) => {
     let pageSchemas: any[] = [];
+    
+    // Add watermark logo to every page as background
+    const watermarkSchema = quotationTemplate.schemas[0].filter((s: any) => s.name === 'watermarkLogo');
+    pageSchemas.push(...watermarkSchema);
+    
+    // Debug: Log watermark schema addition
+    if (pageIdx === 0) {
+      console.log('PDF Template Debug - Watermark schema added to page:', {
+        pageIndex: pageIdx,
+        watermarkSchemaFound: watermarkSchema.length > 0,
+        watermarkSchema: watermarkSchema[0]
+      });
+    }
+    
     // Header (first page only)
     if (pageIdx === 0) {
       pageSchemas.push(...quotationTemplate.schemas[0].filter((s: any) => [
@@ -460,7 +474,8 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   console.log('PDF Template Debug - Watermark logo:', {
     hasWatermarkLogo: !!mergedData.watermarkLogo,
     watermarkLogoLength: mergedData.watermarkLogo ? mergedData.watermarkLogo.length : 0,
-    watermarkLogoPreview: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 50) + '...' : 'none'
+    watermarkLogoPreview: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 50) + '...' : 'none',
+    watermarkLogoStartsWith: mergedData.watermarkLogo ? mergedData.watermarkLogo.substring(0, 20) : 'none'
   });
 
   // Create input values for the template
@@ -511,4 +526,34 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     },
     inputs
   };
+};
+
+// Test function using jsPDF to see if watermark works with a different library
+export const testJSPDFWatermark = async (watermarkBase64: string) => {
+  const { jsPDF } = await import('jspdf');
+  
+  const doc = new jsPDF();
+  
+  // Add some test content
+  doc.setFontSize(20);
+  doc.text('Test Document', 20, 20);
+  doc.setFontSize(12);
+  doc.text('This is a test to see if watermark works with jsPDF', 20, 40);
+  
+  // Try to add watermark
+  if (watermarkBase64) {
+    try {
+      // Remove the data:image/png;base64, prefix if present
+      const base64Data = watermarkBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      
+      // Add watermark as background
+      doc.addImage(base64Data, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+      
+      console.log('jsPDF watermark test: Added watermark image');
+    } catch (error) {
+      console.error('jsPDF watermark test error:', error);
+    }
+  }
+  
+  return doc.output('blob');
 };

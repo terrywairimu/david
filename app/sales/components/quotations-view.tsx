@@ -601,6 +601,33 @@ const QuotationsView = () => {
     }
   };
 
+  const handleTestJSPDF = async (quotation: Quotation) => {
+    try {
+      const { testJSPDFWatermark, imageToBase64 } = await import('@/lib/pdf-template');
+      
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logo.png');
+      
+      console.log('Testing jsPDF watermark with:', {
+        hasWatermarkBase64: !!watermarkBase64,
+        watermarkLength: watermarkBase64 ? watermarkBase64.length : 0
+      });
+      
+      const blob = await testJSPDFWatermark(watermarkBase64);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'test-jsPDF-watermark.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error testing jsPDF watermark:', error);
+      toast.error("Failed to test jsPDF watermark. Please try again.");
+    }
+  };
+
   const handleDownload = async (quotation: Quotation) => {
     try {
       const { generate } = await import('@pdfme/generator');
@@ -611,6 +638,13 @@ const QuotationsView = () => {
       const logoBase64 = await imageToBase64('/logo.png');
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
+      
+      // Debug: Log watermark logo loading
+      console.log('Watermark logo debug:', {
+        hasWatermarkBase64: !!watermarkBase64,
+        watermarkLength: watermarkBase64 ? watermarkBase64.length : 0,
+        watermarkStartsWith: watermarkBase64 ? watermarkBase64.substring(0, 30) : 'none'
+      });
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
@@ -959,6 +993,14 @@ const QuotationsView = () => {
                           className="btn btn-sm action-btn"
                           onClick={() => handleDownload(quotation)}
                           title="Download"
+                        >
+                          <FileText size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleTestJSPDF(quotation)}
+                          title="Test jsPDF Watermark"
+                          style={{ backgroundColor: '#ff6b6b', color: 'white' }}
                         >
                           <FileText size={14} />
                         </button>
