@@ -1361,7 +1361,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
       <div 
-        className={`modal-dialog ${mode === "view" && pdfUrl ? "" : "modal-xl"} modal-dialog-centered`}
+        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
           maxWidth: "794px", // A4 width at 96 DPI (210mm = 794px)
           width: "794px",
@@ -1401,14 +1401,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               </div>
 
           {/* Body */}
-          <div className="modal-body" style={{ 
-            padding: mode === "view" && pdfUrl ? "0" : "0 32px 24px", 
-            maxHeight: "70vh", 
-            overflowY: mode === "view" && pdfUrl ? "hidden" : "auto",
-            display: "flex",
-            justifyContent: "center"
-          }}>
-            {mode === "view" && pdfUrl ? (
+          {mode === "view" && pdfUrl ? (
+            <div className="modal-body" style={{ 
+              padding: "0", 
+              maxHeight: "70vh", 
+              overflowY: "hidden",
+              display: "flex",
+              justifyContent: "center"
+            }}>
               <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
                 <iframe
                   src={pdfUrl}
@@ -1421,7 +1421,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   title="Quotation PDF"
                 />
               </div>
-            ) : mode === "view" && pdfLoading ? (
+            </div>
+          ) : mode === "view" && pdfLoading ? (
+            <div className="modal-body" style={{ 
+              padding: "0 32px 24px", 
+              maxHeight: "70vh", 
+              overflowY: "auto",
+              display: "flex",
+              justifyContent: "center"
+            }}>
               <div style={{ 
                 display: "flex", 
                 justifyContent: "center", 
@@ -1434,9 +1442,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 </div>
                 <p className="mt-3 text-muted">Generating PDF...</p>
               </div>
-            ) : (
-              <>
-                {/* Client and Quotation Number Section */}
+            </div>
+          ) : (
+            <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
+              {/* Client and Quotation Number Section */}
             <div className="row mb-4">
               <div className="col-md-8">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -3486,9 +3495,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 </div>
               </div>
             </div>
-              </>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="modal-footer border-0" style={{ padding: "16px 32px 24px" }}>
