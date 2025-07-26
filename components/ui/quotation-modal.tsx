@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -134,7 +134,6 @@ const generateQuotationNumber = async () => {
     }
     return `QT${year}${month}${nextNumber.toString().padStart(3, '0')}`
   } catch (error) {
-    console.error('Error generating quotation number:', error)
     const timestamp = Date.now().toString().slice(-3)
     const now = new Date()
     const year = now.getFullYear().toString().slice(-2)
@@ -143,13 +142,13 @@ const generateQuotationNumber = async () => {
   }
 }
 
-const QuotationModal = ({
+const QuotationModal: React.FC<QuotationModalProps> = ({
   isOpen,
   onClose,
   onSave,
   quotation,
   mode = "create"
-}: QuotationModalProps) => {
+}) => {
   const [quotationNumber, setQuotationNumber] = useState("")
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [clients, setClients] = useState<Client[]>([])
@@ -376,35 +375,52 @@ const QuotationModal = ({
   }, [isOpen, mode, quotation]);
 
   useEffect(() => {
-    // Update filtered items when searches change
-    const newFilteredItems: {[key: string]: StockItem[]} = {}
-    Object.keys(itemSearches).forEach(itemId => {
-      const search = itemSearches[itemId]
-      if (search.trim() === "") {
-        newFilteredItems[itemId] = stockItems
-      } else {
-        newFilteredItems[itemId] = stockItems.filter(stockItem => 
-          stockItem.name.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.description?.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.sku?.toLowerCase().includes(search.toLowerCase())
-        )
-      }
-    })
-    setFilteredStockItems(newFilteredItems)
+    // Debounce expensive filtering operations to prevent main thread blocking
+    const timeoutId = setTimeout(() => {
+      const newFilteredItems: {[key: string]: StockItem[]} = {}
+      Object.keys(itemSearches).forEach(itemId => {
+        const search = itemSearches[itemId]
+        if (search.trim() === "") {
+          newFilteredItems[itemId] = stockItems
+        } else {
+          // Optimize filtering by pre-converting to lowercase once
+          const searchLower = search.toLowerCase()
+          newFilteredItems[itemId] = stockItems.filter(stockItem => {
+            const nameLower = stockItem.name.toLowerCase()
+            const descLower = stockItem.description?.toLowerCase() || ""
+            const skuLower = stockItem.sku?.toLowerCase() || ""
+            return nameLower.includes(searchLower) || 
+                   descLower.includes(searchLower) || 
+                   skuLower.includes(searchLower)
+          })
+        }
+      })
+      setFilteredStockItems(newFilteredItems)
+    }, 150) // 150ms debounce to prevent blocking
+
+    return () => clearTimeout(timeoutId)
   }, [itemSearches, stockItems])
 
-  // Filter clients based on search
+  // Filter clients based on search with debouncing
   useEffect(() => {
-    if (clientSearchTerm.trim() === "") {
-      setFilteredClients(clients)
-    } else {
-      const filtered = clients.filter(client => 
-        client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-        client.phone?.includes(clientSearchTerm) ||
-        client.location?.toLowerCase().includes(clientSearchTerm.toLowerCase())
-      )
-      setFilteredClients(filtered)
-    }
+    const timeoutId = setTimeout(() => {
+      if (clientSearchTerm.trim() === "") {
+        setFilteredClients(clients)
+      } else {
+        // Optimize client filtering
+        const searchLower = clientSearchTerm.toLowerCase()
+        const filtered = clients.filter(client => {
+          const nameLower = client.name.toLowerCase()
+          const locationLower = client.location?.toLowerCase() || ""
+          return nameLower.includes(searchLower) ||
+                 client.phone?.includes(clientSearchTerm) ||
+                 locationLower.includes(searchLower)
+        })
+        setFilteredClients(filtered)
+      }
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [clientSearchTerm, clients])
 
   const resetForm = () => {
@@ -464,7 +480,6 @@ const QuotationModal = ({
       if (error) throw error
       setClients(data || [])
     } catch (error) {
-      console.error("Error fetching clients:", error)
       toast.error("Failed to fetch clients")
     }
   }
@@ -484,10 +499,10 @@ const QuotationModal = ({
         unit_price: parseFloat(item.unit_price) || 0
       }))
       
-      console.log("Fetched stock items:", processedData)
+
       setStockItems(processedData)
     } catch (error) {
-      console.error("Error fetching stock items:", error)
+
       toast.error("Failed to fetch stock items")
     }
   }
@@ -553,24 +568,26 @@ const QuotationModal = ({
 
   const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit") => {
     const newItem = createNewItem(category)
+    
+    // Use functional updates for better performance and avoiding stale closures
     switch (category) {
       case "cabinet":
-        setCabinetItems([...cabinetItems, newItem])
+        setCabinetItems(prev => [...prev, newItem])
         break
       case "worktop":
-        setWorktopItems([...worktopItems, newItem])
+        setWorktopItems(prev => [...prev, newItem])
         break
       case "accessories":
-        setAccessoriesItems([...accessoriesItems, newItem])
+        setAccessoriesItems(prev => [...prev, newItem])
         break
       case "appliances":
-        setAppliancesItems([...appliancesItems, newItem])
+        setAppliancesItems(prev => [...prev, newItem])
         break
       case "wardrobes":
-        setWardrobesItems([...wardrobesItems, newItem])
+        setWardrobesItems(prev => [...prev, newItem])
         break
       case "tvunit":
-        setTvUnitItems([...tvUnitItems, newItem])
+        setTvUnitItems(prev => [...prev, newItem])
         break
     }
   }
@@ -608,8 +625,7 @@ const QuotationModal = ({
           
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
-            console.log("Found stock item for ID", value, ":", stockItem)
-            console.log("Stock item unit_price:", stockItem?.unit_price, typeof stockItem?.unit_price)
+            
             
             updatedItem.stock_item = stockItem || undefined
             updatedItem.description = stockItem?.name || ""
@@ -617,7 +633,7 @@ const QuotationModal = ({
             updatedItem.unit_price = Number(stockItem?.unit_price) || 0
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
             
-            console.log("Updated item unit_price:", updatedItem.unit_price)
+    
           } else if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
@@ -659,8 +675,7 @@ const QuotationModal = ({
   }
 
   const selectStockItem = (itemId: string, stockItem: StockItem) => {
-    console.log("Selecting stock item:", stockItem)
-    console.log("Stock item unit_price:", stockItem.unit_price, typeof stockItem.unit_price)
+    
     
     // Find which category this item belongs to and get the correct index within that category
     let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
@@ -709,7 +724,7 @@ const QuotationModal = ({
     }
     
     if (category && index !== -1) {
-      console.log(`Updating ${category} item at index ${index}`)
+
       
       // Single call to updateItem with stock_item_id will automatically populate all fields
       updateItem(category, index, "stock_item_id", stockItem.id)
@@ -717,42 +732,11 @@ const QuotationModal = ({
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
     } else {
-      console.error("Could not find item with ID:", itemId)
+
     }
   }
 
-  const calculateTotals = () => {
-    const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
-    const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
-    const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
-    
-    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
-    
-    // Calculate individual labour amounts (no worktopLabour)
-    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
-    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
-    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
-    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
-    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
-    
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
-    const grandTotal = subtotal + totalLabour
 
-    return {
-      cabinetTotal,
-      worktopTotal,
-      accessoriesTotal,
-      appliancesTotal,
-      wardrobesTotal,
-      tvUnitTotal,
-      subtotal,
-      labourAmount: totalLabour,
-      grandTotal
-    }
-  }
 
   const getFilteredItems = (itemId: string) => {
     return filteredStockItems[itemId] || stockItems
@@ -760,15 +744,14 @@ const QuotationModal = ({
 
   const generatePDF = async () => {
     alert('generatePDF function called');
-    console.log('generatePDF function called');
+
     try {
-      console.log('Starting PDF generation...');
+  
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
       
       // Use the same calculation as the UI display for consistency
-      const totals = calculateTotals();
       const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
       const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
       const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
@@ -780,35 +763,11 @@ const QuotationModal = ({
       
       // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
       const vatPercentageNum = Number(vatPercentage);
-      console.log('VAT Calculation Test:', {
-        subtotalWithLabour,
-        vatPercentage,
-        vatPercentageNum,
-        vatPercentageType: typeof vatPercentage,
-        calculation: `${subtotalWithLabour} - (${subtotalWithLabour} / (1 + ${vatPercentageNum} / 100))`,
-        result: subtotalWithLabour - (subtotalWithLabour / (1 + vatPercentageNum / 100))
-      });
       
       // Reverse calculate VAT: if total includes VAT, extract the VAT amount
       const originalAmount = subtotalWithLabour / (1 + (vatPercentageNum / 100));
       const vat = subtotalWithLabour - originalAmount;
       const grandTotal = subtotalWithLabour; // Grand total remains the same
-      
-      console.log('PDF Generation Debug - Detailed:', {
-        totals_subtotal: totals.subtotal,
-        cabinetLabour,
-        accessoriesLabour,
-        appliancesLabour,
-        wardrobesLabour,
-        tvUnitLabour,
-        subtotalWithLabour,
-        vatPercentage,
-        vat,
-        grandTotal,
-        calculation: `${subtotalWithLabour} * (${vatPercentage} / 100) = ${vat}`
-      });
-      
-
       
       // Prepare items data as objects for QuotationData with custom section names
       const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
@@ -1017,7 +976,7 @@ const QuotationModal = ({
         });
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      console.log('watermarkLogoBase64:', watermarkLogoBase64?.slice(0, 100));
+
       // Prepare quotation data
       const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -1042,19 +1001,7 @@ const QuotationModal = ({
         watermarkLogo: watermarkLogoBase64,
         companyLogo: watermarkLogoBase64,
       };
-      console.log('quotationData:', quotationData);
-      console.log('sectionNames being passed:', sectionNames);
-      console.log('items array for PDF:', items);
-      console.log('Section headers in items:', items.filter(item => item.isSection));
-      console.log('Section summaries in items:', items.filter(item => item.isSectionSummary));
-      console.log('Current sectionNames state:', sectionNames);
-      console.log('Current editingSection state:', editingSection);
-      console.log('Debug totals:', {
-        subtotal: subtotalWithLabour,
-        vat: vat,
-        vatPercentage: vatPercentage,
-        total: grandTotal
-      });
+
       
       // Generate PDF using PDF.me template
       const { template, inputs } = await generateQuotationPDF(quotationData);
@@ -1074,7 +1021,7 @@ const QuotationModal = ({
       toast.success("PDF generated successfully!");
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+
       toast.error("Failed to generate PDF. Please try again.");
     }
   }
@@ -1092,8 +1039,6 @@ const QuotationModal = ({
 
     setLoading(true)
     try {
-    const totals = calculateTotals()
-      
       // Add labour item to cabinet items if not exists
       let finalCabinetItems = [...cabinetItems].filter(item => !item.description.includes("Labour Charge"));
       
@@ -1131,29 +1076,6 @@ const QuotationModal = ({
     const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
     const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
     const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
-    
-    console.log('handleSave VAT Calculation Debug:', {
-      totals_subtotal: totals.subtotal,
-      saveCabinetLabour,
-      saveAccessoriesLabour,
-      saveAppliancesLabour,
-      saveWardrobesLabour,
-      saveTvUnitLabour,
-      saveSubtotalWithLabour,
-      vatPercentage,
-      saveVatPercentageNum,
-      saveOriginalAmount,
-      saveVatAmount,
-      saveGrandTotalWithVAT,
-      calculation: `${saveSubtotalWithLabour} - (${saveSubtotalWithLabour} / (1 + ${saveVatPercentageNum} / 100))`
-    });
-    
-    console.log('handleSave Final quotationData:', {
-      total_amount: saveOriginalAmount,
-      grand_total: saveSubtotalWithLabour,
-      vat_amount: saveVatAmount,
-      vat_percentage: saveVatPercentageNum
-    });
 
     const quotationData = {
       quotation_number: quotationNumber,
@@ -1197,7 +1119,7 @@ const QuotationModal = ({
     await onSave(quotationData)
     onClose()
     } catch (error) {
-      console.error("Error saving quotation:", error)
+
       toast.error("Failed to save quotation")
     } finally {
       setLoading(false)
@@ -1216,7 +1138,50 @@ const QuotationModal = ({
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
 
-  const totals = calculateTotals()
+  // Memoize expensive calculations to prevent performance issues (after all dependencies are declared)
+  const totals = useMemo(() => {
+    const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
+    const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
+    const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
+    
+    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
+    
+    // Calculate individual labour amounts (no worktopLabour)
+    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
+    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
+    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
+    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
+    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
+    
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
+    const grandTotal = subtotal + totalLabour
+
+    return {
+      cabinetTotal,
+      worktopTotal,
+      accessoriesTotal,
+      appliancesTotal,
+      wardrobesTotal,
+      tvUnitTotal,
+      subtotal,
+      labourAmount: totalLabour,
+      grandTotal,
+      cabinetLabour,
+      accessoriesLabour,
+      appliancesLabour,
+      wardrobesLabour,
+      tvUnitLabour
+    }
+  }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
+      includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
+      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
+  
+  // Legacy function for backward compatibility - now just returns memoized values
+  const calculateTotals = () => totals
+
   const isReadOnly = mode === "view"
 
   if (!isOpen) return null
@@ -1593,7 +1558,7 @@ const QuotationModal = ({
                           />
                         </div>
                         <div style={{ flex: "1", marginRight: "16px" }}></div>
-                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().cabinetTotal * (cabinetLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.cabinetLabour.toFixed(2)}</div>
                         {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                       </div>
                     )}
@@ -2239,7 +2204,7 @@ const QuotationModal = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().accessoriesTotal * (accessoriesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -2545,7 +2510,7 @@ const QuotationModal = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().appliancesTotal * (appliancesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.appliancesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -2851,7 +2816,7 @@ const QuotationModal = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -3157,7 +3122,7 @@ const QuotationModal = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {((calculateTotals().tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}

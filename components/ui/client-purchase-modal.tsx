@@ -512,31 +512,47 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
   }, [isOpen, mode, purchase])
 
   useEffect(() => {
-    // Filter clients based on search
-    const filtered = clients.filter(client =>
-      client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      client.phone?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      client.location?.toLowerCase().includes(clientSearch.toLowerCase())
-    )
-    setFilteredClients(filtered)
+    // Filter clients based on search with debouncing
+    const timeoutId = setTimeout(() => {
+      const searchLower = clientSearch.toLowerCase()
+      const filtered = clients.filter(client => {
+        const nameLower = client.name.toLowerCase()
+        const phoneLower = client.phone?.toLowerCase() || ""
+        const locationLower = client.location?.toLowerCase() || ""
+        return nameLower.includes(searchLower) ||
+               phoneLower.includes(searchLower) ||
+               locationLower.includes(searchLower)
+      })
+      setFilteredClients(filtered)
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [clientSearch, clients])
 
-  // Filter stock items for each item row
+  // Filter stock items for each item row with debouncing
   useEffect(() => {
-    const newFilteredItems: {[key: number]: StockItem[]} = {}
-    items.forEach(item => {
-      const search = itemSearches[item.id] || ""
-      if (search.trim() === "") {
-        newFilteredItems[item.id] = stockItems
-      } else {
-        newFilteredItems[item.id] = stockItems.filter(stockItem => 
-          stockItem.name.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.description?.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.sku?.toLowerCase().includes(search.toLowerCase())
-        )
-      }
-    })
-    setFilteredStockItems(newFilteredItems)
+    const timeoutId = setTimeout(() => {
+      const newFilteredItems: {[key: number]: StockItem[]} = {}
+      items.forEach(item => {
+        const search = itemSearches[item.id] || ""
+        if (search.trim() === "") {
+          newFilteredItems[item.id] = stockItems
+        } else {
+          const searchLower = search.toLowerCase()
+          newFilteredItems[item.id] = stockItems.filter(stockItem => {
+            const nameLower = stockItem.name.toLowerCase()
+            const descLower = stockItem.description?.toLowerCase() || ""
+            const skuLower = stockItem.sku?.toLowerCase() || ""
+            return nameLower.includes(searchLower) ||
+                   descLower.includes(searchLower) ||
+                   skuLower.includes(searchLower)
+          })
+        }
+      })
+      setFilteredStockItems(newFilteredItems)
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [itemSearches, stockItems, items])
 
   useEffect(() => {

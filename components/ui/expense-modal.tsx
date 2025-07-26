@@ -166,13 +166,21 @@ const ExpenseModal = ({
   }
 
   useEffect(() => {
-    // Filter clients based on search
-    const filtered = clients.filter(client =>
-      client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      client.phone?.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      client.location?.toLowerCase().includes(clientSearch.toLowerCase())
-    )
-    setFilteredClients(filtered)
+    // Filter clients based on search with debouncing
+    const timeoutId = setTimeout(() => {
+      const searchLower = clientSearch.toLowerCase()
+      const filtered = clients.filter(client => {
+        const nameLower = client.name.toLowerCase()
+        const phoneLower = client.phone?.toLowerCase() || ""
+        const locationLower = client.location?.toLowerCase() || ""
+        return nameLower.includes(searchLower) ||
+               phoneLower.includes(searchLower) ||
+               locationLower.includes(searchLower)
+      })
+      setFilteredClients(filtered)
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [clientSearch, clients])
 
   useEffect(() => {

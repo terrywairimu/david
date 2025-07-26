@@ -89,15 +89,15 @@ const QuotationsView = () => {
     const quotationsSubscription = supabase
       .channel('quotations_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quotations' }, (payload) => {
-        console.log('Quotations change detected:', payload)
+
         fetchQuotations() // Refresh quotations when changes occur
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quotation_items' }, (payload) => {
-        console.log('Quotation items change detected:', payload)
+
         fetchQuotations() // Refresh quotations when items change
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
-        console.log('Registered entities change detected:', payload)
+
         fetchClients() // Refresh clients when changes occur
       })
       .subscribe()
@@ -249,13 +249,6 @@ const QuotationsView = () => {
   }
 
   const handleModalSave = async (quotationData: any) => {
-    console.log('handleModalSave - Received quotationData:', {
-      total_amount: quotationData.total_amount,
-      grand_total: quotationData.grand_total,
-      vat_amount: quotationData.vat_amount,
-      vat_percentage: quotationData.vat_percentage
-    });
-    
     try {
       if (modalMode === "create") {
         // Create new quotation
@@ -504,7 +497,7 @@ const QuotationsView = () => {
         });
         
         // Debug: Log items added for this category
-        console.log(`Added ${itemsInCategory.length} items for ${category}`);
+
         
         // Special handling for worktop category: add worktop labor item if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
@@ -529,9 +522,6 @@ const QuotationsView = () => {
           sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
         
-        // Debug: Log section total calculation
-        console.log(`Section total for ${category}:`, sectionTotal);
-        
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
@@ -543,9 +533,6 @@ const QuotationsView = () => {
         };
         
         items.push(summaryRow);
-        
-        // Debug: Log summary row added
-        console.log(`Added summary row for ${category}:`, summaryRow);
       });
 
       // Debug: Log the final items array
@@ -686,9 +673,6 @@ const QuotationsView = () => {
           sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
         
-        // Debug: Log section total calculation
-        console.log(`Section total for ${category}:`, sectionTotal);
-        
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
@@ -700,9 +684,6 @@ const QuotationsView = () => {
         };
         
         items.push(summaryRow);
-        
-        // Debug: Log summary row added
-        console.log(`Added summary row for ${category}:`, summaryRow);
       });
 
       // Debug: Log the final items array

@@ -188,36 +188,51 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setTotal(newTotal)
   }, [items])
 
-  // Filter suppliers based on search
+  // Filter suppliers based on search with debouncing
   useEffect(() => {
-    if (supplierSearch.trim() === "") {
-      setFilteredSuppliers(suppliers)
-    } else {
-      const filtered = suppliers.filter(supplier => 
-        supplier.name.toLowerCase().includes(supplierSearch.toLowerCase()) ||
-        supplier.phone?.includes(supplierSearch) ||
-        supplier.location?.toLowerCase().includes(supplierSearch.toLowerCase())
-      )
-      setFilteredSuppliers(filtered)
-    }
+    const timeoutId = setTimeout(() => {
+      if (supplierSearch.trim() === "") {
+        setFilteredSuppliers(suppliers)
+      } else {
+        const searchLower = supplierSearch.toLowerCase()
+        const filtered = suppliers.filter(supplier => {
+          const nameLower = supplier.name.toLowerCase()
+          const locationLower = supplier.location?.toLowerCase() || ""
+          return nameLower.includes(searchLower) ||
+                 supplier.phone?.includes(supplierSearch) ||
+                 locationLower.includes(searchLower)
+        })
+        setFilteredSuppliers(filtered)
+      }
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [supplierSearch, suppliers])
 
-  // Filter stock items for each item row
+  // Filter stock items for each item row with debouncing
   useEffect(() => {
-    const newFilteredItems: {[key: number]: StockItem[]} = {}
-    items.forEach(item => {
-      const search = itemSearches[item.id] || ""
-      if (search.trim() === "") {
-        newFilteredItems[item.id] = stockItems
-      } else {
-        newFilteredItems[item.id] = stockItems.filter(stockItem => 
-          stockItem.name.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.description?.toLowerCase().includes(search.toLowerCase()) ||
-          stockItem.sku?.toLowerCase().includes(search.toLowerCase())
-        )
-      }
-    })
-    setFilteredStockItems(newFilteredItems)
+    const timeoutId = setTimeout(() => {
+      const newFilteredItems: {[key: number]: StockItem[]} = {}
+      items.forEach(item => {
+        const search = itemSearches[item.id] || ""
+        if (search.trim() === "") {
+          newFilteredItems[item.id] = stockItems
+        } else {
+          const searchLower = search.toLowerCase()
+          newFilteredItems[item.id] = stockItems.filter(stockItem => {
+            const nameLower = stockItem.name.toLowerCase()
+            const descLower = stockItem.description?.toLowerCase() || ""
+            const skuLower = stockItem.sku?.toLowerCase() || ""
+            return nameLower.includes(searchLower) ||
+                   descLower.includes(searchLower) ||
+                   skuLower.includes(searchLower)
+          })
+        }
+      })
+      setFilteredStockItems(newFilteredItems)
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
   }, [itemSearches, stockItems, items])
 
   // Portal dropdowns handle their own click outside logic
