@@ -858,197 +858,251 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       const vat = subtotalWithLabour - originalAmount;
       const grandTotal = subtotalWithLabour; // Grand total remains the same
       
-      // Prepare items data as objects for QuotationData with custom section names
-      const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
+      // Prepare items data in CORRECT FORMAT for QuotationData (like quotation modal)
+      const items: any[] = [];
       
-      // Add cabinet section header and items
+      // Add cabinet section header and items - CORRECT FORMAT
       if (cabinetItems.length > 0) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.cabinet,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.cabinet,
+          unitPrice: "",
+          total: ""
         });
-        cabinetItems.forEach(item => {
+        
+        // Items
+        cabinetItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
         // Add cabinet section summary
         if (totals.cabinetTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.cabinet} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.cabinetTotal,
-            total: totals.cabinetTotal + cabinetLabour
+            description: `${sectionNames.cabinet} Total`,
+            unitPrice: "",
+            total: (totals.cabinetTotal + cabinetLabour).toFixed(2)
           });
         }
       }
       
-      // Add worktop section header and items
-      if (worktopItems.length > 0) {
+      // Add worktop section header and items - CORRECT FORMAT
+      if (worktopItems.length > 0 && includeWorktop) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.worktop,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.worktop,
+          unitPrice: "",
+          total: ""
         });
-        worktopItems.forEach(item => {
+        
+        // Items
+        worktopItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
+        // Add worktop installation labor if exists
+        if (worktopLaborQty > 0 && worktopLaborUnitPrice > 0) {
+          items.push({
+            itemNumber: (worktopItems.length + 1).toString(),
+            quantity: worktopLaborQty.toString(),
+            unit: "slab",
+            description: "Worktop Installation Labor",
+            unitPrice: worktopLaborUnitPrice.toFixed(2),
+            total: (worktopLaborQty * worktopLaborUnitPrice).toFixed(2)
+          });
+        }
+        
         // Add worktop section summary
         if (totals.worktopTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.worktop} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.worktopTotal,
-            total: totals.worktopTotal
+            description: `${sectionNames.worktop} Total`,
+            unitPrice: "",
+            total: totals.worktopTotal.toFixed(2)
           });
         }
       }
       
-      // Add accessories section header and items
-      if (accessoriesItems.length > 0) {
+      // Add accessories section header and items - CORRECT FORMAT
+      if (accessoriesItems.length > 0 && includeAccessories) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.accessories,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.accessories,
+          unitPrice: "",
+          total: ""
         });
-        accessoriesItems.forEach(item => {
+        
+        // Items
+        accessoriesItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
         // Add accessories section summary
         if (totals.accessoriesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.accessories} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.accessoriesTotal,
-            total: totals.accessoriesTotal + accessoriesLabour
+            description: `${sectionNames.accessories} Total`,
+            unitPrice: "",
+            total: (totals.accessoriesTotal + accessoriesLabour).toFixed(2)
           });
         }
       }
       
-      // Add appliances section header and items
-      if (appliancesItems.length > 0) {
+      // Add appliances section header and items - CORRECT FORMAT
+      if (appliancesItems.length > 0 && includeAppliances) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.appliances,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.appliances,
+          unitPrice: "",
+          total: ""
         });
-        appliancesItems.forEach(item => {
+        
+        // Items
+        appliancesItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
         // Add appliances section summary
         if (totals.appliancesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.appliances} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.appliancesTotal,
-            total: totals.appliancesTotal + appliancesLabour
+            description: `${sectionNames.appliances} Total`,
+            unitPrice: "",
+            total: (totals.appliancesTotal + appliancesLabour).toFixed(2)
           });
         }
       }
       
-      // Add wardrobes section header and items
-      if (wardrobesItems.length > 0) {
+      // Add wardrobes section header and items - CORRECT FORMAT
+      if (wardrobesItems.length > 0 && includeWardrobes) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.wardrobes,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.wardrobes,
+          unitPrice: "",
+          total: ""
         });
-        wardrobesItems.forEach(item => {
+        
+        // Items
+        wardrobesItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
         // Add wardrobes section summary
         if (totals.wardrobesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.wardrobes} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.wardrobesTotal,
-            total: totals.wardrobesTotal + wardrobesLabour
+            description: `${sectionNames.wardrobes} Total`,
+            unitPrice: "",
+            total: (totals.wardrobesTotal + wardrobesLabour).toFixed(2)
           });
         }
       }
       
-      // Add TV Unit section header and items
-      if (tvUnitItems.length > 0) {
+      // Add TV Unit section header and items - CORRECT FORMAT
+      if (tvUnitItems.length > 0 && includeTvUnit) {
+        // Section header
         items.push({
           isSection: true,
-          description: sectionNames.tvunit,
-          quantity: 0,
+          itemNumber: "",
+          quantity: "",
           unit: "",
-          unitPrice: 0,
-          total: 0
+          description: sectionNames.tvunit,
+          unitPrice: "",
+          total: ""
         });
-        tvUnitItems.forEach(item => {
+        
+        // Items
+        tvUnitItems.forEach((item, index) => {
           items.push({
-            quantity: item.quantity,
+            itemNumber: (index + 1).toString(),
+            quantity: item.quantity.toString(),
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
         });
+        
         // Add TV Unit section summary
         if (totals.tvUnitTotal > 0) {
           items.push({
             isSectionSummary: true,
-            description: `${sectionNames.tvunit} Total`,
-            quantity: 0,
+            itemNumber: "",
+            quantity: "",
             unit: "",
-            unitPrice: totals.tvUnitTotal,
-            total: totals.tvUnitTotal + tvUnitLabour
+            description: `${sectionNames.tvunit} Total`,
+            unitPrice: "",
+            total: (totals.tvUnitTotal + tvUnitLabour).toFixed(2)
           });
         }
       }
@@ -1130,7 +1184,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
-      // Prepare items data with section headings and improved formatting (same as working download PDF)
+      // Prepare items data with section headings and improved formatting (same as quotation modal format)
       const items: any[] = [];
       const grouped = salesOrder.items?.reduce((acc, item) => {
         (acc[item.category] = acc[item.category] || []).push(item);
@@ -1150,7 +1204,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
         const sectionLabel = sectionLabels[category] || category;
 
-        // Insert section header
+        // Insert section header - CORRECT FORMAT
         const sectionHeaderRow = {
           isSection: true,
           itemNumber: "",
@@ -1162,7 +1216,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         };
         items.push(sectionHeaderRow);
 
-        // Insert items for this section
+        // Insert items for this section - CORRECT FORMAT
         let itemNumber = 1;
         itemsInCategory.forEach((item: any) => {
           const itemRow = {
@@ -1177,7 +1231,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           itemNumber++;
         });
 
-        // Insert section summary row after all items in this section
+        // Insert section summary row after all items in this section - CORRECT FORMAT
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
@@ -1203,7 +1257,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         return (termsText || "").split('\n').filter(line => line.trim());
       };
 
-      // Prepare sales order data (same as working download PDF but adapted for sales order)
+      // Prepare sales order data (same as working quotation modal but adapted for sales order)
       const { template, inputs } = await generateQuotationPDF({
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
@@ -2140,6 +2194,1224 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               onClick={() => addItem("worktop")}
                               style={{
                                 borderRadius: "12px",
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "none",
+                                padding: "10px 20px"
+                              }}
+                            >
+                              <Plus size={14} className="me-1" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Accessories Section with Animated Toggle */}
+              <div className="mb-4">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      {!isReadOnly && (
+                        <div className="d-flex align-items-center w-100">
+                          <div 
+                            style={{
+                              display: includeAccessories ? "flex" : "none",
+                              alignItems: "center",
+                              marginRight: "12px",
+                              transition: "all 0.3s ease",
+                              transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
+                              opacity: includeAccessories ? 1 : 0
+                            }}
+                          >
+                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                            <EditableSectionHeader
+                              sectionKey="accessories"
+                              currentName={sectionNames.accessories}
+                              onEdit={() => handleSectionNameEdit("accessories")}
+                              onSave={() => handleSectionNameSave("accessories")}
+                              onCancel={handleSectionNameCancel}
+                              onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
+                              isEditing={editingSection === "accessories"}
+                              editingName={editingSectionName}
+                              onEditingNameChange={setEditingSectionName}
+                              isReadOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div 
+                            className="d-flex align-items-center"
+                            style={{
+                              marginLeft: includeAccessories ? "auto" : "0",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            <span 
+                              className="me-2 small fw-semibold" 
+                              style={{ 
+                                color: "#ffffff",
+                                transition: "all 0.3s ease"
+                              }}
+                            >
+                              {includeAccessories ? "Remove Accessories" : "Include Accessories"}
+                            </span>
+                            <div 
+                              className="position-relative"
+                              style={{
+                                width: "44px",
+                                height: "24px",
+                                borderRadius: "12px",
+                                background: includeAccessories ? "#667eea" : "#e9ecef",
+                                cursor: isReadOnly ? "default" : "pointer",
+                                transition: "background-color 0.2s"
+                              }}
+                              onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "2px",
+                                  left: includeAccessories ? "22px" : "2px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "white",
+                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  transition: "left 0.2s"
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {isReadOnly && includeAccessories && (
+                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
+                          <Calculator size={18} className="me-2" />
+                          {sectionNames.accessories}
+                        </h6>
+                      )}
+                    </div>
+                    
+                    {includeAccessories && (
+                      <div className="mb-3">
+                        {/* Similar structure as worktop section but for accessories items */}
+                        <div className="d-flex mb-3" style={{ 
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+
+                        {accessoriesItems.map((item, index) => (
+                          <div key={item.id} className="d-flex align-items-center mb-2">
+                            <div style={{ flex: "2", marginRight: "16px" }}>
+                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    updateItem("accessories", index, "description", e.target.value)
+                                    handleItemSearch(item.id?.toString() || "", e.target.value)
+                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                  }}
+                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                  placeholder="Search and select item"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                                
+                                <PortalDropdown
+                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                >
+                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                    <li
+                                      key={stockItem.id}
+                                      style={{
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid #f1f3f4",
+                                        background: "#fff",
+                                        color: "#212529"
+                                      }}
+                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                    >
+                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#495057" }}>
+                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </PortalDropdown>
+                              </div>
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : Number(val);
+                                  updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "12px", 
+                                  height: "40px", 
+                                  fontSize: "13px",
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                              KES {item.total_price.toFixed(2)}
+                            </div>
+                            
+                            {!isReadOnly && (
+                              <div style={{ flex: "0 0 40px" }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removeItem("accessories", index)}
+                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Labour Footer for Accessories Section */}
+                        {mode !== "view" && (
+                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                              <input
+                                type="number"
+                                value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setAccessoriesLabourPercentage(0);
+                                }}
+                                onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
+                                placeholder="30"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "8px", 
+                                  fontSize: "13px", 
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 0",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                            <div style={{ flex: "1", marginRight: "16px" }}></div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
+                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => addItem("accessories")}
+                              style={{ 
+                                borderRadius: "12px", 
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "none",
+                                padding: "10px 20px"
+                              }}
+                            >
+                              <Plus size={14} className="me-1" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Appliances Section with Animated Toggle */}
+              <div className="mb-4">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      {!isReadOnly && (
+                        <div className="d-flex align-items-center w-100">
+                          <div 
+                            style={{
+                              display: includeAppliances ? "flex" : "none",
+                              alignItems: "center",
+                              marginRight: "12px",
+                              transition: "all 0.3s ease",
+                              transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
+                              opacity: includeAppliances ? 1 : 0
+                            }}
+                          >
+                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                            <EditableSectionHeader
+                              sectionKey="appliances"
+                              currentName={sectionNames.appliances}
+                              onEdit={() => handleSectionNameEdit("appliances")}
+                              onSave={() => handleSectionNameSave("appliances")}
+                              onCancel={handleSectionNameCancel}
+                              onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
+                              isEditing={editingSection === "appliances"}
+                              editingName={editingSectionName}
+                              onEditingNameChange={setEditingSectionName}
+                              isReadOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div 
+                            className="d-flex align-items-center"
+                            style={{
+                              marginLeft: includeAppliances ? "auto" : "0",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            <span 
+                              className="me-2 small fw-semibold" 
+                              style={{ 
+                                color: "#ffffff",
+                                transition: "all 0.3s ease"
+                              }}
+                            >
+                              {includeAppliances ? "Remove Appliances" : "Include Appliances"}
+                            </span>
+                            <div 
+                              className="position-relative"
+                              style={{
+                                width: "44px",
+                                height: "24px",
+                                borderRadius: "12px",
+                                background: includeAppliances ? "#667eea" : "#e9ecef",
+                                cursor: isReadOnly ? "default" : "pointer",
+                                transition: "background-color 0.2s"
+                              }}
+                              onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "2px",
+                                  left: includeAppliances ? "22px" : "2px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "white",
+                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  transition: "left 0.2s"
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {isReadOnly && includeAppliances && (
+                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
+                          <Calculator size={18} className="me-2" />
+                          {sectionNames.appliances}
+                        </h6>
+                      )}
+                    </div>
+                    
+                    {includeAppliances && (
+                      <div className="mb-3">
+                        <div className="d-flex mb-3" style={{ 
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+
+                        {appliancesItems.map((item, index) => (
+                          <div key={item.id} className="d-flex align-items-center mb-2">
+                            <div style={{ flex: "2", marginRight: "16px" }}>
+                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    updateItem("appliances", index, "description", e.target.value)
+                                    handleItemSearch(item.id?.toString() || "", e.target.value)
+                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                  }}
+                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                  placeholder="Search and select item"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                                
+                                <PortalDropdown
+                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                >
+                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                    <li
+                                      key={stockItem.id}
+                                      style={{
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid #f1f3f4",
+                                        background: "#fff",
+                                        color: "#212529"
+                                      }}
+                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                    >
+                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#495057" }}>
+                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </PortalDropdown>
+                              </div>
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : Number(val);
+                                  updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "12px", 
+                                  height: "40px", 
+                                  fontSize: "13px",
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                              KES {item.total_price.toFixed(2)}
+                            </div>
+                            
+                            {!isReadOnly && (
+                              <div style={{ flex: "0 0 40px" }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removeItem("appliances", index)}
+                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {mode !== "view" && (
+                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                              <input
+                                type="number"
+                                value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setAppliancesLabourPercentage(0);
+                                }}
+                                onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
+                                placeholder="30"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "8px", 
+                                  fontSize: "13px", 
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 0",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                            <div style={{ flex: "1", marginRight: "16px" }}></div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.appliancesLabour.toFixed(2)}</div>
+                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => addItem("appliances")}
+                              style={{ 
+                                borderRadius: "12px", 
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "none",
+                                padding: "10px 20px"
+                              }}
+                            >
+                              <Plus size={14} className="me-1" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Wardrobes Section with Animated Toggle */}
+              <div className="mb-4">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      {!isReadOnly && (
+                        <div className="d-flex align-items-center w-100">
+                          <div 
+                            style={{
+                              display: includeWardrobes ? "flex" : "none",
+                              alignItems: "center",
+                              marginRight: "12px",
+                              transition: "all 0.3s ease",
+                              transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
+                              opacity: includeWardrobes ? 1 : 0
+                            }}
+                          >
+                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                            <EditableSectionHeader
+                              sectionKey="wardrobes"
+                              currentName={sectionNames.wardrobes}
+                              onEdit={() => handleSectionNameEdit("wardrobes")}
+                              onSave={() => handleSectionNameSave("wardrobes")}
+                              onCancel={handleSectionNameCancel}
+                              onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
+                              isEditing={editingSection === "wardrobes"}
+                              editingName={editingSectionName}
+                              onEditingNameChange={setEditingSectionName}
+                              isReadOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div 
+                            className="d-flex align-items-center"
+                            style={{
+                              marginLeft: includeWardrobes ? "auto" : "0",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            <span 
+                              className="me-2 small fw-semibold" 
+                              style={{ 
+                                color: "#ffffff",
+                                transition: "all 0.3s ease"
+                              }}
+                            >
+                              {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
+                            </span>
+                            <div 
+                              className="position-relative"
+                              style={{
+                                width: "44px",
+                                height: "24px",
+                                borderRadius: "12px",
+                                background: includeWardrobes ? "#667eea" : "#e9ecef",
+                                cursor: isReadOnly ? "default" : "pointer",
+                                transition: "background-color 0.2s"
+                              }}
+                              onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "2px",
+                                  left: includeWardrobes ? "22px" : "2px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "white",
+                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  transition: "left 0.2s"
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {isReadOnly && includeWardrobes && (
+                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
+                          <Calculator size={18} className="me-2" />
+                          {sectionNames.wardrobes}
+                        </h6>
+                      )}
+                    </div>
+                    
+                    {includeWardrobes && (
+                      <div className="mb-3">
+                        <div className="d-flex mb-3" style={{ 
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+
+                        {wardrobesItems.map((item, index) => (
+                          <div key={item.id} className="d-flex align-items-center mb-2">
+                            <div style={{ flex: "2", marginRight: "16px" }}>
+                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    updateItem("wardrobes", index, "description", e.target.value)
+                                    handleItemSearch(item.id?.toString() || "", e.target.value)
+                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                  }}
+                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                  placeholder="Search and select item"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                                
+                                <PortalDropdown
+                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                >
+                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                    <li
+                                      key={stockItem.id}
+                                      style={{
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid #f1f3f4",
+                                        background: "#fff",
+                                        color: "#212529"
+                                      }}
+                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                    >
+                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#495057" }}>
+                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </PortalDropdown>
+                              </div>
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : Number(val);
+                                  updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "12px", 
+                                  height: "40px", 
+                                  fontSize: "13px",
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                              KES {item.total_price.toFixed(2)}
+                            </div>
+                            
+                            {!isReadOnly && (
+                              <div style={{ flex: "0 0 40px" }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removeItem("wardrobes", index)}
+                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {mode !== "view" && (
+                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                              <input
+                                type="number"
+                                value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setWardrobesLabourPercentage(0);
+                                }}
+                                onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
+                                placeholder="30"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "8px", 
+                                  fontSize: "13px", 
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 0",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                            <div style={{ flex: "1", marginRight: "16px" }}></div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => addItem("wardrobes")}
+                              style={{ 
+                                borderRadius: "12px", 
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "none",
+                                padding: "10px 20px"
+                              }}
+                            >
+                              <Plus size={14} className="me-1" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* TV Unit Section with Animated Toggle */}
+              <div className="mb-4">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      {!isReadOnly && (
+                        <div className="d-flex align-items-center w-100">
+                          <div 
+                            style={{
+                              display: includeTvUnit ? "flex" : "none",
+                              alignItems: "center",
+                              marginRight: "12px",
+                              transition: "all 0.3s ease",
+                              transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
+                              opacity: includeTvUnit ? 1 : 0
+                            }}
+                          >
+                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                            <EditableSectionHeader
+                              sectionKey="tvunit"
+                              currentName={sectionNames.tvunit}
+                              onEdit={() => handleSectionNameEdit("tvunit")}
+                              onSave={() => handleSectionNameSave("tvunit")}
+                              onCancel={handleSectionNameCancel}
+                              onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
+                              isEditing={editingSection === "tvunit"}
+                              editingName={editingSectionName}
+                              onEditingNameChange={setEditingSectionName}
+                              isReadOnly={isReadOnly}
+                            />
+                          </div>
+                          
+                          <div 
+                            className="d-flex align-items-center"
+                            style={{
+                              marginLeft: includeTvUnit ? "auto" : "0",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            <span 
+                              className="me-2 small fw-semibold" 
+                              style={{ 
+                                color: "#ffffff",
+                                transition: "all 0.3s ease"
+                              }}
+                            >
+                              {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
+                            </span>
+                            <div 
+                              className="position-relative"
+                              style={{
+                                width: "44px",
+                                height: "24px",
+                                borderRadius: "12px",
+                                background: includeTvUnit ? "#667eea" : "#e9ecef",
+                                cursor: isReadOnly ? "default" : "pointer",
+                                transition: "background-color 0.2s"
+                              }}
+                              onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "2px",
+                                  left: includeTvUnit ? "22px" : "2px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "white",
+                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                  transition: "left 0.2s"
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {isReadOnly && includeTvUnit && (
+                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
+                          <Calculator size={18} className="me-2" />
+                          {sectionNames.tvunit}
+                        </h6>
+                      )}
+                    </div>
+                    
+                    {includeTvUnit && (
+                      <div className="mb-3">
+                        <div className="d-flex mb-3" style={{ 
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "white"
+                        }}>
+                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+
+                        {tvUnitItems.map((item, index) => (
+                          <div key={item.id} className="d-flex align-items-center mb-2">
+                            <div style={{ flex: "2", marginRight: "16px" }}>
+                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    updateItem("tvunit", index, "description", e.target.value)
+                                    handleItemSearch(item.id?.toString() || "", e.target.value)
+                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                  }}
+                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                  placeholder="Search and select item"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                                
+                                <PortalDropdown
+                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                >
+                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                    <li
+                                      key={stockItem.id}
+                                      style={{
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid #f1f3f4",
+                                        background: "#fff",
+                                        color: "#212529"
+                                      }}
+                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                    >
+                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#495057" }}>
+                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </PortalDropdown>
+                              </div>
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : Number(val);
+                                  updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "12px", 
+                                  height: "40px", 
+                                  fontSize: "13px",
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            
+                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                              KES {item.total_price.toFixed(2)}
+                            </div>
+                            
+                            {!isReadOnly && (
+                              <div style={{ flex: "0 0 40px" }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removeItem("tvunit", index)}
+                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {mode !== "view" && (
+                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                              <input
+                                type="number"
+                                value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setTvUnitLabourPercentage(0);
+                                }}
+                                onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
+                                placeholder="30"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "8px", 
+                                  fontSize: "13px", 
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 0",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                            <div style={{ flex: "1", marginRight: "16px" }}></div>
+                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
+                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+                        )}
+
+                        {!isReadOnly && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => addItem("tvunit")}
+                              style={{ 
+                                borderRadius: "12px", 
                                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                                 border: "none",
                                 padding: "10px 20px"
