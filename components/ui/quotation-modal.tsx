@@ -583,6 +583,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }))
     }
     
+    // Load VAT percentage from database
+    if (quotation.vat_percentage) {
+      setVatPercentage(quotation.vat_percentage)
+    }
+    
     // Load items by category
     if (quotation.items) {
       const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));

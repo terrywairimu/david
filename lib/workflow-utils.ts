@@ -510,6 +510,14 @@ export interface SalesOrderData {
   status: string
   notes?: string
   terms_conditions?: string
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  }
   client?: {
     id: number
     name: string
@@ -661,6 +669,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       status: "pending",
       notes: quotation.notes,
       terms_conditions: quotation.terms_conditions,
+      section_names: quotation.section_names,
       client: quotation.client,
       items: quotation.items
     }
@@ -686,7 +695,8 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         include_accessories: salesOrderData.include_accessories,
         status: salesOrderData.status,
         notes: salesOrderData.notes,
-        terms_conditions: salesOrderData.terms_conditions
+        terms_conditions: salesOrderData.terms_conditions,
+        section_names: salesOrderData.section_names
       })
       .select()
       .single()

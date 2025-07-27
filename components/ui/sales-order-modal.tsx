@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Receipt } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -26,7 +26,7 @@ interface StockItem {
   sku?: string
 }
 
-interface SalesOrderItem {
+interface QuotationItem {
   id?: number
   category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
   description: string
@@ -41,9 +41,9 @@ interface SalesOrderItem {
 interface SalesOrderModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (salesOrder: any) => void
+  onSave: (salesOrderData: any) => void
   salesOrder?: any
-  mode: "view" | "edit" | "create"
+  mode: "view" | "edit"
   onProceedToInvoice?: (salesOrder: any) => Promise<void>
   onProceedToCashSale?: (salesOrder: any) => Promise<void>
 }
@@ -113,13 +113,13 @@ const PortalDropdown: React.FC<{
   )
 }
 
-// Sales order number generation logic (using Supabase, similar to quotations)
+// Sales order number generation logic (now using Supabase, not localStorage)
 const generateOrderNumber = async () => {
   try {
     const now = new Date()
     const year = now.getFullYear().toString().slice(-2)
     const month = (now.getMonth() + 1).toString().padStart(2, '0')
-    // Query Supabase for the latest order number for this year/month
+    // Query Supabase for the latest sales order number for this year/month
     const { data, error } = await supabase
       .from("sales_orders")
       .select("order_number")
@@ -176,7 +176,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   
-  // Payment tracking state (for invoice/cash sale criteria)
+  // Payment tracking state
   const [totalPaid, setTotalPaid] = useState(0)
   const [hasPayments, setHasPayments] = useState(false)
   const [paymentPercentage, setPaymentPercentage] = useState(0)
@@ -196,12 +196,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [editingSectionName, setEditingSectionName] = useState("")
   
   // Items state for each section
-  const [cabinetItems, setCabinetItems] = useState<SalesOrderItem[]>([])
-  const [worktopItems, setWorktopItems] = useState<SalesOrderItem[]>([])
-  const [accessoriesItems, setAccessoriesItems] = useState<SalesOrderItem[]>([])
-  const [appliancesItems, setAppliancesItems] = useState<SalesOrderItem[]>([])
-  const [wardrobesItems, setWardrobesItems] = useState<SalesOrderItem[]>([])
-  const [tvUnitItems, setTvUnitItems] = useState<SalesOrderItem[]>([])
+  const [cabinetItems, setCabinetItems] = useState<QuotationItem[]>([])
+  const [worktopItems, setWorktopItems] = useState<QuotationItem[]>([])
+  const [accessoriesItems, setAccessoriesItems] = useState<QuotationItem[]>([])
+  const [appliancesItems, setAppliancesItems] = useState<QuotationItem[]>([])
+  const [wardrobesItems, setWardrobesItems] = useState<QuotationItem[]>([])
+  const [tvUnitItems, setTvUnitItems] = useState<QuotationItem[]>([])
   
   // Search states for each section
   const [itemSearches, setItemSearches] = useState<{[key: string]: string}>({})
@@ -352,7 +352,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Add state for Worktop Installation Labor
+  // Add state at the top of QuotationModal:
   const [worktopLaborQty, setWorktopLaborQty] = useState(1);
   const [worktopLaborUnitPrice, setWorktopLaborUnitPrice] = useState(3000);
 
@@ -360,25 +360,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [rawWorktopLaborQty, setRawWorktopLaborQty] = useState<string | undefined>(undefined);
   const [rawWorktopLaborUnitPrice, setRawWorktopLaborUnitPrice] = useState<string | undefined>(undefined);
 
-  // Add individual labour percentage states for each section
-  const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(30);
-  const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(30);
-  const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
-  const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
-  const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
-  
-  // Add VAT percentage state
-  const [vatPercentage, setVatPercentage] = useState(16);
-
-  // Function to fetch payment information for original quotation
+  // Function to fetch payment information
   const fetchPaymentInfo = async () => {
-    if (!salesOrder?.original_quotation_number) return;
+    if (!salesOrder?.order_number) return;
     
     try {
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
-        .eq("quotation_number", salesOrder.original_quotation_number)
+        .eq("order_number", salesOrder.order_number)
         .eq("status", "completed")
       
       const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
@@ -397,14 +387,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     if (isOpen) {
       fetchClients()
       fetchStockItems()
-      if (mode === "create") {
-        generateOrderNumber().then(setOrderNumber)
-        resetForm()
-        setOrderDate(new Date().toISOString().split('T')[0])
-      } else if (salesOrder) {
-        loadSalesOrderData().catch(error => {
-          console.error('Error loading sales order data:', error);
-        });
+      if (salesOrder) {
+        loadSalesOrderData()
         fetchPaymentInfo() // Fetch payment info when viewing/editing sales order
         if (salesOrder.date_created) {
           setOrderDate(salesOrder.date_created.split('T')[0])
@@ -415,16 +399,28 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     const stockItemsChannel = supabase
       .channel('stock_items_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, (payload) => {
-        fetchStockItems();
+        console.log('Stock items change detected:', payload)
+        fetchStockItems() // Refresh stock items when changes occur
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
-        fetchPaymentInfo(); // Refresh payment info when payments change
+        console.log('Payments change detected:', payload)
+        fetchPaymentInfo() // Refresh payment info when changes occur
       })
-      .subscribe();
+      .subscribe()
+
+    const clientsChannel = supabase
+      .channel('clients_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
+        console.log('Clients change detected:', payload)
+        fetchClients() // Refresh clients when changes occur
+      })
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(stockItemsChannel);
-    };
-  }, [isOpen, mode, salesOrder]);
+      supabase.removeChannel(stockItemsChannel)
+      supabase.removeChannel(clientsChannel)
+    }
+  }, [isOpen, salesOrder])
 
   useEffect(() => {
     // Debounce expensive filtering operations to prevent main thread blocking
@@ -477,13 +473,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   // Generate PDF for viewing when modal opens in view mode
   useEffect(() => {
-    if (isOpen && mode === "view" && salesOrder && salesOrder.id) {
-      // Add a small delay to ensure data is fully loaded
-      const timer = setTimeout(() => {
-        generatePDFForViewing();
-      }, 500);
-      
-      return () => clearTimeout(timer);
+    if (isOpen && mode === "view" && salesOrder) {
+      generatePDFForViewing();
     }
     
     // Cleanup PDF URL when component unmounts or modal closes
@@ -510,6 +501,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setIncludeAppliances(false)
     setIncludeWardrobes(false)
     setIncludeTvUnit(false)
+    setWardrobesLabourPercentage(30)
+    setTvUnitLabourPercentage(30)
     setNotes("")
     setItemSearches({})
     setItemDropdownVisible({})
@@ -527,7 +520,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setFilteredStockItems({})
   }
 
-  const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): SalesOrderItem => {
+  const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
     return {
       id: Date.now() + Math.random(),
       category,
@@ -569,42 +562,16 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         unit_price: parseFloat(item.unit_price) || 0
       }))
       
+
       setStockItems(processedData)
     } catch (error) {
+
       toast.error("Failed to fetch stock items")
     }
   }
 
-  const loadSalesOrderData = async () => {
+  const loadSalesOrderData = () => {
     if (!salesOrder) return
-    
-    console.log('Loading sales order data:', salesOrder);
-    
-    // If items are not loaded, try to fetch them
-    if (!salesOrder.items || salesOrder.items.length === 0) {
-      console.log('Sales order items not loaded, fetching from database...');
-      try {
-        const { data: salesOrderWithItems, error } = await supabase
-          .from('sales_orders')
-          .select(`
-            *,
-            client:registered_entities(id, name, phone, location),
-            items:sales_order_items(*)
-          `)
-          .eq('id', salesOrder.id)
-          .single();
-          
-        if (error) throw error;
-        
-        if (salesOrderWithItems?.items) {
-          salesOrder.items = salesOrderWithItems.items;
-          console.log('Successfully loaded items:', salesOrderWithItems.items);
-        }
-      } catch (error) {
-        console.error('Error fetching sales order items:', error);
-        toast.error('Failed to load sales order items');
-      }
-    }
     
     setOrderNumber(salesOrder.order_number || "")
     setSelectedClient(salesOrder.client || null)
@@ -626,43 +593,34 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }))
     }
     
+    // Load VAT percentage from database
+    if (salesOrder.vat_percentage) {
+      setVatPercentage(salesOrder.vat_percentage)
+    }
+    
     // Load items by category
-    if (salesOrder.items && salesOrder.items.length > 0) {
-      console.log('Processing items by category:', salesOrder.items);
+    if (salesOrder.items) {
       const cabinet = salesOrder.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
       const worktop = salesOrder.items.filter((item: any) => item.category === "worktop");
       const accessories = salesOrder.items.filter((item: any) => item.category === "accessories");
       const appliances = salesOrder.items.filter((item: any) => item.category === "appliances");
       const wardrobes = salesOrder.items.filter((item: any) => item.category === "wardrobes");
       const tvunit = salesOrder.items.filter((item: any) => item.category === "tvunit");
-      
-      console.log('Cabinet items:', cabinet);
-      console.log('Worktop items:', worktop);
-      console.log('Accessories items:', accessories);
-      
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
       setAccessoriesItems(accessories);
       setAppliancesItems(appliances);
       setWardrobesItems(wardrobes);
       setTvUnitItems(tvunit);
-    } else {
-      console.log('No items found, setting default cabinet item');
-      setCabinetItems([createNewItem("cabinet")]);
-      setWorktopItems([]);
-      setAccessoriesItems([]);
-      setAppliancesItems([]);
-      setWardrobesItems([]);
-      setTvUnitItems([]);
     }
 
-    setCabinetLabourPercentage(salesOrder.cabinet_labour_percentage ?? 30)
-    setAccessoriesLabourPercentage(salesOrder.accessories_labour_percentage ?? 30)
-    setAppliancesLabourPercentage(salesOrder.appliances_labour_percentage ?? 30)
-    setWardrobesLabourPercentage(salesOrder.wardrobes_labour_percentage ?? 30)
-    setTvUnitLabourPercentage(salesOrder.tvunit_labour_percentage ?? 30)
-    setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
-    setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
+          setCabinetLabourPercentage(salesOrder.cabinet_labour_percentage ?? 30)
+      setAccessoriesLabourPercentage(salesOrder.accessories_labour_percentage ?? 30)
+      setAppliancesLabourPercentage(salesOrder.appliances_labour_percentage ?? 30)
+      setWardrobesLabourPercentage(salesOrder.wardrobes_labour_percentage ?? 30)
+      setTvUnitLabourPercentage(salesOrder.tvunit_labour_percentage ?? 30)
+      setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
+      setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
   }
 
   const handleClientSelect = (client: Client) => {
@@ -727,8 +685,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
   }
 
-  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof SalesOrderItem, value: any) => {
-    const updateItems = (items: SalesOrderItem[]) => {
+  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof QuotationItem, value: any) => {
+    const updateItems = (items: QuotationItem[]) => {
       return items.map((item, i) => {
         if (i === index) {
           const updatedItem = { ...item, [field]: value }
@@ -736,12 +694,14 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
             
+            
             updatedItem.stock_item = stockItem || undefined
             updatedItem.description = stockItem?.name || ""
             updatedItem.unit = stockItem?.unit || "pieces"
             updatedItem.unit_price = Number(stockItem?.unit_price) || 0
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
             
+    
           } else if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
@@ -783,6 +743,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   }
 
   const selectStockItem = (itemId: string, stockItem: StockItem) => {
+    
+    
     // Find which category this item belongs to and get the correct index within that category
     let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
     let index = -1
@@ -830,61 +792,29 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
     
     if (category && index !== -1) {
+
+      
       // Single call to updateItem with stock_item_id will automatically populate all fields
       updateItem(category, index, "stock_item_id", stockItem.id)
       
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
+    } else {
+
     }
   }
+
+
 
   const getFilteredItems = (itemId: string) => {
     return filteredStockItems[itemId] || stockItems
   }
 
-  // Memoize expensive calculations to prevent performance issues (after all dependencies are declared)
-  const totals = useMemo(() => {
-    const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
-    const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
-    const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
-    
-    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
-    
-    // Calculate individual labour amounts (no worktopLabour)
-    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
-    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
-    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
-    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
-    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
-    
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
-    const grandTotal = subtotal + totalLabour
-
-    return {
-      cabinetTotal,
-      worktopTotal,
-      accessoriesTotal,
-      appliancesTotal,
-      wardrobesTotal,
-      tvUnitTotal,
-      subtotal,
-      labourAmount: totalLabour,
-      grandTotal,
-      cabinetLabour,
-      accessoriesLabour,
-      appliancesLabour,
-      wardrobesLabour,
-      tvUnitLabour
-    }
-  }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
-      includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
-      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
-
   const generatePDF = async () => {
+    alert('generatePDF function called');
+
     try {
+  
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
@@ -907,251 +837,197 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       const vat = subtotalWithLabour - originalAmount;
       const grandTotal = subtotalWithLabour; // Grand total remains the same
       
-      // Prepare items data in CORRECT FORMAT for QuotationData (like quotation modal)
-      const items: any[] = [];
+      // Prepare items data as objects for QuotationData with custom section names
+      const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
       
-      // Add cabinet section header and items - CORRECT FORMAT
+      // Add cabinet section header and items
       if (cabinetItems.length > 0) {
-        // Section header
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.cabinet,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        cabinetItems.forEach((item, index) => {
+        cabinetItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
         // Add cabinet section summary
         if (totals.cabinetTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.cabinet} Total`,
-            unitPrice: "",
-            total: (totals.cabinetTotal + cabinetLabour).toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.cabinetTotal,
+            total: totals.cabinetTotal + cabinetLabour
           });
         }
       }
       
-      // Add worktop section header and items - CORRECT FORMAT
-      if (worktopItems.length > 0 && includeWorktop) {
-        // Section header
+      // Add worktop section header and items
+      if (worktopItems.length > 0) {
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.worktop,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        worktopItems.forEach((item, index) => {
+        worktopItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
-        // Add worktop installation labor if exists
-        if (worktopLaborQty > 0 && worktopLaborUnitPrice > 0) {
-          items.push({
-            itemNumber: (worktopItems.length + 1).toString(),
-            quantity: worktopLaborQty.toString(),
-            unit: "slab",
-            description: "Worktop Installation Labor",
-            unitPrice: worktopLaborUnitPrice.toFixed(2),
-            total: (worktopLaborQty * worktopLaborUnitPrice).toFixed(2)
-          });
-        }
-        
         // Add worktop section summary
         if (totals.worktopTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.worktop} Total`,
-            unitPrice: "",
-            total: totals.worktopTotal.toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.worktopTotal,
+            total: totals.worktopTotal
           });
         }
       }
       
-      // Add accessories section header and items - CORRECT FORMAT
-      if (accessoriesItems.length > 0 && includeAccessories) {
-        // Section header
+      // Add accessories section header and items
+      if (accessoriesItems.length > 0) {
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.accessories,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        accessoriesItems.forEach((item, index) => {
+        accessoriesItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
         // Add accessories section summary
         if (totals.accessoriesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.accessories} Total`,
-            unitPrice: "",
-            total: (totals.accessoriesTotal + accessoriesLabour).toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.accessoriesTotal,
+            total: totals.accessoriesTotal + accessoriesLabour
           });
         }
       }
       
-      // Add appliances section header and items - CORRECT FORMAT
-      if (appliancesItems.length > 0 && includeAppliances) {
-        // Section header
+      // Add appliances section header and items
+      if (appliancesItems.length > 0) {
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.appliances,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        appliancesItems.forEach((item, index) => {
+        appliancesItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
         // Add appliances section summary
         if (totals.appliancesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.appliances} Total`,
-            unitPrice: "",
-            total: (totals.appliancesTotal + appliancesLabour).toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.appliancesTotal,
+            total: totals.appliancesTotal + appliancesLabour
           });
         }
       }
       
-      // Add wardrobes section header and items - CORRECT FORMAT
-      if (wardrobesItems.length > 0 && includeWardrobes) {
-        // Section header
+      // Add wardrobes section header and items
+      if (wardrobesItems.length > 0) {
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.wardrobes,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        wardrobesItems.forEach((item, index) => {
+        wardrobesItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
         // Add wardrobes section summary
         if (totals.wardrobesTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.wardrobes} Total`,
-            unitPrice: "",
-            total: (totals.wardrobesTotal + wardrobesLabour).toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.wardrobesTotal,
+            total: totals.wardrobesTotal + wardrobesLabour
           });
         }
       }
       
-      // Add TV Unit section header and items - CORRECT FORMAT
-      if (tvUnitItems.length > 0 && includeTvUnit) {
-        // Section header
+      // Add TV Unit section header and items
+      if (tvUnitItems.length > 0) {
         items.push({
           isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
           description: sectionNames.tvunit,
-          unitPrice: "",
-          total: ""
+          quantity: 0,
+          unit: "",
+          unitPrice: 0,
+          total: 0
         });
-        
-        // Items
-        tvUnitItems.forEach((item, index) => {
+        tvUnitItems.forEach(item => {
           items.push({
-            itemNumber: (index + 1).toString(),
-            quantity: item.quantity.toString(),
+            quantity: item.quantity,
             unit: item.unit,
             description: item.description,
-            unitPrice: item.unit_price.toFixed(2),
-            total: item.total_price.toFixed(2)
+            unitPrice: item.unit_price,
+            total: item.total_price
           });
         });
-        
         // Add TV Unit section summary
         if (totals.tvUnitTotal > 0) {
           items.push({
             isSectionSummary: true,
-            itemNumber: "",
-            quantity: "",
-            unit: "",
             description: `${sectionNames.tvunit} Total`,
-            unitPrice: "",
-            total: (totals.tvUnitTotal + tvUnitLabour).toFixed(2)
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.tvUnitTotal,
+            total: totals.tvUnitTotal + tvUnitLabour
           });
         }
       }
@@ -1169,8 +1045,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-      // Prepare sales order data (same structure as quotation but adapted for sales order)
-      const salesOrderData = {
+      // Prepare quotation data
+      const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
@@ -1178,11 +1054,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         clientNames: selectedClient?.name || "",
         siteLocation: selectedClient?.location || "",
         mobileNo: selectedClient?.phone || "",
-        date: orderDate || new Date().toLocaleDateString(),
+        date: quotationDate || new Date().toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: orderNumber, // Use order number as main number
-        originalQuotationNumber: salesOrder?.original_quotation_number || "", // Add original quotation number
-        documentTitle: "SALES ORDER", // Add document title to override QUOTATION
+        quotationNumber: quotationNumber,
         items: items,
         section_names: sectionNames, // Add custom section names
         subtotal: originalAmount, // Amount before VAT
@@ -1196,8 +1070,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         companyLogo: watermarkLogoBase64,
       };
 
-      // Generate PDF using PDF.me template (adapted for sales order)
-      const { template, inputs } = await generateQuotationPDF(salesOrderData);
+      
+      // Generate PDF using PDF.me template
+      const { template, inputs } = await generateQuotationPDF(quotationData);
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
       
       // Download the PDF
@@ -1205,7 +1080,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `sales-order-${orderNumber}.pdf`;
+      link.download = `quotation-${quotationNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1214,18 +1089,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       toast.success("PDF generated successfully!");
       
     } catch (error) {
-      console.error("PDF generation error:", error);
+
       toast.error("Failed to generate PDF. Please try again.");
     }
   }
 
   const generatePDFForViewing = async () => {
-    // Enhanced validation
-    if (!salesOrder || !salesOrder.id) {
-      console.error('Invalid sales order data:', salesOrder);
-      toast.error('Sales order data is not loaded properly. Please try refreshing the page.');
-      return;
-    }
+    if (!salesOrder) return;
     
     try {
       setPdfLoading(true)
@@ -1239,46 +1109,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
-      // DEBUG: Log the salesOrder items to understand the structure
-      console.log('Sales Order items:', salesOrder.items);
-      console.log('Sales Order full data:', salesOrder);
-
-      // If items are not loaded, try to fetch them directly
-      let itemsToProcess = salesOrder.items;
-      if (!itemsToProcess || itemsToProcess.length === 0) {
-        console.log('Items not found in salesOrder, fetching from database...');
-        try {
-          const { data: fetchedItems, error } = await supabase
-            .from('sales_order_items')
-            .select('*')
-            .eq('sales_order_id', salesOrder.id);
-            
-          if (error) throw error;
-          
-          if (fetchedItems && fetchedItems.length > 0) {
-            itemsToProcess = fetchedItems;
-            console.log('Successfully fetched items from database:', fetchedItems);
-          } else {
-            console.error('No items found for sales order ID:', salesOrder.id);
-            toast.error('No items found in sales order. This sales order appears to be empty.');
-            return;
-          }
-        } catch (fetchError) {
-          console.error('Error fetching sales order items:', fetchError);
-          toast.error('Failed to load sales order items from database.');
-          return;
-        }
-      }
-
-      // Prepare items data with section headings and improved formatting (same as quotation modal format)
+      // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-
-      const grouped = itemsToProcess?.reduce((acc, item) => {
+      const grouped = salesOrder.items?.reduce((acc, item) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof itemsToProcess>) || {};
-
-      console.log('Grouped items:', grouped);
+      }, {} as Record<string, typeof salesOrder.items>) || {};
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
         // Section mapping
@@ -1293,7 +1129,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
         const sectionLabel = sectionLabels[category] || category;
 
-        // Insert section header - CORRECT FORMAT
+        // Insert section header
         const sectionHeaderRow = {
           isSection: true,
           itemNumber: "",
@@ -1305,7 +1141,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         };
         items.push(sectionHeaderRow);
 
-        // Insert items for this section - CORRECT FORMAT
+        // Insert items for this section
         let itemNumber = 1;
         itemsInCategory.forEach((item: any) => {
           const itemRow = {
@@ -1320,7 +1156,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           itemNumber++;
         });
 
-        // Insert section summary row after all items in this section - CORRECT FORMAT
+        // Insert section summary row after all items in this section
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
@@ -1341,14 +1177,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         items.push(summaryRow);
       });
 
-      console.log('Final items array for PDF:', items);
-
       // Parse terms and conditions from database
       const parseTermsAndConditions = (termsText: string) => {
         return (termsText || "").split('\n').filter(line => line.trim());
       };
 
-      // Prepare sales order data (same as working quotation modal but adapted for sales order)
+      // Prepare quotation data (same as working download PDF)
       const { template, inputs } = await generateQuotationPDF({
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
@@ -1359,9 +1193,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         mobileNo: salesOrder.client?.phone || "",
         date: new Date(salesOrder.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: salesOrder.order_number, // Use order number as main number
-        originalQuotationNumber: salesOrder.original_quotation_number || "", // Add original quotation number
-        documentTitle: "SALES ORDER", // Add document title to override QUOTATION
+        quotationNumber: salesOrder.order_number,
+        originalQuotationNumber: salesOrder.original_quotation_number || "",
+        documentTitle: "SALES ORDER",
         items,
         subtotal: salesOrder.total_amount || 0,
         vat: salesOrder.vat_amount || 0,
@@ -1437,66 +1271,124 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         });
       }
 
-      // Calculate totals with VAT (consistent with UI display and PDF generation)
-      const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-      const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-      const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-      const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
-      
-      const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
-      const saveVatPercentageNum = Number(vatPercentage);
-      // Reverse calculate VAT: if total includes VAT, extract the VAT amount
-      const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
-      const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
-      const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
+    // Calculate totals with VAT (consistent with UI display and PDF generation)
+    const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+    const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+    const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+    const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+    const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+    
+    const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
+    const saveVatPercentageNum = Number(vatPercentage);
+    // Reverse calculate VAT: if total includes VAT, extract the VAT amount
+    const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
+    const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
+    const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
 
-      const salesOrderData = {
-        order_number: orderNumber,
-        client_id: selectedClient.id,
-        quotation_id: salesOrder?.quotation_id || null,
-        original_quotation_number: salesOrder?.original_quotation_number || null,
-        date_created: orderDate ? new Date(orderDate).toISOString() : new Date().toISOString(),
-        cabinet_total: totals.cabinetTotal,
-        worktop_total: totals.worktopTotal,
-        accessories_total: totals.accessoriesTotal,
-        appliances_total: totals.appliancesTotal,
-        wardrobes_total: totals.wardrobesTotal,
-        tvunit_total: totals.tvUnitTotal,
-        labour_percentage: labourPercentage,
-        labour_total: totals.labourAmount,
-        total_amount: saveOriginalAmount, // Amount before VAT
-        grand_total: saveSubtotalWithLabour, // Total amount including VAT
-        vat_amount: saveVatAmount, // VAT amount
-        vat_percentage: saveVatPercentageNum, // VAT percentage
-        include_worktop: includeWorktop,
-        include_accessories: includeAccessories,
-        include_appliances: includeAppliances,
-        include_wardrobes: includeWardrobes,
-        include_tvunit: includeTvUnit,
-        status: "pending",
-        notes,
-        terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
-        cabinet_labour_percentage: cabinetLabourPercentage,
-        accessories_labour_percentage: accessoriesLabourPercentage,
-        appliances_labour_percentage: appliancesLabourPercentage,
-        wardrobes_labour_percentage: wardrobesLabourPercentage,
-        tvunit_labour_percentage: tvUnitLabourPercentage,
-        worktop_labor_qty: worktopLaborQty,
-        worktop_labor_unit_price: worktopLaborUnitPrice,
-        section_names: sectionNames
-      }
+    const quotationData = {
+      quotation_number: quotationNumber,
+      client_id: selectedClient.id,
+      date_created: quotationDate ? new Date(quotationDate).toISOString() : new Date().toISOString(),
+      cabinet_total: totals.cabinetTotal,
+      worktop_total: totals.worktopTotal,
+      accessories_total: totals.accessoriesTotal,
+      appliances_total: totals.appliancesTotal,
+      wardrobes_total: totals.wardrobesTotal,
+      tvunit_total: totals.tvUnitTotal,
+      labour_percentage: labourPercentage,
+      labour_total: totals.labourAmount,
+      total_amount: saveOriginalAmount, // Amount before VAT
+      grand_total: saveSubtotalWithLabour, // Total amount including VAT
+      vat_amount: saveVatAmount, // VAT amount
+      vat_percentage: saveVatPercentageNum, // VAT percentage
+      include_worktop: includeWorktop,
+      include_accessories: includeAccessories,
+      include_appliances: includeAppliances,
+      include_wardrobes: includeWardrobes,
+      include_tvunit: includeTvUnit,
+      status: "pending",
+      notes,
+      terms_conditions: termsConditions,
+      items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
+      cabinet_labour_percentage: cabinetLabourPercentage,
+      accessories_labour_percentage: accessoriesLabourPercentage,
+      appliances_labour_percentage: appliancesLabourPercentage,
+      wardrobes_labour_percentage: wardrobesLabourPercentage,
+      tvunit_labour_percentage: tvUnitLabourPercentage,
+      worktop_labor_qty: worktopLaborQty,
+      worktop_labor_unit_price: worktopLaborUnitPrice,
+      section_names: sectionNames
+    }
 
-      await onSave(salesOrderData)
-      onClose()
+      // Confirm quotation number if it's a new quotation
+      // Removed localStorage logic, so this block is effectively removed.
+      // The generateQuotationNumber function now handles the number generation.
+
+    await onSave(quotationData)
+    onClose()
     } catch (error) {
-      console.error("Save error:", error);
-      toast.error("Failed to save sales order")
+
+      toast.error("Failed to save quotation")
     } finally {
       setLoading(false)
     }
   }
+
+  const [labourPercentageInput, setLabourPercentageInput] = useState(labourPercentage.toString());
+
+  // Add individual labour percentage states for each section
+  const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(30);
+  const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(30);
+  const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
+  const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
+  const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
+  
+  // Add VAT percentage state
+  const [vatPercentage, setVatPercentage] = useState(16);
+
+  // Memoize expensive calculations to prevent performance issues (after all dependencies are declared)
+  const totals = useMemo(() => {
+    const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
+    const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
+    const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
+    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
+    
+    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
+    
+    // Calculate individual labour amounts (no worktopLabour)
+    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
+    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
+    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
+    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
+    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
+    
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
+    const grandTotal = subtotal + totalLabour
+
+    return {
+      cabinetTotal,
+      worktopTotal,
+      accessoriesTotal,
+      appliancesTotal,
+      wardrobesTotal,
+      tvUnitTotal,
+      subtotal,
+      labourAmount: totalLabour,
+      grandTotal,
+      cabinetLabour,
+      accessoriesLabour,
+      appliancesLabour,
+      wardrobesLabour,
+      tvUnitLabour
+    }
+  }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
+      includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
+      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
+  
+  // Legacy function for backward compatibility - now just returns memoized values
+  const calculateTotals = () => totals
 
   const isReadOnly = mode === "view"
 
@@ -1540,14 +1432,14 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 alignItems: "center",
                 justifyContent: "center"
               }}>
-                <Package size={24} color="white" />
+                <FileText size={24} color="white" />
               </div>
               <div>
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
-                  {mode === "create" ? "New Sales Order" : mode === "edit" ? "Edit Sales Order" : "View Sales Order"}
-                </h5>
+                  {mode === "edit" ? "Edit Sales Order" : "View Sales Order"}
+            </h5>
                 {mode !== "view" && (
-                  <p className="mb-0 text-white small">Create a detailed sales order for your client</p>
+                  <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
                 )}
               </div>
             </div>
@@ -1557,32 +1449,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
               onClick={onClose}
               style={{ borderRadius: "12px", padding: "8px" }}
             />
-          </div>
+              </div>
 
           {/* Body */}
-          {mode === "view" && !salesOrder?.id ? (
-            <div className="modal-body" style={{ 
-              padding: "0 32px 24px", 
-              maxHeight: "70vh", 
-              overflowY: "auto",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "300px"
-            }}>
-              <div style={{ 
-                display: "flex", 
-                flexDirection: "column",
-                alignItems: "center",
-                color: "#ffffff"
-              }}>
-                <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-3">Loading sales order data...</p>
-              </div>
-            </div>
-          ) : mode === "view" && pdfUrl ? (
+          {mode === "view" && pdfUrl ? (
             <div className="modal-body" style={{ 
               padding: "0", 
               maxHeight: "70vh", 
@@ -1599,7 +1469,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                     border: "none",
                     borderRadius: "0"
                   }}
-                  title="Sales Order PDF"
+                  title="Quotation PDF"
                 />
               </div>
             </div>
@@ -1626,135 +1496,440 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
             </div>
           ) : (
             <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
-              {/* Client and Sales Order Number Section */}
-              <div className="row mb-4">
-                <div className="col-md-8">
-                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                    <div className="card-body p-4">
-                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                        <User size={18} className="me-2" />
-                        Client Information
-                      </h6>
-                      <div className="position-relative" ref={clientInputRef}>
-                        <div className="input-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search client..."
-                            value={clientSearchTerm}
-                            onChange={(e) => handleClientSearch(e.target.value)}
-                            onFocus={() => setClientDropdownVisible(true)}
-                            style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
-                            readOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        <PortalDropdown
-                          isVisible={clientDropdownVisible && !isReadOnly}
-                          triggerRef={clientInputRef}
-                          onClose={() => setClientDropdownVisible(false)}
-                        >
-                          <div style={{
-                            marginTop: "5px",
-                            borderRadius: "16px",
-                            boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
-                            background: "#fff",
-                            minWidth: "100%",
-                            padding: "8px 0"
-                          }}>
-                            {filteredClients.map(client => (
-                              <div
-                                key={client.id}
-                                style={{
-                                  padding: "12px 20px",
-                                  cursor: "pointer",
-                                  background: "#fff",
-                                  color: "#212529",
-                                  transition: "background 0.2s"
-                                }}
-                                onClick={() => handleClientSelect(client)}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                              >
-                                <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
-                                {(client.phone || client.location) && (
-                                  <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
-                                    {client.phone}
-                                    {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
-                                    {client.location}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                            {filteredClients.length === 0 && (
-                              <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
-                                No clients found
-                              </div>
-                            )}
-                          </div>
-                        </PortalDropdown>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-md-4">
-                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                    <div className="card-body p-4">
-                      
-                      <div className="mb-3">
-                        <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                          Sales Order Number
-                        </label>
-                        <input
-                          type="text"
+              {/* Client and Quotation Number Section */}
+            <div className="row mb-4">
+              <div className="col-md-8">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                      <User size={18} className="me-2" />
+                      Client Information
+                    </h6>
+                    <div className="position-relative" ref={clientInputRef}>
+                      <div className="input-group">
+                    <input
+                      type="text"
                           className="form-control"
-                          value={orderNumber}
-                          readOnly
-                          style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                        />
-                      </div>
-                      <div>
-                        <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                          Date
-                        </label>
-                        <div className="input-group">
-                          <input
-                            type="date"
-                            className="form-control"
-                            value={orderDate}
-                            onChange={e => setOrderDate(e.target.value)}
-                            style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
-                            readOnly={isReadOnly}
-                          />
+                          placeholder="Search client..."
+                          value={clientSearchTerm}
+                          onChange={(e) => handleClientSearch(e.target.value)}
+                          onFocus={() => setClientDropdownVisible(true)}
+                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
+                          readOnly={isReadOnly}
+                    />
+                  </div>
+                      
+                      <PortalDropdown
+                        isVisible={clientDropdownVisible && !isReadOnly}
+                        triggerRef={clientInputRef}
+                        onClose={() => setClientDropdownVisible(false)}
+                      >
+                        <div style={{
+                          marginTop: "5px",
+                          borderRadius: "16px",
+                          boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+                          background: "#fff",
+                          minWidth: "100%",
+                          padding: "8px 0"
+                        }}>
+                          {filteredClients.map(client => (
+                            <div
+                              key={client.id}
+                              style={{
+                                padding: "12px 20px",
+                                cursor: "pointer",
+                                background: "#fff",
+                                color: "#212529",
+                                transition: "background 0.2s"
+                              }}
+                              onClick={() => handleClientSelect(client)}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                            >
+                              <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
+                              {(client.phone || client.location) && (
+                                <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
+                                  {client.phone}
+                                  {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
+                                  {client.location}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {filteredClients.length === 0 && (
+                            <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
+                              No clients found
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      </PortalDropdown>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Cabinet Items Section */}
-              <div className="mb-4">
+              <div className="col-md-4">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      <Calculator size={18} className="me-2" />
-                      <EditableSectionHeader
-                        sectionKey="cabinet"
-                        currentName={sectionNames.cabinet}
-                        onEdit={() => handleSectionNameEdit("cabinet")}
-                        onSave={() => handleSectionNameSave("cabinet")}
-                        onCancel={handleSectionNameCancel}
-                        onKeyPress={(e) => handleSectionNameKeyPress(e, "cabinet")}
-                        isEditing={editingSection === "cabinet"}
-                        editingName={editingSectionName}
-                        onEditingNameChange={setEditingSectionName}
-                        isReadOnly={isReadOnly}
-                      />
-                    </h6>
                     
-                    {/* Items Section - Div based design */}
+                    <div className="mb-3">
+                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                        Quotation Number
+                      </label>
+                    <input
+                      type="text"
+                        className="form-control"
+                      value={orderNumber}
+                      readOnly
+                        style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                    />
+                  </div>
+                    <div>
+                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                        Date
+                      </label>
+                      <div className="input-group">
+                    <input
+                          type="date"
+                          className="form-control"
+                          value={orderDate}
+                          onChange={e => setOrderDate(e.target.value)}
+                          style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
+                          readOnly={isReadOnly}
+                        />
+                  </div>
+                    </div>
+                  </div>
+                </div>
+                  </div>
+                </div>
+
+            {/* Cabinet Items Section */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                    <Calculator size={18} className="me-2" />
+                    <EditableSectionHeader
+                      sectionKey="cabinet"
+                      currentName={sectionNames.cabinet}
+                      onEdit={() => handleSectionNameEdit("cabinet")}
+                      onSave={() => handleSectionNameSave("cabinet")}
+                      onCancel={handleSectionNameCancel}
+                      onKeyPress={(e) => handleSectionNameKeyPress(e, "cabinet")}
+                      isEditing={editingSection === "cabinet"}
+                      editingName={editingSectionName}
+                      onEditingNameChange={setEditingSectionName}
+                      isReadOnly={isReadOnly}
+                    />
+                  </h6>
+                  
+                  {/* Items Section - Div based design */}
+                  <div className="mb-3">
+                    
+                    {/* Column Headers */}
+                    <div className="d-flex mb-3" style={{ 
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "white"
+                    }}>
+                      <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                      <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                      {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                </div>
+
+                    {/* Item Rows */}
+                    {cabinetItems.map((item, index) => (
+                      <div key={item.id} className="d-flex align-items-center mb-2">
+                        <div style={{ flex: "2", marginRight: "16px" }}>
+                          <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                      <input
+                        type="text"
+                              className="form-control"
+                              value={item.description}
+                        onChange={(e) => {
+                                updateItem("cabinet", index, "description", e.target.value)
+                                handleItemSearch(item.id?.toString() || "", e.target.value)
+                                setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                        }}
+                              onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                              placeholder="Search and select item"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                        readOnly={isReadOnly}
+                      />
+                            
+                            <PortalDropdown
+                              isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                              triggerRef={getItemInputRef(item.id?.toString() || "")}
+                              onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                            >
+                              {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                <li
+                                  key={stockItem.id}
+                                  style={{
+                                    padding: "8px 12px",
+                                    cursor: "pointer",
+                                    borderBottom: "1px solid #f1f3f4",
+                                    background: "#fff",
+                                    color: "#212529"
+                                  }}
+                                  onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                >
+                                  <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                  <div style={{ fontSize: "11px", color: "#495057" }}>
+                                    Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                            </div>
+                                </li>
+                          ))}
+                            </PortalDropdown>
+                        </div>
+                    </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
+                    <input
+                      type="text"
+                            className="form-control"
+                            value={item.unit}
+                            onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
+                            placeholder="Units"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                    />
+                  </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
+                    <input
+                      type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                    />
+                  </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                          KES {item.total_price.toFixed(2)}
+              </div>
+
+                        {!isReadOnly && (
+                          <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => removeItem("cabinet", index)}
+                              style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Minimalistic Labour Footer for Cabinet Section */}
+                    {mode !== "view" && (
+                      <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                        <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <input
+                            type="number"
+                            value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setCabinetLabourPercentage(0);
+                            }}
+                            onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
+                            onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
+                            placeholder="30"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 0",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                          />
+                        </div>
+                        <div style={{ flex: "1", marginRight: "16px" }}></div>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+                    )}
+
+                    {/* Add Item Button */}
+                    {!isReadOnly && (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => addItem("cabinet")}
+                          style={{ 
+                            borderRadius: "12px", 
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            border: "none",
+                            padding: "10px 20px"
+                          }}
+                        >
+                          <Plus size={14} className="me-1" />
+                          Add Item
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Worktop Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                    {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeWorktop ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeWorktop ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeWorktop ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <EditableSectionHeader
+                            sectionKey="worktop"
+                            currentName={sectionNames.worktop}
+                            onEdit={() => handleSectionNameEdit("worktop")}
+                            onSave={() => handleSectionNameSave("worktop")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "worktop")}
+                            isEditing={editingSection === "worktop"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeWorktop ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeWorktop ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            {includeWorktop ? "Remove Worktop" : "Include Worktop"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeWorktop ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeWorktop ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {includeWorktop && (
                     <div className="mb-3">
                       
                       {/* Column Headers */}
@@ -1772,24 +1947,24 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                       </div>
 
                       {/* Item Rows */}
-                      {cabinetItems.map((item, index) => (
+                      {worktopItems.map((item, index) => (
                         <div key={item.id} className="d-flex align-items-center mb-2">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                              <input
-                                type="text"
+                          <input
+                            type="text"
                                 className="form-control"
-                                value={item.description}
+                            value={item.description}
                                 onChange={(e) => {
-                                  updateItem("cabinet", index, "description", e.target.value)
+                                  updateItem("worktop", index, "description", e.target.value)
                                   handleItemSearch(item.id?.toString() || "", e.target.value)
                                   setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
                                 }}
                                 onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
                                 placeholder="Search and select item"
                                 style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
+                            readOnly={isReadOnly}
+                          />
                               
                               <PortalDropdown
                                 isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
@@ -1812,7 +1987,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                                   >
                                     <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
                                     <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
                                     </div>
                                   </li>
                                 ))}
@@ -1821,98 +1996,439 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
+                          <input
+                            type="text"
                               className="form-control"
-                              value={item.unit}
-                              onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
+                            value={item.unit}
+                              onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
                               placeholder="Units"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
+                            readOnly={isReadOnly}
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={
-                                rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                  ? rawQuantityValues[item.id?.toString() || ""]
-                                  : (item.quantity === 1 ? "" : item.quantity)
-                              }
-                              onFocus={e => {
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                              }}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                              }}
-                              onBlur={e => {
-                                const val = e.target.value;
-                                const num = val === '' ? 1 : Number(val);
-                                updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
-                                setRawQuantityValues(prev => {
-                                  const copy = { ...prev };
-                                  delete copy[item.id?.toString() || ""];
-                                  return copy;
-                                });
-                              }}
-                              placeholder="1"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "12px", 
-                                height: "40px", 
-                                fontSize: "13px",
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 12px",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                          <input
+                            type="number"
                               className="form-control"
-                              value={item.unit_price || ""}
-                              onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
                           
                           <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             KES {item.total_price.toFixed(2)}
                           </div>
-
-                          {!isReadOnly && (
+                          
+                        {!isReadOnly && (
                             <div style={{ flex: "0 0 40px" }}>
-                              <button
-                                type="button"
+                            <button
+                              type="button"
                                 className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("cabinet", index)}
+                                onClick={() => removeItem("worktop", index)}
                                 style={{ borderRadius: "8px", padding: "4px 8px" }}
-                              >
+                            >
                                 <X size={12} />
-                              </button>
+                            </button>
                             </div>
                           )}
                         </div>
                       ))}
 
-                      {/* Minimalistic Labour Footer for Cabinet Section */}
+                      {/* Render the Worktop Installation Labor footer row after the item rows: */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>per slab</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
+                              onFocus={e => setRawWorktopLaborQty(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
+                              onChange={e => setRawWorktopLaborQty(e.target.value)}
+                              onBlur={e => {
+                                const val = rawWorktopLaborQty ?? "";
+                                const num = val === '' ? 1 : Number(val);
+                                setWorktopLaborQty(isNaN(num) ? 1 : num);
+                                setRawWorktopLaborQty(undefined);
+                              }}
+                              placeholder="1"
+                              style={{
+                                width: "100%",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                background: "transparent",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none",
+                                textAlign: "left"
+                              }}
+                              min="1"
+                              step="1"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000? "" : worktopLaborUnitPrice)}
+                              onFocus={e => setRawWorktopLaborUnitPrice(worktopLaborUnitPrice === 3000? "" : String(worktopLaborUnitPrice))}
+                              onChange={e => setRawWorktopLaborUnitPrice(e.target.value)}
+                              onBlur={e => {
+                                const val = rawWorktopLaborUnitPrice ?? "";
+                                const num = val === '' ? 3000: Number(val);
+                                setWorktopLaborUnitPrice(isNaN(num) ? 3000: num);
+                                setRawWorktopLaborUnitPrice(undefined);
+                              }}
+                              placeholder="3000"
+                              style={{
+                                width: "100%",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                background: "transparent",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none",
+                                textAlign: "left"
+                              }}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>
+                            KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
+                          </div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Move the Add Item button to be the last element: */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("worktop")}
+                            style={{
+                              borderRadius: "12px",
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Accessories Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                    {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeAccessories ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeAccessories ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <EditableSectionHeader
+                            sectionKey="accessories"
+                            currentName={sectionNames.accessories}
+                            onEdit={() => handleSectionNameEdit("accessories")}
+                            onSave={() => handleSectionNameSave("accessories")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
+                            isEditing={editingSection === "accessories"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeAccessories ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeAccessories ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            {includeAccessories ? "Remove Accessories" : "Include Accessories"}
+                          </span>
+                          <div 
+                            className="position-relative"
+                            style={{
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAccessories ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
+                            }}
+                            onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAccessories ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {includeAccessories && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {accessoriesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("accessories", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                        {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("accessories", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                                <X size={12} />
+                            </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Minimalistic Labour Footer for Accessories Section */}
                       {mode !== "view" && (
                         <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
@@ -1920,13 +2436,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
                             <input
                               type="number"
-                              value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
+                              value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
                               onFocus={e => {
                                 e.target.value = "";
-                                setCabinetLabourPercentage(0);
+                                setAccessoriesLabourPercentage(0);
                               }}
-                              onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
-                              onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
+                              onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
                               placeholder="30"
                               style={{ 
                                 width: "100%",
@@ -1948,7 +2464,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -1956,1604 +2472,990 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                       {/* Add Item Button */}
                       {!isReadOnly && (
                         <div className="mt-3">
-                          <button
-                            type="button"
+                        <button
+                          type="button"
                             className="btn btn-primary"
-                            onClick={() => addItem("cabinet")}
+                            onClick={() => addItem("accessories")}
                             style={{ 
                               borderRadius: "12px", 
                               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                               border: "none",
                               padding: "10px 20px"
                             }}
-                          >
-                            <Plus size={14} className="me-1" />
+                        >
+                          <Plus size={14} className="me-1" />
                             Add Item
-                          </button>
+                        </button>
                         </div>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* Worktop Section with Animated Toggle */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center mb-3">
-                      {!isReadOnly && (
-                        <div className="d-flex align-items-center w-100">
-                          {/* Section Title - Hidden when toggle is off */}
-                          <div 
-                            style={{
-                              display: includeWorktop ? "flex" : "none",
-                              alignItems: "center",
-                              marginRight: "12px",
-                              transition: "all 0.3s ease",
-                              transform: includeWorktop ? "translateX(0)" : "translateX(-20px)",
-                              opacity: includeWorktop ? 1 : 0
-                            }}
-                          >
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            <EditableSectionHeader
-                              sectionKey="worktop"
-                              currentName={sectionNames.worktop}
-                              onEdit={() => handleSectionNameEdit("worktop")}
-                              onSave={() => handleSectionNameSave("worktop")}
-                              onCancel={handleSectionNameCancel}
-                              onKeyPress={(e) => handleSectionNameKeyPress(e, "worktop")}
-                              isEditing={editingSection === "worktop"}
-                              editingName={editingSectionName}
-                              onEditingNameChange={setEditingSectionName}
-                              isReadOnly={isReadOnly}
-                            />
-                          </div>
-                          
-                          {/* Toggle Text and Switch */}
-                          <div 
-                            className="d-flex align-items-center"
-                            style={{
-                              marginLeft: includeWorktop ? "auto" : "0",
-                              transition: "all 0.3s ease",
-                              transform: includeWorktop ? "translateX(0)" : "translateX(0)"
-                            }}
-                          >
-                            <span 
-                              className="me-2 small fw-semibold" 
-                              style={{ 
-                                color: "#ffffff",
-                                transition: "all 0.3s ease"
-                              }}
-                            >
-                              {includeWorktop ? "Remove Worktop" : "Include Worktop"}
-                            </span>
-                            <div 
-                              className="position-relative"
-                              style={{
-                                width: "44px",
-                                height: "24px",
-                                borderRadius: "12px",
-                                background: includeWorktop ? "#667eea" : "#e9ecef",
-                                cursor: isReadOnly ? "default" : "pointer",
-                                transition: "background-color 0.2s"
-                              }}
-                              onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
-                            >
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  left: includeWorktop ? "22px" : "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "white",
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                  transition: "left 0.2s"
-                                }}
-                              />
-                            </div>
-                          </div>
+            {/* Appliances Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeAppliances ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeAppliances ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <EditableSectionHeader
+                            sectionKey="appliances"
+                            currentName={sectionNames.appliances}
+                            onEdit={() => handleSectionNameEdit("appliances")}
+                            onSave={() => handleSectionNameSave("appliances")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
+                            isEditing={editingSection === "appliances"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
                         </div>
-                      )}
-                      {isReadOnly && includeWorktop && (
-                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
-                          <Calculator size={18} className="me-2" />
-                          {sectionNames.worktop}
-                        </h6>
-                      )}
-                    </div>
-                    
-                    {includeWorktop && (
-                      <div className="mb-3">
                         
-                        {/* Column Headers */}
-                        <div className="d-flex mb-3" style={{ 
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "white"
-                        }}>
-                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-
-                        {/* Item Rows */}
-                        {worktopItems.map((item, index) => (
-                          <div key={item.id} className="d-flex align-items-center mb-2">
-                            <div style={{ flex: "2", marginRight: "16px" }}>
-                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={item.description}
-                                  onChange={(e) => {
-                                    updateItem("worktop", index, "description", e.target.value)
-                                    handleItemSearch(item.id?.toString() || "", e.target.value)
-                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                  }}
-                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                  placeholder="Search and select item"
-                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                  readOnly={isReadOnly}
-                                />
-                                
-                                <PortalDropdown
-                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                                >
-                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                    <li
-                                      key={stockItem.id}
-                                      style={{
-                                        padding: "8px 12px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid #f1f3f4",
-                                        background: "#fff",
-                                        color: "#212529"
-                                      }}
-                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                    >
-                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                      <div style={{ fontSize: "11px", color: "#495057" }}>
-                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                                      </div>
-                                    </li>
-                                  ))}
-                                </PortalDropdown>
-                              </div>
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : Number(val);
-                                  updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </div>
-                            
-                            {!isReadOnly && (
-                              <div style={{ flex: "0 0 40px" }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("worktop", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Worktop Installation Labor footer row */}
-                        {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>per slab</div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
-                                onFocus={e => setRawWorktopLaborQty(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
-                                onChange={e => setRawWorktopLaborQty(e.target.value)}
-                                onBlur={e => {
-                                  const val = rawWorktopLaborQty ?? "";
-                                  const num = val === '' ? 1 : Number(val);
-                                  setWorktopLaborQty(isNaN(num) ? 1 : num);
-                                  setRawWorktopLaborQty(undefined);
-                                }}
-                                placeholder="1"
-                                style={{
-                                  width: "100%",
-                                  borderRadius: "8px",
-                                  fontSize: "13px",
-                                  background: "transparent",
-                                  color: "#fff",
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none",
-                                  textAlign: "left"
-                                }}
-                                min="1"
-                                step="1"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000 ? "" : worktopLaborUnitPrice)}
-                                onFocus={e => setRawWorktopLaborUnitPrice(worktopLaborUnitPrice === 3000 ? "" : String(worktopLaborUnitPrice))}
-                                onChange={e => setRawWorktopLaborUnitPrice(e.target.value)}
-                                onBlur={e => {
-                                  const val = rawWorktopLaborUnitPrice ?? "";
-                                  const num = val === '' ? 3000 : Number(val);
-                                  setWorktopLaborUnitPrice(isNaN(num) ? 3000 : num);
-                                  setRawWorktopLaborUnitPrice(undefined);
-                                }}
-                                placeholder="3000"
-                                style={{
-                                  width: "100%",
-                                  borderRadius: "8px",
-                                  fontSize: "13px",
-                                  background: "transparent",
-                                  color: "#fff",
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none",
-                                  textAlign: "left"
-                                }}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>
-                              KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
-                            </div>
-                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                          </div>
-                        )}
-
-                        {/* Add Item Button */}
-                        {!isReadOnly && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => addItem("worktop")}
-                              style={{
-                                borderRadius: "12px",
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                border: "none",
-                                padding: "10px 20px"
-                              }}
-                            >
-                              <Plus size={14} className="me-1" />
-                              Add Item
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Accessories Section with Animated Toggle */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center mb-3">
-                      {!isReadOnly && (
-                        <div className="d-flex align-items-center w-100">
-                          <div 
-                            style={{
-                              display: includeAccessories ? "flex" : "none",
-                              alignItems: "center",
-                              marginRight: "12px",
-                              transition: "all 0.3s ease",
-                              transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
-                              opacity: includeAccessories ? 1 : 0
-                            }}
-                          >
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            <EditableSectionHeader
-                              sectionKey="accessories"
-                              currentName={sectionNames.accessories}
-                              onEdit={() => handleSectionNameEdit("accessories")}
-                              onSave={() => handleSectionNameSave("accessories")}
-                              onCancel={handleSectionNameCancel}
-                              onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
-                              isEditing={editingSection === "accessories"}
-                              editingName={editingSectionName}
-                              onEditingNameChange={setEditingSectionName}
-                              isReadOnly={isReadOnly}
-                            />
-                          </div>
-                          
-                          <div 
-                            className="d-flex align-items-center"
-                            style={{
-                              marginLeft: includeAccessories ? "auto" : "0",
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeAppliances ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeAppliances ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
-                            <span 
-                              className="me-2 small fw-semibold" 
-                              style={{ 
-                                color: "#ffffff",
-                                transition: "all 0.3s ease"
-                              }}
-                            >
-                              {includeAccessories ? "Remove Accessories" : "Include Accessories"}
-                            </span>
-                            <div 
-                              className="position-relative"
-                              style={{
-                                width: "44px",
-                                height: "24px",
-                                borderRadius: "12px",
-                                background: includeAccessories ? "#667eea" : "#e9ecef",
-                                cursor: isReadOnly ? "default" : "pointer",
-                                transition: "background-color 0.2s"
-                              }}
-                              onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
-                            >
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  left: includeAccessories ? "22px" : "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "white",
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                  transition: "left 0.2s"
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {isReadOnly && includeAccessories && (
-                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
-                          <Calculator size={18} className="me-2" />
-                          {sectionNames.accessories}
-                        </h6>
-                      )}
-                    </div>
-                    
-                    {includeAccessories && (
-                      <div className="mb-3">
-                        {/* Similar structure as worktop section but for accessories items */}
-                        <div className="d-flex mb-3" style={{ 
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "white"
-                        }}>
-                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-
-                        {accessoriesItems.map((item, index) => (
-                          <div key={item.id} className="d-flex align-items-center mb-2">
-                            <div style={{ flex: "2", marginRight: "16px" }}>
-                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={item.description}
-                                  onChange={(e) => {
-                                    updateItem("accessories", index, "description", e.target.value)
-                                    handleItemSearch(item.id?.toString() || "", e.target.value)
-                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                  }}
-                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                  placeholder="Search and select item"
-                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                  readOnly={isReadOnly}
-                                />
-                                
-                                <PortalDropdown
-                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                                >
-                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                    <li
-                                      key={stockItem.id}
-                                      style={{
-                                        padding: "8px 12px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid #f1f3f4",
-                                        background: "#fff",
-                                        color: "#212529"
-                                      }}
-                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                    >
-                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                      <div style={{ fontSize: "11px", color: "#495057" }}>
-                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                                      </div>
-                                    </li>
-                                  ))}
-                                </PortalDropdown>
-                              </div>
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : Number(val);
-                                  updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </div>
-                            
-                            {!isReadOnly && (
-                              <div style={{ flex: "0 0 40px" }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("accessories", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Labour Footer for Accessories Section */}
-                        {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
-                                onFocus={e => {
-                                  e.target.value = "";
-                                  setAccessoriesLabourPercentage(0);
-                                }}
-                                onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
-                                onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
-                                placeholder="30"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "8px", 
-                                  fontSize: "13px", 
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px" }}></div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
-                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                          </div>
-                        )}
-
-                        {!isReadOnly && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => addItem("accessories")}
-                              style={{ 
-                                borderRadius: "12px", 
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                border: "none",
-                                padding: "10px 20px"
-                              }}
-                            >
-                              <Plus size={14} className="me-1" />
-                              Add Item
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Appliances Section with Animated Toggle */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center mb-3">
-                      {!isReadOnly && (
-                        <div className="d-flex align-items-center w-100">
+                            {includeAppliances ? "Remove Appliances" : "Include Appliances"}
+                          </span>
                           <div 
+                            className="position-relative"
                             style={{
-                              display: includeAppliances ? "flex" : "none",
-                              alignItems: "center",
-                              marginRight: "12px",
-                              transition: "all 0.3s ease",
-                              transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
-                              opacity: includeAppliances ? 1 : 0
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeAppliances ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
                             }}
+                            onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
                           >
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            <EditableSectionHeader
-                              sectionKey="appliances"
-                              currentName={sectionNames.appliances}
-                              onEdit={() => handleSectionNameEdit("appliances")}
-                              onSave={() => handleSectionNameSave("appliances")}
-                              onCancel={handleSectionNameCancel}
-                              onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
-                              isEditing={editingSection === "appliances"}
-                              editingName={editingSectionName}
-                              onEditingNameChange={setEditingSectionName}
-                              isReadOnly={isReadOnly}
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeAppliances ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
                             />
                           </div>
+                        </div>
+                  </div>
+                )}
+              </div>
+                  
+                  {includeAppliances && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {appliancesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("appliances", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
                           
-                          <div 
-                            className="d-flex align-items-center"
-                            style={{
-                              marginLeft: includeAppliances ? "auto" : "0",
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                        {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("appliances", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                                <X size={12} />
+                            </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Minimalistic Labour Footer for Appliances Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setAppliancesLabourPercentage(0);
+                              }}
+                              onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.appliancesLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("appliances")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Wardrobes Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeWardrobes ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeWardrobes ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <EditableSectionHeader
+                            sectionKey="wardrobes"
+                            currentName={sectionNames.wardrobes}
+                            onEdit={() => handleSectionNameEdit("wardrobes")}
+                            onSave={() => handleSectionNameSave("wardrobes")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
+                            isEditing={editingSection === "wardrobes"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeWardrobes ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeWardrobes ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
-                            <span 
-                              className="me-2 small fw-semibold" 
-                              style={{ 
-                                color: "#ffffff",
-                                transition: "all 0.3s ease"
-                              }}
-                            >
-                              {includeAppliances ? "Remove Appliances" : "Include Appliances"}
-                            </span>
-                            <div 
-                              className="position-relative"
-                              style={{
-                                width: "44px",
-                                height: "24px",
-                                borderRadius: "12px",
-                                background: includeAppliances ? "#667eea" : "#e9ecef",
-                                cursor: isReadOnly ? "default" : "pointer",
-                                transition: "background-color 0.2s"
-                              }}
-                              onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
-                            >
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  left: includeAppliances ? "22px" : "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "white",
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                  transition: "left 0.2s"
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {isReadOnly && includeAppliances && (
-                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
-                          <Calculator size={18} className="me-2" />
-                          {sectionNames.appliances}
-                        </h6>
-                      )}
-                    </div>
-                    
-                    {includeAppliances && (
-                      <div className="mb-3">
-                        <div className="d-flex mb-3" style={{ 
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "white"
-                        }}>
-                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-
-                        {appliancesItems.map((item, index) => (
-                          <div key={item.id} className="d-flex align-items-center mb-2">
-                            <div style={{ flex: "2", marginRight: "16px" }}>
-                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={item.description}
-                                  onChange={(e) => {
-                                    updateItem("appliances", index, "description", e.target.value)
-                                    handleItemSearch(item.id?.toString() || "", e.target.value)
-                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                  }}
-                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                  placeholder="Search and select item"
-                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                  readOnly={isReadOnly}
-                                />
-                                
-                                <PortalDropdown
-                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                                >
-                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                    <li
-                                      key={stockItem.id}
-                                      style={{
-                                        padding: "8px 12px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid #f1f3f4",
-                                        background: "#fff",
-                                        color: "#212529"
-                                      }}
-                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                    >
-                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                      <div style={{ fontSize: "11px", color: "#495057" }}>
-                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                                      </div>
-                                    </li>
-                                  ))}
-                                </PortalDropdown>
-                              </div>
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : Number(val);
-                                  updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </div>
-                            
-                            {!isReadOnly && (
-                              <div style={{ flex: "0 0 40px" }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("appliances", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
-                                onFocus={e => {
-                                  e.target.value = "";
-                                  setAppliancesLabourPercentage(0);
-                                }}
-                                onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
-                                onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
-                                placeholder="30"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "8px", 
-                                  fontSize: "13px", 
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px" }}></div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.appliancesLabour.toFixed(2)}</div>
-                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                          </div>
-                        )}
-
-                        {!isReadOnly && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => addItem("appliances")}
-                              style={{ 
-                                borderRadius: "12px", 
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                border: "none",
-                                padding: "10px 20px"
-                              }}
-                            >
-                              <Plus size={14} className="me-1" />
-                              Add Item
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Wardrobes Section with Animated Toggle */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center mb-3">
-                      {!isReadOnly && (
-                        <div className="d-flex align-items-center w-100">
+                            {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
+                          </span>
                           <div 
+                            className="position-relative"
                             style={{
-                              display: includeWardrobes ? "flex" : "none",
-                              alignItems: "center",
-                              marginRight: "12px",
-                              transition: "all 0.3s ease",
-                              transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
-                              opacity: includeWardrobes ? 1 : 0
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeWardrobes ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
                             }}
+                            onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
                           >
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            <EditableSectionHeader
-                              sectionKey="wardrobes"
-                              currentName={sectionNames.wardrobes}
-                              onEdit={() => handleSectionNameEdit("wardrobes")}
-                              onSave={() => handleSectionNameSave("wardrobes")}
-                              onCancel={handleSectionNameCancel}
-                              onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
-                              isEditing={editingSection === "wardrobes"}
-                              editingName={editingSectionName}
-                              onEditingNameChange={setEditingSectionName}
-                              isReadOnly={isReadOnly}
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeWardrobes ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
                             />
                           </div>
+                        </div>
+                  </div>
+                )}
+              </div>
+                  
+                  {includeWardrobes && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {wardrobesItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("wardrobes", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
                           
-                          <div 
-                            className="d-flex align-items-center"
-                            style={{
-                              marginLeft: includeWardrobes ? "auto" : "0",
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                            }}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
+                          </div>
+                          
+                        {!isReadOnly && (
+                            <div style={{ flex: "0 0 40px" }}>
+                            <button
+                              type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("wardrobes", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
+                            >
+                                <X size={12} />
+                            </button>
+                            </div>
+                          )}
+                        </div>
+                      )                      )}
+
+                      {/* Minimalistic Labour Footer for Wardrobes Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setWardrobesLabourPercentage(0);
+                              }}
+                              onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
+                          </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("wardrobes")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TV Unit Section with Animated Toggle */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <div className="d-flex align-items-center mb-3">
+                {!isReadOnly && (
+                      <div className="d-flex align-items-center w-100">
+                        {/* Section Title - Hidden when toggle is off */}
+                        <div 
+                          style={{
+                            display: includeTvUnit ? "flex" : "none",
+                            alignItems: "center",
+                            marginRight: "12px",
+                            transition: "all 0.3s ease",
+                            transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
+                            opacity: includeTvUnit ? 1 : 0
+                          }}
+                        >
+                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                          <EditableSectionHeader
+                            sectionKey="tvunit"
+                            currentName={sectionNames.tvunit}
+                            onEdit={() => handleSectionNameEdit("tvunit")}
+                            onSave={() => handleSectionNameSave("tvunit")}
+                            onCancel={handleSectionNameCancel}
+                            onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
+                            isEditing={editingSection === "tvunit"}
+                            editingName={editingSectionName}
+                            onEditingNameChange={setEditingSectionName}
+                            isReadOnly={isReadOnly}
+                          />
+                        </div>
+                        
+                        {/* Toggle Text and Switch */}
+                        <div 
+                          className="d-flex align-items-center"
+                          style={{
+                            marginLeft: includeTvUnit ? "auto" : "0",
+                            transition: "all 0.3s ease",
+                            transform: includeTvUnit ? "translateX(0)" : "translateX(0)"
+                          }}
+                        >
+                          <span 
+                            className="me-2 small fw-semibold" 
+                            style={{ 
+                              color: "#ffffff",
                               transition: "all 0.3s ease"
                             }}
                           >
-                            <span 
-                              className="me-2 small fw-semibold" 
-                              style={{ 
-                                color: "#ffffff",
-                                transition: "all 0.3s ease"
-                              }}
-                            >
-                              {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
-                            </span>
-                            <div 
-                              className="position-relative"
-                              style={{
-                                width: "44px",
-                                height: "24px",
-                                borderRadius: "12px",
-                                background: includeWardrobes ? "#667eea" : "#e9ecef",
-                                cursor: isReadOnly ? "default" : "pointer",
-                                transition: "background-color 0.2s"
-                              }}
-                              onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
-                            >
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  left: includeWardrobes ? "22px" : "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "white",
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                  transition: "left 0.2s"
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {isReadOnly && includeWardrobes && (
-                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
-                          <Calculator size={18} className="me-2" />
-                          {sectionNames.wardrobes}
-                        </h6>
-                      )}
-                    </div>
-                    
-                    {includeWardrobes && (
-                      <div className="mb-3">
-                        <div className="d-flex mb-3" style={{ 
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "white"
-                        }}>
-                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-
-                        {wardrobesItems.map((item, index) => (
-                          <div key={item.id} className="d-flex align-items-center mb-2">
-                            <div style={{ flex: "2", marginRight: "16px" }}>
-                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={item.description}
-                                  onChange={(e) => {
-                                    updateItem("wardrobes", index, "description", e.target.value)
-                                    handleItemSearch(item.id?.toString() || "", e.target.value)
-                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                  }}
-                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                  placeholder="Search and select item"
-                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                  readOnly={isReadOnly}
-                                />
-                                
-                                <PortalDropdown
-                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                                >
-                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                    <li
-                                      key={stockItem.id}
-                                      style={{
-                                        padding: "8px 12px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid #f1f3f4",
-                                        background: "#fff",
-                                        color: "#212529"
-                                      }}
-                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                    >
-                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                      <div style={{ fontSize: "11px", color: "#495057" }}>
-                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                                      </div>
-                                    </li>
-                                  ))}
-                                </PortalDropdown>
-                              </div>
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : Number(val);
-                                  updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </div>
-                            
-                            {!isReadOnly && (
-                              <div style={{ flex: "0 0 40px" }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("wardrobes", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
-                                onFocus={e => {
-                                  e.target.value = "";
-                                  setWardrobesLabourPercentage(0);
-                                }}
-                                onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
-                                onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
-                                placeholder="30"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "8px", 
-                                  fontSize: "13px", 
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px" }}></div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
-                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                          </div>
-                        )}
-
-                        {!isReadOnly && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => addItem("wardrobes")}
-                              style={{ 
-                                borderRadius: "12px", 
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                border: "none",
-                                padding: "10px 20px"
-                              }}
-                            >
-                              <Plus size={14} className="me-1" />
-                              Add Item
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* TV Unit Section with Animated Toggle */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center mb-3">
-                      {!isReadOnly && (
-                        <div className="d-flex align-items-center w-100">
+                            {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
+                          </span>
                           <div 
+                            className="position-relative"
                             style={{
-                              display: includeTvUnit ? "flex" : "none",
-                              alignItems: "center",
-                              marginRight: "12px",
-                              transition: "all 0.3s ease",
-                              transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
-                              opacity: includeTvUnit ? 1 : 0
+                              width: "44px",
+                              height: "24px",
+                              borderRadius: "12px",
+                              background: includeTvUnit ? "#667eea" : "#e9ecef",
+                              cursor: isReadOnly ? "default" : "pointer",
+                              transition: "background-color 0.2s"
                             }}
+                            onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
                           >
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            <EditableSectionHeader
-                              sectionKey="tvunit"
-                              currentName={sectionNames.tvunit}
-                              onEdit={() => handleSectionNameEdit("tvunit")}
-                              onSave={() => handleSectionNameSave("tvunit")}
-                              onCancel={handleSectionNameCancel}
-                              onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
-                              isEditing={editingSection === "tvunit"}
-                              editingName={editingSectionName}
-                              onEditingNameChange={setEditingSectionName}
-                              isReadOnly={isReadOnly}
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "2px",
+                                left: includeTvUnit ? "22px" : "2px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "white",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                transition: "left 0.2s"
+                              }}
                             />
                           </div>
+                        </div>
+                  </div>
+                )}
+              </div>
+                  
+                  {includeTvUnit && (
+                    <div className="mb-3">
+                      
+                      {/* Column Headers */}
+                      <div className="d-flex mb-3" style={{ 
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        color: "white"
+                      }}>
+                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      </div>
+
+                      {/* Item Rows */}
+                      {tvUnitItems.map((item, index) => (
+                        <div key={item.id} className="d-flex align-items-center mb-2">
+                          <div style={{ flex: "2", marginRight: "16px" }}>
+                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          <input
+                            type="text"
+                                className="form-control"
+                            value={item.description}
+                                onChange={(e) => {
+                                  updateItem("tvunit", index, "description", e.target.value)
+                                  handleItemSearch(item.id?.toString() || "", e.target.value)
+                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                }}
+                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                placeholder="Search and select item"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                              
+                              <PortalDropdown
+                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                              >
+                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                  <li
+                                    key={stockItem.id}
+                                    style={{
+                                      padding: "8px 12px",
+                                      cursor: "pointer",
+                                      borderBottom: "1px solid #f1f3f4",
+                                      background: "#fff",
+                                      color: "#212529"
+                                    }}
+                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                  >
+                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                    <div style={{ fontSize: "11px", color: "#495057" }}>
+                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                    </div>
+                                  </li>
+                                ))}
+                              </PortalDropdown>
+                            </div>
+                          </div>
                           
-                          <div 
-                            className="d-flex align-items-center"
-                            style={{
-                              marginLeft: includeTvUnit ? "auto" : "0",
-                              transition: "all 0.3s ease"
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
+                              className="form-control"
+                            value={item.unit}
+                              onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                          />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                            value={
+                              rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                ? rawQuantityValues[item.id?.toString() || ""]
+                                : (item.quantity === 1 ? "" : item.quantity)
+                            }
+                            onFocus={e => {
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
                             }}
-                          >
-                            <span 
-                              className="me-2 small fw-semibold" 
-                              style={{ 
-                                color: "#ffffff",
-                                transition: "all 0.3s ease"
-                              }}
-                            >
-                              {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
-                            </span>
-                            <div 
-                              className="position-relative"
-                              style={{
-                                width: "44px",
-                                height: "24px",
-                                borderRadius: "12px",
-                                background: includeTvUnit ? "#667eea" : "#e9ecef",
-                                cursor: isReadOnly ? "default" : "pointer",
-                                transition: "background-color 0.2s"
-                              }}
-                              onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
-                            >
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  left: includeTvUnit ? "22px" : "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "white",
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                  transition: "left 0.2s"
-                                }}
-                              />
-                            </div>
+                            onChange={e => {
+                              const val = e.target.value;
+                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                            }}
+                            onBlur={e => {
+                              const val = e.target.value;
+                              const num = val === '' ? 1 : Number(val);
+                              updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
+                              setRawQuantityValues(prev => {
+                                const copy = { ...prev };
+                                delete copy[item.id?.toString() || ""];
+                                return copy;
+                              });
+                            }}
+                            placeholder="1"
+                            style={{ 
+                              width: "100%",
+                              borderRadius: "12px", 
+                              height: "40px", 
+                              fontSize: "13px",
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "8px 12px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none"
+                            }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
-                        </div>
-                      )}
-                      {isReadOnly && includeTvUnit && (
-                        <h6 className="card-title mb-0 fw-bold" style={{ color: "#ffffff" }}>
-                          <Calculator size={18} className="me-2" />
-                          {sectionNames.tvunit}
-                        </h6>
-                      )}
-                    </div>
-                    
-                    {includeTvUnit && (
-                      <div className="mb-3">
-                        <div className="d-flex mb-3" style={{ 
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          color: "white"
-                        }}>
-                          <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-
-                        {tvUnitItems.map((item, index) => (
-                          <div key={item.id} className="d-flex align-items-center mb-2">
-                            <div style={{ flex: "2", marginRight: "16px" }}>
-                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={item.description}
-                                  onChange={(e) => {
-                                    updateItem("tvunit", index, "description", e.target.value)
-                                    handleItemSearch(item.id?.toString() || "", e.target.value)
-                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                  }}
-                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                  placeholder="Search and select item"
-                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                  readOnly={isReadOnly}
-                                />
-                                
-                                <PortalDropdown
-                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                                >
-                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                    <li
-                                      key={stockItem.id}
-                                      style={{
-                                        padding: "8px 12px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid #f1f3f4",
-                                        background: "#fff",
-                                        color: "#212529"
-                                      }}
-                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                    >
-                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                      <div style={{ fontSize: "11px", color: "#495057" }}>
-                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                                      </div>
-                                    </li>
-                                  ))}
-                                </PortalDropdown>
-                              </div>
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : Number(val);
-                                  updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            
-                            <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                              KES {item.total_price.toFixed(2)}
-                            </div>
-                            
-                            {!isReadOnly && (
-                              <div style={{ flex: "0 0 40px" }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removeItem("tvunit", index)}
-                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            )}
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
+                              className="form-control"
+                            value={item.unit_price || ""}
+                            onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            placeholder="Unit Price"
+                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                            readOnly={isReadOnly}
+                            min="0"
+                            step="0.01"
+                          />
                           </div>
-                        ))}
-
-                        {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                            <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
-                              <input
-                                type="number"
-                                value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
-                                onFocus={e => {
-                                  e.target.value = "";
-                                  setTvUnitLabourPercentage(0);
-                                }}
-                                onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
-                                onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
-                                placeholder="30"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "8px", 
-                                  fontSize: "13px", 
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                              />
-                            </div>
-                            <div style={{ flex: "1", marginRight: "16px" }}></div>
-                            <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
-                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
                           </div>
-                        )}
-
+                          
                         {!isReadOnly && (
-                          <div className="mt-3">
+                            <div style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
-                              className="btn btn-primary"
-                              onClick={() => addItem("tvunit")}
-                              style={{ 
-                                borderRadius: "12px", 
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                border: "none",
-                                padding: "10px 20px"
-                              }}
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => removeItem("tvunit", index)}
+                                style={{ borderRadius: "8px", padding: "4px 8px" }}
                             >
-                              <Plus size={14} className="me-1" />
-                              Add Item
+                                <X size={12} />
                             </button>
+                            </div>
+                          )}
+                        </div>
+                      )                      )}
+
+                      {/* Minimalistic Labour Footer for TV Unit Section */}
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                            <input
+                              type="number"
+                              value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
+                              onFocus={e => {
+                                e.target.value = "";
+                                setTvUnitLabourPercentage(0);
+                              }}
+                              onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
+                              onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
+                              placeholder="30"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "8px", 
+                                fontSize: "13px", 
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 0",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                            />
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+                      )}
+
+                      {/* Add Item Button */}
+                      {!isReadOnly && (
+                        <div className="mt-3">
+                        <button
+                          type="button"
+                            className="btn btn-primary"
+                            onClick={() => addItem("tvunit")}
+                            style={{ 
+                              borderRadius: "12px", 
+                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              border: "none",
+                              padding: "10px 20px"
+                            }}
+                        >
+                          <Plus size={14} className="me-1" />
+                            Add Item
+                        </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* Summary and Totals Section */}
-              <div className="mb-4">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      <Calculator size={18} className="me-2" />
-                      Summary
-                    </h6>
-                    
-                    <div className="row">
-                      <div className="col-md-6">
+            {/* Totals Section */}
+            <div className="mb-4">
+              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                <div className="card-body p-4">
+                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                    <Calculator size={18} className="me-2" />
+                    Summary
+                  </h6>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
                       </div>
+                      {includeWorktop && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.worktop} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeAccessories && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.accessories} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeAppliances && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.appliances} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeWardrobes && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.wardrobes} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeTvUnit && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
@@ -3602,42 +3504,48 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                         <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
                       </div>
                     </div>
-
-                    {!isReadOnly && (
-                      <div className="mt-4">
-                        <div className="row">
-                          <div className="col-md-6">
-                            <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
-                              Notes
-                            </label>
-                            <textarea
-                              className="form-control"
-                              rows={3}
-                              value={notes}
-                              onChange={(e) => setNotes(e.target.value)}
-                              placeholder="Additional notes..."
-                              style={{ borderRadius: "12px", fontSize: "13px" }}
-                            />
-                          </div>
-                          <div className="col-md-6">
-                            <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
-                              Terms & Conditions
-                            </label>
-                            <textarea
-                              className="form-control"
-                              rows={3}
-                              value={termsConditions}
-                              onChange={(e) => setTermsConditions(e.target.value)}
-                              placeholder="Terms and conditions..."
-                              style={{ borderRadius: "12px", fontSize: "13px" }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Notes and Terms Section */}
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                      Notes
+                    </h6>
+              <textarea
+                className="form-control"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes..."
+                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
+                readOnly={isReadOnly}
+              />
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                  <div className="card-body p-4">
+                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                      Terms & Conditions
+                    </h6>
+              <textarea
+                className="form-control"
+                      value={termsConditions}
+                      onChange={(e) => setTermsConditions(e.target.value)}
+                      placeholder="Terms and conditions..."
+                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
+                readOnly={isReadOnly}
+              />
+          </div>
+                </div>
+              </div>
+            </div>
             </div>
           )}
 
@@ -3653,33 +3561,31 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 >
                   Close
                 </button>
-                {salesOrder?.id && (
-                  <>
-                {paymentPercentage >= 80 && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice && (
+                {salesOrder?.id && onProceedToInvoice && (
                   <button
                     type="button"
-                    className="btn btn-success me-2"
+                    className="btn btn-primary me-2"
                     onClick={() => onProceedToInvoice(salesOrder)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
                       border: "none"
                     }}
                   >
-                    <Receipt className="me-2" size={16} />
+                    <CreditCard className="me-2" size={16} />
                     Proceed to Invoice
                   </button>
                 )}
-                {paymentPercentage >= 100 && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale && (
+                {salesOrder?.id && onProceedToCashSale && (
                   <button
                     type="button"
-                    className="btn btn-warning me-2"
+                    className="btn btn-success me-2"
                     onClick={() => onProceedToCashSale(salesOrder)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
+                      background: "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)",
                       border: "none"
                     }}
                   >
@@ -3687,22 +3593,20 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                     Proceed to Cash Sale
                   </button>
                 )}
-                    <button
-                      type="button"
-                      className="btn btn-success"
-                      onClick={generatePDF}
-                      style={{ 
-                        borderRadius: "12px", 
-                        padding: "10px 24px",
-                        background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
-                        border: "none"
-                      }}
-                    >
-                      <Download className="me-2" size={16} />
-                      Download
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={generatePDF}
+                  style={{ 
+                    borderRadius: "12px", 
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                    border: "none"
+                  }}
+                >
+                  <Download className="me-2" size={16} />
+                  Download
+                </button>
               </>
             ) : (
               <>
@@ -3715,32 +3619,32 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 >
                   Cancel
                 </button>
-                {paymentPercentage >= 80 && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice && (
+                {salesOrder?.id && onProceedToInvoice && (
                   <button
                     type="button"
-                    className="btn btn-success me-2"
+                    className="btn btn-primary me-2"
                     onClick={() => onProceedToInvoice(salesOrder)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
                       border: "none"
                     }}
                     disabled={loading}
                   >
-                    <Receipt className="me-2" size={16} />
+                    <CreditCard className="me-2" size={16} />
                     Proceed to Invoice
                   </button>
                 )}
-                {paymentPercentage >= 100 && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale && (
+                {salesOrder?.id && onProceedToCashSale && (
                   <button
                     type="button"
-                    className="btn btn-warning me-2"
+                    className="btn btn-success me-2"
                     onClick={() => onProceedToCashSale(salesOrder)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
+                      background: "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)",
                       border: "none"
                     }}
                     disabled={loading}
@@ -3767,7 +3671,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                       Saving...
                     </>
                   ) : (
-                    "Save Sales Order"
+                    "Save Quotation"
                   )}
                 </button>
               </>

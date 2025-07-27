@@ -27,10 +27,22 @@ interface SalesOrder {
   labour_total: number
   total_amount: number
   grand_total: number
+  vat_amount?: number
+  vat_percentage?: number
+  worktop_labor_qty?: number
+  worktop_labor_unit_price?: number
   include_accessories: boolean
   status: "pending" | "processing" | "completed" | "cancelled" | "converted_to_invoice" | "converted_to_cash_sale"
   notes?: string
   terms_conditions?: string
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  }
   client?: {
     id: number
     name: string
@@ -61,7 +73,7 @@ const SalesOrdersView = () => {
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
   const [showModal, setShowModal] = useState(false)
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<SalesOrder | undefined>()
-  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+  const [modalMode, setModalMode] = useState<"view" | "edit">("view")
 
   useEffect(() => {
     fetchSalesOrders()
@@ -233,55 +245,7 @@ const SalesOrdersView = () => {
 
   const handleModalSave = async (salesOrderData: any) => {
     try {
-      if (modalMode === "create") {
-        // Create new sales order
-        const { data: newSalesOrder, error: salesOrderError } = await supabase
-          .from("sales_orders")
-          .insert({
-            order_number: salesOrderData.order_number,
-            client_id: salesOrderData.client_id,
-            quotation_id: salesOrderData.quotation_id,
-            original_quotation_number: salesOrderData.original_quotation_number,
-            date_created: salesOrderData.date_created,
-            cabinet_total: salesOrderData.cabinet_total,
-            worktop_total: salesOrderData.worktop_total,
-            accessories_total: salesOrderData.accessories_total,
-            labour_percentage: salesOrderData.labour_percentage,
-            labour_total: salesOrderData.labour_total,
-            total_amount: salesOrderData.total_amount,
-            grand_total: salesOrderData.grand_total,
-            include_accessories: salesOrderData.include_accessories,
-            status: salesOrderData.status,
-            notes: salesOrderData.notes,
-            terms_conditions: salesOrderData.terms_conditions
-          })
-          .select()
-          .single()
-
-        if (salesOrderError) throw salesOrderError
-
-        // Insert sales order items
-        if (salesOrderData.items && salesOrderData.items.length > 0) {
-          const salesOrderItems = salesOrderData.items.map((item: any) => ({
-            sales_order_id: newSalesOrder.id,
-            category: item.category,
-            description: item.description,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            stock_item_id: item.stock_item_id
-          }))
-
-          const { error: itemsError } = await supabase
-            .from("sales_order_items")
-            .insert(salesOrderItems)
-
-          if (itemsError) throw itemsError
-        }
-
-        toast.success("Sales order created successfully")
-      } else if (modalMode === "edit") {
+      if (modalMode === "edit") {
         // Update existing sales order
         const { error: updateError } = await supabase
           .from("sales_orders")
@@ -650,11 +614,7 @@ const SalesOrdersView = () => {
     }
   }
 
-  const handleNewSalesOrder = () => {
-    setSelectedSalesOrder(undefined)
-    setModalMode("create")
-    setShowModal(true)
-  }
+
 
   // Export function
   const exportSalesOrders = () => {
