@@ -68,6 +68,7 @@ export interface QuotationData {
   // Quotation Details
   deliveryNoteNo: string;
   quotationNumber: string;
+  originalQuotationNumber?: string; // Original quotation number for sales orders
   documentTitle?: string; // Optional title to override "QUOTATION" (e.g., "SALES ORDER")
   
   // Items (dynamic array)
@@ -469,7 +470,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       dateValue: mergedData.date,
       quotationTitle: mergedData.documentTitle || "QUOTATION",
       deliveryNoteLabel: mergedData.deliveryNoteNo,
-      quotationNoFull: `${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`,
+      quotationNoFull: mergedData.originalQuotationNumber 
+        ? `Original Quotation No: ${mergedData.originalQuotationNumber}\n${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`
+        : `${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`,
       itemHeader: "Item",
       quantityHeader: "Quantity",
       unitHeader: "Unit",

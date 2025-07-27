@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SalesOrderModal from "@/components/ui/sales-order-modal"
@@ -484,6 +484,7 @@ const SalesOrdersView = () => {
         date: new Date(salesOrder.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: salesOrder.order_number,
+        originalQuotationNumber: salesOrder.original_quotation_number || "",  // Add original quotation number
         documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
         items,
         subtotal: salesOrder.total_amount || 0,
@@ -610,6 +611,7 @@ const SalesOrdersView = () => {
         date: new Date(salesOrder.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: salesOrder.order_number,
+        originalQuotationNumber: salesOrder.original_quotation_number || "",  // Add original quotation number
         documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
         items,
         subtotal: salesOrder.total_amount || 0,
@@ -828,14 +830,14 @@ const SalesOrdersView = () => {
                           onClick={() => handlePrint(salesOrder)}
                           title="Print"
                         >
-                          <Download size={14} />
+                          <Printer size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDownload(salesOrder)}
                           title="Download"
                         >
-                          <FileText size={14} />
+                          <Download size={14} />
                         </button>
                       </div>
                   </td>

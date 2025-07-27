@@ -402,7 +402,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         resetForm()
         setOrderDate(new Date().toISOString().split('T')[0])
       } else if (salesOrder) {
-        loadSalesOrderData()
+        loadSalesOrderData().catch(error => {
+          console.error('Error loading sales order data:', error);
+        });
         fetchPaymentInfo() // Fetch payment info when viewing/editing sales order
         if (salesOrder.date_created) {
           setOrderDate(salesOrder.date_created.split('T')[0])
@@ -475,8 +477,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   // Generate PDF for viewing when modal opens in view mode
   useEffect(() => {
-    if (isOpen && mode === "view" && salesOrder) {
-      generatePDFForViewing();
+    if (isOpen && mode === "view" && salesOrder && salesOrder.id) {
+      // Add a small delay to ensure data is fully loaded
+      const timer = setTimeout(() => {
+        generatePDFForViewing();
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
     
     // Cleanup PDF URL when component unmounts or modal closes
@@ -568,8 +575,36 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
   }
 
-  const loadSalesOrderData = () => {
+  const loadSalesOrderData = async () => {
     if (!salesOrder) return
+    
+    console.log('Loading sales order data:', salesOrder);
+    
+    // If items are not loaded, try to fetch them
+    if (!salesOrder.items || salesOrder.items.length === 0) {
+      console.log('Sales order items not loaded, fetching from database...');
+      try {
+        const { data: salesOrderWithItems, error } = await supabase
+          .from('sales_orders')
+          .select(`
+            *,
+            client:registered_entities(id, name, phone, location),
+            items:sales_order_items(*)
+          `)
+          .eq('id', salesOrder.id)
+          .single();
+          
+        if (error) throw error;
+        
+        if (salesOrderWithItems?.items) {
+          salesOrder.items = salesOrderWithItems.items;
+          console.log('Successfully loaded items:', salesOrderWithItems.items);
+        }
+      } catch (error) {
+        console.error('Error fetching sales order items:', error);
+        toast.error('Failed to load sales order items');
+      }
+    }
     
     setOrderNumber(salesOrder.order_number || "")
     setSelectedClient(salesOrder.client || null)
@@ -592,19 +627,33 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
     
     // Load items by category
-    if (salesOrder.items) {
+    if (salesOrder.items && salesOrder.items.length > 0) {
+      console.log('Processing items by category:', salesOrder.items);
       const cabinet = salesOrder.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
       const worktop = salesOrder.items.filter((item: any) => item.category === "worktop");
       const accessories = salesOrder.items.filter((item: any) => item.category === "accessories");
       const appliances = salesOrder.items.filter((item: any) => item.category === "appliances");
       const wardrobes = salesOrder.items.filter((item: any) => item.category === "wardrobes");
       const tvunit = salesOrder.items.filter((item: any) => item.category === "tvunit");
+      
+      console.log('Cabinet items:', cabinet);
+      console.log('Worktop items:', worktop);
+      console.log('Accessories items:', accessories);
+      
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
       setAccessoriesItems(accessories);
       setAppliancesItems(appliances);
       setWardrobesItems(wardrobes);
       setTvUnitItems(tvunit);
+    } else {
+      console.log('No items found, setting default cabinet item');
+      setCabinetItems([createNewItem("cabinet")]);
+      setWorktopItems([]);
+      setAccessoriesItems([]);
+      setAppliancesItems([]);
+      setWardrobesItems([]);
+      setTvUnitItems([]);
     }
 
     setCabinetLabourPercentage(salesOrder.cabinet_labour_percentage ?? 30)
@@ -1131,7 +1180,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         mobileNo: selectedClient?.phone || "",
         date: orderDate || new Date().toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: orderNumber, // Use order number but PDF template still uses quotationNumber field
+        quotationNumber: orderNumber, // Use order number as main number
+        originalQuotationNumber: salesOrder?.original_quotation_number || "", // Add original quotation number
         documentTitle: "SALES ORDER", // Add document title to override QUOTATION
         items: items,
         section_names: sectionNames, // Add custom section names
@@ -1170,7 +1220,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   }
 
   const generatePDFForViewing = async () => {
-    if (!salesOrder) return;
+    // Enhanced validation
+    if (!salesOrder || !salesOrder.id) {
+      console.error('Invalid sales order data:', salesOrder);
+      toast.error('Sales order data is not loaded properly. Please try refreshing the page.');
+      return;
+    }
     
     try {
       setPdfLoading(true)
@@ -1184,12 +1239,46 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
+      // DEBUG: Log the salesOrder items to understand the structure
+      console.log('Sales Order items:', salesOrder.items);
+      console.log('Sales Order full data:', salesOrder);
+
+      // If items are not loaded, try to fetch them directly
+      let itemsToProcess = salesOrder.items;
+      if (!itemsToProcess || itemsToProcess.length === 0) {
+        console.log('Items not found in salesOrder, fetching from database...');
+        try {
+          const { data: fetchedItems, error } = await supabase
+            .from('sales_order_items')
+            .select('*')
+            .eq('sales_order_id', salesOrder.id);
+            
+          if (error) throw error;
+          
+          if (fetchedItems && fetchedItems.length > 0) {
+            itemsToProcess = fetchedItems;
+            console.log('Successfully fetched items from database:', fetchedItems);
+          } else {
+            console.error('No items found for sales order ID:', salesOrder.id);
+            toast.error('No items found in sales order. This sales order appears to be empty.');
+            return;
+          }
+        } catch (fetchError) {
+          console.error('Error fetching sales order items:', fetchError);
+          toast.error('Failed to load sales order items from database.');
+          return;
+        }
+      }
+
       // Prepare items data with section headings and improved formatting (same as quotation modal format)
       const items: any[] = [];
-      const grouped = salesOrder.items?.reduce((acc, item) => {
+
+      const grouped = itemsToProcess?.reduce((acc, item) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof salesOrder.items>) || {};
+      }, {} as Record<string, typeof itemsToProcess>) || {};
+
+      console.log('Grouped items:', grouped);
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
         // Section mapping
@@ -1252,6 +1341,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         items.push(summaryRow);
       });
 
+      console.log('Final items array for PDF:', items);
+
       // Parse terms and conditions from database
       const parseTermsAndConditions = (termsText: string) => {
         return (termsText || "").split('\n').filter(line => line.trim());
@@ -1268,7 +1359,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         mobileNo: salesOrder.client?.phone || "",
         date: new Date(salesOrder.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: salesOrder.order_number, // Use order number but template still uses quotationNumber field
+        quotationNumber: salesOrder.order_number, // Use order number as main number
+        originalQuotationNumber: salesOrder.original_quotation_number || "", // Add original quotation number
         documentTitle: "SALES ORDER", // Add document title to override QUOTATION
         items,
         subtotal: salesOrder.total_amount || 0,
@@ -1468,7 +1560,29 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           </div>
 
           {/* Body */}
-          {mode === "view" && pdfUrl ? (
+          {mode === "view" && !salesOrder?.id ? (
+            <div className="modal-body" style={{ 
+              padding: "0 32px 24px", 
+              maxHeight: "70vh", 
+              overflowY: "auto",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "300px"
+            }}>
+              <div style={{ 
+                display: "flex", 
+                flexDirection: "column",
+                alignItems: "center",
+                color: "#ffffff"
+              }}>
+                <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p className="mt-3">Loading sales order data...</p>
+              </div>
+            </div>
+          ) : mode === "view" && pdfUrl ? (
             <div className="modal-body" style={{ 
               padding: "0", 
               maxHeight: "70vh", 
@@ -3439,42 +3553,53 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                     
                     <div className="row">
                       <div className="col-md-6">
-                        <div className="mb-3">
-                          <div className="d-flex justify-content-between mb-2">
-                            <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                            <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {subtotalWithLabour.toFixed(2)}</span>
-                          </div>
-                          <div className="d-flex justify-content-between mb-2">
-                            <span style={{ color: "#ffffff" }}>VAT ({vatPercentage}%):</span>
-                            <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {vatAmount.toFixed(2)}</span>
-                          </div>
-                          <hr style={{ borderColor: "#ffffff", opacity: 0.3 }} />
-                          <div className="d-flex justify-content-between">
-                            <span style={{ color: "#ffffff", fontWeight: "bold", fontSize: "18px" }}>Total:</span>
-                            <span style={{ color: "#ffffff", fontWeight: "bold", fontSize: "18px" }}>KES {grandTotal.toFixed(2)}</span>
-                          </div>
-                        </div>
                       </div>
-                      
-                      <div className="col-md-6">
-                        {!isReadOnly && (
-                          <div>
-                            <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
-                              VAT Percentage
-                            </label>
-                            <input
-                              type="number"
-                              className="form-control mb-3"
-                              value={vatPercentage}
-                              onChange={(e) => setVatPercentage(Number(e.target.value) || 16)}
-                              placeholder="16"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                        )}
+                    </div>
+                    <div className="col-md-6">
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#ffffff" }}>Subtotal:</span>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <div className="d-flex align-items-center">
+                          <span style={{ color: "#ffffff", marginRight: "8px" }}>VAT:</span>
+                      <input
+                        type="number"
+                            value={vatPercentage === 16 ? "" : (vatPercentage === 0 ? "" : vatPercentage)}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setVatPercentage(0);
+                            }}
+                            onChange={e => setVatPercentage(Number(e.target.value) || 0)}
+                            onBlur={e => setVatPercentage(Number(e.target.value) || 16)}
+                            placeholder="16"
+                            style={{ 
+                              width: "60px",
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "4px 8px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none",
+                              textAlign: "center"
+                            }}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                        readOnly={isReadOnly}
+                      />
+                          <span style={{ color: "#ffffff", marginLeft: "4px" }}>%</span>
+                        </div>
+                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
+                        <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -3528,6 +3653,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 >
                   Close
                 </button>
+                {salesOrder?.id && (
+                  <>
                 {paymentPercentage >= 80 && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice && (
                   <button
                     type="button"
@@ -3560,20 +3687,22 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                     Proceed to Cash Sale
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={generatePDF}
-                  style={{ 
-                    borderRadius: "12px", 
-                    padding: "10px 24px",
-                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
-                    border: "none"
-                  }}
-                >
-                  <Download className="me-2" size={16} />
-                  Download
-                </button>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={generatePDF}
+                      style={{ 
+                        borderRadius: "12px", 
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                        border: "none"
+                      }}
+                    >
+                      <Download className="me-2" size={16} />
+                      Download
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <>

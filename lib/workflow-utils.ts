@@ -504,6 +504,8 @@ export interface SalesOrderData {
   labour_total: number
   total_amount: number
   grand_total: number
+  vat_percentage: number
+  vat_amount: number
   include_accessories: boolean
   status: string
   notes?: string
@@ -653,6 +655,8 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       labour_total: quotation.labour_total,
       total_amount: quotation.total_amount,
       grand_total: quotation.grand_total,
+      vat_percentage: quotation.vat_percentage,
+      vat_amount: quotation.vat_amount,
       include_accessories: quotation.include_accessories,
       status: "pending",
       notes: quotation.notes,
@@ -677,6 +681,8 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         labour_total: salesOrderData.labour_total,
         total_amount: salesOrderData.total_amount,
         grand_total: salesOrderData.grand_total,
+        vat_percentage: salesOrderData.vat_percentage,
+        vat_amount: salesOrderData.vat_amount,
         include_accessories: salesOrderData.include_accessories,
         status: salesOrderData.status,
         notes: salesOrderData.notes,

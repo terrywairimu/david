@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Plus, Edit, Trash2, Eye, Download, FileText, CreditCard, Receipt } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, CreditCard, Receipt, Printer } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -950,13 +950,15 @@ const QuotationsView = () => {
                         >
                       <Eye size={14} />
                     </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEdit(quotation)}
-                          title="Edit"
-                        >
-                      <Edit size={14} />
-                    </button>
+                        {quotation.status !== "converted_to_sales_order" && (
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleEdit(quotation)}
+                            title="Edit"
+                          >
+                        <Edit size={14} />
+                      </button>
+                        )}
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDelete(quotation)}
@@ -969,14 +971,14 @@ const QuotationsView = () => {
                           onClick={() => handlePrint(quotation)}
                           title="Print"
                         >
-                          <Download size={14} />
+                          <Printer size={14} />
                         </button>
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDownload(quotation)}
                           title="Download"
                         >
-                          <FileText size={14} />
+                          <Download size={14} />
                         </button>
 
                         
