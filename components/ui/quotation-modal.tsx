@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -44,6 +44,7 @@ interface QuotationModalProps {
   onSave: (quotation: any) => void
   quotation?: any
   mode: "view" | "edit" | "create"
+  onProceedToSalesOrder?: (quotation: any) => Promise<void>
 }
 
 // Portal Dropdown Component
@@ -147,7 +148,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   onClose,
   onSave,
   quotation,
-  mode = "create"
+  mode = "create",
+  onProceedToSalesOrder
 }) => {
   const [quotationNumber, setQuotationNumber] = useState("")
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -171,6 +173,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // PDF viewing state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  
+  // Payment tracking state
+  const [totalPaid, setTotalPaid] = useState(0)
+  const [hasPayments, setHasPayments] = useState(false)
+  const [paymentPercentage, setPaymentPercentage] = useState(0)
   
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
@@ -351,6 +358,29 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [rawWorktopLaborQty, setRawWorktopLaborQty] = useState<string | undefined>(undefined);
   const [rawWorktopLaborUnitPrice, setRawWorktopLaborUnitPrice] = useState<string | undefined>(undefined);
 
+  // Function to fetch payment information
+  const fetchPaymentInfo = async () => {
+    if (!quotation?.quotation_number) return;
+    
+    try {
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("amount")
+        .eq("quotation_number", quotation.quotation_number)
+        .eq("status", "completed")
+      
+      const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+      const hasPaymentsValue = totalPaidAmount > 0
+      const paymentPercentageValue = quotation.grand_total > 0 ? (totalPaidAmount / quotation.grand_total) * 100 : 0
+      
+      setTotalPaid(totalPaidAmount)
+      setHasPayments(hasPaymentsValue)
+      setPaymentPercentage(paymentPercentageValue)
+    } catch (error) {
+      console.error("Error fetching payment info:", error)
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
       fetchClients()
@@ -361,16 +391,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         setQuotationDate(new Date().toISOString().split('T')[0])
       } else if (quotation) {
         loadQuotationData()
+        fetchPaymentInfo() // Fetch payment info when viewing/editing quotation
         if (quotation.date_created) {
           setQuotationDate(quotation.date_created.split('T')[0])
         }
       }
     }
-    // Real-time subscription for stock_items
+    // Real-time subscription for stock_items and payments
     const stockItemsChannel = supabase
       .channel('stock_items_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, (payload) => {
         fetchStockItems();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+        fetchPaymentInfo(); // Refresh payment info when payments change
       })
       .subscribe();
     return () => {
@@ -3510,6 +3544,22 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 >
                   Close
                 </button>
+                {hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder && (
+                  <button
+                    type="button"
+                    className="btn btn-primary me-2"
+                    onClick={() => onProceedToSalesOrder(quotation)}
+                    style={{ 
+                      borderRadius: "12px", 
+                      padding: "10px 24px",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      border: "none"
+                    }}
+                  >
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-success"
@@ -3536,6 +3586,23 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 >
                   Cancel
                 </button>
+                {hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder && (
+                  <button
+                    type="button"
+                    className="btn btn-primary me-2"
+                    onClick={() => onProceedToSalesOrder(quotation)}
+                    style={{ 
+                      borderRadius: "12px", 
+                      padding: "10px 24px",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      border: "none"
+                    }}
+                    disabled={loading}
+                  >
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-primary"

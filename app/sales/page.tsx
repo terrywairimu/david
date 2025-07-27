@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { FileText, ShoppingCart, Receipt, DollarSign } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import QuotationsView from "./components/quotations-view"
@@ -9,7 +10,16 @@ import InvoicesView from "./components/invoices-view"
 import CashSalesView from "./components/cash-sales-view"
 
 const SalesPage = () => {
+  const searchParams = useSearchParams()
   const [activeView, setActiveView] = useState<"quotations" | "orders" | "invoices" | "cash">("quotations")
+
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['quotations', 'orders', 'invoices', 'cash'].includes(tab)) {
+      setActiveView(tab as "quotations" | "orders" | "invoices" | "cash")
+    }
+  }, [searchParams])
 
   const renderActiveView = () => {
     switch (activeView) {

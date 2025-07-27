@@ -393,12 +393,259 @@ const SalesOrdersView = () => {
     }
   }
 
-  const handlePrint = (salesOrder: SalesOrder) => {
-    printDocument(`sales-order-${salesOrder.id}`, `SalesOrder-${salesOrder.order_number}`)
+  const handlePrint = async (salesOrder: SalesOrder) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
+
+      // Prepare items data with section headings (same as quotation)
+      const items: any[] = [];
+      const grouped = salesOrder.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof salesOrder.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Section mapping
+        const sectionLabels: { [key: string]: string } = {
+          cabinet: salesOrder.section_names?.cabinet || "General",
+          worktop: salesOrder.section_names?.worktop || "Worktop", 
+          accessories: salesOrder.section_names?.accessories || "Accessories",
+          appliances: salesOrder.section_names?.appliances || "Appliances",
+          wardrobes: salesOrder.section_names?.wardrobes || "Wardrobes",
+          tvunit: salesOrder.section_names?.tvunit || "TV Unit"
+        };
+
+        const sectionLabel = sectionLabels[category] || category;
+
+        // Insert section header
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: sectionLabel,
+          unitPrice: "",
+          total: ""
+        });
+
+        // Insert items for this section
+        let itemNumber = 1;
+        itemsInCategory.forEach((item: any) => {
+          items.push({
+            itemNumber: itemNumber.toString(),
+            quantity: item.quantity?.toString() || "",
+            unit: item.unit || "",
+            description: item.description || "",
+            unitPrice: item.unit_price?.toFixed(2) || "",
+            total: item.total_price?.toFixed(2) || ""
+          });
+          itemNumber++;
+        });
+
+        // Insert section summary row
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+        }
+        
+        items.push({
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
+          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+        });
+      });
+
+      // Parse terms and conditions
+      const parseTermsAndConditions = (termsText: string) => {
+        return (termsText || "").split('\n').filter(line => line.trim());
+      };
+
+      // Generate PDF using the same function as quotation but with "SALES ORDER" title
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: salesOrder.client?.name || "",
+        siteLocation: salesOrder.client?.location || "",
+        mobileNo: salesOrder.client?.phone || "",
+        date: new Date(salesOrder.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: salesOrder.order_number,
+        documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
+        items,
+        subtotal: salesOrder.total_amount || 0,
+        vat: salesOrder.vat_amount || 0,
+        vatPercentage: salesOrder.vat_percentage || 16,
+        total: salesOrder.grand_total || 0,
+        notes: salesOrder.notes || "",
+        terms: parseTermsAndConditions(salesOrder.terms_conditions || ""),
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error printing sales order:', error);
+      toast.error("Failed to print sales order. Please try again.");
+    }
   }
 
-  const handleDownload = (salesOrder: SalesOrder) => {
-    downloadDocument(`sales-order-${salesOrder.id}`, `SalesOrder-${salesOrder.order_number}`)
+  const handleDownload = async (salesOrder: SalesOrder) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
+
+      // Prepare items data with section headings (same as print function)
+      const items: any[] = [];
+      const grouped = salesOrder.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof salesOrder.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Section mapping
+        const sectionLabels: { [key: string]: string } = {
+          cabinet: salesOrder.section_names?.cabinet || "General",
+          worktop: salesOrder.section_names?.worktop || "Worktop", 
+          accessories: salesOrder.section_names?.accessories || "Accessories",
+          appliances: salesOrder.section_names?.appliances || "Appliances",
+          wardrobes: salesOrder.section_names?.wardrobes || "Wardrobes",
+          tvunit: salesOrder.section_names?.tvunit || "TV Unit"
+        };
+
+        const sectionLabel = sectionLabels[category] || category;
+
+        // Insert section header
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: sectionLabel,
+          unitPrice: "",
+          total: ""
+        });
+
+        // Insert items for this section
+        let itemNumber = 1;
+        itemsInCategory.forEach((item: any) => {
+          items.push({
+            itemNumber: itemNumber.toString(),
+            quantity: item.quantity?.toString() || "",
+            unit: item.unit || "",
+            description: item.description || "",
+            unitPrice: item.unit_price?.toFixed(2) || "",
+            total: item.total_price?.toFixed(2) || ""
+          });
+          itemNumber++;
+        });
+
+        // Insert section summary row
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+        }
+        
+        items.push({
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
+          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+        });
+      });
+
+      // Parse terms and conditions
+      const parseTermsAndConditions = (termsText: string) => {
+        return (termsText || "").split('\n').filter(line => line.trim());
+      };
+
+      // Generate PDF for download
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: salesOrder.client?.name || "",
+        siteLocation: salesOrder.client?.location || "",
+        mobileNo: salesOrder.client?.phone || "",
+        date: new Date(salesOrder.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: salesOrder.order_number,
+        documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
+        items,
+        subtotal: salesOrder.total_amount || 0,
+        vat: salesOrder.vat_amount || 0,
+        vatPercentage: salesOrder.vat_percentage || 16,
+        total: salesOrder.grand_total || 0,
+        notes: salesOrder.notes || "",
+        terms: parseTermsAndConditions(salesOrder.terms_conditions || ""),
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+      
+      // Download the PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sales-order-${salesOrder.order_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Sales order downloaded successfully!");
+    } catch (error) {
+      console.error('Error downloading sales order:', error);
+      toast.error("Failed to download sales order. Please try again.");
+    }
   }
 
   const handleNewSalesOrder = () => {
@@ -590,25 +837,6 @@ const SalesOrdersView = () => {
                         >
                           <FileText size={14} />
                         </button>
-                        
-                        {salesOrder.status === "pending" && (
-                          <>
-                            <button 
-                              className="btn btn-sm action-btn"
-                              onClick={() => handleProceedToInvoice(salesOrder)}
-                              title="Proceed to Invoice"
-                            >
-                              <FileText size={14} />
-                            </button>
-                            <button 
-                              className="btn btn-sm action-btn"
-                              onClick={() => handleProceedToCashSale(salesOrder)}
-                              title="Proceed to Cash Sale"
-                            >
-                              <Receipt size={14} />
-                            </button>
-                          </>
-                        )}
                       </div>
                   </td>
                 </tr>
@@ -626,6 +854,8 @@ const SalesOrdersView = () => {
         onSave={handleModalSave}
         salesOrder={selectedSalesOrder}
         mode={modalMode}
+        onProceedToInvoice={handleProceedToInvoice}
+        onProceedToCashSale={handleProceedToCashSale}
       />
     </div>
   )

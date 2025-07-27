@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, CreditCard, Receipt } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import QuotationModal from "@/components/ui/quotation-modal"
@@ -65,9 +66,14 @@ interface Quotation {
     total_price: number
     stock_item_id?: number
   }>
+  // Payment tracking fields
+  total_paid?: number
+  has_payments?: boolean
+  payment_percentage?: number
 }
 
 const QuotationsView = () => {
+  const router = useRouter()
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -100,6 +106,10 @@ const QuotationsView = () => {
 
         fetchClients() // Refresh clients when changes occur
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+
+        fetchQuotations() // Refresh quotations when payments change to update payment status
+      })
       .subscribe()
 
     return () => {
@@ -120,7 +130,29 @@ const QuotationsView = () => {
         .order("date_created", { ascending: false })
 
       if (error) throw error
-      setQuotations(data || [])
+      
+      // Fetch payments for each quotation to determine payment status
+      const quotationsWithPayments = await Promise.all(
+        (data || []).map(async (quotation) => {
+          const { data: payments } = await supabase
+            .from("payments")
+            .select("amount")
+            .eq("quotation_number", quotation.quotation_number)
+            .eq("status", "completed")
+          
+          const totalPaid = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+          const hasPayments = totalPaid > 0
+          
+          return {
+            ...quotation,
+            total_paid: totalPaid,
+            has_payments: hasPayments,
+            payment_percentage: quotation.grand_total > 0 ? (totalPaid / quotation.grand_total) * 100 : 0
+          }
+        })
+      )
+      
+      setQuotations(quotationsWithPayments)
     } catch (error) {
       console.error("Error fetching quotations:", error)
       toast.error("Failed to load quotations")
@@ -424,6 +456,11 @@ const QuotationsView = () => {
       const salesOrder = await proceedToSalesOrder(quotation.id)
       toast.success(`Sales order ${salesOrder.order_number} created successfully`)
       fetchQuotations()
+      
+      // Automatically navigate to sales orders view
+      setTimeout(() => {
+        router.push('/sales?tab=orders')
+      }, 1000) // Small delay to allow user to see the success message
     } catch (error) {
       // Error handling is done in the workflow function
     }
@@ -979,6 +1016,7 @@ const QuotationsView = () => {
           mode={modalMode}
           onClose={() => setShowModal(false)}
           onSave={handleModalSave}
+          onProceedToSalesOrder={handleProceedToSalesOrder}
         />
       )}
     </div>

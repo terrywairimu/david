@@ -68,6 +68,7 @@ export interface QuotationData {
   // Quotation Details
   deliveryNoteNo: string;
   quotationNumber: string;
+  documentTitle?: string; // Optional title to override "QUOTATION" (e.g., "SALES ORDER")
   
   // Items (dynamic array)
   items: Array<{
@@ -466,9 +467,9 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       mobileNoValue: mergedData.mobileNo,
       dateLabel: "DATE:",
       dateValue: mergedData.date,
-      quotationTitle: "QUOTATION",
+      quotationTitle: mergedData.documentTitle || "QUOTATION",
       deliveryNoteLabel: mergedData.deliveryNoteNo,
-      quotationNoFull: `Quotation No: ${mergedData.quotationNumber}`,
+      quotationNoFull: `${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`,
       itemHeader: "Item",
       quantityHeader: "Quantity",
       unitHeader: "Unit",

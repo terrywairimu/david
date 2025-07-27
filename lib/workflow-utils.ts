@@ -531,29 +531,40 @@ export interface PaymentData {
   status: string
 }
 
-// Generate next number in sequence
+// Generate next number in sequence using same format as quotations
 export const generateNextNumber = async (table: string, field: string, prefix: string): Promise<string> => {
   try {
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    
+    // Query database for the latest number for this year/month
     const { data, error } = await supabase
       .from(table)
       .select(field)
-      .order("id", { ascending: false })
+      .ilike(field, `${prefix}${year}${month}%`)
+      .order(field, { ascending: false })
       .limit(1)
 
     if (error) throw error
 
     let nextNumber = 1
     if (data && data.length > 0) {
-      const lastNumber = (data[0] as any)[field].match(/\d+/)
-      if (lastNumber) {
-        nextNumber = parseInt(lastNumber[0]) + 1
+      const match = (data[0] as any)[field].match(new RegExp(`${prefix}\\d{4}(\\d{3})`))
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1
       }
     }
 
-    return `${prefix}-${nextNumber.toString().padStart(4, "0")}`
+    return `${prefix}${year}${month}${nextNumber.toString().padStart(3, '0')}`
   } catch (error) {
     console.error(`Error generating ${table} number:`, error)
-    throw error
+    // Fallback to timestamp-based number
+    const timestamp = Date.now().toString().slice(-3)
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    return `${prefix}${year}${month}${timestamp}`
   }
 }
 
