@@ -500,6 +500,9 @@ export interface SalesOrderData {
   cabinet_total: number
   worktop_total: number
   accessories_total: number
+  appliances_total?: number
+  wardrobes_total?: number
+  tvunit_total?: number
   labour_percentage: number
   labour_total: number
   total_amount: number
@@ -507,6 +510,17 @@ export interface SalesOrderData {
   vat_percentage: number
   vat_amount: number
   include_accessories: boolean
+  include_worktop?: boolean
+  include_appliances?: boolean
+  include_wardrobes?: boolean
+  include_tvunit?: boolean
+  cabinet_labour_percentage?: number
+  accessories_labour_percentage?: number
+  appliances_labour_percentage?: number
+  wardrobes_labour_percentage?: number
+  tvunit_labour_percentage?: number
+  worktop_labor_qty?: number
+  worktop_labor_unit_price?: number
   status: string
   notes?: string
   terms_conditions?: string
@@ -659,6 +673,9 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       cabinet_total: quotation.cabinet_total,
       worktop_total: quotation.worktop_total,
       accessories_total: quotation.accessories_total,
+      appliances_total: quotation.appliances_total,
+      wardrobes_total: quotation.wardrobes_total,
+      tvunit_total: quotation.tvunit_total,
       labour_percentage: quotation.labour_percentage,
       labour_total: quotation.labour_total,
       total_amount: quotation.total_amount,
@@ -666,6 +683,17 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       vat_percentage: quotation.vat_percentage,
       vat_amount: quotation.vat_amount,
       include_accessories: quotation.include_accessories,
+      include_worktop: quotation.include_worktop,
+      include_appliances: quotation.include_appliances,
+      include_wardrobes: quotation.include_wardrobes,
+      include_tvunit: quotation.include_tvunit,
+      cabinet_labour_percentage: quotation.cabinet_labour_percentage,
+      accessories_labour_percentage: quotation.accessories_labour_percentage,
+      appliances_labour_percentage: quotation.appliances_labour_percentage,
+      wardrobes_labour_percentage: quotation.wardrobes_labour_percentage,
+      tvunit_labour_percentage: quotation.tvunit_labour_percentage,
+      worktop_labor_qty: quotation.worktop_labor_qty,
+      worktop_labor_unit_price: quotation.worktop_labor_unit_price,
       status: "pending",
       notes: quotation.notes,
       terms_conditions: quotation.terms_conditions,
@@ -686,6 +714,9 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         cabinet_total: salesOrderData.cabinet_total,
         worktop_total: salesOrderData.worktop_total,
         accessories_total: salesOrderData.accessories_total,
+        appliances_total: salesOrderData.appliances_total,
+        wardrobes_total: salesOrderData.wardrobes_total,
+        tvunit_total: salesOrderData.tvunit_total,
         labour_percentage: salesOrderData.labour_percentage,
         labour_total: salesOrderData.labour_total,
         total_amount: salesOrderData.total_amount,
@@ -693,6 +724,17 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         vat_percentage: salesOrderData.vat_percentage,
         vat_amount: salesOrderData.vat_amount,
         include_accessories: salesOrderData.include_accessories,
+        include_worktop: salesOrderData.include_worktop,
+        include_appliances: salesOrderData.include_appliances,
+        include_wardrobes: salesOrderData.include_wardrobes,
+        include_tvunit: salesOrderData.include_tvunit,
+        cabinet_labour_percentage: salesOrderData.cabinet_labour_percentage,
+        accessories_labour_percentage: salesOrderData.accessories_labour_percentage,
+        appliances_labour_percentage: salesOrderData.appliances_labour_percentage,
+        wardrobes_labour_percentage: salesOrderData.wardrobes_labour_percentage,
+        tvunit_labour_percentage: salesOrderData.tvunit_labour_percentage,
+        worktop_labor_qty: salesOrderData.worktop_labor_qty,
+        worktop_labor_unit_price: salesOrderData.worktop_labor_unit_price,
         status: salesOrderData.status,
         notes: salesOrderData.notes,
         terms_conditions: salesOrderData.terms_conditions,
