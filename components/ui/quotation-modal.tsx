@@ -1250,7 +1250,34 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Note: Labour charge is already added as a separate line item above, so we don't need to add it to section total again
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
         
         const summaryRow = {
           isSectionSummary: true,
