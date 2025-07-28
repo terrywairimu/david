@@ -652,8 +652,8 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: "",
-          unitPrice: `${sectionLabel} Total:`,
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
           total: sectionTotal.toFixed(2) // Always show total, even if 0.00
         };
         
