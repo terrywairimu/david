@@ -597,7 +597,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setQuotationNumber(quotation.quotation_number || "")
     setSelectedClient(quotation.client || null)
       setClientSearchTerm(quotation.client?.name || "")
-    setLabourPercentage(quotation.labour_percentage || 30)
+    setLabourPercentage(Number(quotation.labour_percentage) || 30)
     setIncludeWorktop(quotation.include_worktop || false)
       setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
@@ -635,11 +635,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       setTvUnitItems(tvunit);
     }
 
-    setCabinetLabourPercentage(quotation.cabinet_labour_percentage ?? 30)
-    setAccessoriesLabourPercentage(quotation.accessories_labour_percentage ?? 30)
-          setAppliancesLabourPercentage(quotation.appliances_labour_percentage ?? 30)
-      setWardrobesLabourPercentage(quotation.wardrobes_labour_percentage ?? 30)
-      setTvUnitLabourPercentage(quotation.tvunit_labour_percentage ?? 30)
+    setCabinetLabourPercentage(Number(quotation.cabinet_labour_percentage) || 30)
+    setAccessoriesLabourPercentage(Number(quotation.accessories_labour_percentage) || 30)
+          setAppliancesLabourPercentage(Number(quotation.appliances_labour_percentage) || 30)
+      setWardrobesLabourPercentage(Number(quotation.wardrobes_labour_percentage) || 30)
+      setTvUnitLabourPercentage(Number(quotation.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
   }
@@ -1195,84 +1195,63 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
         if (itemsInCategory.length > 0 && category !== 'worktop') {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          // Check if labour charge items already exist in this category
+          const hasExistingLabourCharge = itemsInCategory.some(item => 
+            item.description && item.description.toLowerCase().includes('labour charge')
+          );
           
-          // Get the correct labour percentage for this specific section from database
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          
-          if (labourCharge > 0) {
-            items.push({
-              itemNumber: String(itemNumber),
-              quantity: 1,
-              unit: "sum",
-              description: `Labour Charge (${labourPercentage}%)`,
-              unitPrice: labourCharge.toFixed(2),
-              total: labourCharge.toFixed(2)
-            });
-            itemNumber++;
+          // Only calculate labour charge if no labour charge items exist
+          if (!hasExistingLabourCharge) {
+            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            
+            // Get the correct labour percentage for this specific section from database
+            let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+            switch (category) {
+              case 'cabinet':
+                labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+                break;
+              case 'accessories':
+                labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+                break;
+              case 'appliances':
+                labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+                break;
+              case 'wardrobes':
+                labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+                break;
+              case 'tvunit':
+                labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+                break;
+              default:
+                labourPercentage = quotation.labour_percentage || 30;
+            }
+            
+            const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+            
+            if (labourCharge > 0) {
+              items.push({
+                itemNumber: String(itemNumber),
+                quantity: 1,
+                unit: "sum",
+                description: `Labour Charge (${labourPercentage}%)`,
+                unitPrice: labourCharge.toFixed(2),
+                total: labourCharge.toFixed(2)
+              });
+              itemNumber++;
+            }
           }
         }
 
         // Insert section summary row
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
+        // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section from database
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal += labourCharge;
-          }
-        }
-
+        // Note: Labour charge is already added as a separate line item above, so we don't need to add it to section total again
+        
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
@@ -3681,20 +3660,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   });
                   
                   return showButton ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary me-2"
-                      onClick={() => onProceedToSalesOrder(quotation)}
-                      style={{ 
-                        borderRadius: "12px", 
-                        padding: "10px 24px",
-                        background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                        border: "none"
-                      }}
-                    >
-                      <CreditCard className="me-2" size={16} />
-                      Proceed to Sales Order
-                    </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary me-2"
+                    onClick={() => onProceedToSalesOrder(quotation)}
+                    style={{ 
+                      borderRadius: "12px", 
+                      padding: "10px 24px",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      border: "none"
+                    }}
+                  >
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
+                  </button>
                   ) : null;
                 })()}
                 <button
@@ -3727,21 +3706,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
                   
                   return showButton ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary me-2"
-                      onClick={() => onProceedToSalesOrder(quotation)}
-                      style={{ 
-                        borderRadius: "12px", 
-                        padding: "10px 24px",
-                        background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                        border: "none"
-                      }}
-                      disabled={loading}
-                    >
-                      <CreditCard className="me-2" size={16} />
-                      Proceed to Sales Order
-                    </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary me-2"
+                    onClick={() => onProceedToSalesOrder(quotation)}
+                    style={{ 
+                      borderRadius: "12px", 
+                      padding: "10px 24px",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      border: "none"
+                    }}
+                    disabled={loading}
+                  >
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
+                  </button>
                   ) : null;
                 })()}
                 <button

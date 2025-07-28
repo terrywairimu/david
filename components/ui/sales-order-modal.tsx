@@ -576,7 +576,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setOrderNumber(salesOrder.order_number || "")
     setSelectedClient(salesOrder.client || null)
     setClientSearchTerm(salesOrder.client?.name || "")
-    setLabourPercentage(salesOrder.labour_percentage || 30)
+    setLabourPercentage(Number(salesOrder.labour_percentage) || 30)
     setIncludeWorktop(salesOrder.include_worktop || false)
     setIncludeAccessories(salesOrder.include_accessories || false)
     setIncludeAppliances(salesOrder.include_appliances || false)
@@ -614,11 +614,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setTvUnitItems(tvunit);
     }
 
-          setCabinetLabourPercentage(salesOrder.cabinet_labour_percentage ?? 30)
-      setAccessoriesLabourPercentage(salesOrder.accessories_labour_percentage ?? 30)
-      setAppliancesLabourPercentage(salesOrder.appliances_labour_percentage ?? 30)
-      setWardrobesLabourPercentage(salesOrder.wardrobes_labour_percentage ?? 30)
-      setTvUnitLabourPercentage(salesOrder.tvunit_labour_percentage ?? 30)
+          setCabinetLabourPercentage(Number(salesOrder.cabinet_labour_percentage) || 30)
+      setAccessoriesLabourPercentage(Number(salesOrder.accessories_labour_percentage) || 30)
+      setAppliancesLabourPercentage(Number(salesOrder.appliances_labour_percentage) || 30)
+      setWardrobesLabourPercentage(Number(salesOrder.wardrobes_labour_percentage) || 30)
+      setTvUnitLabourPercentage(Number(salesOrder.tvunit_labour_percentage) || 30)
       setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
       setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
   }
@@ -1174,84 +1174,63 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
         if (itemsInCategory.length > 0 && category !== 'worktop') {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          // Check if labour charge items already exist in this category
+          const hasExistingLabourCharge = itemsInCategory.some(item => 
+            item.description && item.description.toLowerCase().includes('labour charge')
+          );
           
-          // Get the correct labour percentage for this specific section from database
-          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = salesOrder.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          
-          if (labourCharge > 0) {
-            items.push({
-              itemNumber: String(itemNumber),
-              quantity: 1,
-              unit: "sum",
-              description: `Labour Charge (${labourPercentage}%)`,
-              unitPrice: labourCharge.toFixed(2),
-              total: labourCharge.toFixed(2)
-            });
-            itemNumber++;
+          // Only calculate labour charge if no labour charge items exist
+          if (!hasExistingLabourCharge) {
+            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            
+            // Get the correct labour percentage for this specific section from database
+            let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+            switch (category) {
+              case 'cabinet':
+                labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'accessories':
+                labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'appliances':
+                labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'wardrobes':
+                labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'tvunit':
+                labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              default:
+                labourPercentage = salesOrder.labour_percentage || 30;
+            }
+            
+            const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+            
+            if (labourCharge > 0) {
+              items.push({
+                itemNumber: String(itemNumber),
+                quantity: 1,
+                unit: "sum",
+                description: `Labour Charge (${labourPercentage}%)`,
+                unitPrice: labourCharge.toFixed(2),
+                total: labourCharge.toFixed(2)
+              });
+              itemNumber++;
+            }
           }
         }
 
         // Insert section summary row
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
+        // Add worktop labor to section total if it exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
           sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section from database
-          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = salesOrder.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal += labourCharge;
-          }
-        }
-
+        // Note: Labour charge is already added as a separate line item above, so we don't need to add it to section total again
+        
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
