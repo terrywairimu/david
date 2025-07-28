@@ -25,6 +25,14 @@ interface SalesOrder {
   accessories_total: number
   labour_percentage: number
   labour_total: number
+  cabinet_labour_percentage?: number
+  accessories_labour_percentage?: number
+  appliances_labour_percentage?: number
+  wardrobes_labour_percentage?: number
+  tvunit_labour_percentage?: number
+  appliances_total?: number
+  wardrobes_total?: number
+  tvunit_total?: number
   total_amount: number
   grand_total: number
   vat_amount?: number
@@ -401,17 +409,71 @@ const SalesOrdersView = () => {
 
         // Insert items for this section
         let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
+        itemsInCategory.forEach((item) => {
           items.push({
-            itemNumber: itemNumber.toString(),
-            quantity: item.quantity?.toString() || "",
-            unit: item.unit || "",
-            description: item.description || "",
-            unitPrice: item.unit_price?.toFixed(2) || "",
-            total: item.total_price?.toFixed(2) || ""
+            itemNumber: String(itemNumber),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
           itemNumber++;
         });
+
+        // Add worktop installation labor if exists
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: salesOrder.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: salesOrder.worktop_labor_unit_price.toFixed(2),
+            total: (salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price).toFixed(2)
+          });
+          itemNumber++;
+        }
+
+        // Add labour charge for each section that has items (except worktop which has its own labor)
+        if (itemsInCategory.length > 0 && category !== 'worktop') {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section from database
+          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = salesOrder.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          
+          if (labourCharge > 0) {
+            items.push({
+              itemNumber: String(itemNumber),
+              quantity: 1,
+              unit: "sum",
+              description: `Labour Charge (${labourPercentage}%)`,
+              unitPrice: labourCharge.toFixed(2),
+              total: labourCharge.toFixed(2)
+            });
+            itemNumber++;
+          }
+        }
 
         // Insert section summary row
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
@@ -427,7 +489,7 @@ const SalesOrdersView = () => {
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
         });
       });
 
@@ -528,17 +590,70 @@ const SalesOrdersView = () => {
 
         // Insert items for this section
         let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
+        itemsInCategory.forEach((item) => {
           items.push({
-            itemNumber: itemNumber.toString(),
-            quantity: item.quantity?.toString() || "",
-            unit: item.unit || "",
-            description: item.description || "",
-            unitPrice: item.unit_price?.toFixed(2) || "",
-            total: item.total_price?.toFixed(2) || ""
+            itemNumber: String(itemNumber),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
           });
           itemNumber++;
         });
+
+        // Add worktop installation labor if exists
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: salesOrder.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: salesOrder.worktop_labor_unit_price.toFixed(2),
+            total: (salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price).toFixed(2)
+          });
+          itemNumber++;
+        }
+
+        // Add labour charge for each section that has items (except worktop which has its own labor)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section from database
+          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = salesOrder.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            items.push({
+              itemNumber: String(itemNumber),
+              quantity: 1,
+              unit: "sum",
+              description: `Labour Charge (${labourPercentage}%)`,
+              unitPrice: labourCharge.toFixed(2),
+              total: labourCharge.toFixed(2)
+            });
+            itemNumber++;
+          }
+        }
 
         // Insert section summary row
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
@@ -554,7 +669,7 @@ const SalesOrdersView = () => {
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
         });
       });
 

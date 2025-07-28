@@ -595,11 +595,11 @@ export const checkPaymentRequirements = async (quotationNumber: string, required
 
     if (quotationError) throw quotationError
 
-    // Get payments for this quotation
+    // Get payments for this quotation (check both quotation_number and paid_to fields)
     const { data: payments, error: paymentsError } = await supabase
       .from("payments")
       .select("amount")
-      .eq("quotation_number", quotationNumber)
+      .or(`quotation_number.eq.${quotationNumber},paid_to.eq.${quotationNumber}`)
       .eq("status", "completed")
 
     if (paymentsError) throw paymentsError

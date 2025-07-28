@@ -363,15 +363,46 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     if (!quotation?.quotation_number) return;
     
     try {
+      // First, check all payments for this quotation regardless of status - check both fields
+      const { data: allPayments } = await supabase
+        .from("payments")
+        .select("*")
+        .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
+
+      // Then get only completed payments - check both quotation_number and paid_to fields
       const { data: payments } = await supabase
         .from("payments")
-        .select("amount")
-        .eq("quotation_number", quotation.quotation_number)
+        .select("amount, status")
+        .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
         .eq("status", "completed")
       
       const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
       const hasPaymentsValue = totalPaidAmount > 0
       const paymentPercentageValue = quotation.grand_total > 0 ? (totalPaidAmount / quotation.grand_total) * 100 : 0
+      
+      // Enhanced debug logging for payment detection
+      console.log('Payment Info Debug:', {
+        quotation_number: quotation.quotation_number,
+        quotation_status: quotation.status,
+        all_payments_found: allPayments?.length || 0,
+        all_payments_details: allPayments || [],
+        completed_payments_found: payments?.length || 0,
+        completed_payments_details: payments || [],
+        total_paid: totalPaidAmount,
+        has_payments: hasPaymentsValue,
+        payment_percentage: paymentPercentageValue,
+        grand_total: quotation.grand_total
+      })
+      
+      // Also check if there are payments with different quotation_number formats
+      const { data: similarPayments } = await supabase
+        .from("payments")
+        .select("*")
+        .ilike("quotation_number", `%${quotation.quotation_number.slice(-4)}%`)
+      
+      if (similarPayments && similarPayments.length > 0) {
+        console.log('Similar Payment Numbers Found:', similarPayments)
+      }
       
       setTotalPaid(totalPaidAmount)
       setHasPayments(hasPaymentsValue)
@@ -1146,14 +1177,102 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           itemNumber++;
         });
 
-        // Insert section summary row after all items in this section
+        // Add labour charge logic to quotation modal PDF generation
+
+        // In handlePrint function, after items are added but before section summary
+        // Add worktop installation labor if exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: quotation.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: quotation.worktop_labor_unit_price.toFixed(2),
+            total: (quotation.worktop_labor_qty * quotation.worktop_labor_unit_price).toFixed(2)
+          });
+          itemNumber++;
+        }
+
+        // Add labour charge for each section that has items (except worktop which has its own labor)
+        if (itemsInCategory.length > 0 && category !== 'worktop') {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section from database
+          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          
+          if (labourCharge > 0) {
+            items.push({
+              itemNumber: String(itemNumber),
+              quantity: 1,
+              unit: "sum",
+              description: `Labour Charge (${labourPercentage}%)`,
+              unitPrice: labourCharge.toFixed(2),
+              total: labourCharge.toFixed(2)
+            });
+            itemNumber++;
+          }
+        }
+
+        // Insert section summary row
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
-        // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
-        
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section from database
+          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
+
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
@@ -1161,7 +1280,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal !== 0 ? sectionTotal.toFixed(2) : ""
+          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
         };
         
         items.push(summaryRow);
@@ -3549,22 +3668,35 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 >
                   Close
                 </button>
-                {hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder && (
-                  <button
-                    type="button"
-                    className="btn btn-primary me-2"
-                    onClick={() => onProceedToSalesOrder(quotation)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
-                  </button>
-                )}
+                {(() => {
+                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                  
+                  // Debug logging for button visibility
+                  console.log('Proceed to Sales Order Button Debug:', {
+                    hasPayments,
+                    quotation_status: quotation?.status,
+                    onProceedToSalesOrder: !!onProceedToSalesOrder,
+                    showButton,
+                    quotation_number: quotation?.quotation_number
+                  });
+                  
+                  return showButton ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary me-2"
+                      onClick={() => onProceedToSalesOrder(quotation)}
+                      style={{ 
+                        borderRadius: "12px", 
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                        border: "none"
+                      }}
+                    >
+                      <CreditCard className="me-2" size={16} />
+                      Proceed to Sales Order
+                    </button>
+                  ) : null;
+                })()}
                 <button
                   type="button"
                   className="btn btn-success"
@@ -3591,23 +3723,27 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 >
                   Cancel
                 </button>
-                {hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder && (
-                  <button
-                    type="button"
-                    className="btn btn-primary me-2"
-                    onClick={() => onProceedToSalesOrder(quotation)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                    disabled={loading}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
-                  </button>
-                )}
+                {(() => {
+                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                  
+                  return showButton ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary me-2"
+                      onClick={() => onProceedToSalesOrder(quotation)}
+                      style={{ 
+                        borderRadius: "12px", 
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                        border: "none"
+                      }}
+                      disabled={loading}
+                    >
+                      <CreditCard className="me-2" size={16} />
+                      Proceed to Sales Order
+                    </button>
+                  ) : null;
+                })()}
                 <button
                   type="button"
                   className="btn btn-primary"
