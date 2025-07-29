@@ -3655,7 +3655,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 >
                   Close
                 </button>
-                {salesOrder?.id && onProceedToInvoice && (
+                {salesOrder?.id && onProceedToInvoice && paymentPercentage >= 70 && (
                   <button
                     type="button"
                     className="btn btn-primary me-2"
@@ -3669,22 +3669,6 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                   >
                     <CreditCard className="me-2" size={16} />
                     Proceed to Invoice
-                  </button>
-                )}
-                {salesOrder?.id && onProceedToCashSale && (
-                  <button
-                    type="button"
-                    className="btn btn-success me-2"
-                    onClick={() => onProceedToCashSale(salesOrder)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)",
-                      border: "none"
-                    }}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Cash Sale
                   </button>
                 )}
                 <button
@@ -3713,7 +3697,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 >
                   Cancel
                 </button>
-                {salesOrder?.id && onProceedToInvoice && (
+                {salesOrder?.id && onProceedToInvoice && paymentPercentage >= 70 && (
                   <button
                     type="button"
                     className="btn btn-primary me-2"
@@ -3728,23 +3712,6 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                   >
                     <CreditCard className="me-2" size={16} />
                     Proceed to Invoice
-                  </button>
-                )}
-                {salesOrder?.id && onProceedToCashSale && (
-                  <button
-                    type="button"
-                    className="btn btn-success me-2"
-                    onClick={() => onProceedToCashSale(salesOrder)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)",
-                      border: "none"
-                    }}
-                    disabled={loading}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Cash Sale
                   </button>
                 )}
                 <button

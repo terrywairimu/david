@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, CreditCard } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import InvoiceModal from "@/components/ui/invoice-modal"
@@ -11,9 +11,71 @@ import {
   downloadDocument,
   exportInvoices as exportInvoicesReport
 } from "@/lib/workflow-utils"
-import { Invoice } from "@/lib/types"
 
-const InvoicesView: React.FC = () => {
+interface Invoice {
+  id: number
+  invoice_number: string
+  client_id: number
+  sales_order_id?: number
+  original_quotation_number?: string
+  date_created: string
+  due_date: string
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  appliances_total?: number
+  wardrobes_total?: number
+  tvunit_total?: number
+  labour_percentage: number
+  labour_total: number
+  total_amount: number
+  grand_total: number
+  paid_amount: number
+  balance_amount: number
+  vat_amount?: number
+  vat_percentage?: number
+  worktop_labor_qty?: number
+  worktop_labor_unit_price?: number
+  include_accessories: boolean
+  include_worktop?: boolean
+  include_appliances?: boolean
+  include_wardrobes?: boolean
+  include_tvunit?: boolean
+  cabinet_labour_percentage?: number
+  accessories_labour_percentage?: number
+  appliances_labour_percentage?: number
+  wardrobes_labour_percentage?: number
+  tvunit_labour_percentage?: number
+  status: "pending" | "paid" | "overdue" | "cancelled" | "converted_to_cash_sale"
+  notes?: string
+  terms_conditions?: string
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  }
+  client?: {
+    id: number
+    name: string
+    phone?: string
+    location?: string
+  }
+  items?: Array<{
+    id: number
+    category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
+    description: string
+    unit: string
+    quantity: number
+    unit_price: number
+    total_price: number
+    stock_item_id?: number
+  }>
+}
+
+const InvoicesView = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -25,7 +87,7 @@ const InvoicesView: React.FC = () => {
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
   const [showModal, setShowModal] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>()
-  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+  const [modalMode, setModalMode] = useState<"view" | "edit">("view")
 
   useEffect(() => {
     fetchInvoices()
@@ -42,10 +104,6 @@ const InvoicesView: React.FC = () => {
         console.log('Invoice items change detected:', payload)
         fetchInvoices() // Refresh invoices when items change
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registered_entities' }, (payload) => {
-        console.log('Registered entities change detected:', payload)
-        fetchClients() // Refresh clients when changes occur
-      })
       .subscribe()
 
     return () => {
@@ -54,15 +112,14 @@ const InvoicesView: React.FC = () => {
   }, [])
 
   const fetchInvoices = async () => {
-    setLoading(true)
     try {
+      setLoading(true)
       const { data, error } = await supabase
         .from("invoices")
         .select(`
           *,
           client:registered_entities(id, name, phone, location),
-          items:invoice_items(*),
-          payments:payments(id, amount, date, method, reference)
+          items:invoice_items(*)
         `)
         .order("date_created", { ascending: false })
 
@@ -70,7 +127,7 @@ const InvoicesView: React.FC = () => {
       setInvoices(data || [])
     } catch (error) {
         console.error("Error fetching invoices:", error)
-      toast.error("Failed to load invoices")
+      toast.error("Failed to fetch invoices")
     } finally {
       setLoading(false)
     }
@@ -85,49 +142,28 @@ const InvoicesView: React.FC = () => {
         .order("name")
 
       if (error) throw error
-      
-        const clientOptions = [
-          { value: "", label: "All Clients" },
-        ...(data || []).map(client => ({
-            value: client.id.toString(),
-          label: client.name
-        }))
-        ]
-      
-        setClients(clientOptions)
+      setClients(data?.map(client => ({ value: client.id.toString(), label: client.name })) || [])
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
   }
 
-  const calculateBalance = (invoice: Invoice) => {
-    const totalPaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
-    return invoice.grand_total - totalPaid
-  }
-
   const handleDateFilterChange = (value: string) => {
     setDateFilter(value)
-    if (value !== "specific") {
       setSpecificDate("")
-    }
-    if (value !== "period") {
       setPeriodStartDate("")
       setPeriodEndDate("")
-    }
   }
 
   const getFilteredInvoices = () => {
-    let filtered = [...invoices]
+    let filtered = invoices
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(
-        (invoice) =>
+      filtered = filtered.filter(invoice =>
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
           invoice.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.original_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        invoice.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -137,74 +173,138 @@ const InvoicesView: React.FC = () => {
     }
 
     // Date filter
-    if (dateFilter) {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      
+    if (dateFilter === "today") {
+      const today = new Date().toISOString().split('T')[0]
+      filtered = filtered.filter(invoice => invoice.date_created.startsWith(today))
+    } else if (dateFilter === "yesterday") {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      filtered = filtered.filter(invoice => invoice.date_created.startsWith(yesterdayStr))
+    } else if (dateFilter === "this_week") {
+      const startOfWeek = new Date()
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(endOfWeek.getDate() + 6)
       filtered = filtered.filter(invoice => {
         const invoiceDate = new Date(invoice.date_created)
-        const invoiceDay = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), invoiceDate.getDate())
-        
-        switch (dateFilter) {
-          case "today":
-            return invoiceDay.getTime() === today.getTime()
-          case "week":
-            const weekStart = new Date(today)
-            weekStart.setDate(today.getDate() - today.getDay())
-            return invoiceDay >= weekStart
-          case "month":
-            return invoiceDate.getMonth() === now.getMonth() && invoiceDate.getFullYear() === now.getFullYear()
-          case "year":
-            return invoiceDate.getFullYear() === now.getFullYear()
-          case "specific":
-            if (specificDate) {
-              const specDate = new Date(specificDate)
-              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
-              return invoiceDay.getTime() === specDay.getTime()
-            }
-            return true
-          case "period":
-            if (periodStartDate && periodEndDate) {
+        return invoiceDate >= startOfWeek && invoiceDate <= endOfWeek
+      })
+    } else if (dateFilter === "this_month") {
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      const endOfMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 0)
+      filtered = filtered.filter(invoice => {
+        const invoiceDate = new Date(invoice.date_created)
+        return invoiceDate >= startOfMonth && invoiceDate <= endOfMonth
+      })
+    } else if (dateFilter === "specific_date" && specificDate) {
+      filtered = filtered.filter(invoice => invoice.date_created.startsWith(specificDate))
+    } else if (dateFilter === "date_range" && periodStartDate && periodEndDate) {
+      filtered = filtered.filter(invoice => {
+        const invoiceDate = new Date(invoice.date_created)
               const startDate = new Date(periodStartDate)
               const endDate = new Date(periodEndDate)
-              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
-              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-              return invoiceDay >= startDay && invoiceDay <= endDay
-            }
-            return true
-          default:
-            return true
-        }
+        return invoiceDate >= startDate && invoiceDate <= endDate
       })
     }
 
     return filtered
   }
 
-  const filteredInvoices = getFilteredInvoices()
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return "badge bg-warning"
+        return "bg-warning text-dark"
       case "paid":
-        return "badge bg-success"
+        return "bg-success"
       case "overdue":
-        return "badge bg-danger"
+        return "bg-danger"
       case "cancelled":
-        return "badge bg-secondary"
-      case "partially_paid":
-        return "badge bg-info"
+        return "bg-secondary"
       case "converted_to_cash_sale":
-        return "badge bg-success"
+        return "bg-info"
       default:
-        return "badge bg-secondary"
+        return "bg-secondary"
     }
   }
 
   const handleModalSave = async (invoiceData: any) => {
     try {
-      if (modalMode === "create") {
+      setLoading(true)
+
+      if (modalMode === "edit" && selectedInvoice) {
+        // Update existing invoice
+        const { error: invoiceError } = await supabase
+          .from("invoices")
+          .update({
+            invoice_number: invoiceData.invoice_number,
+            client_id: invoiceData.client_id,
+            date_created: invoiceData.date_created,
+            due_date: invoiceData.due_date,
+            cabinet_total: invoiceData.cabinet_total,
+            worktop_total: invoiceData.worktop_total,
+            accessories_total: invoiceData.accessories_total,
+            appliances_total: invoiceData.appliances_total,
+            wardrobes_total: invoiceData.wardrobes_total,
+            tvunit_total: invoiceData.tvunit_total,
+            labour_percentage: invoiceData.labour_percentage,
+            labour_total: invoiceData.labour_total,
+            total_amount: invoiceData.total_amount,
+            grand_total: invoiceData.grand_total,
+            vat_percentage: invoiceData.vat_percentage,
+            vat_amount: invoiceData.vat_amount,
+            include_accessories: invoiceData.include_accessories,
+            include_worktop: invoiceData.include_worktop,
+            include_appliances: invoiceData.include_appliances,
+            include_wardrobes: invoiceData.include_wardrobes,
+            include_tvunit: invoiceData.include_tvunit,
+            cabinet_labour_percentage: invoiceData.cabinet_labour_percentage,
+            accessories_labour_percentage: invoiceData.accessories_labour_percentage,
+            appliances_labour_percentage: invoiceData.appliances_labour_percentage,
+            wardrobes_labour_percentage: invoiceData.wardrobes_labour_percentage,
+            tvunit_labour_percentage: invoiceData.tvunit_labour_percentage,
+            worktop_labor_qty: invoiceData.worktop_labor_qty,
+            worktop_labor_unit_price: invoiceData.worktop_labor_unit_price,
+            notes: invoiceData.notes,
+            terms_conditions: invoiceData.terms_conditions,
+            section_names: invoiceData.section_names
+          })
+          .eq("id", selectedInvoice.id)
+
+        if (invoiceError) throw invoiceError
+
+        // Update invoice items
+        if (invoiceData.items && invoiceData.items.length > 0) {
+          // Delete existing items
+          const { error: deleteError } = await supabase
+            .from("invoice_items")
+            .delete()
+            .eq("invoice_id", selectedInvoice.id)
+
+          if (deleteError) throw deleteError
+
+          // Insert new items
+          const invoiceItems = invoiceData.items.map((item: any) => ({
+            invoice_id: selectedInvoice.id,
+            category: item.category,
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            stock_item_id: item.stock_item_id
+          }))
+
+          const { error: itemsError } = await supabase
+            .from("invoice_items")
+            .insert(invoiceItems)
+
+          if (itemsError) throw itemsError
+        }
+
+        toast.success("Invoice updated successfully")
+      } else {
         // Create new invoice
         const { data: newInvoice, error: invoiceError } = await supabase
           .from("invoices")
@@ -212,22 +312,39 @@ const InvoicesView: React.FC = () => {
             invoice_number: invoiceData.invoice_number,
             client_id: invoiceData.client_id,
             sales_order_id: invoiceData.sales_order_id,
-            quotation_id: invoiceData.quotation_id,
             original_quotation_number: invoiceData.original_quotation_number,
-            original_order_number: invoiceData.original_order_number,
             date_created: invoiceData.date_created,
             due_date: invoiceData.due_date,
             cabinet_total: invoiceData.cabinet_total,
             worktop_total: invoiceData.worktop_total,
             accessories_total: invoiceData.accessories_total,
+            appliances_total: invoiceData.appliances_total,
+            wardrobes_total: invoiceData.wardrobes_total,
+            tvunit_total: invoiceData.tvunit_total,
             labour_percentage: invoiceData.labour_percentage,
             labour_total: invoiceData.labour_total,
             total_amount: invoiceData.total_amount,
             grand_total: invoiceData.grand_total,
+            paid_amount: invoiceData.paid_amount || 0,
+            balance_amount: invoiceData.balance_amount || invoiceData.grand_total,
+            vat_percentage: invoiceData.vat_percentage,
+            vat_amount: invoiceData.vat_amount,
             include_accessories: invoiceData.include_accessories,
-            status: invoiceData.status,
+            include_worktop: invoiceData.include_worktop,
+            include_appliances: invoiceData.include_appliances,
+            include_wardrobes: invoiceData.include_wardrobes,
+            include_tvunit: invoiceData.include_tvunit,
+            cabinet_labour_percentage: invoiceData.cabinet_labour_percentage,
+            accessories_labour_percentage: invoiceData.accessories_labour_percentage,
+            appliances_labour_percentage: invoiceData.appliances_labour_percentage,
+            wardrobes_labour_percentage: invoiceData.wardrobes_labour_percentage,
+            tvunit_labour_percentage: invoiceData.tvunit_labour_percentage,
+            worktop_labor_qty: invoiceData.worktop_labor_qty,
+            worktop_labor_unit_price: invoiceData.worktop_labor_unit_price,
+            status: "pending",
             notes: invoiceData.notes,
-            terms_conditions: invoiceData.terms_conditions
+            terms_conditions: invoiceData.terms_conditions,
+            section_names: invoiceData.section_names
           })
           .select()
           .single()
@@ -255,65 +372,15 @@ const InvoicesView: React.FC = () => {
         }
 
         toast.success("Invoice created successfully")
-      } else if (modalMode === "edit") {
-        // Update existing invoice
-        const { error: updateError } = await supabase
-          .from("invoices")
-          .update({
-            client_id: invoiceData.client_id,
-            date_created: invoiceData.date_created,
-            due_date: invoiceData.due_date,
-            cabinet_total: invoiceData.cabinet_total,
-            worktop_total: invoiceData.worktop_total,
-            accessories_total: invoiceData.accessories_total,
-            labour_percentage: invoiceData.labour_percentage,
-            labour_total: invoiceData.labour_total,
-            total_amount: invoiceData.total_amount,
-            grand_total: invoiceData.grand_total,
-            include_accessories: invoiceData.include_accessories,
-            status: invoiceData.status,
-            notes: invoiceData.notes,
-            terms_conditions: invoiceData.terms_conditions
-          })
-          .eq("id", selectedInvoice?.id)
-
-        if (updateError) throw updateError
-
-        // Delete existing items and insert new ones
-        const { error: deleteError } = await supabase
-          .from("invoice_items")
-          .delete()
-          .eq("invoice_id", selectedInvoice?.id)
-
-        if (deleteError) throw deleteError
-
-        // Insert updated items
-        if (invoiceData.items && invoiceData.items.length > 0) {
-          const invoiceItems = invoiceData.items.map((item: any) => ({
-            invoice_id: selectedInvoice?.id,
-            category: item.category,
-            description: item.description,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            stock_item_id: item.stock_item_id
-          }))
-
-          const { error: itemsError } = await supabase
-            .from("invoice_items")
-            .insert(invoiceItems)
-
-          if (itemsError) throw itemsError
-        }
-
-        toast.success("Invoice updated successfully")
       }
 
+      setShowModal(false)
       fetchInvoices()
     } catch (error) {
       console.error("Error saving invoice:", error)
       toast.error("Failed to save invoice")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -329,9 +396,10 @@ const InvoicesView: React.FC = () => {
     setShowModal(true)
   }
 
-  // Export function
-  const exportInvoices = () => {
-    exportInvoicesReport(invoices)
+  const handleCreate = () => {
+    setSelectedInvoice(undefined)
+    setModalMode("create")
+    setShowModal(true)
   }
 
   const handleDelete = async (invoice: Invoice) => {
@@ -354,128 +422,582 @@ const InvoicesView: React.FC = () => {
   }
 
   const handleProceedToCashSale = async (invoice: Invoice) => {
-    toast.info("Cash sale conversion functionality will be available soon")
+    try {
+      const cashSale = await proceedToCashSaleFromInvoice(invoice.id)
+      toast.success(`Cash sale ${cashSale.sale_number} created successfully`)
+      fetchInvoices()
+    } catch (error) {
+      // Error handling is done in the workflow function
+    }
   }
 
-  const handlePrint = (invoice: Invoice) => {
-    printDocument(`invoice-${invoice.id}`, `Invoice-${invoice.invoice_number}`)
+  const handlePrint = async (invoice: Invoice) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
+
+      // Prepare items data with section headings (same as quotation)
+      const items: any[] = [];
+      const grouped = invoice.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof invoice.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Section mapping
+        const sectionLabels: { [key: string]: string } = {
+          cabinet: invoice.section_names?.cabinet || "General",
+          worktop: invoice.section_names?.worktop || "Worktop", 
+          accessories: invoice.section_names?.accessories || "Accessories",
+          appliances: invoice.section_names?.appliances || "Appliances",
+          wardrobes: invoice.section_names?.wardrobes || "Wardrobes",
+          tvunit: invoice.section_names?.tvunit || "TV Unit"
+        };
+
+        const sectionLabel = sectionLabels[category] || category;
+
+        // Insert section header
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: sectionLabel,
+          unitPrice: "",
+          total: ""
+        });
+
+        // Insert items for this section
+        let itemNumber = 1;
+        itemsInCategory.forEach((item) => {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
+          });
+          itemNumber++;
+        });
+
+        // Add worktop installation labor if exists
+        if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: invoice.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: invoice.worktop_labor_unit_price.toFixed(2),
+            total: (invoice.worktop_labor_qty * invoice.worktop_labor_unit_price).toFixed(2)
+          });
+          itemNumber++;
+        }
+
+        // Add labour charge for each section that has items (except worktop which has its own labor)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          // Check if labour charge items already exist in this category
+          const hasExistingLabourCharge = itemsInCategory.some(item => 
+            item.description && item.description.toLowerCase().includes('labour charge')
+          );
+          
+          // Only calculate labour charge if no labour charge items exist
+          if (!hasExistingLabourCharge) {
+            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            
+            // Get the correct labour percentage for this specific section from database
+            let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
+            switch (category) {
+              case 'cabinet':
+                labourPercentage = invoice.cabinet_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'accessories':
+                labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'appliances':
+                labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'wardrobes':
+                labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'tvunit':
+                labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
+                break;
+            }
+            
+            const labourAmount = (sectionItemsTotal * labourPercentage) / 100;
+            
+            if (labourAmount > 0) {
+              items.push({
+                itemNumber: String(itemNumber),
+                quantity: "",
+                unit: "",
+                description: `Labour Charge (${labourPercentage}%)`,
+                unitPrice: "",
+                total: labourAmount.toFixed(2)
+              });
+              itemNumber++;
+            }
+          }
+        }
+
+        // Insert section summary row
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
+          sectionTotal += invoice.worktop_labor_qty * invoice.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'accessories':
+              labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = invoice.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
+        
+        const summaryRow = {
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
+          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
+        };
+        
+        items.push(summaryRow);
+      });
+
+      // Parse terms and conditions
+      const parseTermsAndConditions = (termsText: string) => {
+        return (termsText || "").split('\n').filter(line => line.trim());
+      };
+
+      // Generate PDF using the same function as quotation but with "INVOICE" title
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: invoice.client?.name || "",
+        siteLocation: invoice.client?.location || "",
+        mobileNo: invoice.client?.phone || "",
+        date: new Date(invoice.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: invoice.invoice_number,
+        originalQuotationNumber: invoice.original_quotation_number || "",
+        documentTitle: "INVOICE", // This makes it show "INVOICE" instead of "QUOTATION"
+        items,
+        subtotal: invoice.total_amount || 0,
+        vat: invoice.vat_amount || 0,
+        vatPercentage: invoice.vat_percentage || 16,
+        total: invoice.grand_total || 0,
+        notes: invoice.notes || "",
+        terms: parseTermsAndConditions(invoice.terms_conditions || ""),
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Error printing invoice:", error);
+      toast.error("Failed to print invoice");
+    }
   }
 
-  const handleDownload = (invoice: Invoice) => {
-    downloadDocument(`invoice-${invoice.id}`, `Invoice-${invoice.invoice_number}`)
+  const handleDownload = async (invoice: Invoice) => {
+    try {
+      const { generate } = await import('@pdfme/generator');
+      const { text, rectangle, line, image } = await import('@pdfme/schemas');
+      const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
+
+      // Convert logo to base64
+      const logoBase64 = await imageToBase64('/logo.png');
+      // Convert watermark logo to base64
+      const watermarkBase64 = await imageToBase64('/logowatermark.png');
+
+      // Prepare items data with section headings (same as quotation)
+      const items: any[] = [];
+      const grouped = invoice.items?.reduce((acc, item) => {
+        (acc[item.category] = acc[item.category] || []).push(item);
+        return acc;
+      }, {} as Record<string, typeof invoice.items>) || {};
+
+      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        // Section mapping
+        const sectionLabels: { [key: string]: string } = {
+          cabinet: invoice.section_names?.cabinet || "General",
+          worktop: invoice.section_names?.worktop || "Worktop", 
+          accessories: invoice.section_names?.accessories || "Accessories",
+          appliances: invoice.section_names?.appliances || "Appliances",
+          wardrobes: invoice.section_names?.wardrobes || "Wardrobes",
+          tvunit: invoice.section_names?.tvunit || "TV Unit"
+        };
+
+        const sectionLabel = sectionLabels[category] || category;
+
+        // Insert section header
+        items.push({
+          isSection: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: sectionLabel,
+          unitPrice: "",
+          total: ""
+        });
+
+        // Insert items for this section
+        let itemNumber = 1;
+        itemsInCategory.forEach((item) => {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unitPrice: item.unit_price.toFixed(2),
+            total: item.total_price.toFixed(2)
+          });
+          itemNumber++;
+        });
+
+        // Add worktop installation labor if exists
+        if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(itemNumber),
+            quantity: invoice.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: invoice.worktop_labor_unit_price.toFixed(2),
+            total: (invoice.worktop_labor_qty * invoice.worktop_labor_unit_price).toFixed(2)
+          });
+          itemNumber++;
+        }
+
+        // Add labour charge for each section that has items (except worktop which has its own labor)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          // Check if labour charge items already exist in this category
+          const hasExistingLabourCharge = itemsInCategory.some(item => 
+            item.description && item.description.toLowerCase().includes('labour charge')
+          );
+          
+          // Only calculate labour charge if no labour charge items exist
+          if (!hasExistingLabourCharge) {
+            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            
+            // Get the correct labour percentage for this specific section from database
+            let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
+            switch (category) {
+              case 'cabinet':
+                labourPercentage = invoice.cabinet_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'accessories':
+                labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'appliances':
+                labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'wardrobes':
+                labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
+                break;
+              case 'tvunit':
+                labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
+                break;
+            }
+            
+            const labourAmount = (sectionItemsTotal * labourPercentage) / 100;
+            
+            if (labourAmount > 0) {
+              items.push({
+                itemNumber: String(itemNumber),
+                quantity: "",
+                unit: "",
+                description: `Labour Charge (${labourPercentage}%)`,
+                unitPrice: "",
+                total: labourAmount.toFixed(2)
+              });
+              itemNumber++;
+            }
+          }
+        }
+
+        // Insert section summary row
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
+          sectionTotal += invoice.worktop_labor_qty * invoice.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'accessories':
+              labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = invoice.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
+        
+        const summaryRow = {
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${sectionLabel} Total`,
+          unitPrice: "",
+          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
+        };
+        
+        items.push(summaryRow);
+      });
+
+      // Parse terms and conditions
+      const parseTermsAndConditions = (termsText: string) => {
+        return (termsText || "").split('\n').filter(line => line.trim());
+      };
+
+      // Generate PDF using the same function as quotation but with "INVOICE" title
+      const { template, inputs } = await generateQuotationPDF({
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        clientNames: invoice.client?.name || "",
+        siteLocation: invoice.client?.location || "",
+        mobileNo: invoice.client?.phone || "",
+        date: new Date(invoice.date_created).toLocaleDateString(),
+        deliveryNoteNo: "Delivery Note No.",
+        quotationNumber: invoice.invoice_number,
+        originalQuotationNumber: invoice.original_quotation_number || "",
+        documentTitle: "INVOICE", // This makes it show "INVOICE" instead of "QUOTATION"
+        items,
+        subtotal: invoice.total_amount || 0,
+        vat: invoice.vat_amount || 0,
+        vatPercentage: invoice.vat_percentage || 16,
+        total: invoice.grand_total || 0,
+        notes: invoice.notes || "",
+        terms: parseTermsAndConditions(invoice.terms_conditions || ""),
+        preparedBy: "",
+        approvedBy: "",
+        companyLogo: logoBase64,
+        watermarkLogo: watermarkBase64
+      });
+
+      const pdf = await generate({
+        template,
+        inputs,
+        plugins: { text, rectangle, line, image }
+      });
+
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${invoice.invoice_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Invoice downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      toast.error("Failed to download invoice");
+    }
   }
+
+  const exportInvoices = () => {
+    try {
+      const filteredInvoices = getFilteredInvoices()
+      exportInvoicesReport(filteredInvoices)
+    } catch (error) {
+      console.error("Error exporting invoices:", error)
+      toast.error("Failed to export invoices")
+    }
+  }
+
+  const filteredInvoices = getFilteredInvoices()
 
   return (
-    <div className="invoices-view">
-    <div>
+    <div className="container-fluid">
         {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h5>Invoices</h5>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h4 className="mb-0 fw-bold">Invoices</h4>
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={exportInvoices}
+          >
+            <FileText className="me-2" size={16} />
+            Export
+          </button>
+          <button
+            className="btn btn-primary shadow-sm"
+            style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+            onClick={handleCreate}
+          >
+            <Plus className="me-2" size={16} />
+            New Invoice
+          </button>
+        </div>
         </div>
 
-        {/* Search and Filter Row */}
-        <div className="row mb-3">
+      {/* Filters */}
+      <div className="card mb-4">
+        <div className="card-body">
+          <div className="row g-3">
           <div className="col-md-3">
-            <div className="input-group">
-              <span className="input-group-text bg-white border-end-0">
-                <i className="fas fa-search"></i>
-              </span>
               <input
                 type="text"
-                className="form-control border-start-0"
+                className="form-control"
                 placeholder="Search invoices..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
               />
             </div>
-          </div>
-          
-          <div className="col-md-3">
+            <div className="col-md-2">
             <select
-              className="form-select border-0 shadow-sm"
+                className="form-select"
               value={clientFilter}
               onChange={(e) => setClientFilter(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
             >
-              {clients.map((client) => (
+                <option value="">All Clients</option>
+                {clients.map(client => (
                 <option key={client.value} value={client.value}>
                   {client.label}
                 </option>
               ))}
             </select>
       </div>
-
-          <div className="col-md-3">
+            <div className="col-md-2">
             <select
-              className="form-select border-0 shadow-sm"
+                className="form-select"
               value={dateFilter}
               onChange={(e) => handleDateFilterChange(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
             >
               <option value="">All Dates</option>
               <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="specific">Specific Date</option>
-              <option value="period">Specific Period</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="specific_date">Specific Date</option>
+                <option value="date_range">Date Range</option>
             </select>
-            
-            {dateFilter === "specific" && (
+            </div>
+            {dateFilter === "specific_date" && (
+              <div className="col-md-2">
               <input
                 type="date"
-                className="form-control border-0 shadow-sm mt-2"
+                  className="form-control"
                 value={specificDate}
                 onChange={(e) => setSpecificDate(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              />
-            )}
-            
-            {dateFilter === "period" && (
-              <div style={{ display: "block" }}>
-                <div className="d-flex align-items-center justify-content-between mt-2">
-                  <input
-                    type="date"
-                    className="form-control border-0 shadow-sm"
-                    value={periodStartDate}
-                    onChange={(e) => setPeriodStartDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                  />
-                  <span className="mx-2">to</span>
-                  <input
-                    type="date"
-                    className="form-control border-0 shadow-sm"
-                    value={periodEndDate}
-                    onChange={(e) => setPeriodEndDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                  />
-                </div>
+                />
               </div>
             )}
+            {dateFilter === "date_range" && (
+              <>
+                <div className="col-md-2">
+                  <input
+                    type="date"
+                    className="form-control"
+                    placeholder="Start Date"
+                    value={periodStartDate}
+                    onChange={(e) => setPeriodStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="col-md-2">
+                  <input
+                    type="date"
+                    className="form-control"
+                    placeholder="End Date"
+                    value={periodEndDate}
+                    onChange={(e) => setPeriodEndDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
-          
-          <div className="col-md-3">
-            <button 
-              className="btn w-100 shadow-sm export-btn" 
-              onClick={exportInvoices}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              <i className="fas fa-download me-2"></i>
-              Export
-            </button>
           </div>
         </div>
 
       {/* Invoices Table */}
+      <div className="card">
+        <div className="card-body">
       <div className="table-responsive">
-          <table className="table" id="invoicesTable">
+            <table className="table table-hover">
           <thead>
             <tr>
               <th>Invoice #</th>
                 <th>Date</th>
+                  <th>Due Date</th>
               <th>Client</th>
               <th>Total Amount</th>
+                  <th>Paid Amount</th>
               <th>Balance</th>
               <th>Status</th>
               <th>Actions</th>
@@ -484,73 +1006,72 @@ const InvoicesView: React.FC = () => {
           <tbody>
             {loading ? (
               <tr>
-                  <td colSpan={7} className="text-center">
-                  Loading...
+                    <td colSpan={9} className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
                 </td>
               </tr>
             ) : filteredInvoices.length === 0 ? (
               <tr>
-                  <td colSpan={7} className="text-center">
+                    <td colSpan={9} className="text-center py-4 text-muted">
                   No invoices found
                 </td>
               </tr>
             ) : (
               filteredInvoices.map((invoice) => (
                 <tr key={invoice.id}>
-                  <td className="fw-bold">{invoice.invoice_number}</td>
+                      <td>{invoice.invoice_number}</td>
                     <td>{new Date(invoice.date_created).toLocaleDateString()}</td>
-                  <td>
-                    <div>{invoice.client?.name}</div>
-                    {invoice.client?.phone && (
-                      <small className="text-muted">{invoice.client.phone}</small>
-                    )}
-                  </td>
-                    <td>KES {invoice.grand_total.toFixed(2)}</td>
-                    <td>KES {calculateBalance(invoice).toFixed(2)}</td>
-                  <td>
-                    <span className={getStatusBadge(invoice.status)}>
+                      <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
+                      <td>{invoice.client?.name || "Unknown"}</td>
+                      <td>KES {invoice.grand_total?.toFixed(2) || "0.00"}</td>
+                      <td>KES {invoice.paid_amount?.toFixed(2) || "0.00"}</td>
+                      <td>KES {invoice.balance_amount?.toFixed(2) || "0.00"}</td>
+                      <td>
+                        <span className={`badge ${getStatusBadge(invoice.status)}`}>
                         {invoice.status.replace(/_/g, " ")}
                     </span>
                   </td>
                   <td>
                       <div className="d-flex gap-1">
                         <button 
-                          className="action-btn"
+                            className="btn btn-sm action-btn"
                           onClick={() => handleView(invoice)}
                           title="View"
                         >
                       <Eye size={14} />
                     </button>
+                          {invoice.status !== "converted_to_cash_sale" && (
                         <button 
-                          className="action-btn"
+                              className="btn btn-sm action-btn"
                           onClick={() => handleEdit(invoice)}
                           title="Edit"
                         >
                       <Edit size={14} />
                     </button>
+                          )}
                         <button 
-                          className="action-btn"
+                            className="btn btn-sm action-btn"
                           onClick={() => handleDelete(invoice)}
                           title="Delete"
                         >
                       <Trash2 size={14} />
                     </button>
                         <button 
-                          className="action-btn"
+                            className="btn btn-sm action-btn"
                           onClick={() => handlePrint(invoice)}
                           title="Print"
                         >
-                          <Download size={14} />
+                            <Printer size={14} />
                         </button>
-                        {invoice.status === "pending" && (
                           <button 
-                            className="action-btn"
-                            onClick={() => handleProceedToCashSale(invoice)}
-                            title="Proceed to Cash Sale"
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDownload(invoice)}
+                            title="Download"
                           >
-                            <Receipt size={14} />
+                            <Download size={14} />
                           </button>
-                        )}
                       </div>
                   </td>
                 </tr>
@@ -558,6 +1079,7 @@ const InvoicesView: React.FC = () => {
             )}
           </tbody>
         </table>
+          </div>
       </div>
       </div>
 

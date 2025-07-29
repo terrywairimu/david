@@ -976,13 +976,15 @@ const SalesOrdersView = () => {
                         >
                       <Eye size={14} />
                     </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEdit(salesOrder)}
-                          title="Edit"
-                        >
-                      <Edit size={14} />
-                    </button>
+                        {salesOrder.status !== "converted_to_invoice" && (
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleEdit(salesOrder)}
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
                         <button
                           className="btn btn-sm action-btn"
                           onClick={() => handleDelete(salesOrder)}

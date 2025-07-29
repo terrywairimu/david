@@ -541,6 +541,60 @@ export interface SalesOrderData {
   items?: WorkflowItem[]
 }
 
+export interface InvoiceData {
+  id?: number
+  invoice_number: string
+  client_id: number
+  sales_order_id?: number
+  original_quotation_number?: string
+  date_created: string
+  due_date: string
+  cabinet_total: number
+  worktop_total: number
+  accessories_total: number
+  appliances_total?: number
+  wardrobes_total?: number
+  tvunit_total?: number
+  labour_percentage: number
+  labour_total: number
+  total_amount: number
+  grand_total: number
+  paid_amount: number
+  balance_amount: number
+  vat_percentage: number
+  vat_amount: number
+  include_accessories: boolean
+  include_worktop?: boolean
+  include_appliances?: boolean
+  include_wardrobes?: boolean
+  include_tvunit?: boolean
+  cabinet_labour_percentage?: number
+  accessories_labour_percentage?: number
+  appliances_labour_percentage?: number
+  wardrobes_labour_percentage?: number
+  tvunit_labour_percentage?: number
+  worktop_labor_qty?: number
+  worktop_labor_unit_price?: number
+  status: string
+  notes?: string
+  terms_conditions?: string
+  section_names?: {
+    cabinet: string;
+    worktop: string;
+    accessories: string;
+    appliances: string;
+    wardrobes: string;
+    tvunit: string;
+  }
+  client?: {
+    id: number
+    name: string
+    phone?: string
+    location?: string
+  }
+  items?: WorkflowItem[]
+}
+
 export interface PaymentData {
   id?: number
   payment_number: string
@@ -783,7 +837,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
 }
 
 // Convert sales order to invoice
-export const proceedToInvoice = async (salesOrderId: number): Promise<any> => {
+export const proceedToInvoice = async (salesOrderId: number): Promise<InvoiceData> => {
   try {
     // Get sales order data
     const { data: salesOrder, error: salesOrderError } = await supabase
@@ -798,13 +852,13 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<any> => {
 
     if (salesOrderError) throw salesOrderError
 
-    // Check payment requirements (80% minimum)
-    const paymentInfo = await checkPaymentRequirements(salesOrder.original_quotation_number || "", 80)
+    // Check payment requirements (70% minimum)
+    const paymentInfo = await checkPaymentRequirements(salesOrder.original_quotation_number || "", 70)
     
-    if (paymentInfo.paymentPercentage < 80) {
-      const requiredAmount = salesOrder.grand_total * 0.8
+    if (paymentInfo.paymentPercentage < 70) {
+      const requiredAmount = salesOrder.grand_total * 0.7
       const remainingAmount = requiredAmount - paymentInfo.totalPaid
-      throw new Error(`Cannot proceed to invoice. At least 80% payment (KES ${requiredAmount.toFixed(2)}) is required.\nRemaining amount needed: KES ${remainingAmount.toFixed(2)}`)
+      throw new Error(`Cannot proceed to invoice. At least 70% payment (KES ${requiredAmount.toFixed(2)}) is required.\nRemaining amount needed: KES ${remainingAmount.toFixed(2)}`)
     }
 
     // Generate invoice number
@@ -825,6 +879,9 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<any> => {
       cabinet_total: salesOrder.cabinet_total,
       worktop_total: salesOrder.worktop_total,
       accessories_total: salesOrder.accessories_total,
+      appliances_total: salesOrder.appliances_total,
+      wardrobes_total: salesOrder.wardrobes_total,
+      tvunit_total: salesOrder.tvunit_total,
       labour_percentage: salesOrder.labour_percentage,
       labour_total: salesOrder.labour_total,
       total_amount: salesOrder.total_amount,
@@ -832,9 +889,23 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<any> => {
       paid_amount: paymentInfo.totalPaid,
       balance_amount: salesOrder.grand_total - paymentInfo.totalPaid,
       include_accessories: salesOrder.include_accessories,
+      include_worktop: salesOrder.include_worktop,
+      include_appliances: salesOrder.include_appliances,
+      include_wardrobes: salesOrder.include_wardrobes,
+      include_tvunit: salesOrder.include_tvunit,
+      cabinet_labour_percentage: salesOrder.cabinet_labour_percentage,
+      accessories_labour_percentage: salesOrder.accessories_labour_percentage,
+      appliances_labour_percentage: salesOrder.appliances_labour_percentage,
+      wardrobes_labour_percentage: salesOrder.wardrobes_labour_percentage,
+      tvunit_labour_percentage: salesOrder.tvunit_labour_percentage,
+      worktop_labor_qty: salesOrder.worktop_labor_qty,
+      worktop_labor_unit_price: salesOrder.worktop_labor_unit_price,
+      vat_percentage: salesOrder.vat_percentage,
+      vat_amount: salesOrder.vat_amount,
       status: "pending",
       notes: salesOrder.notes,
-      terms_conditions: salesOrder.terms_conditions
+      terms_conditions: salesOrder.terms_conditions,
+      section_names: salesOrder.section_names
     }
 
     // Insert invoice
