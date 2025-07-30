@@ -280,11 +280,11 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   }
   
 
-  
-
 
   // Build schemas for all pages (with async yielding for performance)
   let schemas: any[][] = [];
+  let footerPageSchemas: any[] | null = null; // Will hold footer page if needed
+  
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const rows = pages[pageIdx];
     
@@ -298,6 +298,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     const watermarkSchema = quotationTemplate.schemas[0].filter((s: any) => s.name === 'watermarkLogo');
     pageSchemas.push(...watermarkSchema);
     
+
 
     
     // Header (first page only)
@@ -353,33 +354,63 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         pageSchemas.push({ name: `total${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: totalContent });
       }
     });
-    // Footer (last page only)
+    
+    // Check if footer fits on this page (only on the last table page)
     if (pageIdx === pages.length - 1) {
-      // Position footer right after the last row with some spacing
-      const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
       const lastRowY = tableHeaderY + tableHeaderHeight + (rows.length * rowHeight);
       const footerStartY = lastRowY + 10; // 10mm spacing after last row
-      const footerY = Math.min(footerStartY, pageHeight - bottomMargin - dynamicFooterHeight);
+      const availableSpace = pageHeight - bottomMargin - footerStartY;
       
-
-      
-      pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-        'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
-      ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
-      // Add terms content with dynamic height
-      pageSchemas.push({ 
-        name: 'termsContent', 
-        type: 'text', 
-        position: { x: 15, y: footerY + 5 }, 
-        width: 120, 
-        height: termsHeight, 
-        fontSize: 8, 
-        fontColor: '#000', 
-        fontName: 'Helvetica', 
-        alignment: 'left' 
-      });
+      // If footer doesn't fit on current page, we'll create a separate footer page later
+      if (availableSpace < dynamicFooterHeight) {
+        // Don't add footer to this page - we'll create a separate footer page
+        footerPageSchemas = [];
+        footerPageSchemas.push(...watermarkSchema);
+        
+        const footerY = topMargin + 10;
+        footerPageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+          'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+        ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+        
+        footerPageSchemas.push({ 
+          name: 'termsContent', 
+          type: 'text', 
+          position: { x: 15, y: footerY + 5 }, 
+          width: 120, 
+          height: termsHeight, 
+          fontSize: 8, 
+          fontColor: '#000', 
+          fontName: 'Helvetica', 
+          alignment: 'left' 
+        });
+      } else {
+        // Footer fits on current page - add it to this page
+        const footerY = footerStartY;
+        
+        pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
+          'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+        ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+        
+        pageSchemas.push({ 
+          name: 'termsContent', 
+          type: 'text', 
+          position: { x: 15, y: footerY + 5 }, 
+          width: 120, 
+          height: termsHeight, 
+          fontSize: 8, 
+          fontColor: '#000', 
+          fontName: 'Helvetica', 
+          alignment: 'left' 
+        });
+      }
     }
+    
     schemas.push(pageSchemas);
+  }
+  
+  // Add footer page at the very end if needed
+  if (footerPageSchemas) {
+    schemas.push(footerPageSchemas);
   }
 
   // Efficiently clone the template before patching
@@ -501,4 +532,3 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     inputs
   };
 };
-
