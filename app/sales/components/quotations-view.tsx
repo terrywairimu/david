@@ -505,7 +505,13 @@ const QuotationsView = () => {
 
 
 
-      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+      // Define the default section order
+      const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
+      
+      // Process sections in the defined order
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return; // Skip empty sections
         
         // Use dynamic section name if available, type-safe
         const allowedKeys = [
@@ -734,7 +740,13 @@ const QuotationsView = () => {
       // Debug: Log the grouped items structure
 
 
-      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+      // Define the default section order
+      const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
+      
+      // Process sections in the defined order
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return; // Skip empty sections
         // Debug: Log each category and its items
         // Use dynamic section name if available, type-safe
         const allowedKeys = [

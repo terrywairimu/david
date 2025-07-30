@@ -400,7 +400,13 @@ const SalesOrdersView = () => {
         return acc;
       }, {} as Record<string, typeof salesOrder.items>) || {};
 
-      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+      // Define the default section order
+      const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
+      
+      // Process sections in the defined order
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return; // Skip empty sections
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: salesOrder.section_names?.cabinet || "General",
@@ -617,7 +623,13 @@ const SalesOrdersView = () => {
         return acc;
       }, {} as Record<string, typeof salesOrder.items>) || {};
 
-      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+      // Define the default section order
+      const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
+      
+      // Process sections in the defined order
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return; // Skip empty sections
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: salesOrder.section_names?.cabinet || "General",
