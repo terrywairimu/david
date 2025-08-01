@@ -190,8 +190,7 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
         />
 
         {/* Payments Table */}
-        <div className="table-responsive">
-          <table className="table table-hover">
+              <table className="table table-hover">
             <thead>
               <tr>
                 <th>Payment #</th>
@@ -270,7 +269,6 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
               )}
             </tbody>
           </table>
-      </div>
 
       {/* Payment Modal */}
       {showPaymentModal && (

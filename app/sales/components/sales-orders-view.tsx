@@ -940,8 +940,7 @@ const SalesOrdersView = () => {
         </div>
 
       {/* Sales Orders Table */}
-      <div className="table-responsive">
-          <table className="table table-hover">
+      <table className="table table-hover">
           <thead>
             <tr>
               <th>Order #</th>
@@ -1025,7 +1024,6 @@ const SalesOrdersView = () => {
             )}
           </tbody>
         </table>
-      </div>
       </div>
 
       {/* Sales Order Modal */}

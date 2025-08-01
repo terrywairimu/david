@@ -621,8 +621,7 @@ const StockPage = () => {
             </div>
 
             {/* Stock Table */}
-            <div className="table-responsive">
-              <table className="table table-hover mb-0">
+            <table className="table table-hover mb-0">
                 <thead>
                   <tr>
                     <th>Item Code</th>
@@ -702,7 +701,6 @@ const StockPage = () => {
                   )}
                 </tbody>
               </table>
-            </div>
           </div>
         </div>
 

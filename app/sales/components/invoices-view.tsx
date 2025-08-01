@@ -1000,8 +1000,7 @@ const InvoicesView = () => {
       {/* Invoices Table */}
       <div className="card">
         <div className="card-body">
-      <div className="table-responsive">
-            <table className="table table-hover">
+      <table className="table table-hover">
           <thead>
             <tr>
               <th>Invoice #</th>
@@ -1090,8 +1089,7 @@ const InvoicesView = () => {
               ))
             )}
           </tbody>
-        </table>
-          </div>
+                </table>
       </div>
       </div>
 

@@ -1080,9 +1080,8 @@ const QuotationsView = () => {
           </div>
         </div>
 
-      {/* Quotations Table */}
-      <div className="table-responsive">
-          <table className="table table-hover">
+            {/* Quotations Table */}
+      <table className="table table-hover">
             <thead>
               <tr>
               <th>Quotation #</th>
@@ -1186,7 +1185,6 @@ const QuotationsView = () => {
             )}
           </tbody>
         </table>
-      </div>
       </div>
 
       {/* Quotation Modal */}

@@ -232,8 +232,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       </div>
 
       {/* Account Summary Table */}
-          <div className="table-responsive">
-        <table className="table table-hover">
+          <table className="table table-hover">
               <thead>
                 <tr>
                   <th>Payment #</th>
@@ -290,7 +289,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                 )}
               </tbody>
             </table>
-      </div>
     </div>
   )
 }

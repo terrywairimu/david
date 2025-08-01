@@ -271,8 +271,7 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
         />
 
         {/* Client Expenses Table */}
-      <div className="table-responsive">
-          <table className="table table-hover">
+            <table className="table table-hover">
           <thead>
             <tr>
               <th>Expense #</th>
@@ -347,8 +346,7 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
               ))
             )}
           </tbody>
-        </table>
-        </div>
+                </table>
 
         {/* Expense Modal */}
         {showExpenseModal && (

@@ -836,8 +836,7 @@ const PurchasesPage = () => {
       </div>
 
       {/* Purchases Table */}
-      <div className="table-responsive">
-        <table className="table" style={{ tableLayout: "fixed" }}>
+      <table className="table" style={{ tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: "15%" }} />
             <col style={{ width: "12%" }} />
@@ -939,7 +938,6 @@ const PurchasesPage = () => {
             )}
           </tbody>
         </table>
-      </div>
 
       {/* General Purchase Modal */}
       <PurchaseModal

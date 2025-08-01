@@ -227,8 +227,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
       </div>
 
       {/* Register Table */}
-      <div className="table-responsive">
-        <table className="table" id="registerTable">
+      <table className="table" id="registerTable">
           <thead>
             <tr>
               <th>Name</th>
@@ -283,7 +282,6 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
             )}
           </tbody>
         </table>
-      </div>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

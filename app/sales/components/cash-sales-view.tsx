@@ -454,8 +454,7 @@ const CashSalesView: React.FC = () => {
         </div>
 
       {/* Cash Sales Table */}
-      <div className="table-responsive">
-          <table className="table" id="cashSalesTable">
+      <table className="table" id="cashSalesTable">
           <thead>
             <tr>
                 <th>Receipt #</th>
@@ -527,7 +526,6 @@ const CashSalesView: React.FC = () => {
             )}
           </tbody>
         </table>
-      </div>
       </div>
 
       {/* Cash Sale Modal */}

@@ -135,8 +135,7 @@ const AnalyticsPage = () => {
                   <h5 className="mb-0">Top Performing Products</h5>
                 </div>
                 <div className="card-body">
-                  <div className="table-responsive">
-                    <table className="table table-sm">
+                  <table className="table table-sm">
                       <thead>
                         <tr>
                           <th>Product</th>
@@ -166,7 +165,6 @@ const AnalyticsPage = () => {
                         </tr>
                       </tbody>
                     </table>
-                  </div>
                 </div>
               </div>
             </div>
