@@ -567,6 +567,13 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       // Calculate balances for each account type
       const balanceMap = new Map<string, { total_in: number; total_out: number; current_balance: number }>()
 
+      // Initialize all account types with zero balances
+      const allAccountTypes = ['cash', 'cooperative_bank', 'credit', 'cheque']
+      allAccountTypes.forEach(accountType => {
+        balanceMap.set(accountType, { total_in: 0, total_out: 0, current_balance: 0 })
+      })
+
+      // Add actual transaction data
       for (const transaction of balances || []) {
         const accountType = transaction.account_type || 'cash'
         const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
@@ -805,50 +812,128 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       </div>
 
       {/* Enhanced Search and Filter Row */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <SearchFilterRow
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Search transactions..."
-          firstFilter={{
-            value: clientFilter,
-            onChange: setClientFilter,
-            options: clientOptions,
-            placeholder: "All Clients"
-          }}
-          dateFilter={{
-            value: dateFilter,
-            onChange: setDateFilter,
-            onSpecificDateChange: setSpecificDate,
-            onPeriodStartChange: setPeriodStartDate,
-            onPeriodEndChange: setPeriodEndDate,
-            specificDate,
-            periodStartDate,
-            periodEndDate
-          }}
-          onExport={handleExport}
-          exportLabel="Export Transactions"
-        />
-        
-        {/* Manual Sync Button */}
-        <div className="d-flex align-items-center gap-2">
-          {isSyncing && (
-            <div className="d-flex align-items-center text-muted">
-              <div className="spinner-border spinner-border-sm me-2" role="status">
-                <span className="visually-hidden">Syncing...</span>
+      <div className="card mb-3">
+        <div className="card-body">
+          <div className="row g-3 align-items-center">
+            {/* Search Input */}
+            <div className="col-lg-3 col-md-6 col-12">
+              <div className="input-group shadow-sm">
+                <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                  <i className="fas fa-search text-muted"></i>
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-start-0 border-end-0"
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ borderRadius: "0", height: "45px" }}
+                />
               </div>
-              <small>Syncing...</small>
             </div>
-          )}
-          <button
-            onClick={syncAllTransactions}
-            disabled={isSyncing}
-            className="btn btn-outline-primary btn-sm p-2"
-            title="Manually sync all transactions"
-            style={{ width: '40px', height: '40px' }}
-          >
-            <Eye size={18} />
-          </button>
+
+            {/* Client Filter */}
+            <div className="col-lg-2 col-md-6 col-12">
+              <select
+                className="form-select border-0 shadow-sm"
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Clients</option>
+                {clientOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Filter */}
+            <div className="col-lg-3 col-md-6 col-12">
+              <select
+                className="form-select border-0 shadow-sm"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+                <option value="specific">Specific Date</option>
+                <option value="period">Specific Period</option>
+              </select>
+              
+              {/* Specific Date Input */}
+              {dateFilter === "specific" && (
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm mt-2"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                />
+              )}
+              
+              {/* Period Date Inputs */}
+              {dateFilter === "period" && (
+                <div className="d-flex align-items-center justify-content-between mt-2">
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    value={periodStartDate}
+                    onChange={(e) => setPeriodStartDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  />
+                  <span className="mx-2">to</span>
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    value={periodEndDate}
+                    onChange={(e) => setPeriodEndDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Export Button */}
+            <div className="col-lg-2 col-md-6 col-12">
+              <button
+                className="btn w-100 shadow-sm export-btn"
+                onClick={handleExport}
+                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+              >
+                <Download size={16} className="me-2" />
+                Export Transactions
+              </button>
+            </div>
+
+            {/* Sync Button */}
+            <div className="col-lg-2 col-md-6 col-12">
+              <div className="d-flex align-items-center justify-content-end">
+                {isSyncing && (
+                  <div className="d-flex align-items-center text-muted me-2">
+                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Syncing...</span>
+                    </div>
+                    <small>Syncing...</small>
+                  </div>
+                )}
+                <button
+                  onClick={syncAllTransactions}
+                  disabled={isSyncing}
+                  className="btn btn-outline-primary shadow-sm"
+                  title="Manually sync all transactions"
+                  style={{ borderRadius: "16px", height: "45px", minWidth: "45px" }}
+                >
+                  <Eye size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -235,7 +235,7 @@ body {
 }
 
 .btn-dark {
-  background: #343a40;
+  background: var(--tertiary-gradient);
   color: white;
 }
 
@@ -245,8 +245,21 @@ body {
 }
 
 .btn-add:hover {
-  background: linear-gradient(135deg, #5a67d8 0%, #805ad5 100%);
+  background: var(--secondary-gradient);
   color: white;
+  transform: translateY(-2px);
+}
+
+.export-btn {
+  background: var(--tertiary-gradient);
+  color: white;
+  border: none;
+}
+
+.export-btn:hover {
+  background: var(--primary-gradient);
+  color: white;
+  transform: translateY(-2px);
 }
 
 /* Form styles */
@@ -785,4 +798,75 @@ body {
 .modal#makePaymentModal table select.form-select {
   border: 1px solid #dee2e6;
   border-radius: 6px;
+}
+
+/* Responsive adjustments for search filter row */
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 20%;
+  }
+  
+  .content {
+    margin-left: 20%;
+  }
+}
+
+@media (max-width: 992px) {
+  .sidebar {
+    width: 25%;
+  }
+  
+  .content {
+    margin-left: 25%;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    transform: translateX(-100%);
+    z-index: 1050;
+  }
+  
+  .sidebar.show {
+    transform: translateX(0);
+  }
+  
+  .content {
+    margin-left: 0;
+  }
+  
+  .sidebar nav {
+    padding: 1rem;
+  }
+  
+  .sidebar .nav-link {
+    padding: 0.75rem 1rem;
+  }
+  
+  .sidebar .nav-link i {
+    width: 20px;
+    height: 20px;
+    padding: 0.5rem;
+  }
+  
+  .sidebar h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Mobile adjustments for search filter */
+  .card-body .row.g-3 {
+    gap: 0.5rem !important;
+  }
+  
+  .card-body .col-12 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .input-group,
+  .form-select,
+  .btn {
+    height: 40px !important;
+  }
 }
