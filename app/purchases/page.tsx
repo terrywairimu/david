@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer } from "lucide-react"
+import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer, Edit } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -836,21 +836,7 @@ const PurchasesPage = () => {
       </div>
 
       {/* Purchases Table */}
-      <table className="table" style={{ tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "15%" }} />
-            {currentView === "client" && (
-              <>
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-              </>
-            )}
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "8%" }} />
-          </colgroup>
+      <table className="table">
           <thead>
             <tr>
               <th>Order Number</th>
@@ -864,7 +850,7 @@ const PurchasesPage = () => {
               )}
               <th>Items</th>
               <th>Total Amount</th>
-              <th>Actions</th>
+              <th style={{ width: "120px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -916,6 +902,13 @@ const PurchasesPage = () => {
                         title="View"
                       >
                         <Eye size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm action-btn"
+                        onClick={() => handleEdit(purchase)}
+                        title="Edit"
+                      >
+                        <Edit size={14} />
                       </button>
                       <button
                         className="btn btn-sm action-btn"
