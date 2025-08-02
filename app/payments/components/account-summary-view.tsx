@@ -286,25 +286,44 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         .from('purchases')
         .select('id', { count: 'exact', head: true })
 
-      const { count: transactionCount } = await supabase
+      // Count transactions by reference_type
+      const { count: paymentTransactionCount } = await supabase
         .from('account_transactions')
         .select('id', { count: 'exact', head: true })
+        .eq('reference_type', 'payment')
+
+      const { count: expenseTransactionCount } = await supabase
+        .from('account_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('reference_type', 'expense')
+
+      const { count: purchaseTransactionCount } = await supabase
+        .from('account_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('reference_type', 'purchase')
 
       const totalRecords = (paymentCount || 0) + (expenseCount || 0) + (purchaseCount || 0)
-      const totalTransactions = transactionCount || 0
+      const totalTransactions = (paymentTransactionCount || 0) + (expenseTransactionCount || 0) + (purchaseTransactionCount || 0)
 
       console.log('Sync check:', {
         payments: paymentCount,
-        paymentTransactions: transactionCount,
+        paymentTransactions: paymentTransactionCount,
         expenses: expenseCount,
-        expenseTransactions: transactionCount,
+        expenseTransactions: expenseTransactionCount,
         purchases: purchaseCount,
+        purchaseTransactions: purchaseTransactionCount,
         totalRecords,
         totalTransactions
       })
 
-      // If we have records but no transactions, or if the numbers don't match, sync is needed
-      return totalRecords > 0 && totalTransactions === 0
+      // Check if sync is needed by comparing source records with transactions
+      const needsPaymentSync = (paymentCount || 0) > (paymentTransactionCount || 0)
+      const needsExpenseSync = (expenseCount || 0) > (expenseTransactionCount || 0)
+      const needsPurchaseSync = (purchaseCount || 0) > (purchaseTransactionCount || 0)
+      
+      const needsSync = needsPaymentSync || needsExpenseSync || needsPurchaseSync
+      
+      return needsSync
     } catch (error) {
       console.error('Error checking if sync needed:', error)
       return false
@@ -536,8 +555,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const loadAccountBalances = async () => {
     try {
       const { data: balances, error } = await supabase
-        .from('account_transactions')
-        .select('account_type, transaction_type, amount')
+        .from('account_transactions_view')
+        .select('account_type, money_in, money_out')
         .order('transaction_date', { ascending: true })
 
       if (error) {
@@ -552,13 +571,9 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         const accountType = transaction.account_type || 'cash'
         const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
 
-        if (transaction.transaction_type === 'in') {
-          current.total_in += transaction.amount
-          current.current_balance += transaction.amount
-        } else {
-          current.total_out += transaction.amount
-          current.current_balance -= transaction.amount
-        }
+        current.total_in += transaction.money_in || 0
+        current.total_out += transaction.money_out || 0
+        current.current_balance += (transaction.money_in || 0) - (transaction.money_out || 0)
 
         balanceMap.set(accountType, current)
       }
@@ -579,10 +594,9 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const loadTransactions = async () => {
     try {
       const { data: transactionsData, error } = await supabase
-        .from('account_transactions')
+        .from('account_transactions_view')
         .select('*')
         .order('transaction_date', { ascending: false })
-        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Error loading transactions:', error)
@@ -823,17 +837,17 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               <div className="spinner-border spinner-border-sm me-2" role="status">
                 <span className="visually-hidden">Syncing...</span>
               </div>
-              <small>Syncing transactions...</small>
+              <small>Syncing...</small>
             </div>
           )}
           <button
             onClick={syncAllTransactions}
             disabled={isSyncing}
-            className="btn btn-outline-primary btn-sm"
+            className="btn btn-outline-primary btn-sm p-2"
             title="Manually sync all transactions"
+            style={{ width: '40px', height: '40px' }}
           >
-            <Eye size={16} className="me-1" />
-            {isSyncing ? 'Syncing...' : 'Sync Transactions'}
+            <Eye size={18} />
           </button>
         </div>
       </div>
