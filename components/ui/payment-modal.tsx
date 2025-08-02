@@ -47,10 +47,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   useEffect(() => {
     if (payment && mode !== "create") {
+      // Fix date handling to prevent timezone issues
+      const paymentDate = new Date(payment.date_created)
+      const localDate = new Date(paymentDate.getTime() - (paymentDate.getTimezoneOffset() * 60000))
+      
       setFormData({
         payment_number: payment.payment_number || "",
         client_id: payment.client_id?.toString() || "",
-        date_created: payment.date_created ? new Date(payment.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date_created: localDate.toISOString().split('T')[0],
         description: payment.description || "",
         amount: payment.amount?.toString() || "",
         paid_to: payment.paid_to || "",
@@ -170,6 +174,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setLoading(true)
 
     try {
+      // Fix date handling to prevent timezone issues
+      const dateToSave = new Date(formData.date_created)
+      const utcDate = new Date(dateToSave.getTime() + (dateToSave.getTimezoneOffset() * 60000))
+      
       const paymentData = {
         payment_number: formData.payment_number,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
@@ -179,8 +187,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         account_credited: formData.account_credited,
         status: formData.status,
         payment_method: formData.payment_method,
-        date_created: new Date(formData.date_created).toISOString(),
-        date_paid: new Date(formData.date_created).toISOString()
+        date_created: utcDate.toISOString(),
+        date_paid: utcDate.toISOString()
       }
 
       if (mode === "create") {
