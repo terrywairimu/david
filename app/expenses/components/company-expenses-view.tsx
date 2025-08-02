@@ -77,18 +77,9 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
     if (items.length === 0) return "-"
     if (items.length === 1) {
       const item = items[0]
-      return item.description || "-"
+      return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
     }
-    return `${items.length} items: ${items.map(i => i.description).join(", ")}`
-  }
-
-  const getExpenseUnit = (expenseId: number) => {
-    const items = expenseItems[expenseId] || []
-    if (items.length === 0) return "-"
-    if (items.length === 1) {
-      return items[0].unit || "-"
-    }
-    return `${items.length} items`
+    return `${items.length} items: ${items.map(i => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
   }
 
   const getExpenseQuantity = (expenseId: number) => {
@@ -106,7 +97,7 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
     if (items.length === 1) {
       return items[0].rate || "-"
     }
-    return `${items.length} items`
+    return `${items.length} rates: ${items.map(i => i.rate).join(", ")}`
   }
 
   useEffect(() => {
@@ -229,7 +220,6 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
         if (error) throw error
 
         toast.success("Expense deleted successfully")
-        // onRefresh() // This prop is no longer passed, so we'll just re-fetch
         fetchExpenses()
       } catch (error) {
         console.error("Error deleting expense:", error)
@@ -243,7 +233,6 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
   }
 
   const handleSaveExpense = (expense: any) => {
-    // onRefresh() // This prop is no longer passed, so we'll just re-fetch
     fetchExpenses()
     setShowExpenseModal(false)
   }
@@ -295,9 +284,6 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
               <th>Department</th>
               <th>Category</th>
               <th>Description</th>
-                <th>Unit</th>
-                <th>Quantity</th>
-                <th>Rate</th>
               <th>Amount</th>
                 <th>Account Debited</th>
               <th>Actions</th>
@@ -306,13 +292,13 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
           <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-4">
+                  <td colSpan={8} className="text-center py-4">
                     <div className="text-muted">Loading company expenses...</div>
                   </td>
                 </tr>
               ) : filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-4">
+                  <td colSpan={8} className="text-center py-4">
                     <div className="text-muted">
                       {searchTerm || categoryFilter || dateFilter
                         ? "No company expenses found matching your criteria"
@@ -330,9 +316,6 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
                       <span className="badge bg-secondary">{expense.category}</span>
                     </td>
                     <td>{formatExpenseItems(expense.id)}</td>
-                    <td>{getExpenseUnit(expense.id)}</td>
-                    <td>{getExpenseQuantity(expense.id)}</td>
-                    <td>{getExpenseRate(expense.id)}</td>
                     <td className="fw-bold text-danger">
                       KES {expense.amount.toFixed(2)}
                     </td>

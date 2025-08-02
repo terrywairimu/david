@@ -76,18 +76,9 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
     if (items.length === 0) return "-"
     if (items.length === 1) {
       const item = items[0]
-      return item.description || "-"
+      return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
     }
-    return `${items.length} items: ${items.map(i => i.description).join(", ")}`
-  }
-
-  const getExpenseUnit = (expenseId: number) => {
-    const items = expenseItems[expenseId] || []
-    if (items.length === 0) return "-"
-    if (items.length === 1) {
-      return items[0].unit || "-"
-    }
-    return `${items.length} items`
+    return `${items.length} items: ${items.map(i => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
   }
 
   const getExpenseQuantity = (expenseId: number) => {
@@ -105,7 +96,7 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
     if (items.length === 1) {
       return items[0].rate || "-"
     }
-    return `${items.length} items`
+    return `${items.length} rates: ${items.map(i => i.rate).join(", ")}`
   }
 
   useEffect(() => {
@@ -278,9 +269,6 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
                 <th>Date</th>
               <th>Client</th>
               <th>Description</th>
-                <th>Unit</th>
-                <th>Quantity</th>
-                <th>Rate</th>
               <th>Amount</th>
                 <th>Account Debited</th>
               <th>Actions</th>
@@ -289,13 +277,13 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
           <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-4">
+                  <td colSpan={7} className="text-center py-4">
                     <div className="text-muted">Loading client expenses...</div>
                   </td>
                 </tr>
               ) : filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-4">
+                  <td colSpan={7} className="text-center py-4">
                     <div className="text-muted">
                       {searchTerm || clientFilter || dateFilter
                         ? "No client expenses found matching your criteria"
@@ -310,9 +298,6 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
                     <td>{new Date(expense.date_created).toLocaleDateString()}</td>
                     <td>{expense.client?.name || "Unknown"}</td>
                     <td>{formatExpenseItems(expense.id)}</td>
-                    <td>{getExpenseUnit(expense.id)}</td>
-                    <td>{getExpenseQuantity(expense.id)}</td>
-                    <td>{getExpenseRate(expense.id)}</td>
                     <td className="fw-bold text-danger">
                       KES {expense.amount.toFixed(2)}
                   </td>

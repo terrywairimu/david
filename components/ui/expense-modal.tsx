@@ -10,7 +10,6 @@ import { Expense } from "@/lib/types"
 interface ExpenseItem {
   id: number
   description: string
-  unit: string
   quantity: number
   rate: number
   amount: number
@@ -49,7 +48,6 @@ const ExpenseModal = ({
     {
       id: 1,
       description: "",
-      unit: "",
       quantity: 1,
       rate: 0,
       amount: 0
@@ -62,7 +60,7 @@ const ExpenseModal = ({
   const [selectedQuotation, setSelectedQuotation] = useState("")
   const [clientQuotations, setClientQuotations] = useState<{quotation_number: string, grand_total?: number}[]>([])
   
-  // Input handling states similar to purchase modal
+  // Input handling states for quantity and rate
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
   const [rateInputFocused, setRateInputFocused] = useState<{[key: number]: boolean}>({})
   const [rawQuantityValues, setRawQuantityValues] = useState<{[key: number]: string}>({})
@@ -82,6 +80,7 @@ const ExpenseModal = ({
     { value: "salaries", label: "Salaries & Wages" },
     { value: "maintenance", label: "Repair & Maintenance" },
     { value: "fuel", label: "Fuel" },
+    { value: "assets", label: "Assets" },
     { value: "other", label: "Miscellaneous" }
   ]
 
@@ -95,6 +94,10 @@ const ExpenseModal = ({
 
   useEffect(() => {
     if (expense && mode !== "create") {
+      // Fix date handling to prevent timezone issues
+      const expenseDate = new Date(expense.date_created)
+      const localDate = new Date(expenseDate.getTime() - (expenseDate.getTimezoneOffset() * 60000))
+      
       setFormData({
         expense_number: expense.expense_number || "",
         client_id: expense.client_id?.toString() || "",
@@ -104,7 +107,7 @@ const ExpenseModal = ({
         description: expense.description || "",
         receipt_number: expense.receipt_number || "",
         account_debited: expense.account_debited || "",
-        date_created: expense.date_created ? new Date(expense.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date_created: localDate.toISOString().split('T')[0],
         expense_type: expense.expense_type || expenseType
       })
       setSelectedQuotation(expense.quotation_number || "");
@@ -154,7 +157,6 @@ const ExpenseModal = ({
         setExpenseItems(data.map(item => ({
           id: item.id,
           description: item.description,
-          unit: item.unit || "",
           quantity: item.quantity,
           rate: item.rate,
           amount: item.amount
@@ -215,7 +217,6 @@ const ExpenseModal = ({
     const newItem: ExpenseItem = {
       id: Date.now(),
       description: "",
-      unit: "",
       quantity: 1,
       rate: 0,
       amount: 0
@@ -255,10 +256,14 @@ const ExpenseModal = ({
     setLoading(true)
 
     try {
+      // Fix date handling to prevent timezone issues
+      const dateToSave = new Date(formData.date_created)
+      const utcDate = new Date(dateToSave.getTime() + (dateToSave.getTimezoneOffset() * 60000))
+      
       const expenseData = {
         ...formData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
-        date_created: new Date(formData.date_created).toISOString(),
+        date_created: utcDate.toISOString(),
         quotation_number: selectedQuotation || null
       }
 
@@ -274,14 +279,13 @@ const ExpenseModal = ({
           `)
           .single()
 
-                if (error) throw error
+        if (error) throw error
         savedExpense = data
         
         // Save expense items
         const itemsToInsert = expenseItems.map(item => ({
           expense_id: savedExpense!.id,
           description: item.description,
-          unit: item.unit,
           quantity: item.quantity,
           rate: item.rate,
           amount: item.amount
@@ -317,7 +321,6 @@ const ExpenseModal = ({
         const itemsToInsert = expenseItems.map(item => ({
           expense_id: expense.id,
           description: item.description,
-          unit: item.unit,
           quantity: item.quantity,
           rate: item.rate,
           amount: item.amount
@@ -363,32 +366,32 @@ const ExpenseModal = ({
                   {/* Client Selection Section */}
                   <div className="mb-4">
                     <div className="row">
-                <div className="col-md-6">
-                    <label className="form-label">Client</label>
-                    <div className="position-relative">
+                      <div className="col-md-6">
+                        <label className="form-label">Client</label>
+                        <div className="position-relative">
                           <div className="input-group shadow-sm">
-                        <input
-                          type="text"
+                            <input
+                              type="text"
                               className="form-control border-0" 
-                          placeholder="Search client..."
-                          value={clientSearch}
+                              placeholder="Search client..."
+                              value={clientSearch}
                               onChange={(e) => setClientSearch(e.target.value)}
-                          onFocus={() => setShowClientDropdown(true)}
+                              onFocus={() => setShowClientDropdown(true)}
                               style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
                               autoComplete="off"
-                          required
+                              required
                               disabled={mode === "view"}
-                        />
-                        <button
+                            />
+                            <button
                               className="btn btn-light border-0 dropdown-toggle" 
-                          type="button"
-                          onClick={() => setShowClientDropdown(!showClientDropdown)}
+                              type="button"
+                              onClick={() => setShowClientDropdown(!showClientDropdown)}
                               style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
                               disabled={mode === "view"}
-                        >
+                            >
                               <User size={16} className="text-muted" />
-                        </button>
-                      </div>
+                            </button>
+                          </div>
                           {showClientDropdown && mode !== "view" && (
                             <div 
                               className="shadow-sm"
@@ -406,23 +409,23 @@ const ExpenseModal = ({
                               }}
                             >
                               {filteredClients.map((client) => (
-                            <div
-                              key={client.id}
-                              className="dropdown-item"
-                              onClick={() => handleClientSelect(client)}
+                                <div
+                                  key={client.id}
+                                  className="dropdown-item"
+                                  onClick={() => handleClientSelect(client)}
                                   style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
-                            >
+                                >
                                   <strong style={{ color: "#000000" }}>{client.name}</strong>
                                   <div className="small" style={{ color: "#6c757d" }}>
                                     {client.phone && `${client.phone} • `}
                                     {client.location}
-                              </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
                       <div className="col-md-6">
                         <label className="form-label">Quotation</label>
                         <select 
@@ -465,22 +468,22 @@ const ExpenseModal = ({
                           ))}
                         </select>
                       </div>
-                <div className="col-md-6">
-                  <label className="form-label">Category</label>
-                  <select
+                      <div className="col-md-6">
+                        <label className="form-label">Category</label>
+                        <select
                           className="form-select border-0 shadow-sm"
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                          value={formData.category}
+                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                           style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                    required
+                          required
                           disabled={mode === "view"}
-                  >
-                    <option value="">Select Category</option>
+                        >
+                          <option value="">Select Category</option>
                           {companyCategories.map(cat => (
                             <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -489,17 +492,17 @@ const ExpenseModal = ({
               {/* Expense Details Section */}
               <div className="mb-4">
                 <div className="row">
-                <div className="col-md-6">
+                  <div className="col-md-6">
                     <label className="form-label">Date</label>
-                  <input
+                    <input
                       type="date" 
                       className="form-control border-0 shadow-sm"
                       value={formData.date_created}
                       onChange={(e) => setFormData(prev => ({ ...prev, date_created: e.target.value }))}
                       style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                    required
+                      required
                       disabled={mode === "view"}
-                  />
+                    />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Account Debited</label>
@@ -519,7 +522,7 @@ const ExpenseModal = ({
                     </select>
                   </div>
                 </div>
-                </div>
+              </div>
 
               {/* Expense Items Section */}
               <div className="mb-4">
@@ -528,25 +531,13 @@ const ExpenseModal = ({
                   {expenseItems.map((item, index) => (
                     <div key={item.id} className="expense-item mb-3">
                       <div className="row g-3">
-                        <div className="col-md-4">
-                  <input
-                    type="text"
+                        <div className="col-md-6">
+                          <input
+                            type="text"
                             className="form-control border-0 shadow-sm"
                             placeholder="Description"
                             value={item.description}
                             onChange={(e) => updateExpenseItem(item.id, 'description', e.target.value)}
-                            style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                            required
-                            disabled={mode === "view"}
-                  />
-                </div>
-                        <div className="col-md-2">
-                  <input
-                    type="text"
-                            className="form-control border-0 shadow-sm"
-                            placeholder="Unit"
-                            value={item.unit}
-                            onChange={(e) => updateExpenseItem(item.id, 'unit', e.target.value)}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                             required
                             disabled={mode === "view"}
@@ -561,7 +552,7 @@ const ExpenseModal = ({
                             value={
                               quantityInputFocused[item.id]
                                 ? (rawQuantityValues[item.id] ?? "")
-                                : (item.quantity === 1 ? "" : item.quantity)
+                                : (item.quantity === 0 ? "" : item.quantity)
                             }
                             onChange={e => {
                               const value = e.target.value;
@@ -654,7 +645,7 @@ const ExpenseModal = ({
                     <Plus size={16} className="me-2" />Add Item
                   </button>
                 )}
-                </div>
+              </div>
 
               {/* Total Section */}
               <div className="row mb-3">
@@ -679,7 +670,7 @@ const ExpenseModal = ({
                 </div>
               </div>
             </form>
-            </div>
+          </div>
           <div className="modal-footer border-0">
             <button 
               type="button" 
@@ -690,17 +681,17 @@ const ExpenseModal = ({
               Close
             </button>
             {mode !== "view" && (
-                <button
-                  type="submit"
-                  className="btn-add"
+              <button
+                type="submit"
+                className="btn-add"
                 form="expenseForm"
-                  disabled={loading}
+                disabled={loading}
                 style={{ borderRadius: "12px", height: "45px" }}
-                >
+              >
                 {loading ? "Saving..." : "Save Expense"}
               </button>
             )}
-            </div>
+          </div>
         </div>
       </div>
     </div>
