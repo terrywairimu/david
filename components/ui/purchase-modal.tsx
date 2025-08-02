@@ -163,8 +163,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       if (mode === "create") {
         resetForm()
         generatePurchaseOrderNumber()
-      } else if (purchase) {
-        loadPurchaseData()
       }
       fetchSuppliers()
       fetchStockItems()
@@ -180,7 +178,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     return () => {
       supabase.removeChannel(stockItemsChannel);
     };
-  }, [isOpen, mode, purchase]);
+  }, [isOpen, mode]);
+
+  // Load purchase data after stockItems are available
+  useEffect(() => {
+    if (isOpen && purchase && mode !== "create" && stockItems.length > 0) {
+      loadPurchaseData()
+    }
+  }, [isOpen, purchase, mode, stockItems]);
 
   // Calculate total whenever items change
   useEffect(() => {
@@ -328,6 +333,19 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
           total_price: item.total_price || 0
         }
       }))
+
+      // Set itemSearches for the loaded items
+      const newItemSearches: { [key: number]: string } = {}
+      purchase.items.forEach((item: any) => {
+        let stock_item = item.stock_item;
+        if (!stock_item && item.stock_item_id) {
+          stock_item = stockItems.find(si => si.id === item.stock_item_id) || null;
+        }
+        if (stock_item) {
+          newItemSearches[item.id] = stock_item.name || stock_item.description || ""
+        }
+      })
+      setItemSearches(newItemSearches)
     } else {
       setItems([createNewItem()])
     }

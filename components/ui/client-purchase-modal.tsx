@@ -129,11 +129,11 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
   const clientInputGroupRef = useRef<HTMLDivElement>(null)
   const clientDropdownRef = useRef<HTMLDivElement>(null)
-  const itemInputRefs = useRef<{ [key: number]: React.RefObject<HTMLDivElement> }>({})
+  const itemInputRefs = useRef<{ [key: number]: React.RefObject<HTMLDivElement | null> }>({})
 
-  const getItemInputRef = (itemId: number): React.RefObject<HTMLDivElement> => {
+  const getItemInputRef = (itemId: number): React.RefObject<HTMLDivElement | null> => {
     if (!itemInputRefs.current[itemId]) {
-      itemInputRefs.current[itemId] = React.createRef<HTMLDivElement>()
+      itemInputRefs.current[itemId] = { current: null }
     }
     return itemInputRefs.current[itemId]
   }
@@ -315,6 +315,19 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
           total_price: item.total_price
         }
       }))
+
+      // Set itemSearches for the loaded items
+      const newItemSearches: { [key: number]: string } = {}
+      purchase.items.forEach((item: any) => {
+        let stock_item = item.stock_item;
+        if (!stock_item && item.stock_item_id) {
+          stock_item = stockItems.find(si => si.id === item.stock_item_id) || null;
+        }
+        if (stock_item) {
+          newItemSearches[item.id] = stock_item.name || stock_item.description || ""
+        }
+      })
+      setItemSearches(newItemSearches)
     }
 
     // Set client search to selected client name
@@ -486,30 +499,30 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     setAvailableDocuments([])
   }
 
+  // Initialize form
   useEffect(() => {
     if (isOpen) {
-      fetchSuppliers()
-      fetchClients()
-      fetchStockItems()
-      // Make this completely optional - don't block modal loading if it fails
-      setTimeout(() => {
-        fetchLastPurchasePrices().catch(error => {
-          console.warn('Failed to fetch last purchase prices, continuing without this feature:', error)
-        })
-      }, 100) // Small delay to ensure other data loads first
-      
       if (mode === "create") {
         resetForm()
         generatePurchaseOrderNumber()
-      } else if (purchase) {
-        loadPurchaseData()
-        // Load client documents if client_id exists
-        if (purchase.client_id) {
-          loadClientDocuments(purchase.client_id)
-        }
+      }
+      fetchSuppliers()
+      fetchClients()
+      fetchStockItems()
+      fetchLastPurchasePrices()
+    }
+  }, [isOpen, mode])
+
+  // Load purchase data after stockItems are available
+  useEffect(() => {
+    if (isOpen && purchase && mode !== "create" && stockItems.length > 0) {
+      loadPurchaseData()
+      // Load client documents if client_id exists
+      if (purchase.client_id) {
+        loadClientDocuments(purchase.client_id)
       }
     }
-  }, [isOpen, mode, purchase])
+  }, [isOpen, purchase, mode, stockItems])
 
   useEffect(() => {
     // Filter clients based on search with debouncing
