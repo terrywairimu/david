@@ -5,7 +5,7 @@
 :root {
   --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
-  --tertiary-gradient: linear-gradient(135deg, #3f3f42 20%, #37058f48 10%, #000000 70%);
+  --tertiary-gradient: linear-gradient(135deg, #3f3f42 20%, #37058f48 100%, #000000 70%);
   --background-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   --quad-gradient: linear-gradient(135deg, #3b82f6 30%, #2dd4bf 60%);
   --card-bg: rgba(255, 255, 255, 0.829);
@@ -151,7 +151,7 @@ body {
 }
 
 /* Card styles with glass morphism */
-.card {
+.card:not(.stock-summary-card):not(.account-summary-card) {
   background: transparent;
   border: none;
   overflow: visible;
@@ -508,6 +508,98 @@ body {
 }
 
 .stock-summary-card.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+/* Account Summary Cards Styles */
+.account-summary-card {
+  border-radius: 20px;
+  border: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.account-summary-card .card-body {
+  padding: 24px;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+}
+
+.account-summary-card .icon-box {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-summary-card .icon-box i {
+  color: white;
+  font-size: 24px;
+}
+
+.account-summary-card.cash {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.account-summary-card.cooperative_bank {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+}
+
+.account-summary-card.credit {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.account-summary-card.cheque {
+  background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%) !important;
+}
+
+.account-summary-card h6 {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.account-summary-card h2 {
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.account-summary-card {
+  transition: all 0.3s ease;
+}
+
+.account-summary-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.account-summary-card.active {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+}
+
+.account-summary-card.active::after {
   content: '';
   position: absolute;
   top: 0;

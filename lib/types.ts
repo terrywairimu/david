@@ -16,6 +16,47 @@ export interface RegisteredEntity {
   last_transaction?: string
 }
 
+// Account Management Types
+export interface AccountBalance {
+  id: number
+  account_type: "cash" | "cooperative_bank" | "credit" | "cheque"
+  current_balance: number
+  last_transaction_date: string
+  updated_at: string
+}
+
+export interface AccountTransaction {
+  id: number
+  transaction_number: string
+  account_type: "cash" | "cooperative_bank" | "credit" | "cheque"
+  transaction_type: "in" | "out"
+  amount: number
+  description: string
+  reference_type: "payment" | "expense" | "purchase" | "sale"
+  reference_id: number
+  transaction_date: string
+  balance_after: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AccountTransactionView {
+  id: number
+  transaction_number: string
+  account_type: string
+  transaction_type: string
+  amount: number
+  description: string
+  reference_type: string
+  reference_id: number
+  transaction_date: string
+  balance_after: number
+  money_in: number
+  money_out: number
+  reference_number: string
+  reference_description: string
+}
+
 export interface StockItem {
   id: number
   name: string

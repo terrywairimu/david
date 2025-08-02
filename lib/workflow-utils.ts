@@ -1283,3 +1283,203 @@ export const downloadDocument = async (elementId: string, filename: string) => {
     toast.error("Failed to download document")
   }
 } 
+
+// Account Transaction Management
+export const createAccountTransaction = async (
+  accountType: 'cash' | 'cooperative_bank' | 'credit' | 'cheque',
+  transactionType: 'in' | 'out',
+  amount: number,
+  description: string,
+  referenceType: 'payment' | 'expense' | 'purchase' | 'sale',
+  referenceId: number
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('account_transactions')
+      .insert([{
+        transaction_number: await generateTransactionNumber(),
+        account_type: accountType,
+        transaction_type: transactionType,
+        amount,
+        description,
+        reference_type: referenceType,
+        reference_id: referenceId
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating account transaction:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error creating account transaction:', error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export const generateTransactionNumber = async (): Promise<string> => {
+  try {
+    const { data } = await supabase
+      .from('account_transactions')
+      .select('transaction_number')
+      .order('id', { ascending: false })
+      .limit(1)
+
+    let nextNumber = 1
+    if (data && data.length > 0) {
+      const lastNumber = parseInt(data[0].transaction_number.replace('TXN', ''))
+      nextNumber = lastNumber + 1
+    }
+
+    return `TXN${nextNumber.toString().padStart(6, '0')}`
+  } catch (error) {
+    return `TXN${Date.now().toString().slice(-6)}`
+  }
+}
+
+export const mapPaymentMethodToAccountType = (paymentMethod: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' => {
+  switch (paymentMethod.toLowerCase()) {
+    case 'cash':
+      return 'cash'
+    case 'cooperative_bank':
+    case 'bank':
+    case 'bank_transfer':
+      return 'cooperative_bank'
+    case 'credit':
+    case 'credit_card':
+      return 'credit'
+    case 'cheque':
+    case 'check':
+      return 'cheque'
+    default:
+      return 'cash'
+  }
+}
+
+export const mapAccountDebitedToAccountType = (accountDebited: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' => {
+  switch (accountDebited.toLowerCase()) {
+    case 'cash':
+      return 'cash'
+    case 'cooperative_bank':
+    case 'bank':
+      return 'cooperative_bank'
+    case 'credit':
+      return 'credit'
+    case 'cheque':
+    case 'check':
+      return 'cheque'
+    default:
+      return 'cash'
+  }
+}
+
+// Enhanced payment creation with automatic transaction
+export const createPaymentWithTransaction = async (paymentData: any) => {
+  try {
+    // Create the payment
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .insert([paymentData])
+      .select()
+      .single()
+
+    if (paymentError) {
+      return { success: false, error: paymentError.message }
+    }
+
+    // Create account transaction
+    const accountType = mapPaymentMethodToAccountType(paymentData.payment_method)
+    const transactionResult = await createAccountTransaction(
+      accountType,
+      'in',
+      paymentData.amount,
+      paymentData.description || 'Payment received',
+      'payment',
+      payment.id
+    )
+
+    if (!transactionResult.success) {
+      console.error('Failed to create account transaction:', transactionResult.error)
+    }
+
+    return { success: true, data: payment }
+  } catch (error) {
+    console.error('Error creating payment with transaction:', error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+// Enhanced expense creation with automatic transaction
+export const createExpenseWithTransaction = async (expenseData: any) => {
+  try {
+    // Create the expense
+    const { data: expense, error: expenseError } = await supabase
+      .from('expenses')
+      .insert([expenseData])
+      .select()
+      .single()
+
+    if (expenseError) {
+      return { success: false, error: expenseError.message }
+    }
+
+    // Create account transaction
+    const accountType = mapAccountDebitedToAccountType(expenseData.account_debited || 'cash')
+    const transactionResult = await createAccountTransaction(
+      accountType,
+      'out',
+      expenseData.amount,
+      expenseData.description || 'Expense',
+      'expense',
+      expense.id
+    )
+
+    if (!transactionResult.success) {
+      console.error('Failed to create account transaction:', transactionResult.error)
+    }
+
+    return { success: true, data: expense }
+  } catch (error) {
+    console.error('Error creating expense with transaction:', error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+// Enhanced purchase creation with automatic transaction
+export const createPurchaseWithTransaction = async (purchaseData: any) => {
+  try {
+    // Create the purchase
+    const { data: purchase, error: purchaseError } = await supabase
+      .from('purchases')
+      .insert([purchaseData])
+      .select()
+      .single()
+
+    if (purchaseError) {
+      return { success: false, error: purchaseError.message }
+    }
+
+    // Create account transaction
+    const accountType = mapPaymentMethodToAccountType(purchaseData.payment_method || 'Cash')
+    const transactionResult = await createAccountTransaction(
+      accountType,
+      'out',
+      purchaseData.total_amount,
+      purchaseData.notes || 'Purchase',
+      'purchase',
+      purchase.id
+    )
+
+    if (!transactionResult.success) {
+      console.error('Failed to create account transaction:', transactionResult.error)
+    }
+
+    return { success: true, data: purchase }
+  } catch (error) {
+    console.error('Error creating purchase with transaction:', error)
+    return { success: false, error: (error as Error).message }
+  }
+} 
