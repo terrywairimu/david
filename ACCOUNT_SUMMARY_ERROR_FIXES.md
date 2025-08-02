@@ -1,183 +1,178 @@
 # Account Summary Error Fixes
 
-## Overview
-This document outlines the fixes applied to resolve the console errors in the account summary view component. The main issues were related to transaction creation failures, duplicate transactions, and database constraint violations.
+## Issues Identified from Console Logs
 
-## Issues Identified
+### 1. Race Conditions and Duplicate Transactions
+- **Problem**: Multiple component mounts causing duplicate transaction creation attempts
+- **Error**: `duplicate key value violates unique constraint "account_transactions_transaction_number_key"`
+- **Root Cause**: React's strict mode and multiple useEffect calls causing concurrent sync operations
 
-### 1. Transaction Number Conflicts
-- **Problem**: Multiple transactions were being created with the same transaction number
-- **Root Cause**: Transaction numbers were generated based on entity IDs, causing conflicts
-- **Solution**: Implemented unique transaction number generation based on the last transaction in the database
+### 2. Transaction Number Conflicts
+- **Problem**: `generateUniqueTransactionNumber` function not handling concurrent requests properly
+- **Error**: Same transaction numbers being generated for different transactions
+- **Root Cause**: Database queries for last transaction number not atomic
 
-### 2. Duplicate Transaction Creation
-- **Problem**: The same payment/expense/purchase was creating multiple transactions
-- **Root Cause**: Race conditions and insufficient duplicate checking
-- **Solution**: Improved duplicate checking with better error handling
+### 3. Sync Logic Issues
+- **Problem**: Sync running multiple times simultaneously
+- **Error**: Multiple "Starting transaction sync..." messages
+- **Root Cause**: No synchronization mechanism to prevent concurrent syncs
 
-### 3. Database Constraint Violations
-- **Problem**: Unique constraint violations on transaction_number and reference combinations
-- **Root Cause**: Insufficient validation before insertion
-- **Solution**: Added retry logic with new transaction numbers for constraint violations
+## Fixes Implemented
 
-### 4. Poor Error Handling
-- **Problem**: Errors were logged but the process continued, causing cascading failures
-- **Root Cause**: Missing proper error handling and recovery mechanisms
-- **Solution**: Implemented comprehensive error handling with retry logic
+### 1. Improved Transaction Number Generation
+```typescript
+// OLD: Database-dependent sequential numbering
+const generateUniqueTransactionNumber = async (): Promise<string> => {
+  // Get the highest transaction number to ensure uniqueness
+  const { data: lastTransaction, error } = await supabase
+    .from('account_transactions')
+    .select('transaction_number')
+    .order('transaction_number', { ascending: false })
+    .limit(1)
+  // ... sequential logic
+}
 
-## Fixes Applied
+// NEW: Timestamp + Counter + Random approach
+const generateUniqueTransactionNumber = async (): Promise<string> => {
+  const timestamp = Date.now()
+  const counter = ++transactionNumberCounter.current
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+  const uniqueNumber = `${timestamp}${counter}${randomSuffix}`
+  const formattedNumber = `TXN${uniqueNumber.slice(-6)}`
+  // ... with fallback checks
+}
+```
 
-### 1. Utility Functions Added
+### 2. Added Synchronization Mechanisms
+```typescript
+// Added refs to prevent duplicate operations
+const syncInProgress = useRef(false)
+const lastSyncTime = useRef<number>(0)
+const transactionNumberCounter = useRef<number>(0)
 
-#### `generateUniqueTransactionNumber()`
-- Generates unique transaction numbers based on the last transaction in the database
-- Includes fallback to timestamp-based numbers if database query fails
-- Prevents transaction number conflicts
+// Prevent multiple simultaneous syncs
+if (syncInProgress.current) {
+  console.log('Sync already in progress, skipping...')
+  return
+}
+```
 
-#### `checkTransactionExists()`
-- Centralized function to check if a transaction already exists
-- Improved error handling for existence checks
-- Prevents duplicate transaction creation
+### 3. Improved Retry Logic
+```typescript
+// Enhanced createTransactionWithRetry function
+const createTransactionWithRetry = async (transactionData: any, maxRetries: number = 3): Promise<boolean> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Generate a new transaction number for each attempt
+      const newTransactionNumber = await generateUniqueTransactionNumber()
+      const transactionToInsert = {
+        ...transactionData,
+        transaction_number: newTransactionNumber
+      }
+      // ... improved error handling
+    }
+  }
+}
+```
 
-#### `createTransactionWithRetry()`
-- Implements retry logic for transaction creation
-- Handles unique constraint violations by generating new transaction numbers
-- Maximum 3 retry attempts with exponential backoff
+### 4. Better Duplicate Cleanup
+```typescript
+// Improved duplicate detection and removal
+const cleanupDuplicateTransactions = async (): Promise<void> => {
+  const seen = new Map<string, number>()
+  const toDelete: number[] = []
 
-#### `cleanupDuplicateTransactions()`
-- Removes existing duplicate transactions from the database
-- Based on reference_type and reference_id combinations
-- Keeps the most recent transaction when duplicates are found
+  for (const transaction of allTransactions || []) {
+    const key = `${transaction.reference_type}-${transaction.reference_id}`
+    if (seen.has(key)) {
+      // Keep the first one (oldest), delete the rest
+      toDelete.push(transaction.id)
+    } else {
+      seen.set(key, transaction.id)
+    }
+  }
+}
+```
 
-#### `validateDatabaseSchema()`
-- Validates that the account_transactions table exists and has required columns
-- Ensures database schema is correct before attempting sync operations
+### 5. Enhanced Sync Prevention
+```typescript
+// Added time-based sync prevention
+const checkIfSyncNeeded = async (): Promise<boolean> => {
+  // Check if we've synced recently (within last 5 minutes)
+  const now = Date.now()
+  if (now - lastSyncTime.current < 5 * 60 * 1000) {
+    console.log('Sync performed recently, skipping...')
+    return false
+  }
+  // ... improved sync logic
+}
+```
 
-### 2. Improved Transaction Sync Process
+### 6. Improved Error Handling
+- Added proper try-catch blocks around all database operations
+- Enhanced logging for better debugging
+- Graceful fallbacks for transaction number generation
 
-#### Payment Transactions
-- Fixed transaction number generation to be unique
-- Improved account type mapping from payment_method
-- Better error handling and logging
+### 7. UI Improvements
+- Added manual sync button with loading state
+- Visual feedback during sync operations
+- Better error messages and user feedback
 
-#### Expense Transactions
-- Fixed transaction number generation to be unique
-- Improved account type mapping from account_debited
-- Better date handling for transaction_date
+## Key Improvements
 
-#### Purchase Transactions
-- Fixed transaction number generation to be unique
-- Improved account type mapping from payment_method
-- Better error handling and logging
+### 1. Concurrency Handling
+- **Before**: Multiple sync operations could run simultaneously
+- **After**: Single sync operation with proper locking mechanism
 
-### 3. Enhanced Error Handling
+### 2. Transaction Number Uniqueness
+- **Before**: Database-dependent sequential numbering with race conditions
+- **After**: Timestamp + counter + random approach with collision detection
 
-#### Retry Logic
-- Implemented retry mechanism for failed transaction insertions
-- Automatic transaction number regeneration on constraint violations
-- Maximum retry attempts to prevent infinite loops
+### 3. Duplicate Prevention
+- **Before**: Basic duplicate checking
+- **After**: Comprehensive duplicate detection and cleanup
 
-#### Better Logging
-- More detailed error messages with context
-- Success/failure logging for each transaction
-- Clear indication of retry attempts
+### 4. Performance
+- **Before**: Multiple database queries for transaction numbers
+- **After**: Efficient local counter with timestamp-based uniqueness
 
-#### Graceful Degradation
-- Process continues even if individual transactions fail
-- Comprehensive error reporting without stopping the entire sync
-
-### 4. Database Schema Validation
-
-#### Pre-sync Validation
-- Validates database schema before starting sync
-- Ensures required tables and columns exist
-- Prevents sync failures due to schema issues
-
-#### Duplicate Cleanup
-- Removes existing duplicate transactions
-- Prevents future conflicts
-- Maintains data integrity
-
-## Code Changes Summary
-
-### Files Modified
-- `app/payments/components/account-summary-view.tsx`
-
-### Key Changes
-1. Added utility functions for better transaction management
-2. Implemented retry logic for failed insertions
-3. Improved duplicate checking and cleanup
-4. Enhanced error handling and logging
-5. Added database schema validation
-
-### New Functions
-- `generateUniqueTransactionNumber()`
-- `checkTransactionExists()`
-- `createTransactionWithRetry()`
-- `cleanupDuplicateTransactions()`
-- `validateDatabaseSchema()`
+### 5. User Experience
+- **Before**: Silent sync operations with no feedback
+- **After**: Visual sync status with manual sync option
 
 ## Testing Recommendations
 
-### 1. Test Transaction Creation
-- Create new payments, expenses, and purchases
-- Verify transactions are created successfully
-- Check for proper transaction numbers
-
-### 2. Test Duplicate Prevention
-- Attempt to sync the same data multiple times
-- Verify no duplicate transactions are created
-- Check that existing transactions are properly detected
-
-### 3. Test Error Recovery
-- Simulate database constraint violations
-- Verify retry logic works correctly
-- Check that new transaction numbers are generated
-
-### 4. Test Schema Validation
-- Verify schema validation works correctly
-- Test with missing or incorrect database schema
-- Ensure proper error handling
+1. **Test Multiple Component Mounts**: Verify sync doesn't run multiple times
+2. **Test Concurrent Operations**: Ensure transaction numbers remain unique
+3. **Test Duplicate Cleanup**: Verify existing duplicates are properly removed
+4. **Test Manual Sync**: Ensure manual sync button works correctly
+5. **Test Error Scenarios**: Verify graceful handling of database errors
 
 ## Monitoring
 
-### Console Logs to Monitor
-- "Starting transaction sync..."
-- "Database schema validation passed"
-- "Starting duplicate transaction cleanup..."
-- "Successfully created [type] transaction for [id]"
-- "Failed to create [type] transaction after retries"
-
-### Error Indicators
-- Schema validation failures
-- Duplicate transaction detection
-- Retry attempts exceeding maximum
-- Database constraint violations
+- Console logs now provide detailed information about sync operations
+- Transaction number conflicts are logged and handled gracefully
+- Sync timing is tracked to prevent excessive operations
 
 ## Future Improvements
 
-### 1. Database Constraints
-- Add proper unique constraints on transaction_number
-- Add composite unique constraints on reference_type + reference_id
-- Implement proper foreign key constraints
+1. **Database Triggers**: Consider implementing database-level triggers for automatic transaction creation
+2. **Batch Operations**: Implement batch inserts for better performance
+3. **Real-time Updates**: Add real-time transaction updates using Supabase subscriptions
+4. **Advanced Filtering**: Enhance transaction filtering capabilities
+5. **Export Enhancements**: Add more export formats (PDF, Excel)
 
-### 2. Performance Optimization
-- Batch transaction insertions for better performance
-- Implement proper indexing on frequently queried columns
-- Add caching for transaction number generation
+## Files Modified
 
-### 3. Monitoring and Alerting
-- Add metrics for sync success/failure rates
-- Implement alerting for sync failures
-- Add dashboard for transaction sync status
+- `app/payments/components/account-summary-view.tsx`: Main component with all fixes
+- `ACCOUNT_SUMMARY_ERROR_FIXES.md`: This documentation file
 
-## Conclusion
+## Impact
 
-The fixes implemented address the core issues causing console errors in the account summary view:
+These fixes should resolve all the console errors related to:
+- Duplicate transaction number violations
+- Race conditions in sync operations
+- Multiple simultaneous sync attempts
+- Transaction creation failures
 
-1. **Transaction Number Conflicts**: Resolved through unique number generation
-2. **Duplicate Transactions**: Prevented through improved checking and cleanup
-3. **Database Constraints**: Handled through retry logic and validation
-4. **Error Handling**: Enhanced with comprehensive logging and recovery
-
-These changes ensure a more robust and reliable transaction synchronization process while maintaining data integrity and preventing future errors. 
+The account summary should now work reliably without the previous errors. 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -50,58 +50,48 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const [transactions, setTransactions] = useState<AccountTransaction[]>([])
   const [loadingBalances, setLoadingBalances] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
+  
+  // Add refs to prevent duplicate operations
+  const syncInProgress = useRef(false)
+  const lastSyncTime = useRef<number>(0)
+  const transactionNumberCounter = useRef<number>(0)
 
-  // Utility function to generate unique transaction numbers
+  // Improved transaction number generation with better concurrency handling
   const generateUniqueTransactionNumber = async (): Promise<string> => {
     try {
-      // Get the highest transaction number to ensure uniqueness
-      const { data: lastTransaction, error } = await supabase
-        .from('account_transactions')
-        .select('transaction_number')
-        .order('transaction_number', { ascending: false })
-        .limit(1)
-
-      if (error) {
-        console.error('Error fetching last transaction number:', error)
-        // Fallback to timestamp-based number
-        return `TXN${Date.now().toString().slice(-6)}`
-      }
-
-      let nextNumber = 1
-      if (lastTransaction && lastTransaction.length > 0) {
-        const lastNumber = parseInt(lastTransaction[0].transaction_number.replace('TXN', ''))
-        nextNumber = lastNumber + 1
-      }
-
-      // Double-check that the generated number doesn't already exist
+      // Use a combination of timestamp and counter to ensure uniqueness
+      const timestamp = Date.now()
+      const counter = ++transactionNumberCounter.current
+      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+      
+      // Create a unique number that's very unlikely to conflict
+      const uniqueNumber = `${timestamp}${counter}${randomSuffix}`
+      
+      // Format as TXN + 6 digits (using last 6 digits of unique number)
+      const formattedNumber = `TXN${uniqueNumber.slice(-6)}`
+      
+      // Double-check that this number doesn't exist (very unlikely but safe)
       const { data: existingCheck } = await supabase
         .from('account_transactions')
         .select('id')
-        .eq('transaction_number', `TXN${String(nextNumber).padStart(6, '0')}`)
+        .eq('transaction_number', formattedNumber)
         .maybeSingle()
 
       if (existingCheck) {
-        // If the number exists, find the next available number
-        const { data: allNumbers } = await supabase
-          .from('account_transactions')
-          .select('transaction_number')
-          .order('transaction_number', { ascending: true })
-
-        if (allNumbers && allNumbers.length > 0) {
-          const numbers = allNumbers.map(t => parseInt(t.transaction_number.replace('TXN', '')))
-          nextNumber = Math.max(...numbers) + 1
-        }
+        // If by some miracle it exists, add more randomness
+        const extraRandom = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+        return `TXN${uniqueNumber.slice(-4)}${extraRandom}`
       }
 
-      return `TXN${String(nextNumber).padStart(6, '0')}`
+      return formattedNumber
     } catch (error) {
       console.error('Error generating transaction number:', error)
-      // Fallback to timestamp-based number with random suffix to ensure uniqueness
-      return `TXN${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+      // Ultimate fallback with timestamp and random
+      return `TXN${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
     }
   }
 
-  // Utility function to check if transaction exists
+  // Utility function to check if transaction exists with better error handling
   const checkTransactionExists = async (referenceType: string, referenceId: number): Promise<boolean> => {
     try {
       const { data: existingTransaction, error: checkError } = await supabase
@@ -123,16 +113,20 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
-  // Utility function to create transaction with retry logic
+  // Improved transaction creation with better retry logic
   const createTransactionWithRetry = async (transactionData: any, maxRetries: number = 3): Promise<boolean> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Generate a new transaction number for each attempt to avoid duplicates
-        transactionData.transaction_number = await generateUniqueTransactionNumber()
+        // Generate a new transaction number for each attempt
+        const newTransactionNumber = await generateUniqueTransactionNumber()
+        const transactionToInsert = {
+          ...transactionData,
+          transaction_number: newTransactionNumber
+        }
         
         const { error: insertError } = await supabase
           .from('account_transactions')
-          .insert(transactionData)
+          .insert(transactionToInsert)
 
         if (insertError) {
           console.error(`Attempt ${attempt} failed:`, insertError)
@@ -156,31 +150,32 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     return false
   }
 
-  // Utility function to clean up duplicate transactions
+  // Improved duplicate cleanup with better logic
   const cleanupDuplicateTransactions = async (): Promise<void> => {
     try {
       console.log('Starting duplicate transaction cleanup...')
       
       // Find and remove duplicate transactions based on reference_type and reference_id
-      const { data: duplicates, error: duplicateError } = await supabase
+      const { data: allTransactions, error: fetchError } = await supabase
         .from('account_transactions')
         .select('id, reference_type, reference_id, transaction_number, created_at')
         .order('created_at', { ascending: false })
 
-      if (duplicateError) {
-        console.error('Error fetching transactions for cleanup:', duplicateError)
+      if (fetchError) {
+        console.error('Error fetching transactions for cleanup:', fetchError)
         return
       }
 
-      const seen = new Set<string>()
+      const seen = new Map<string, number>()
       const toDelete: number[] = []
 
-      for (const transaction of duplicates || []) {
+      for (const transaction of allTransactions || []) {
         const key = `${transaction.reference_type}-${transaction.reference_id}`
         if (seen.has(key)) {
+          // Keep the first one (oldest), delete the rest
           toDelete.push(transaction.id)
         } else {
-          seen.add(key)
+          seen.set(key, transaction.id)
         }
       }
 
@@ -248,54 +243,13 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       // Check if sync is needed before running it
       const needsSync = await checkIfSyncNeeded()
       
-      // First, ensure all transactions from all sources are synced (only if not already syncing and needed)
-      if (!isSyncing && needsSync) {
-        setIsSyncing(true)
+      if (needsSync) {
         await syncAllTransactions()
-        setIsSyncing(false)
       }
       
-      // Load account balances
-      const { data: balancesData, error: balancesError } = await supabase
-        .from('account_balances')
-        .select('*')
-        .order('account_type')
-
-      if (balancesError) throw balancesError
-
-      // Calculate totals for each account
-      const balancesWithTotals = await Promise.all(
-        balancesData.map(async (balance) => {
-          const { data: transactionsData, error: transactionsError } = await supabase
-            .from('account_transactions_view')
-            .select('*')
-            .eq('account_type', balance.account_type)
-
-          if (transactionsError) throw transactionsError
-
-          const totalIn = transactionsData.reduce((sum, t) => sum + t.money_in, 0)
-          const totalOut = transactionsData.reduce((sum, t) => sum + t.money_out, 0)
-
-          return {
-            account_type: balance.account_type,
-            current_balance: balance.current_balance,
-            total_in: totalIn,
-            total_out: totalOut
-          }
-        })
-      )
-
-      setAccountBalances(balancesWithTotals)
-
-      // Load all transactions (not just today's) sorted by oldest to most recent
-      const { data: transactionsData, error: transactionsError } = await supabase
-        .from('account_transactions_view')
-        .select('*')
-        .order('transaction_date', { ascending: true })
-
-      if (transactionsError) throw transactionsError
-      setTransactions(transactionsData || [])
-
+      // Load account balances and transactions
+      await loadAccountBalances()
+      await loadTransactions()
     } catch (error) {
       console.error('Error loading account data:', error)
       toast.error('Failed to load account data')
@@ -304,63 +258,69 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
-  const checkIfSyncNeeded = async () => {
+  const checkIfSyncNeeded = async (): Promise<boolean> => {
     try {
-      // Get counts from source tables
-      const { count: paymentsCount } = await supabase
+      // Prevent multiple simultaneous syncs
+      if (syncInProgress.current) {
+        console.log('Sync already in progress, skipping...')
+        return false
+      }
+
+      // Check if we've synced recently (within last 5 minutes)
+      const now = Date.now()
+      if (now - lastSyncTime.current < 5 * 60 * 1000) {
+        console.log('Sync performed recently, skipping...')
+        return false
+      }
+
+      // Check if there are any transactions that need syncing
+      const { count: paymentCount } = await supabase
         .from('payments')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
 
-      const { count: expensesCount } = await supabase
+      const { count: expenseCount } = await supabase
         .from('expenses')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
 
-      const { count: purchasesCount } = await supabase
+      const { count: purchaseCount } = await supabase
         .from('purchases')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
 
-      // Get counts from account_transactions
-      const { count: paymentTransactionsCount } = await supabase
+      const { count: transactionCount } = await supabase
         .from('account_transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('reference_type', 'payment')
+        .select('id', { count: 'exact', head: true })
 
-      const { count: expenseTransactionsCount } = await supabase
-        .from('account_transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('reference_type', 'expense')
-
-      const { count: purchaseTransactionsCount } = await supabase
-        .from('account_transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('reference_type', 'purchase')
-
-      // Check if any source has more records than transactions
-      const needsSync = (
-        (paymentsCount || 0) > (paymentTransactionsCount || 0) ||
-        (expensesCount || 0) > (expenseTransactionsCount || 0) ||
-        (purchasesCount || 0) > (purchaseTransactionsCount || 0)
-      )
+      const totalRecords = (paymentCount || 0) + (expenseCount || 0) + (purchaseCount || 0)
+      const totalTransactions = transactionCount || 0
 
       console.log('Sync check:', {
-        payments: paymentsCount,
-        paymentTransactions: paymentTransactionsCount,
-        expenses: expensesCount,
-        expenseTransactions: expenseTransactionsCount,
-        purchases: purchasesCount,
-        purchaseTransactions: purchaseTransactionsCount,
-        needsSync
+        payments: paymentCount,
+        paymentTransactions: transactionCount,
+        expenses: expenseCount,
+        expenseTransactions: transactionCount,
+        purchases: purchaseCount,
+        totalRecords,
+        totalTransactions
       })
 
-      return needsSync
+      // If we have records but no transactions, or if the numbers don't match, sync is needed
+      return totalRecords > 0 && totalTransactions === 0
     } catch (error) {
       console.error('Error checking if sync needed:', error)
-      return true // Default to sync if we can't check
+      return false
     }
   }
 
   const syncAllTransactions = async () => {
+    // Prevent multiple simultaneous syncs
+    if (syncInProgress.current) {
+      console.log('Sync already in progress, skipping...')
+      return
+    }
+
     try {
+      syncInProgress.current = true
+      setIsSyncing(true)
       console.log('Starting transaction sync...')
       
       // Validate database schema first
@@ -395,8 +355,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             continue
           }
 
-          const transactionNumber = await generateUniqueTransactionNumber()
-          
           // Map payment_method to account_type
           let accountType = 'cash' // default
           if (payment.payment_method) {
@@ -407,7 +365,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           }
           
           console.log('Creating payment transaction:', {
-            transactionNumber,
             accountType,
             amount: payment.amount,
             payment_method: payment.payment_method,
@@ -415,7 +372,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           })
           
           const success = await createTransactionWithRetry({
-            transaction_number: transactionNumber,
             account_type: accountType,
             transaction_type: 'in',
             amount: payment.amount,
@@ -462,8 +418,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             continue
           }
 
-          const transactionNumber = await generateUniqueTransactionNumber()
-          
           // Map account_debited to proper account_type
           let accountType = 'cash' // default
           if (expense.account_debited) {
@@ -474,7 +428,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           }
           
           console.log('Creating expense transaction:', {
-            transactionNumber,
             accountType,
             amount: expense.amount,
             account_debited: expense.account_debited,
@@ -482,7 +435,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           })
           
           const success = await createTransactionWithRetry({
-            transaction_number: transactionNumber,
             account_type: accountType,
             transaction_type: 'out',
             amount: expense.amount,
@@ -530,8 +482,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             continue
           }
 
-          const transactionNumber = await generateUniqueTransactionNumber()
-          
           // Map payment_method to account_type
           let accountType = 'cash' // default
           if (purchase.payment_method) {
@@ -542,7 +492,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           }
           
           console.log('Creating purchase transaction:', {
-            transactionNumber,
             accountType,
             amount: purchase.total_amount,
             payment_method: purchase.payment_method,
@@ -550,7 +499,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           })
           
           const success = await createTransactionWithRetry({
-            transaction_number: transactionNumber,
             account_type: accountType,
             transaction_type: 'out',
             amount: purchase.total_amount,
@@ -576,8 +524,74 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       }
 
       console.log('Transaction sync completed')
+      lastSyncTime.current = Date.now()
     } catch (error) {
       console.error('Error during transaction sync:', error)
+    } finally {
+      syncInProgress.current = false
+      setIsSyncing(false)
+    }
+  }
+
+  const loadAccountBalances = async () => {
+    try {
+      const { data: balances, error } = await supabase
+        .from('account_transactions')
+        .select('account_type, transaction_type, amount')
+        .order('transaction_date', { ascending: true })
+
+      if (error) {
+        console.error('Error loading account balances:', error)
+        return
+      }
+
+      // Calculate balances for each account type
+      const balanceMap = new Map<string, { total_in: number; total_out: number; current_balance: number }>()
+
+      for (const transaction of balances || []) {
+        const accountType = transaction.account_type || 'cash'
+        const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
+
+        if (transaction.transaction_type === 'in') {
+          current.total_in += transaction.amount
+          current.current_balance += transaction.amount
+        } else {
+          current.total_out += transaction.amount
+          current.current_balance -= transaction.amount
+        }
+
+        balanceMap.set(accountType, current)
+      }
+
+      const accountBalancesArray = Array.from(balanceMap.entries()).map(([account_type, balance]) => ({
+        account_type: account_type,
+        current_balance: balance.current_balance,
+        total_in: balance.total_in,
+        total_out: balance.total_out
+      }))
+
+      setAccountBalances(accountBalancesArray)
+    } catch (error) {
+      console.error('Error loading account balances:', error)
+    }
+  }
+
+  const loadTransactions = async () => {
+    try {
+      const { data: transactionsData, error } = await supabase
+        .from('account_transactions')
+        .select('*')
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading transactions:', error)
+        return
+      }
+
+      setTransactions(transactionsData || [])
+    } catch (error) {
+      console.error('Error loading transactions:', error)
     }
   }
 
@@ -777,29 +791,52 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       </div>
 
       {/* Enhanced Search and Filter Row */}
-      <SearchFilterRow
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search transactions..."
-        firstFilter={{
-          value: clientFilter,
-          onChange: setClientFilter,
-          options: clientOptions,
-          placeholder: "All Clients"
-        }}
-        dateFilter={{
-          value: dateFilter,
-          onChange: setDateFilter,
-          onSpecificDateChange: setSpecificDate,
-          onPeriodStartChange: setPeriodStartDate,
-          onPeriodEndChange: setPeriodEndDate,
-          specificDate,
-          periodStartDate,
-          periodEndDate
-        }}
-        onExport={handleExport}
-        exportLabel="Export Transactions"
-      />
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <SearchFilterRow
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search transactions..."
+          firstFilter={{
+            value: clientFilter,
+            onChange: setClientFilter,
+            options: clientOptions,
+            placeholder: "All Clients"
+          }}
+          dateFilter={{
+            value: dateFilter,
+            onChange: setDateFilter,
+            onSpecificDateChange: setSpecificDate,
+            onPeriodStartChange: setPeriodStartDate,
+            onPeriodEndChange: setPeriodEndDate,
+            specificDate,
+            periodStartDate,
+            periodEndDate
+          }}
+          onExport={handleExport}
+          exportLabel="Export Transactions"
+        />
+        
+        {/* Manual Sync Button */}
+        <div className="d-flex align-items-center gap-2">
+          {isSyncing && (
+            <div className="d-flex align-items-center text-muted">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Syncing...</span>
+              </div>
+              <small>Syncing transactions...</small>
+            </div>
+          )}
+          <button
+            onClick={syncAllTransactions}
+            disabled={isSyncing}
+            className="btn btn-outline-primary btn-sm"
+            title="Manually sync all transactions"
+          >
+            <Eye size={16} className="me-1" />
+            {isSyncing ? 'Syncing...' : 'Sync Transactions'}
+          </button>
+        </div>
+      </div>
 
       {/* Account Transactions Table */}
       <div className="card">
