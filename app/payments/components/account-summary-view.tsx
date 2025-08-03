@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText } from "lucide-react"
+import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText, RefreshCw } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
@@ -226,6 +226,71 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   useEffect(() => {
     setupClientOptions()
     loadAccountData()
+    
+    // Set up real-time subscriptions for automatic updates
+    const setupRealtimeSubscriptions = async () => {
+      // Subscribe to payment changes
+      const paymentsSubscription = supabase
+        .channel('payments-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'payments' },
+          (payload) => {
+            console.log('Payment change detected:', payload)
+            // Reload account data when payments change
+            loadAccountData()
+          }
+        )
+        .subscribe()
+
+      // Subscribe to transaction changes
+      const transactionsSubscription = supabase
+        .channel('transactions-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'account_transactions' },
+          (payload) => {
+            console.log('Transaction change detected:', payload)
+            // Reload account data when transactions change
+            loadAccountData()
+          }
+        )
+        .subscribe()
+
+      // Subscribe to expense changes
+      const expensesSubscription = supabase
+        .channel('expenses-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'expenses' },
+          (payload) => {
+            console.log('Expense change detected:', payload)
+            // Reload account data when expenses change
+            loadAccountData()
+          }
+        )
+        .subscribe()
+
+      // Subscribe to purchase changes
+      const purchasesSubscription = supabase
+        .channel('purchases-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'purchases' },
+          (payload) => {
+            console.log('Purchase change detected:', payload)
+            // Reload account data when purchases change
+            loadAccountData()
+          }
+        )
+        .subscribe()
+
+      // Cleanup subscriptions on unmount
+      return () => {
+        paymentsSubscription.unsubscribe()
+        transactionsSubscription.unsubscribe()
+        expensesSubscription.unsubscribe()
+        purchasesSubscription.unsubscribe()
+      }
+    }
+
+    setupRealtimeSubscriptions()
   }, [clients])
 
   const setupClientOptions = () => {
@@ -266,9 +331,9 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         return false
       }
 
-      // Check if we've synced recently (within last 5 minutes)
+      // Check if we've synced recently (within last 2 minutes for more frequent updates)
       const now = Date.now()
-      if (now - lastSyncTime.current < 5 * 60 * 1000) {
+      if (now - lastSyncTime.current < 2 * 60 * 1000) {
         console.log('Sync performed recently, skipping...')
         return false
       }
@@ -330,6 +395,19 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
+  const handleManualSync = async () => {
+    try {
+      setIsSyncing(true)
+      await syncAllTransactions()
+      toast.success('Manual sync completed successfully')
+    } catch (error) {
+      console.error('Error during manual sync:', error)
+      toast.error('Manual sync failed')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   const syncAllTransactions = async () => {
     // Prevent multiple simultaneous syncs
     if (syncInProgress.current) {
@@ -369,14 +447,72 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         try {
           // Check if transaction already exists with better error handling
           const exists = await checkTransactionExists('payment', payment.id)
+          
           if (exists) {
-            console.log(`Payment transaction already exists for payment ${payment.id}`)
-            continue
+            // Update existing transaction if payment data has changed
+            const { data: existingTransaction } = await supabase
+              .from('account_transactions')
+              .select('*')
+              .eq('reference_type', 'payment')
+              .eq('reference_id', payment.id)
+              .single()
+
+            if (existingTransaction) {
+              // Check if payment data has changed
+              const paymentChanged = 
+                existingTransaction.amount !== payment.amount ||
+                existingTransaction.description !== (payment.description || `Payment received - ${payment.payment_number}`) ||
+                existingTransaction.transaction_date !== (payment.payment_date || payment.date_paid || payment.date_created)
+
+              if (paymentChanged) {
+                console.log(`Updating existing transaction for payment ${payment.id} due to data changes`)
+                
+                // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
+                let accountType = 'cash' // default
+                if (payment.account_credited) {
+                  const credited = payment.account_credited.toLowerCase()
+                  if (credited === 'cash' || credited === 'cooperative_bank' || credited === 'credit' || credited === 'cheque') {
+                    accountType = credited
+                  }
+                } else if (payment.payment_method) {
+                  const method = payment.payment_method.toLowerCase()
+                  if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+                    accountType = method
+                  }
+                }
+
+                const { error: updateError } = await supabase
+                  .from('account_transactions')
+                  .update({
+                    account_type: accountType,
+                    amount: payment.amount,
+                    description: payment.description || `Payment received - ${payment.payment_number}`,
+                    transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('reference_type', 'payment')
+                  .eq('reference_id', payment.id)
+
+                if (updateError) {
+                  console.error(`Error updating transaction for payment ${payment.id}:`, updateError)
+                } else {
+                  console.log(`Successfully updated transaction for payment ${payment.id}`)
+                }
+              } else {
+                console.log(`Payment transaction already exists and unchanged for payment ${payment.id}`)
+              }
+              continue
+            }
           }
 
-          // Map payment_method to account_type
+          // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
           let accountType = 'cash' // default
-          if (payment.payment_method) {
+          if (payment.account_credited) {
+            const credited = payment.account_credited.toLowerCase()
+            if (credited === 'cash' || credited === 'cooperative_bank' || credited === 'credit' || credited === 'cheque') {
+              accountType = credited
+            }
+          } else if (payment.payment_method) {
             const method = payment.payment_method.toLowerCase()
             if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
               accountType = method
@@ -387,7 +523,9 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             accountType,
             amount: payment.amount,
             payment_method: payment.payment_method,
-            payment_date: payment.date_created
+            account_credited: payment.account_credited,
+            payment_date: payment.payment_date || payment.date_paid || payment.date_created,
+            description: payment.description
           })
           
           const success = await createTransactionWithRetry({
@@ -397,7 +535,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             description: payment.description || `Payment received - ${payment.payment_number}`,
             reference_type: 'payment',
             reference_id: payment.id,
-            transaction_date: payment.payment_date || payment.date_created,
+            transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
             balance_after: 0 // Will be calculated by trigger
           })
 
@@ -911,27 +1049,28 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               </button>
             </div>
 
-            {/* Sync Button */}
+            {/* Manual Sync Button */}
             <div className="col-lg-2 col-md-6 col-12">
-              <div className="d-flex align-items-center justify-content-end">
-                {isSyncing && (
-                  <div className="d-flex align-items-center text-muted me-2">
+              <button
+                className="btn w-100 shadow-sm btn-primary"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+              >
+                {isSyncing ? (
+                  <>
                     <div className="spinner-border spinner-border-sm me-2" role="status">
-                      <span className="visually-hidden">Syncing...</span>
+                      <span className="visually-hidden">Loading...</span>
                     </div>
-                    <small>Syncing...</small>
-                  </div>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} className="me-2" />
+                    Sync Now
+                  </>
                 )}
-                <button
-                  onClick={syncAllTransactions}
-                  disabled={isSyncing}
-                  className="btn btn-outline-primary shadow-sm"
-                  title="Manually sync all transactions"
-                  style={{ borderRadius: "16px", height: "45px", minWidth: "45px" }}
-                >
-                  <Eye size={18} />
-                </button>
-              </div>
+              </button>
             </div>
           </div>
         </div>
