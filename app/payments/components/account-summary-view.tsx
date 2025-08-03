@@ -51,6 +51,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const [loadingBalances, setLoadingBalances] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   
+  // Add account filter state
+  const [activeAccountFilter, setActiveAccountFilter] = useState<string>("")
+  const [lastClickTime, setLastClickTime] = useState<number>(0)
+  
   // Add refs to prevent duplicate operations
   const syncInProgress = useRef(false)
   const lastSyncTime = useRef<number>(0)
@@ -757,6 +761,13 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const getFilteredTransactions = () => {
     let filtered = transactions
 
+    // Account filter - filter by active account type
+    if (activeAccountFilter) {
+      filtered = filtered.filter(transaction => 
+        transaction.account_type === activeAccountFilter
+      )
+    }
+
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(transaction => 
@@ -920,6 +931,25 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
+  // Handle account card clicks with double-tap detection
+  const handleAccountCardClick = (accountType: string) => {
+    const currentTime = Date.now()
+    const timeDiff = currentTime - lastClickTime
+    
+    // Double-tap detection (within 300ms)
+    if (timeDiff < 300 && activeAccountFilter === accountType) {
+      // Double-tap: deactivate filter
+      setActiveAccountFilter("")
+      toast.success(`Removed ${getAccountTitle(accountType)} filter`)
+    } else {
+      // Single click: activate filter
+      setActiveAccountFilter(accountType)
+      toast.success(`Filtered by ${getAccountTitle(accountType)}`)
+    }
+    
+    setLastClickTime(currentTime)
+  }
+
   const filteredTransactions = getFilteredTransactions()
 
   return (
@@ -928,7 +958,19 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       <div className="row mb-4">
         {accountBalances.map((account) => (
           <div key={account.account_type} className="col-md-3 mb-3">
-            <div className={`card text-white account-summary-card ${getAccountGradient(account.account_type)}`}>
+            <div 
+              className={`card text-white account-summary-card ${getAccountGradient(account.account_type)} ${
+                activeAccountFilter === account.account_type ? 'active-filter' : ''
+              }`}
+              style={{ 
+                cursor: 'pointer',
+                transform: activeAccountFilter === account.account_type ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.2s ease',
+                boxShadow: activeAccountFilter === account.account_type ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+              onClick={() => handleAccountCardClick(account.account_type)}
+              title={`Click to filter by ${getAccountTitle(account.account_type)}. Double-click to clear filter.`}
+            >
               <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="flex-grow-1">
@@ -943,6 +985,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                     {getAccountIcon(account.account_type)}
                   </div>
                 </div>
+                {activeAccountFilter === account.account_type && (
+                  <div className="position-absolute top-0 end-0 p-2">
+                    <div className="badge bg-light text-dark">Active Filter</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1072,6 +1119,23 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                 )}
               </button>
             </div>
+
+            {/* Clear Filter Button - only show when filter is active */}
+            {activeAccountFilter && (
+              <div className="col-lg-2 col-md-6 col-12">
+                <button
+                  className="btn w-100 shadow-sm btn-outline-secondary"
+                  onClick={() => {
+                    setActiveAccountFilter("")
+                    toast.success("Filter cleared")
+                  }}
+                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+                >
+                  <Eye size={16} className="me-2" />
+                  Clear Filter
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1079,6 +1143,19 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       {/* Account Transactions Table */}
       <div className="card">
         <div className="card-body">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="mb-0">Account Transactions</h5>
+            {activeAccountFilter && (
+              <div className="d-flex align-items-center">
+                <span className="badge bg-primary me-2">
+                  Filtered by {getAccountTitle(activeAccountFilter)}
+                </span>
+                <small className="text-muted">
+                  Showing {filteredTransactions.length} of {transactions.length} transactions
+                </small>
+              </div>
+            )}
+          </div>
           <div className="table-responsive">
             <table className="table table-hover">
               <thead>
