@@ -462,45 +462,93 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               .single()
 
             if (existingTransaction) {
+              // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
+              let accountType = 'cash' // default
+              if (payment.account_credited) {
+                const credited = payment.account_credited.toLowerCase()
+                if (credited === 'cash') {
+                  accountType = 'cash'
+                } else if (credited === 'cooperative bank') {
+                  accountType = 'cooperative_bank'
+                } else if (credited === 'credit') {
+                  accountType = 'credit'
+                } else if (credited === 'cheque') {
+                  accountType = 'cheque'
+                }
+              } else if (payment.payment_method) {
+                const method = payment.payment_method.toLowerCase()
+                if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+                  accountType = method
+                }
+              }
+
+              // Check if account type has changed
+              const accountTypeChanged = existingTransaction.account_type !== accountType
+              
               // Check if payment data has changed
               const paymentChanged = 
                 existingTransaction.amount !== payment.amount ||
                 existingTransaction.description !== (payment.description || `Payment received - ${payment.payment_number}`) ||
                 existingTransaction.transaction_date !== (payment.payment_date || payment.date_paid || payment.date_created)
 
-              if (paymentChanged) {
+              if (accountTypeChanged || paymentChanged) {
                 console.log(`Updating existing transaction for payment ${payment.id} due to data changes`)
                 
-                // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
-                let accountType = 'cash' // default
-                if (payment.account_credited) {
-                  const credited = payment.account_credited.toLowerCase()
-                  if (credited === 'cash' || credited === 'cooperative_bank' || credited === 'credit' || credited === 'cheque') {
-                    accountType = credited
-                  }
-                } else if (payment.payment_method) {
-                  const method = payment.payment_method.toLowerCase()
-                  if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
-                    accountType = method
-                  }
-                }
+                // If account type changed, delete and recreate the transaction
+                if (accountTypeChanged) {
+                  console.log(`Account type changed from ${existingTransaction.account_type} to ${accountType}, recreating transaction`)
+                  
+                  // Delete the existing transaction
+                  const { error: deleteError } = await supabase
+                    .from('account_transactions')
+                    .delete()
+                    .eq('reference_type', 'payment')
+                    .eq('reference_id', payment.id)
 
-                const { error: updateError } = await supabase
-                  .from('account_transactions')
-                  .update({
+                  if (deleteError) {
+                    console.error(`Error deleting transaction for payment ${payment.id}:`, deleteError)
+                    continue
+                  }
+
+                  // Create new transaction with correct account type
+                  const success = await createTransactionWithRetry({
                     account_type: accountType,
+                    transaction_type: 'in',
                     amount: payment.amount,
                     description: payment.description || `Payment received - ${payment.payment_number}`,
+                    reference_type: 'payment',
+                    reference_id: payment.id,
                     transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
-                    updated_at: new Date().toISOString()
+                    balance_after: 0 // Will be calculated by trigger
                   })
-                  .eq('reference_type', 'payment')
-                  .eq('reference_id', payment.id)
 
-                if (updateError) {
-                  console.error(`Error updating transaction for payment ${payment.id}:`, updateError)
+                  if (success) {
+                    console.log(`Successfully recreated transaction for payment ${payment.id} with account type ${accountType}`)
+                  } else {
+                    console.error('Failed to recreate payment transaction after retries:', {
+                      payment_id: payment.id,
+                      payment_number: payment.payment_number,
+                      account_type: accountType
+                    })
+                  }
                 } else {
-                  console.log(`Successfully updated transaction for payment ${payment.id}`)
+                  // Only update other fields, not account type
+                  const { error: updateError } = await supabase
+                    .from('account_transactions')
+                    .update({
+                      amount: payment.amount,
+                      description: payment.description || `Payment received - ${payment.payment_number}`,
+                      transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('reference_type', 'payment')
+                    .eq('reference_id', payment.id)
+
+                  if (updateError) {
+                    console.error(`Error updating transaction for payment ${payment.id}:`, updateError)
+                  } else {
+                    console.log(`Successfully updated transaction for payment ${payment.id}`)
+                  }
                 }
               } else {
                 console.log(`Payment transaction already exists and unchanged for payment ${payment.id}`)
@@ -513,8 +561,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           let accountType = 'cash' // default
           if (payment.account_credited) {
             const credited = payment.account_credited.toLowerCase()
-            if (credited === 'cash' || credited === 'cooperative_bank' || credited === 'credit' || credited === 'cheque') {
-              accountType = credited
+            if (credited === 'cash') {
+              accountType = 'cash'
+            } else if (credited === 'cooperative bank') {
+              accountType = 'cooperative_bank'
+            } else if (credited === 'credit') {
+              accountType = 'credit'
+            } else if (credited === 'cheque') {
+              accountType = 'cheque'
             }
           } else if (payment.payment_method) {
             const method = payment.payment_method.toLowerCase()
@@ -583,8 +637,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           let accountType = 'cash' // default
           if (expense.account_debited) {
             const debited = expense.account_debited.toLowerCase()
-            if (debited === 'cash' || debited === 'cooperative_bank' || debited === 'credit' || debited === 'cheque') {
-              accountType = debited
+            if (debited === 'cash') {
+              accountType = 'cash'
+            } else if (debited === 'cooperative bank') {
+              accountType = 'cooperative_bank'
+            } else if (debited === 'credit') {
+              accountType = 'credit'
+            } else if (debited === 'cheque') {
+              accountType = 'cheque'
             }
           }
           
@@ -684,6 +744,15 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         }
       }
 
+      // Ensure account_balances table is in sync with transactions
+      await loadAccountBalances()
+
+      // Force refresh the UI
+      await loadTransactions()
+      
+      // Force a re-render by updating state
+      setAccountBalances(prev => [...prev])
+
       console.log('Transaction sync completed')
       lastSyncTime.current = Date.now()
     } catch (error) {
@@ -696,13 +765,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
   const loadAccountBalances = async () => {
     try {
-      const { data: balances, error } = await supabase
+      // Get all transactions and calculate balances from the view
+      const { data: transactions, error } = await supabase
         .from('account_transactions_view')
         .select('account_type, money_in, money_out')
         .order('transaction_date', { ascending: true })
 
       if (error) {
-        console.error('Error loading account balances:', error)
+        console.error('Error loading transactions for balance calculation:', error)
         return
       }
 
@@ -715,8 +785,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         balanceMap.set(accountType, { total_in: 0, total_out: 0, current_balance: 0 })
       })
 
-      // Add actual transaction data
-      for (const transaction of balances || []) {
+      // Calculate from actual transactions using money_in and money_out
+      for (const transaction of transactions || []) {
         const accountType = transaction.account_type || 'cash'
         const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
 
@@ -727,6 +797,25 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         balanceMap.set(accountType, current)
       }
 
+      // Update account_balances table with calculated values
+      for (const [accountType, balance] of balanceMap.entries()) {
+        const { error: updateError } = await supabase
+          .from('account_balances')
+          .update({
+            current_balance: balance.current_balance,
+            last_transaction_date: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('account_type', accountType)
+
+        if (updateError) {
+          console.error(`Error updating balance for ${accountType}:`, updateError)
+        } else {
+          console.log(`Updated ${accountType} balance to: ${balance.current_balance}`)
+        }
+      }
+
+      // Set the account balances for display
       const accountBalancesArray = Array.from(balanceMap.entries()).map(([account_type, balance]) => ({
         account_type: account_type,
         current_balance: balance.current_balance,
@@ -735,6 +824,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       }))
 
       setAccountBalances(accountBalancesArray)
+      console.log('Account balances updated:', accountBalancesArray)
     } catch (error) {
       console.error('Error loading account balances:', error)
     }
