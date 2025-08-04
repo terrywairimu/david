@@ -276,4 +276,11 @@ FROM account_transactions at
 LEFT JOIN payments p ON at.reference_type = 'payment' AND at.reference_id = p.id
 LEFT JOIN expenses e ON at.reference_type = 'expense' AND at.reference_id = e.id
 LEFT JOIN purchases pu ON at.reference_type = 'purchase' AND at.reference_id = pu.id
-ORDER BY at.transaction_date DESC, at.id DESC; 
+ORDER BY at.transaction_date DESC, 
+         CASE 
+             WHEN at.reference_type = 'payment' THEN p.payment_number
+             WHEN at.reference_type = 'expense' THEN e.expense_number
+             WHEN at.reference_type = 'purchase' THEN pu.purchase_order_number
+             ELSE at.transaction_number
+         END DESC,
+         at.id DESC; 

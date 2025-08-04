@@ -769,7 +769,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       const { data: transactions, error } = await supabase
         .from('account_transactions_view')
         .select('account_type, money_in, money_out')
-        .order('transaction_date', { ascending: true })
 
       if (error) {
         console.error('Error loading transactions for balance calculation:', error)
@@ -835,7 +834,6 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       const { data: transactionsData, error } = await supabase
         .from('account_transactions_view')
         .select('*')
-        .order('transaction_date', { ascending: false })
 
       if (error) {
         console.error('Error loading transactions:', error)
@@ -848,7 +846,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
-  const getFilteredTransactions = () => {
+    const getFilteredTransactions = () => {
     let filtered = transactions
 
     // Account filter - filter by active account type
@@ -872,7 +870,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     // Client filter - filter by reference if it's a payment
     if (clientFilter) {
       filtered = filtered.filter(transaction => {
-        // For payments, we can filter by client_id in the reference
+        // For payments, we can filter by reference
         if (transaction.reference_type === 'payment') {
           // This would need to be enhanced to actually check client_id from payments table
           return true // For now, show all transactions
@@ -923,8 +921,28 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       })
     }
 
-    // Always sort by most recent first
-    return filtered.sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime())
+    // Since transactions are displayed newest first, we need to calculate balances in reverse order
+    // to show the correct running balance for each transaction
+    const transactionsForBalanceCalc = [...filtered].reverse() // Reverse to get chronological order for calculation
+    
+    let runningBalance = 0
+    const balanceMap = new Map<number, number>()
+    
+    // Calculate balances chronologically (oldest to newest)
+    transactionsForBalanceCalc.forEach(transaction => {
+      if (transaction.transaction_type === 'in') {
+        runningBalance += transaction.amount
+      } else {
+        runningBalance -= transaction.amount
+      }
+      balanceMap.set(transaction.id, runningBalance)
+    })
+
+    // Return transactions in display order (newest first) with calculated balances
+    return filtered.map(transaction => ({
+      ...transaction,
+      balance_after: balanceMap.get(transaction.id) || 0
+    }))
   }
 
   const handleExport = () => {
