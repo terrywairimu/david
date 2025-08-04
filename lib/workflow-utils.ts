@@ -1296,6 +1296,57 @@ export const createAccountTransaction = async (
   referenceId: number
 ) => {
   try {
+    // Check if transaction already exists
+    const { data: existingTransaction, error: checkError } = await supabase
+      .from('account_transactions')
+      .select('*')
+      .eq('reference_type', referenceType)
+      .eq('reference_id', referenceId)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing transaction:', checkError)
+      return { success: false, error: checkError.message }
+    }
+
+    if (existingTransaction) {
+      // Update existing transaction if data has changed
+      const dataChanged = 
+        existingTransaction.account_type !== accountType ||
+        existingTransaction.amount !== amount ||
+        existingTransaction.description !== description ||
+        existingTransaction.transaction_type !== transactionType
+
+      if (dataChanged) {
+        console.log(`Updating existing transaction for ${referenceType} ${referenceId} due to data changes`)
+        
+        const { data: updatedTransaction, error: updateError } = await supabase
+          .from('account_transactions')
+          .update({
+            account_type: accountType,
+            transaction_type: transactionType,
+            amount,
+            description,
+            updated_at: new Date().toISOString()
+          })
+          .eq('reference_type', referenceType)
+          .eq('reference_id', referenceId)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('Error updating account transaction:', updateError)
+          return { success: false, error: updateError.message }
+        }
+
+        return { success: true, data: updatedTransaction }
+      } else {
+        console.log(`Transaction already exists and unchanged for ${referenceType} ${referenceId}`)
+        return { success: true, data: existingTransaction }
+      }
+    }
+
+    // Create new transaction if it doesn't exist
     const { data, error } = await supabase
       .from('account_transactions')
       .insert([{
@@ -1348,7 +1399,7 @@ export const mapPaymentMethodToAccountType = (paymentMethod: string): 'cash' | '
       return 'cash'
     case 'cooperative_bank':
     case 'bank':
-    case 'bank_transfer':
+    case 'cooperative_bank':
       return 'cooperative_bank'
     case 'credit':
     case 'credit_card':
@@ -1398,7 +1449,7 @@ export const createPaymentWithTransaction = async (paymentData: any) => {
       accountType,
       'in',
       paymentData.amount,
-      paymentData.description || 'Payment received',
+      paymentData.description || paymentData.payment_number,
       'payment',
       payment.id
     )
@@ -1428,13 +1479,32 @@ export const createExpenseWithTransaction = async (expenseData: any) => {
       return { success: false, error: expenseError.message }
     }
 
+    // Get the real description from expense_items using the same structure as frontend views
+    const { data: expenseItems } = await supabase
+      .from('expense_items')
+      .select('description, quantity, rate')
+      .eq('expense_id', expense.id)
+      .order('created_at', { ascending: false })
+
+    // Use the exact same formatExpenseItems logic as the frontend views
+    const formatExpenseItems = (items: any[]) => {
+      if (items.length === 0) return expenseData.expense_number
+      if (items.length === 1) {
+        const item = items[0]
+        return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
+      }
+      return `${items.length} items: ${items.map(i => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
+    }
+
+    const realDescription = formatExpenseItems(expenseItems || [])
+
     // Create account transaction
     const accountType = mapAccountDebitedToAccountType(expenseData.account_debited || 'cash')
     const transactionResult = await createAccountTransaction(
       accountType,
       'out',
       expenseData.amount,
-      expenseData.description || 'Expense',
+      realDescription,
       'expense',
       expense.id
     )
@@ -1464,13 +1534,56 @@ export const createPurchaseWithTransaction = async (purchaseData: any) => {
       return { success: false, error: purchaseError.message }
     }
 
+    // Get the real description from purchase_items and stock_items using the same structure as frontend views
+    const { data: purchaseItems } = await supabase
+      .from('purchase_items')
+      .select(`
+        stock_item_id,
+        quantity,
+        stock_items (
+          name,
+          description,
+          unit
+        )
+      `)
+      .eq('purchase_id', purchase.id)
+      .order('id', { ascending: false })
+
+    // Use the exact same logic as the frontend views
+    const formatPurchaseItems = (items: any[]) => {
+      if (items.length === 0) return purchaseData.purchase_order_number
+      if (items.length === 1) {
+        const item = items[0]
+        const description = (
+          item.stock_items?.description && item.stock_items.description.trim() !== ''
+            ? item.stock_items.description
+            : (item.stock_items?.name && item.stock_items.name.trim() !== ''
+                ? item.stock_items.name
+                : 'N/A')
+        )
+        return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
+      }
+      return `${items.length} items: ${items.map(item => {
+        const description = (
+          item.stock_items?.description && item.stock_items.description.trim() !== ''
+            ? item.stock_items.description
+            : (item.stock_items?.name && item.stock_items.name.trim() !== ''
+                ? item.stock_items.name
+                : 'N/A')
+        )
+        return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
+      }).join(", ")}`
+    }
+
+    const realDescription = formatPurchaseItems(purchaseItems || [])
+
     // Create account transaction
     const accountType = mapPaymentMethodToAccountType(purchaseData.payment_method || 'Cash')
     const transactionResult = await createAccountTransaction(
       accountType,
       'out',
       purchaseData.total_amount,
-      purchaseData.notes || 'Purchase',
+      realDescription,
       'purchase',
       purchase.id
     )

@@ -130,7 +130,7 @@ BEGIN
         account_type,
         'in',
         NEW.amount,
-        COALESCE(NEW.description, 'Payment received - ' || NEW.payment_number),
+        COALESCE(NEW.description, NEW.payment_number),
         'payment',
         NEW.id,
         COALESCE(NEW.payment_date, NEW.date_created)
@@ -145,18 +145,41 @@ CREATE OR REPLACE FUNCTION create_account_transaction_from_expense()
 RETURNS TRIGGER AS $$
 DECLARE
     account_type VARCHAR(20);
+    expense_description TEXT;
 BEGIN
     -- Determine account type from expense
-    IF NEW.account_paid_from IS NOT NULL THEN
-        account_type := LOWER(NEW.account_paid_from);
+    IF NEW.account_debited IS NOT NULL THEN
+        account_type := LOWER(NEW.account_debited);
     ELSE
-        account_type := LOWER(NEW.payment_method);
+        account_type := 'cash';
     END IF;
     
     -- Validate account type
     IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque') THEN
         account_type := 'cash';
     END IF;
+    
+    -- Get the real description from expense_items using the same structure as frontend views
+    SELECT 
+      CASE 
+        WHEN COUNT(*) = 0 THEN NEW.expense_number
+        WHEN COUNT(*) = 1 THEN 
+          CASE 
+            WHEN quantity = 1 THEN description || ' @ ' || rate
+            ELSE quantity || ' ' || description || ' @ ' || rate
+          END
+        ELSE 
+          COUNT(*) || ' items: ' || 
+          STRING_AGG(
+            CASE 
+              WHEN quantity = 1 THEN description || ' @ ' || rate
+              ELSE quantity || ' ' || description || ' @ ' || rate
+            END, 
+            ', '
+          )
+      END INTO expense_description
+    FROM expense_items 
+    WHERE expense_id = NEW.id;
     
     -- Create transaction
     INSERT INTO account_transactions (
@@ -173,7 +196,7 @@ BEGIN
         account_type,
         'out',
         NEW.amount,
-        COALESCE(NEW.description, 'Expense - ' || NEW.expense_number),
+        COALESCE(expense_description, NEW.description, NEW.expense_number),
         'expense',
         NEW.id,
         NEW.date_created
@@ -188,6 +211,7 @@ CREATE OR REPLACE FUNCTION create_account_transaction_from_purchase()
 RETURNS TRIGGER AS $$
 DECLARE
     account_type VARCHAR(20);
+    purchase_description TEXT;
 BEGIN
     -- Determine account type from purchase
     account_type := LOWER(NEW.payment_method);
@@ -196,6 +220,31 @@ BEGIN
     IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque') THEN
         account_type := 'cash';
     END IF;
+    
+    -- Get the real description from purchase_items and stock_items using the same structure as frontend views
+    SELECT 
+      CASE 
+        WHEN COUNT(*) = 0 THEN NEW.purchase_order_number
+        WHEN COUNT(*) = 1 THEN 
+          CASE 
+            WHEN si.description IS NOT NULL AND si.description != '' THEN si.description
+            WHEN si.name IS NOT NULL AND si.name != '' THEN si.name
+            ELSE 'N/A'
+          END || ' (' || pi.quantity || ' ' || COALESCE(si.unit, 'N/A') || ')'
+        ELSE 
+          COUNT(*) || ' items: ' || 
+          STRING_AGG(
+            CASE 
+              WHEN si.description IS NOT NULL AND si.description != '' THEN si.description
+              WHEN si.name IS NOT NULL AND si.name != '' THEN si.name
+              ELSE 'N/A'
+            END || ' (' || pi.quantity || ' ' || COALESCE(si.unit, 'N/A') || ')', 
+            ', '
+          )
+      END INTO purchase_description
+    FROM purchase_items pi
+    LEFT JOIN stock_items si ON pi.stock_item_id = si.id
+    WHERE pi.purchase_id = NEW.id;
     
     -- Create transaction
     INSERT INTO account_transactions (
@@ -212,7 +261,7 @@ BEGIN
         account_type,
         'out',
         NEW.total_amount,
-        COALESCE(NEW.notes, 'Purchase - ' || NEW.purchase_order_number),
+        COALESCE(purchase_description, NEW.notes, NEW.purchase_order_number),
         'purchase',
         NEW.id,
         NEW.purchase_date

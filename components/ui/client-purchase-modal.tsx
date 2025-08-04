@@ -654,7 +654,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                   >
                     <option value="">Select Payment Method</option>
                     <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cooperative_bank">Cooperative Bank</option>
                     <option value="cheque">Cheque</option>
                     <option value="credit">Credit</option>
                   </select>

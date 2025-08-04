@@ -523,7 +523,7 @@ export interface PaymentFormData {
   client_id: number
   invoice_id?: number
   amount: number
-  payment_method: "cash" | "card" | "mobile" | "bank_transfer"
+  payment_method: "cash" | "card" | "mobile" | "cooperative_bank"
   payment_reference?: string
   date_paid: string
   notes?: string
@@ -537,7 +537,7 @@ export interface ExpenseFormData {
   client_id?: number
   receipt_number?: string
   notes?: string
-  payment_method?: "cash" | "card" | "mobile" | "bank_transfer"
+  payment_method?: "cash" | "card" | "mobile" | "cooperative_bank"
 }
 
 // API Response Types
