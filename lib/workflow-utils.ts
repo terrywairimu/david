@@ -9,10 +9,11 @@ export const generatePaymentNumber = async () => {
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
     const prefix = `PN${year}${month}`
     
+    // Get the highest payment number for the current month ONLY
     const { data, error } = await supabase
       .from('payments')
       .select('payment_number')
-      .like('payment_number', `PN${year}${month}%`)
+      .like('payment_number', `${prefix}%`)
       .order('payment_number', { ascending: false })
       .limit(1)
     
@@ -26,7 +27,7 @@ export const generatePaymentNumber = async () => {
       return `${prefix}${nextNumber.toString().padStart(3, '0')}`
     }
     
-    // First payment of the month
+    // First payment of the month - start from 001
     return `${prefix}001`
   } catch (error) {
     console.error('Error generating payment number:', error)
@@ -45,10 +46,11 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
     const prefix = `EN${year}${month}`
     
+    // Get the highest expense number for the current month ONLY
     const { data, error } = await supabase
       .from('expenses')
       .select('expense_number')
-      .like('expense_number', `EN${year}${month}%`)
+      .like('expense_number', `${prefix}%`)
       .order('expense_number', { ascending: false })
       .limit(1)
     
@@ -62,7 +64,7 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
       return `${prefix}${nextNumber.toString().padStart(3, '0')}`
     }
     
-    // First expense of the month
+    // First expense of the month - start from 001
     return `${prefix}001`
   } catch (error) {
     console.error('Error generating expense number:', error)

@@ -36,6 +36,8 @@ interface AccountTransaction {
   money_out: number
   reference_number: string
   reference_description: string
+  client_id?: number
+  client_name?: string
 }
 
 const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSummaryViewProps) => {
@@ -863,20 +865,26 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transaction.reference_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transaction.reference_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.account_type?.toLowerCase().includes(searchTerm.toLowerCase())
+        transaction.account_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Client filter - filter by reference if it's a payment
+    // Client filter - filter by client_id
     if (clientFilter) {
+      console.log('Applying client filter:', clientFilter)
       filtered = filtered.filter(transaction => {
-        // For payments, we can filter by reference
-        if (transaction.reference_type === 'payment') {
-          // This would need to be enhanced to actually check client_id from payments table
-          return true // For now, show all transactions
+        // Filter by client_id if available
+        if (transaction.client_id) {
+          const matches = transaction.client_id.toString() === clientFilter
+          if (matches) {
+            console.log('Transaction matches client filter:', transaction.reference_number, transaction.client_name)
+          }
+          return matches
         }
-        return true
+        return false // Hide transactions without client information
       })
+      console.log('Transactions after client filter:', filtered.length)
     }
 
     // Date filter - only apply if dateFilter is not empty
