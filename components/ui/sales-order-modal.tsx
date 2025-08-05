@@ -1813,7 +1813,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2118,7 +2118,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2459,7 +2459,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2765,7 +2765,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -3071,7 +3071,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -3377,7 +3377,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };

@@ -429,7 +429,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     id={`${sectionKey}-qty-${index}`}
                     type="number"
                     value={item.quantity}
-                    onChange={(e) => updateItem(sectionKey, index, "quantity", parseInt(e.target.value) || 0)}
+                    onChange={(e) => updateItem(sectionKey, index, "quantity", parseFloat(e.target.value) || 0)}
                     disabled={mode === "view"}
                   />
                 </div>

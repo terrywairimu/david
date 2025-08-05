@@ -1132,10 +1132,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
       // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-      const grouped = quotation.items?.reduce((acc, item) => {
+      const grouped = quotation.items?.reduce((acc: Record<string, any[]>, item: any) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof quotation.items>) || {};
+      }, {} as Record<string, any[]>) || {};
 
       // Define the default section order
       const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
@@ -1202,13 +1202,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         // Add labour charge for each section that has items (except worktop which has its own labor)
         if (itemsInCategory.length > 0 && category !== 'worktop') {
           // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some(item => 
+          const hasExistingLabourCharge = itemsInCategory.some((item: any) => 
             item.description && item.description.toLowerCase().includes('labour charge')
           );
           
           // Only calculate labour charge if no labour charge items exist
           if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
             
             // Get the correct labour percentage for this specific section from database
             let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
@@ -1249,7 +1249,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
@@ -1258,7 +1258,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
         // Add labour charge to section total if it exists (for non-worktop sections)
         if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
           let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
@@ -1838,7 +1838,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2143,7 +2143,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2484,7 +2484,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -2790,7 +2790,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -3096,7 +3096,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
@@ -3402,7 +3402,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             onBlur={e => {
                               const val = e.target.value;
-                              const num = val === '' ? 1 : Number(val);
+                              const num = val === '' ? 1 : parseFloat(val);
                               updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
                               setRawQuantityValues(prev => {
                                 const copy = { ...prev };
