@@ -1,4 +1,4 @@
-"use client"
+ it looks like "use client"
 
 import React, { useState, useEffect } from "react"
 import { Plus, Search, Download, Edit, Trash2, TrendingUp, TrendingDown, Package, CheckCircle, AlertTriangle, XCircle } from "lucide-react"

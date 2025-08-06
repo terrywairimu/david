@@ -1054,6 +1054,21 @@ input:checked + .toggle-slider:before {
     display: flex;
     align-items: center;
     gap: 12px;
+    /* Handle long section names */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* Ensure section title text doesn't overlap with other elements */
+.a4-document .section-title span,
+.a4-document .section-title .section-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .a4-document .section-title::after {
@@ -1061,6 +1076,22 @@ input:checked + .toggle-slider:before {
     flex: 1;
     height: 1px;
     background: #f0f0f0;
+}
+
+/* Print-specific styles for section titles */
+@media print {
+    .a4-document .section-title {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        /* Ensure section titles fit within print margins */
+        max-width: calc(100% - 20mm);
+    }
+    
+    .a4-document .section-title span,
+    .a4-document .section-title .section-name {
+        /* More aggressive truncation for print */
+        max-width: 150mm;
+    }
 }
 
 .a4-document .quotation-table {
