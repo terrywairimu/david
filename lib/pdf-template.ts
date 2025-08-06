@@ -468,7 +468,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         const footerY = topMargin + 10;
         // Calculate signature positioning below totals box
         const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
-        const signatureY = totalsBoxBottomY + 10; // 10mm gap below totals box
+        const signatureY = totalsBoxBottomY + 5; // 5mm gap below totals box
         
         // Add base footer elements (without subtotal/vat)
         footerPageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
@@ -487,13 +487,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
             return { ...s, position: { x: 15, y: signatureY }, width: 30 };
           }
           if (s.name === 'preparedByLine') {
-            return { ...s, position: { x: 15, y: signatureY + 8 }, width: 80 };
+            return { ...s, position: { x: 15, y: signatureY + 5 }, width: 80 };
           }
           if (s.name === 'approvedByLabel') {
             return { ...s, position: { x: 115, y: signatureY }, width: 30 };
           }
           if (s.name === 'approvedByLine') {
-            return { ...s, position: { x: 115, y: signatureY + 8 }, width: 80 };
+            return { ...s, position: { x: 115, y: signatureY + 5 }, width: 80 };
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
@@ -551,7 +551,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         
         // Calculate signature positioning below totals box
         const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
-        const signatureY = totalsBoxBottomY + 10; // 10mm gap below totals box
+        const signatureY = totalsBoxBottomY + 5; // 5mm gap below totals box
         
         // Add base footer elements (without subtotal/vat)
         pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
@@ -573,13 +573,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
             return { ...s, position: { x: 15, y: signatureY }, width: 30 };
           }
           if (s.name === 'preparedByLine') {
-            return { ...s, position: { x: 15, y: signatureY + 8 }, width: 80 };
+            return { ...s, position: { x: 15, y: signatureY + 5 }, width: 80 };
           }
           if (s.name === 'approvedByLabel') {
             return { ...s, position: { x: 115, y: signatureY }, width: 30 };
           }
           if (s.name === 'approvedByLine') {
-            return { ...s, position: { x: 115, y: signatureY + 8 }, width: 80 };
+            return { ...s, position: { x: 115, y: signatureY + 5 }, width: 80 };
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
