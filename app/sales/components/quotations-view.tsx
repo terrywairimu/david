@@ -961,7 +961,7 @@ const QuotationsView = () => {
     setSelectedQuotation(undefined)
     setModalMode("create")
     setShowModal(true)
-  }
+  };
 
   // Export function
   const exportQuotations = () => {
@@ -973,19 +973,17 @@ const QuotationsView = () => {
     return (termsText || "").split('\n').filter(line => line.trim());
   };
 
-
-
   return (
     <div className="quotations-view">
-    <div>
-      {/* Add New Quotation Button */}
+      <div>
+        {/* Add New Quotation Button */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Quotations</h5>
           <button className="btn-add" onClick={handleNewQuotation}>
             <Plus size={16} />
-          Add New Quotation
-        </button>
-      </div>
+            Add New Quotation
+          </button>
+        </div>
 
         {/* Search and Filter Row */}
         <div className="row mb-3">
@@ -1081,7 +1079,9 @@ const QuotationsView = () => {
         </div>
 
             {/* Quotations Table */}
-      <table className="table table-hover">
+      <div className="card table-section">
+        <div className="card-body">
+          <table className="table table-hover">
             <thead>
               <tr>
               <th>Quotation #</th>
@@ -1185,6 +1185,8 @@ const QuotationsView = () => {
             )}
           </tbody>
         </table>
+        </div>
+      </div>
       </div>
 
       {/* Quotation Modal */}

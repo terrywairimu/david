@@ -940,7 +940,9 @@ const SalesOrdersView = () => {
         </div>
 
       {/* Sales Orders Table */}
-      <table className="table table-hover">
+      <div className="card table-section">
+        <div className="card-body">
+          <table className="table table-hover">
           <thead>
             <tr>
               <th>Order #</th>
@@ -1024,6 +1026,7 @@ const SalesOrdersView = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Sales Order Modal */}
@@ -1036,6 +1039,7 @@ const SalesOrdersView = () => {
         onProceedToInvoice={handleProceedToInvoice}
         onProceedToCashSale={handleProceedToCashSale}
       />
+    </div>
     </div>
   )
 }

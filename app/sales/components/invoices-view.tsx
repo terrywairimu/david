@@ -998,7 +998,7 @@ const InvoicesView = () => {
         </div>
 
       {/* Invoices Table */}
-      <div className="card">
+      <div className="card table-section">
         <div className="card-body">
       <table className="table table-hover">
           <thead>

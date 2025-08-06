@@ -299,7 +299,7 @@ body {
   margin-bottom: 8px;
 }
 
-/* Table styles */
+/* Table styles - Updated to match payment table styling exactly */
 .table {
   background: white;
   border-radius: 16px;
@@ -308,25 +308,52 @@ body {
 }
 
 .table th {
-  background: #f8f9fa;
+  background: rgba(99, 102, 241, 0.1);
   color: var(--text-primary);
   font-weight: 600;
-  padding: 16px;
   border: none;
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 0.5px;
+  padding: 12px;
 }
 
 .table td {
-  padding: 16px;
-  border: none;
-  color: var(--text-primary);
+  border-color: rgba(99, 102, 241, 0.1);
+  padding: 12px;
   vertical-align: middle;
 }
 
-.table-hover tbody tr:hover {
-  background: rgba(99, 102, 241, 0.05);
+.table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover,
+.table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  transform: translateX(5px);
+}
+
+/* Action button styles for all tables - matching payment table exactly */
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+}
+
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.action-btn i {
+  font-size: 1rem;
+  color: var(--text-secondary);
 }
 
 /* Badge styles */
@@ -654,6 +681,72 @@ body {
 .ms-2 { margin-left: 0.5rem; }
 .w-100 { width: 100%; }
 .h-100 { height: 100%; }
+
+/* Universal table section styles - applying payment table styling to all tables */
+.table-section {
+    /* This class applies the same styling as #paymentsSection to all tables */
+}
+
+.table-section .table th {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+}
+
+.table-section .table td {
+    border-color: rgba(99, 102, 241, 0.1);
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.table-section .table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-section .table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    transform: translateX(5px);
+}
+
+.table-section .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+}
+
+.table-section .action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.table-section .action-btn i {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Table container styles for consistent spacing */
+.table-container {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.table-responsive {
+    border-radius: 16px;
+    overflow: hidden;
+}
 
 /* Client search dropdown styles */
 .client-search-wrapper {

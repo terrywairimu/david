@@ -422,20 +422,20 @@ const StockPage = () => {
   return (
     <div id="stockSection">
       <div className="card mb-4">
-          <SectionHeader 
-            title="Stock Management" 
-            icon={<Package size={24} />}
+        <SectionHeader 
+          title="Stock Management" 
+          icon={<Package size={24} />}
+        >
+          <button
+            className="btn btn-add"
+            onClick={() => setShowAddModal(true)}
           >
-            <button
-              className="btn btn-add"
-              onClick={() => setShowAddModal(true)}
-            >
-              <Plus size={16} className="me-2" />
-              Add New Item
-            </button>
-          </SectionHeader>
+            <Plus size={16} className="me-2" />
+            Add New Item
+          </button>
+        </SectionHeader>
 
-          <div className="card-body">
+        <div className="card-body">
             {/* Stock Summary Cards */}
             <div className="row mb-4">
               <div className="col-md-3 mb-3">
@@ -621,7 +621,9 @@ const StockPage = () => {
             </div>
 
             {/* Stock Table */}
-            <table className="table table-hover mb-0">
+            <div className="card table-section">
+              <div className="card-body">
+                <table className="table table-hover mb-0">
                 <thead>
                   <tr>
                     <th>Item Code</th>
@@ -703,6 +705,7 @@ const StockPage = () => {
               </table>
           </div>
         </div>
+      </div>
 
       {/* Add New Stock Item Modal */}
       {showAddModal && (
@@ -1143,6 +1146,7 @@ const StockPage = () => {
         </div>
       )}
     </div>
+  </div>
   )
 }
 

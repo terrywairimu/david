@@ -540,9 +540,10 @@ body {
 }
 
 .table {
-    background: transparent !important;
+    background: white;
     border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .table th {
@@ -557,6 +558,16 @@ body {
     border-color: rgba(99, 102, 241, 0.1);
     padding: 12px;
     vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover,
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    transform: translateX(5px);
 }
 
 .export-btn {
@@ -581,6 +592,7 @@ body {
     cursor: pointer;
     border: none;
     background: none;
+    color: var(--text-secondary);
 }
 
 .action-btn:hover {
@@ -1640,4 +1652,67 @@ input:checked + .toggle-slider:before {
 .modal-body .item-list .dropdown-item:hover {
     background: rgba(99, 102, 241, 0.1) !important;
     color: var(--text-primary) !important;
+}
+/* Table container styles for consistent spacing */
+.table-container {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.table-responsive {
+    border-radius: 16px;
+    overflow: hidden;
+}/* Universal table section styles - applying payment table styling to all tables */
+.table-section {
+    /* This class applies the same styling as #paymentsSection to all tables */
+}
+
+.table-section .table th {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+}
+
+.table-section .table td {
+    border-color: rgba(99, 102, 241, 0.1);
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.table-section .table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-section .table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    transform: translateX(5px);
+}
+
+.table-section .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+}
+
+.table-section .action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.table-section .action-btn i {
+    font-size: 1rem;
+    color: var(--text-secondary);
 }
