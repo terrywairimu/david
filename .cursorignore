@@ -1,0 +1,46 @@
+# Cursor ignore file - prevents IDE from indexing these directories/files
+# This improves performance by excluding large cache and build files
+
+# Next.js build cache and output
+.next/
+out/
+
+# Node modules
+node_modules/
+
+# Build outputs
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache directories
+.cache/
+*.cache
+
+# Temporary files
+.tmp/
+temp/
+
+# Large binary files
+*.pack
+*.pack.gz
+*.dll
+*.node
+*.wasm
+
+# Source maps (can be large)
+*.js.map
+*.css.map
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

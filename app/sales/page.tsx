@@ -73,8 +73,11 @@ const SalesPage = () => {
             Cash Sale
           </button>
         </SectionHeader>
+        
         {/* Active View Content */}
-      {renderActiveView()}
+        <div className="card-body p-0">
+          {renderActiveView()}
+        </div>
       </div>
 
       

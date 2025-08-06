@@ -1202,7 +1202,6 @@ const QuotationsView = () => {
 
             {/* Quotations Table */}
       <div className="card table-section">
-        <div className="card-body">
           <table className="table table-hover">
             <thead>
               <tr>
@@ -1307,7 +1306,6 @@ const QuotationsView = () => {
             )}
           </tbody>
         </table>
-        </div>
       </div>
       </div>
 

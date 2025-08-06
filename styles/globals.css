@@ -1727,7 +1727,7 @@ input:checked + .toggle-slider:before {
 .table-section .action-btn {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;

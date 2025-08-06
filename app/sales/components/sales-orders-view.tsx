@@ -572,9 +572,8 @@ const SalesOrdersView = () => {
         originalQuotationNumber: salesOrder.original_quotation_number || "",  // Add original quotation number
         documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
         items,
-        subtotal: salesOrder.total_amount || 0,
-        vat: salesOrder.vat_amount || 0,
-        vatPercentage: salesOrder.vat_percentage || 16,
+
+
         total: salesOrder.grand_total || 0,
         notes: salesOrder.notes || "",
         terms: parseTermsAndConditions(salesOrder.terms_conditions || ""),
@@ -795,9 +794,8 @@ const SalesOrdersView = () => {
         originalQuotationNumber: salesOrder.original_quotation_number || "",  // Add original quotation number
         documentTitle: "SALES ORDER", // This makes it show "SALES ORDER" instead of "QUOTATION"
         items,
-        subtotal: salesOrder.total_amount || 0,
-        vat: salesOrder.vat_amount || 0,
-        vatPercentage: salesOrder.vat_percentage || 16,
+
+
         total: salesOrder.grand_total || 0,
         notes: salesOrder.notes || "",
         terms: parseTermsAndConditions(salesOrder.terms_conditions || ""),
@@ -941,7 +939,6 @@ const SalesOrdersView = () => {
 
       {/* Sales Orders Table */}
       <div className="card table-section">
-        <div className="card-body">
           <table className="table table-hover">
           <thead>
             <tr>
@@ -1026,7 +1023,6 @@ const SalesOrdersView = () => {
             )}
           </tbody>
         </table>
-        </div>
       </div>
 
       {/* Sales Order Modal */}

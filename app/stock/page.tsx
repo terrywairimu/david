@@ -435,7 +435,8 @@ const StockPage = () => {
           </button>
         </SectionHeader>
 
-        <div className="card-body">
+        <div className="card-body p-0">
+          <div className="p-4">
             {/* Stock Summary Cards */}
             <div className="row mb-4">
               <div className="col-md-3 mb-3">
@@ -622,7 +623,6 @@ const StockPage = () => {
 
             {/* Stock Table */}
             <div className="card table-section">
-              <div className="card-body">
                 <table className="table table-hover mb-0">
                 <thead>
                   <tr>
@@ -703,6 +703,7 @@ const StockPage = () => {
                   )}
                 </tbody>
               </table>
+        </div>
           </div>
         </div>
       </div>
@@ -1146,7 +1147,6 @@ const StockPage = () => {
         </div>
       )}
     </div>
-  </div>
   )
 }
 

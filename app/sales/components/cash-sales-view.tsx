@@ -455,7 +455,6 @@ const CashSalesView: React.FC = () => {
 
       {/* Cash Sales Table */}
       <div className="card table-section">
-        <div className="card-body">
           <table className="table table-hover" id="cashSalesTable">
           <thead>
             <tr>
@@ -528,7 +527,6 @@ const CashSalesView: React.FC = () => {
             )}
           </tbody>
         </table>
-        </div>
       </div>
 
       {/* Cash Sale Modal */}

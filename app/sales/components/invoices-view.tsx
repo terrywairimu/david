@@ -87,7 +87,7 @@ const InvoicesView = () => {
   const [clients, setClients] = useState<{ value: string; label: string }[]>([])
   const [showModal, setShowModal] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>()
-  const [modalMode, setModalMode] = useState<"view" | "edit">("view")
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("view")
 
   useEffect(() => {
     fetchInvoices()
@@ -623,9 +623,8 @@ const InvoicesView = () => {
         originalQuotationNumber: invoice.original_quotation_number || "",
         documentTitle: "INVOICE", // This makes it show "INVOICE" instead of "QUOTATION"
         items,
-        subtotal: invoice.total_amount || 0,
-        vat: invoice.vat_amount || 0,
-        vatPercentage: invoice.vat_percentage || 16,
+
+
         total: invoice.grand_total || 0,
         notes: invoice.notes || "",
         terms: parseTermsAndConditions(invoice.terms_conditions || ""),
@@ -848,9 +847,8 @@ const InvoicesView = () => {
         originalQuotationNumber: invoice.original_quotation_number || "",
         documentTitle: "INVOICE", // This makes it show "INVOICE" instead of "QUOTATION"
         items,
-        subtotal: invoice.total_amount || 0,
-        vat: invoice.vat_amount || 0,
-        vatPercentage: invoice.vat_percentage || 16,
+
+
         total: invoice.grand_total || 0,
         notes: invoice.notes || "",
         terms: parseTermsAndConditions(invoice.terms_conditions || ""),
@@ -999,7 +997,6 @@ const InvoicesView = () => {
 
       {/* Invoices Table */}
       <div className="card table-section">
-        <div className="card-body">
       <table className="table table-hover">
           <thead>
             <tr>
@@ -1090,7 +1087,6 @@ const InvoicesView = () => {
             )}
           </tbody>
                 </table>
-      </div>
       </div>
 
       {/* Invoice Modal */}
