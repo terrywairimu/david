@@ -669,6 +669,69 @@ const QuotationsView = () => {
       // Debug: Log the final items array
       console.log('Final items array for PDF:', items);
 
+      // Calculate section totals for PDF
+      const sectionTotals: Array<{name: string, total: number}> = [];
+      
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return;
+        
+        // Get section name
+        const allowedKeys = [
+          'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
+        ] as const;
+        type SectionKey = typeof allowedKeys[number];
+        const safeCategory = allowedKeys.includes(category as SectionKey) ? category as SectionKey : undefined;
+        const sectionLabel = safeCategory && quotation.section_names?.[safeCategory]
+          ? quotation.section_names[safeCategory]
+          : category.charAt(0).toUpperCase() + category.slice(1);
+        
+        // Calculate section total
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = quotation.labour_percentage || 30;
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
+        
+        sectionTotals.push({
+          name: sectionLabel,
+          total: sectionTotal
+        });
+      });
+
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -682,9 +745,7 @@ const QuotationsView = () => {
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotation.quotation_number,
         items,
-        subtotal: quotation.total_amount || 0,
-        vat: quotation.vat_amount || 0,
-        vatPercentage: quotation.vat_percentage || 16,
+        sectionTotals,
         total: quotation.grand_total || 0,
         notes: quotation.notes || "",
         terms: parseTermsAndConditions(quotation.terms_conditions || ""),
@@ -905,6 +966,69 @@ const QuotationsView = () => {
       // Debug: Log the final items array
       console.log('Final items array for PDF:', items);
 
+      // Calculate section totals for PDF
+      const sectionTotals: Array<{name: string, total: number}> = [];
+      
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return;
+        
+        // Get section name
+        const allowedKeys = [
+          'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
+        ] as const;
+        type SectionKey = typeof allowedKeys[number];
+        const safeCategory = allowedKeys.includes(category as SectionKey) ? category as SectionKey : undefined;
+        const sectionLabel = safeCategory && quotation.section_names?.[safeCategory]
+          ? quotation.section_names[safeCategory]
+          : category.charAt(0).toUpperCase() + category.slice(1);
+        
+        // Calculate section total
+        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = quotation.labour_percentage || 30;
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal += labourCharge;
+          }
+        }
+        
+        sectionTotals.push({
+          name: sectionLabel,
+          total: sectionTotal
+        });
+      });
+
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -918,9 +1042,7 @@ const QuotationsView = () => {
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotation.quotation_number,
         items,
-        subtotal: quotation.total_amount || 0,
-        vat: quotation.vat_amount || 0,
-        vatPercentage: quotation.vat_percentage || 16,
+        sectionTotals,
         total: quotation.grand_total || 0,
         notes: quotation.notes || "",
         terms: parseTermsAndConditions(quotation.terms_conditions || ""),

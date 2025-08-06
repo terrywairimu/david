@@ -35,11 +35,8 @@ export const quotationTemplate = {
       // NOTE: When generating table rows, map as [itemNumber, description, unit, quantity, unitPrice, total]
       { name: 'termsTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'termsContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalsBox', type: 'rectangle', position: { x: 144, y: 245 }, width: 52, height:27, color: '#E5E5E5', radius: 4 },
-      { name: 'subtotalLabel', type: 'text', position: { x: 146, y: 249 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'subtotalValue', type: 'text', position: { x:  157, y: 249 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-      { name: 'vatLabel', type: 'text', position: { x: 146, y: 257 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'vatValue', type: 'text', position: { x:  157, y: 257 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: 'totalsBox', type: 'rectangle', position: { x: 144, y: 245 }, width: 52, height: 27, color: '#E5E5E5', radius: 4 },
+      // Section totals will be added dynamically
       { name: 'totalLabel', type: 'text', position: { x: 146, y: 265 }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'totalValue', type: 'text', position: { x: 157, y: 265 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
@@ -93,10 +90,13 @@ export interface QuotationData {
     tvunit: string;
   };
   
-  // Totals
-  subtotal: number;
-  vat: number;
-  vatPercentage: number; // V.A.T percentage (e.g., 16 for 16%)
+  // Section totals
+  sectionTotals?: Array<{
+    name: string;
+    total: number;
+  }>;
+  
+  // Final total
   total: number;
   
   // Notes
@@ -146,9 +146,7 @@ export const defaultValues: QuotationData = {
     tvunit: "TV Unit"
   },
   
-  subtotal: 0,
-  vat: 0,
-  vatPercentage: 16, // Default 16% V.A.T
+  sectionTotals: [],
   total: 0,
   
   notes: "",
@@ -212,6 +210,12 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   // Merge default values with provided data
   const mergedData = { ...defaultValues, ...data };
+  
+  // Calculate dynamic totals box height based on number of section totals
+  const sectionTotalsCount = mergedData.sectionTotals?.length || 0;
+  const lineHeight = 8; // 8mm per line
+  const baseTotalsHeight = 15; // Base height for total line + padding
+  const dynamicTotalsHeight = baseTotalsHeight + (sectionTotalsCount * lineHeight);
   
 
 
@@ -368,9 +372,51 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         footerPageSchemas.push(...watermarkSchema);
         
         const footerY = topMargin + 10;
+        // Add base footer elements (without subtotal/vat)
         footerPageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-          'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
-        ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+          'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+        ].includes(s.name)).map(s => {
+          if (s.name === 'totalsBox') {
+            return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }, height: dynamicTotalsHeight };
+          }
+          return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
+        }));
+        
+        // Add dynamic section totals
+        mergedData.sectionTotals?.forEach((sectionTotal, index) => {
+          const yPosition = footerY + 4 + (index * lineHeight); // Start 4mm from top of box
+          footerPageSchemas?.push({
+            name: `sectionTotalLabel_${index}`,
+            type: 'text',
+            position: { x: 146, y: yPosition },
+            width: 25,
+            height: 5,
+            fontSize: 10,
+            fontColor: '#000',
+            fontName: 'Helvetica',
+            alignment: 'left'
+          });
+          footerPageSchemas?.push({
+            name: `sectionTotalValue_${index}`,
+            type: 'text',
+            position: { x: 157, y: yPosition },
+            width: 35,
+            height: 5,
+            fontSize: 10,
+            fontColor: '#000',
+            fontName: 'Helvetica',
+            alignment: 'right'
+          });
+        });
+        
+        // Update total label and value positions to be at the bottom of the totals box
+        const totalY = footerY + 4 + (sectionTotalsCount * lineHeight);
+        footerPageSchemas = footerPageSchemas.map(s => {
+          if (s.name === 'totalLabel' || s.name === 'totalValue') {
+            return { ...s, position: { ...s.position, y: totalY } };
+          }
+          return s;
+        });
         
         footerPageSchemas.push({ 
           name: 'termsContent', 
@@ -387,9 +433,53 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         // Footer fits on current page - add it to this page
         const footerY = footerStartY;
         
+        // Add base footer elements (without subtotal/vat)
         pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-          'termsTitle','totalsBox','subtotalLabel','subtotalValue','vatLabel','vatValue','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
-        ].includes(s.name)).map(s => ({ ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }})));
+          'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+        ].includes(s.name)).map(s => {
+          if (s.name === 'totalsBox') {
+            return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) }, height: dynamicTotalsHeight };
+          }
+          return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
+        }));
+        
+        // Add dynamic section totals
+        mergedData.sectionTotals?.forEach((sectionTotal, index) => {
+          const yPosition = footerY + 4 + (index * lineHeight); // Start 4mm from top of box
+          pageSchemas.push({
+            name: `sectionTotalLabel_${index}`,
+            type: 'text',
+            position: { x: 146, y: yPosition },
+            width: 25,
+            height: 5,
+            fontSize: 10,
+            fontColor: '#000',
+            fontName: 'Helvetica',
+            alignment: 'left'
+          });
+          pageSchemas.push({
+            name: `sectionTotalValue_${index}`,
+            type: 'text',
+            position: { x: 157, y: yPosition },
+            width: 35,
+            height: 5,
+            fontSize: 10,
+            fontColor: '#000',
+            fontName: 'Helvetica',
+            alignment: 'right'
+          });
+        });
+        
+        // Update total label and value positions to be at the bottom of the totals box
+        const totalY = footerY + 4 + (sectionTotalsCount * lineHeight);
+        const totalLabelIndex = pageSchemas.findIndex(s => s.name === 'totalLabel');
+        const totalValueIndex = pageSchemas.findIndex(s => s.name === 'totalValue');
+        if (totalLabelIndex !== -1) {
+          pageSchemas[totalLabelIndex] = { ...pageSchemas[totalLabelIndex], position: { ...pageSchemas[totalLabelIndex].position, y: totalY } };
+        }
+        if (totalValueIndex !== -1) {
+          pageSchemas[totalValueIndex] = { ...pageSchemas[totalValueIndex], position: { ...pageSchemas[totalValueIndex].position, y: totalY } };
+        }
         
         pageSchemas.push({ 
           name: 'termsContent', 
@@ -481,6 +571,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
 
 
+  // Build dynamic section total inputs
+  const sectionTotalInputs: Record<string, string> = {};
+  mergedData.sectionTotals?.forEach((sectionTotal, index) => {
+    sectionTotalInputs[`sectionTotalLabel_${index}`] = `${sectionTotal.name}:`;
+    sectionTotalInputs[`sectionTotalValue_${index}`] = `KES ${formatCurrency(sectionTotal.total)}`;
+  });
+
   // Create input values for the template
   const inputs = [
     {
@@ -510,17 +607,14 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       descriptionHeader: "Description",
       unitPriceHeader: "Unit Price",
       totalHeader: "Total",
-      subtotalLabel: "Sub Total:",
-      subtotalValue: `KES ${formatCurrency(mergedData.subtotal)}`,
-      vatLabel: `${mergedData.vatPercentage}% V.A.T:`,
-      vatValue: `KES ${formatCurrency(mergedData.vat)}`,
       totalLabel: "Total:",
       totalValue: `KES ${formatCurrency(mergedData.total)}`,
       termsTitle: "TERMS AND CONDITIONS:",
       termsContent: mergedData.terms.join("\n"),
       preparedByLabel: "Prepared by:",
       approvedByLabel: "Approved by:",
-      ...dynamicRowInputs
+      ...dynamicRowInputs,
+      ...sectionTotalInputs
     }
   ];
 
