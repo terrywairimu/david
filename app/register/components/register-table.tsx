@@ -227,7 +227,8 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
       </div>
 
       {/* Register Table */}
-      <table className="table" id="registerTable">
+      <div className="card table-section">
+        <table className="table table-hover" id="registerTable">
           <thead>
             <tr>
               <th>Name</th>
@@ -282,6 +283,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
             )}
           </tbody>
         </table>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

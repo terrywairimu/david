@@ -54,12 +54,15 @@ const RegisterPage = () => {
             Add New Supplier
           </button>
         </SectionHeader>
-        <RegisterTable 
+        
+        <div className="card-body p-0">
+          <RegisterTable 
           onShowClientModal={handleShowClientModal}
           onShowSupplierModal={handleShowSupplierModal}
           onEditEntity={handleEditEntity}
           refreshTrigger={refreshTrigger}
         />
+        </div>
       </div>
 
       {/* Modals */}

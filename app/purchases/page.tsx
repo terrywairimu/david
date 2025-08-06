@@ -836,7 +836,8 @@ const PurchasesPage = () => {
       </div>
 
       {/* Purchases Table */}
-      <table className="table">
+      <div className="card table-section">
+        <table className="table table-hover">
           <thead>
             <tr>
               <th>Order Number</th>
@@ -931,6 +932,7 @@ const PurchasesPage = () => {
             )}
           </tbody>
         </table>
+      </div>
 
       {/* General Purchase Modal */}
       <PurchaseModal
