@@ -466,6 +466,10 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         footerPageSchemas.push(...watermarkSchema);
         
         const footerY = topMargin + 10;
+        // Calculate signature positioning below totals box
+        const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
+        const signatureY = totalsBoxBottomY + 10; // 10mm gap below totals box
+        
         // Add base footer elements (without subtotal/vat)
         footerPageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
           'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
@@ -478,6 +482,18 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           }
           if (s.name === 'totalValue') {
             return { ...s, position: { x: totalsBoxStartX + maxLabelWidth + 2, y: footerY + (s.position.y - 245) }, width: valueColumnWidth };
+          }
+          if (s.name === 'preparedByLabel') {
+            return { ...s, position: { x: 15, y: signatureY }, width: 30 };
+          }
+          if (s.name === 'preparedByLine') {
+            return { ...s, position: { x: 15, y: signatureY + 8 }, width: 80 };
+          }
+          if (s.name === 'approvedByLabel') {
+            return { ...s, position: { x: 115, y: signatureY }, width: 30 };
+          }
+          if (s.name === 'approvedByLine') {
+            return { ...s, position: { x: 115, y: signatureY + 8 }, width: 80 };
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
@@ -533,6 +549,10 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         // Footer fits on current page - add it to this page
         const footerY = footerStartY;
         
+        // Calculate signature positioning below totals box
+        const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
+        const signatureY = totalsBoxBottomY + 10; // 10mm gap below totals box
+        
         // Add base footer elements (without subtotal/vat)
         pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
           'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
@@ -548,6 +568,18 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           }
           if (s.name === 'termsContent') {
             return { ...s, position: { x: 15, y: footerY + (s.position.y - 245) }, width: termsBoxWidth };
+          }
+          if (s.name === 'preparedByLabel') {
+            return { ...s, position: { x: 15, y: signatureY }, width: 30 };
+          }
+          if (s.name === 'preparedByLine') {
+            return { ...s, position: { x: 15, y: signatureY + 8 }, width: 80 };
+          }
+          if (s.name === 'approvedByLabel') {
+            return { ...s, position: { x: 115, y: signatureY }, width: 30 };
+          }
+          if (s.name === 'approvedByLine') {
+            return { ...s, position: { x: 115, y: signatureY + 8 }, width: 80 };
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
