@@ -360,96 +360,200 @@ const CashSalesView: React.FC = () => {
         </div>
 
         {/* Search and Filter Row */}
-        <div className="row mb-3">
-          <div className="col-md-3">
-            <div className="input-group">
-              <span className="input-group-text bg-white border-end-0">
-                <i className="fas fa-search"></i>
-              </span>
-              <input
-                type="text"
-                className="form-control border-start-0"
-                placeholder="Search cash sales..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-              />
+        <div className="cash-sales-search-filter mb-3">
+          {/* Desktop Layout */}
+          <div className="d-none d-md-block">
+            <div className="row">
+              <div className="col-md-3">
+                <div className="input-group">
+                  <span className="input-group-text bg-white border-end-0">
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search cash sales..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+                  />
+                </div>
+              </div>
+              
+              <div className="col-md-3">
+                <select
+                  className="form-select border-0 shadow-sm"
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  {clients.map((client) => (
+                    <option key={client.value} value={client.value}>
+                      {client.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <select
+                  className="form-select border-0 shadow-sm"
+                  value={dateFilter}
+                  onChange={(e) => handleDateFilterChange(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  <option value="">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                  <option value="specific">Specific Date</option>
+                  <option value="period">Specific Period</option>
+                </select>
+                
+                {dateFilter === "specific" && (
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm mt-2"
+                    value={specificDate}
+                    onChange={(e) => setSpecificDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  />
+                )}
+                
+                {dateFilter === "period" && (
+                  <div style={{ display: "block" }}>
+                    <div className="d-flex align-items-center justify-content-between mt-2">
+                      <input
+                        type="date"
+                        className="form-control border-0 shadow-sm"
+                        value={periodStartDate}
+                        onChange={(e) => setPeriodStartDate(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                      />
+                      <span className="mx-2">to</span>
+                      <input
+                        type="date"
+                        className="form-control border-0 shadow-sm"
+                        value={periodEndDate}
+                        onChange={(e) => setPeriodEndDate(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="col-md-3">
+                <button 
+                  className="btn w-100 shadow-sm export-btn" 
+                  onClick={exportCashSales}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  <i className="fas fa-download me-2"></i>
+                  Export
+                </button>
+              </div>
             </div>
           </div>
-          
-          <div className="col-md-3">
-            <select
-              className="form-select border-0 shadow-sm"
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              {clients.map((client) => (
-                <option key={client.value} value={client.value}>
-                  {client.label}
-                </option>
-              ))}
-            </select>
-      </div>
 
-          <div className="col-md-3">
-            <select
-              className="form-select border-0 shadow-sm"
-              value={dateFilter}
-              onChange={(e) => handleDateFilterChange(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              <option value="">All Dates</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="specific">Specific Date</option>
-              <option value="period">Specific Period</option>
-            </select>
-            
+          {/* Mobile Layout */}
+          <div className="d-block d-md-none">
+            {/* Search Input - Full Row */}
+            <div className="mb-3">
+              <div className="input-group">
+                <span className="input-group-text bg-white border-end-0">
+                  <i className="fas fa-search"></i>
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-start-0"
+                  placeholder="Search cash sales..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+                />
+              </div>
+            </div>
+
+            {/* Filters and Export Button - Shared Row */}
+            <div className="d-flex gap-2">
+              <div className="flex-fill">
+                <select
+                  className="form-select border-0 shadow-sm w-100"
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  {clients.map((client) => (
+                    <option key={client.value} value={client.value}>
+                      {client.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-fill">
+                <select
+                  className="form-select border-0 shadow-sm w-100"
+                  value={dateFilter}
+                  onChange={(e) => handleDateFilterChange(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  <option value="">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                  <option value="specific">Specific Date</option>
+                  <option value="period">Specific Period</option>
+                </select>
+              </div>
+              <div className="flex-fill">
+                <button 
+                  className="btn w-100 shadow-sm export-btn" 
+                  onClick={exportCashSales}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                >
+                  <i className="fas fa-download me-2"></i>
+                  Export
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Date Inputs */}
             {dateFilter === "specific" && (
-              <input
-                type="date"
-                className="form-control border-0 shadow-sm mt-2"
-                value={specificDate}
-                onChange={(e) => setSpecificDate(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              />
+              <div className="mt-2">
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm w-100"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                />
+              </div>
             )}
             
             {dateFilter === "period" && (
-              <div style={{ display: "block" }}>
-                <div className="d-flex align-items-center justify-content-between mt-2">
+              <div className="mt-2">
+                <div className="d-flex gap-2">
                   <input
                     type="date"
-                    className="form-control border-0 shadow-sm"
+                    className="form-control border-0 shadow-sm flex-fill"
                     value={periodStartDate}
                     onChange={(e) => setPeriodStartDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                    style={{ borderRadius: "16px", height: "45px" }}
                   />
-                  <span className="mx-2">to</span>
+                  <span className="d-flex align-items-center text-muted">to</span>
                   <input
                     type="date"
-                    className="form-control border-0 shadow-sm"
+                    className="form-control border-0 shadow-sm flex-fill"
                     value={periodEndDate}
                     onChange={(e) => setPeriodEndDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                    style={{ borderRadius: "16px", height: "45px" }}
                   />
                 </div>
               </div>
             )}
-          </div>
-          
-          <div className="col-md-3">
-            <button 
-              className="btn w-100 shadow-sm export-btn" 
-              onClick={exportCashSales}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              <i className="fas fa-download me-2"></i>
-              Export
-            </button>
           </div>
         </div>
 
