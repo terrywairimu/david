@@ -248,7 +248,7 @@ body {
     }
 }
 
-/* Mobile devices - modern slide-in sidebar */
+/* Mobile devices - modern floating sidebar */
 @media (max-width: 480px) {
     .sidebar {
         width: 280px; /* Fixed width, not full screen */
@@ -256,10 +256,15 @@ body {
         overflow-y: auto;
         z-index: 1030;
         position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        border-radius: 0 16px 16px 0;
+        top: 0.5rem; /* 0.5rem margin from top */
+        left: 0.5rem; /* 0.5rem margin from left */
+        height: calc(100vh - 1rem); /* Account for top and bottom margins */
+        border-radius: 24px; /* All edges curved with 24px */
+        background: var(--tertiary-gradient);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.5rem; /* 0.5rem margin from bottom */
     }
     
     .sidebar.show {
@@ -276,25 +281,54 @@ body {
     
     .sidebar nav {
         gap: 0.25rem;
-        padding: 0.5rem;
+        padding: 0.75rem;
     }
     
     .sidebar .nav-link {
         padding: 0.75rem;
         margin-bottom: 0.25rem;
         font-size: 0.9rem;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar .nav-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sidebar .nav-link.active {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        transform: translateX(5px);
     }
     
     .sidebar .nav-link i {
         margin-right: 8px;
         padding: 0.5rem;
         font-size: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar .nav-link:hover i,
+    .sidebar .nav-link.active i {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1);
     }
     
     .sidebar h3 {
         font-size: 1rem;
         margin-bottom: 0.75rem;
         padding: 0.75rem;
+        text-align: center;
+        color: white;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     /* Show floating button on mobile screens */
@@ -304,16 +338,31 @@ body {
         left: 1rem;
         height: 50px;
         width: 50px;
+        border-radius: 24px;
+        background: var(--primary-gradient);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
 }
 
-/* Tablet devices */
+/* Tablet devices - modern floating sidebar */
 @media (min-width: 481px) and (max-width: 768px) {
     .sidebar {
         width: 280px;
         transform: translateX(-100%);
         overflow-y: auto;
         z-index: 1030;
+        position: fixed;
+        top: 0.5rem; /* 0.5rem margin from top */
+        left: 0.5rem; /* 0.5rem margin from left */
+        height: calc(100vh - 1rem); /* Account for top and bottom margins */
+        border-radius: 24px; /* All edges curved with 24px */
+        background: var(--tertiary-gradient);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.5rem; /* 0.5rem margin from bottom */
     }
     
     .sidebar.show {
@@ -327,27 +376,62 @@ body {
     
     .sidebar nav {
         gap: 0.5rem;
+        padding: 0.75rem;
     }
     
     .sidebar .nav-link {
         padding: 1rem 1rem;
         margin-bottom: 0.5rem;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar .nav-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sidebar .nav-link.active {
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        transform: translateX(5px);
     }
     
     .sidebar .nav-link i {
         margin-right: 10px;
         padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar .nav-link:hover i,
+    .sidebar .nav-link.active i {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1);
     }
     
     .sidebar h3 {
         font-size: 1.1rem;
         margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
+        padding: 0.75rem;
+        text-align: center;
+        color: white;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     /* Show floating button on tablet screens */
     .floating-sidebar-button {
         display: flex;
+        border-radius: 24px;
+        background: var(--primary-gradient);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
 }
 
