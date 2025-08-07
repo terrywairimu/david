@@ -82,11 +82,6 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
                   className: `${element.props.className || ''} btn-sm section-header-btn-mobile`.trim(),
                   style: {
                     ...element.props.style,
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                    minHeight: '32px',
                     flex: '1 1 0',
                     margin: '0',
                     minWidth: 0,
