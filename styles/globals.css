@@ -766,6 +766,15 @@ body {
     .section-header-responsive .d-flex.d-md-none .mb-3 {
         margin-bottom: 0.75rem !important;
     }
+    
+    /* Ensure mobile card header buttons have proper gap */
+    .section-header-responsive .section-header-actions-mobile {
+        gap: 0.5rem !important;
+    }
+    
+    .section-header-responsive .d-flex.d-md-none .section-header-actions-mobile {
+        gap: 0.5rem !important;
+    }
 }
 
 @media (min-width: 640px) {
