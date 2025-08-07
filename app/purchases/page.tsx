@@ -697,20 +697,18 @@ const PurchasesPage = () => {
         title="Purchase Management" 
         icon={<ShoppingCart size={24} />}
       >
-        <div className="d-flex gap-2">
-          <button
-            className={`btn-add ${currentView === "client" ? "active" : ""}`}
-            onClick={() => setCurrentView("client")}
-          >
-            Client Purchase
-          </button>
-          <button
-            className={`btn-add ${currentView === "general" ? "active" : ""}`}
-            onClick={() => setCurrentView("general")}
-          >
-            General Purchase
-          </button>
-        </div>
+        <button
+          className={`btn-add ${currentView === "client" ? "active" : ""}`}
+          onClick={() => setCurrentView("client")}
+        >
+          Client Purchase
+        </button>
+        <button
+          className={`btn-add ${currentView === "general" ? "active" : ""}`}
+          onClick={() => setCurrentView("general")}
+        >
+          General Purchase
+        </button>
       </SectionHeader>
       
       {/* Active View Content */}
