@@ -421,7 +421,7 @@ const StockPage = () => {
 
   return (
     <div id="stockSection">
-      <div className="card mb-4">
+      <div className="card">
         <SectionHeader 
           title="Stock Management" 
           icon={<Package size={24} />}
@@ -436,7 +436,6 @@ const StockPage = () => {
         </SectionHeader>
 
         <div className="card-body p-0">
-          <div className="p-4">
             {/* Stock Summary Cards */}
             <div className="row mb-4">
               <div className="col-md-3 mb-3">
@@ -523,7 +522,6 @@ const StockPage = () => {
                 </div>
               </div>
             </div>
-
             {/* Search and Filter Controls */}
             <div className="row mb-4">
               <div className="col-md-4">
@@ -620,10 +618,9 @@ const StockPage = () => {
                 </button>
               </div>
             </div>
-
             {/* Stock Table */}
             <div className="card table-section">
-                <table className="table table-hover mb-0">
+              <table className="table table-hover mb-0">
                 <thead>
                   <tr>
                     <th>Item Code</th>
@@ -703,8 +700,7 @@ const StockPage = () => {
                   )}
                 </tbody>
               </table>
-        </div>
-          </div>
+            </div>
         </div>
       </div>
 
