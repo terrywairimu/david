@@ -268,7 +268,7 @@ body {
     
     .content {
         margin-left: 0;
-        padding: 1rem;
+        padding: 0.5rem;
         width: 100%;
         min-height: 100vh;
         box-sizing: border-box;
