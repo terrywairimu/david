@@ -620,20 +620,21 @@ const StockPage = () => {
             </div>
             {/* Stock Table */}
             <div className="card table-section">
-              <table className="table table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th>Item Code</th>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Total Value</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              <div className="w-full overflow-x-auto">
+                <table className="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Item Code</th>
+                      <th>Product</th>
+                      <th>Category</th>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>Total Value</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
                       <td colSpan={8} className="px-6 py-4 text-center">
@@ -701,6 +702,7 @@ const StockPage = () => {
                 </tbody>
               </table>
             </div>
+          </div>
         </div>
       </div>
 
