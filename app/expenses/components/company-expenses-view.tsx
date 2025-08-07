@@ -277,80 +277,82 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
 
         {/* Company Expenses Table */}
         <div className="card table-section">
-          <table className="table table-hover">
-          <thead>
-            <tr>
-              <th>Expense #</th>
-                <th>Date</th>
-              <th>Department</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Amount</th>
-                <th>Account Debited</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-              {loading ? (
+          <div className="w-full overflow-x-auto">
+            <table className="table table-hover">
+              <thead>
                 <tr>
-                  <td colSpan={8} className="text-center py-4">
-                    <div className="text-muted">Loading company expenses...</div>
-                  </td>
+                  <th>Expense #</th>
+                  <th>Date</th>
+                  <th>Department</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Account Debited</th>
+                  <th>Actions</th>
                 </tr>
-              ) : filteredExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-4">
-                    <div className="text-muted">
-                      {searchTerm || categoryFilter || dateFilter
-                        ? "No company expenses found matching your criteria"
-                        : "No company expenses found"}
-                    </div>
-                </td>
-              </tr>
-            ) : (
-              filteredExpenses.map((expense) => (
-                <tr key={expense.id}>
-                  <td className="fw-bold">{expense.expense_number}</td>
-                  <td>{new Date(expense.date_created).toLocaleDateString()}</td>
-                  <td>{expense.department || "-"}</td>
-                  <td>
-                      <span className="badge bg-secondary">{expense.category}</span>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-4">
+                      <div className="text-muted">Loading company expenses...</div>
                     </td>
-                    <td>{formatExpenseItems(expense.id)}</td>
-                    <td className="fw-bold text-danger">
-                      KES {expense.amount.toFixed(2)}
-                    </td>
-                    <td>{expense.account_debited || "-"}</td>
-                    <td>
-                      <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleViewExpense(expense)}
-                          title="View"
-                        >
-                      <Eye size={14} />
-                    </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEditExpense(expense)}
-                          title="Edit"
-                        >
-                      <Edit size={14} />
-                    </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDeleteExpense(expense)}
-                          title="Delete"
-                        >
-                      <Trash2 size={14} />
-                    </button>
+                  </tr>
+                ) : filteredExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-4">
+                      <div className="text-muted">
+                        {searchTerm || categoryFilter || dateFilter
+                          ? "No company expenses found matching your criteria"
+                          : "No company expenses found"}
                       </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-                </table>
+              ) : (
+                filteredExpenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td className="fw-bold">{expense.expense_number}</td>
+                    <td>{new Date(expense.date_created).toLocaleDateString()}</td>
+                    <td>{expense.department || "-"}</td>
+                    <td>
+                        <span className="badge bg-secondary">{expense.category}</span>
+                      </td>
+                      <td>{formatExpenseItems(expense.id)}</td>
+                      <td className="fw-bold text-danger">
+                        KES {expense.amount.toFixed(2)}
+                      </td>
+                      <td>{expense.account_debited || "-"}</td>
+                      <td>
+                        <div className="d-flex gap-1">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleViewExpense(expense)}
+                            title="View"
+                          >
+                        <Eye size={14} />
+                      </button>
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleEditExpense(expense)}
+                            title="Edit"
+                          >
+                        <Edit size={14} />
+                      </button>
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDeleteExpense(expense)}
+                            title="Delete"
+                          >
+                        <Trash2 size={14} />
+                      </button>
+                        </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Expense Modal */}

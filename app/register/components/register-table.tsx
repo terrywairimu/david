@@ -228,61 +228,63 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
 
       {/* Register Table */}
       <div className="card table-section">
-        <table className="table table-hover" id="registerTable">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Phone Number</th>
-              <th>Location</th>
-              <th>PIN Number</th>
-              <th>Date Added</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        <div className="w-full overflow-x-auto">
+          <table className="table table-hover" id="registerTable">
+            <thead>
               <tr>
-                <td colSpan={7} className="text-center">
-                  <div className="spinner-border" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </td>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Phone Number</th>
+                <th>Location</th>
+                <th>PIN Number</th>
+                <th>Date Added</th>
+                <th>Actions</th>
               </tr>
-            ) : filteredEntities.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center">
-                  No entities found
-                </td>
-              </tr>
-            ) : (
-              filteredEntities.map((entity) => (
-                <tr key={entity.id}>
-                  <td>{entity.name}</td>
-                  <td>
-                    <span style={getTypeStyle(entity.type)}>
-                      {entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
-                    </span>
-                  </td>
-                  <td>{entity.phone || "-"}</td>
-                  <td>{entity.location || "-"}</td>
-                  <td>{entity.type === 'client' && entity.pin ? entity.pin : '-'}</td>
-                  <td>{formatDate(entity.date_added)}</td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button className="action-btn" onClick={() => handleEdit(entity)} title="Edit">
-                        <Edit size={16} />
-                      </button>
-                      <button className="action-btn" onClick={() => handleDelete(entity.id)} title="Delete">
-                        <Trash2 size={16} />
-                      </button>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center">
+                    <div className="spinner-border" role="status">
+                      <span className="visually-hidden">Loading...</span>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredEntities.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center">
+                    No entities found
+                  </td>
+                </tr>
+              ) : (
+                filteredEntities.map((entity) => (
+                  <tr key={entity.id}>
+                    <td>{entity.name}</td>
+                    <td>
+                      <span style={getTypeStyle(entity.type)}>
+                        {entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
+                      </span>
+                    </td>
+                    <td>{entity.phone || "-"}</td>
+                    <td>{entity.location || "-"}</td>
+                    <td>{entity.type === 'client' && entity.pin ? entity.pin : '-'}</td>
+                    <td>{formatDate(entity.date_added)}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button className="action-btn" onClick={() => handleEdit(entity)} title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        <button className="action-btn" onClick={() => handleDelete(entity.id)} title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

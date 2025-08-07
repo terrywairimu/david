@@ -838,7 +838,7 @@ const SalesOrdersView = () => {
 
   return (
     <div className="sales-orders-view">
-    <div>
+      <div>
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Sales Orders</h5>
@@ -939,7 +939,8 @@ const SalesOrdersView = () => {
 
       {/* Sales Orders Table */}
       <div className="card table-section">
-          <table className="table table-hover">
+          <div className="w-full overflow-x-auto">
+            <table className="table table-hover">
           <thead>
             <tr>
               <th>Order #</th>
@@ -1024,6 +1025,7 @@ const SalesOrdersView = () => {
           </tbody>
         </table>
       </div>
+    </div>
 
       {/* Sales Order Modal */}
       <SalesOrderModal
@@ -1035,7 +1037,7 @@ const SalesOrdersView = () => {
         onProceedToInvoice={handleProceedToInvoice}
         onProceedToCashSale={handleProceedToCashSale}
       />
-    </div>
+      </div>
     </div>
   )
 }

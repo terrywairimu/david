@@ -263,7 +263,8 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
 
         {/* Client Expenses Table */}
         <div className="card table-section">
-          <table className="table table-hover">
+          <div className="w-full overflow-x-auto">
+            <table className="table table-hover">
           <thead>
             <tr>
               <th>Expense #</th>
@@ -333,6 +334,7 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
             )}
           </tbody>
                 </table>
+          </div>
         </div>
 
         {/* Expense Modal */}

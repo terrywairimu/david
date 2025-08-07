@@ -1584,7 +1584,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               </div>
             )}
           </div>
-          <div className="table-responsive">
+          <div className="w-full overflow-x-auto">
             <table className="table table-hover">
               <thead>
                 <tr>

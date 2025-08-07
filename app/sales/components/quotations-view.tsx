@@ -1201,8 +1201,9 @@ const QuotationsView = () => {
         </div>
 
             {/* Quotations Table */}
-      <div className="card table-section">
-          <table className="table table-hover">
+        <div className="card table-section">
+          <div className="w-full overflow-x-auto">
+            <table className="table table-hover">
             <thead>
               <tr>
               <th>Quotation #</th>
@@ -1320,6 +1321,7 @@ const QuotationsView = () => {
           onProceedToSalesOrder={handleProceedToSalesOrder}
         />
       )}
+      </div>
     </div>
   )
 }

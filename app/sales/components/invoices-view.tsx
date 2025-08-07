@@ -997,7 +997,8 @@ const InvoicesView = () => {
 
       {/* Invoices Table */}
       <div className="card table-section">
-      <table className="table table-hover">
+        <div className="w-full overflow-x-auto">
+          <table className="table table-hover">
           <thead>
             <tr>
               <th>Invoice #</th>
@@ -1087,6 +1088,7 @@ const InvoicesView = () => {
             )}
           </tbody>
                 </table>
+        </div>
       </div>
 
       {/* Invoice Modal */}
