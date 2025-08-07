@@ -975,3 +975,164 @@ body {
     height: 40px !important;
   }
 }
+
+/* Responsive Section Header Styles */
+.section-header-responsive {
+  padding: 1.25rem 1.25rem 0;
+  border-radius: 20px 20px 0 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.section-header-title-responsive {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+/* Desktop Layout Styles */
+.section-header-actions-desktop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+.section-header-title-desktop {
+  text-align: right;
+}
+
+.section-header-btn-responsive {
+  border-radius: 12px !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  min-height: 38px !important;
+  padding: 0.5rem 1rem !important;
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  border: none;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.section-header-btn-responsive:hover {
+  background: var(--secondary-gradient);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.12);
+}
+
+/* Mobile Layout Styles */
+.section-header-actions-mobile {
+  display: flex;
+  width: 100%;
+  gap: 2px;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.section-header-btn-mobile {
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  min-height: 32px !important;
+  padding: 0.25rem 0.5rem !important;
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  border: none;
+  transition: background 0.2s, box-shadow 0.2s;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.section-header-btn-mobile:hover {
+  background: var(--secondary-gradient);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.12);
+}
+
+/* Specific styles for btn-add buttons in section headers */
+.section-header-responsive .btn-add {
+  border-radius: 12px !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  min-height: 38px !important;
+  padding: 0.5rem 1rem !important;
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.section-header-responsive .btn-add:hover {
+  background: var(--secondary-gradient);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.12);
+  transform: translateY(-1px);
+}
+
+.section-header-responsive .btn-add.active {
+  background: var(--secondary-gradient);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.15);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .section-header-responsive {
+    padding: 1rem 0.75rem 0.5rem;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  .section-header-title-responsive {
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  
+  /* Ensure mobile buttons are properly sized */
+  .section-header-actions-mobile {
+    margin-top: 0.5rem;
+    gap: 2px;
+  }
+  
+  /* Force all buttons to be equal width and inline */
+  .section-header-actions-mobile > * {
+    flex: 1;
+    min-width: 0;
+    max-width: calc(25% - 1px);
+  }
+  
+  /* Mobile specific btn-add styles */
+  .section-header-responsive .btn-add {
+    font-size: 0.75rem !important;
+    min-height: 32px !important;
+    padding: 0.25rem 0.5rem !important;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  
+  /* Ensure icons and text are properly sized for mobile */
+  .section-header-btn-mobile i,
+  .section-header-btn-mobile svg {
+    font-size: 0.7rem !important;
+    width: 0.7rem !important;
+    height: 0.7rem !important;
+    margin-right: 0.25rem !important;
+  }
+  
+  .section-header-btn-mobile .me-1,
+  .section-header-btn-mobile .me-2 {
+    margin-right: 0.25rem !important;
+  }
+}
