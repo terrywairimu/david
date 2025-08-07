@@ -706,6 +706,68 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Mobile card header - fully transparent with no padding */
+@media (max-width: 480px) {
+    .card > .card-header,
+    .card .card-header {
+        background: transparent !important;
+        padding: 0 !important;
+        margin-bottom: 0.5rem !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    
+    /* Increase font size for mobile section headers */
+    .section-header-responsive .section-header-title-responsive {
+        font-size: 1.5rem !important;
+        font-weight: 400 !important;
+        color: black !important;
+        letter-spacing: -0.025em !important;
+    }
+    
+    /* Ensure mobile section header text is black */
+    .card > .card-header .section-header-title-responsive,
+    .card .card-header .section-header-title-responsive {
+        color: black !important;
+        font-weight: 400 !important;
+    }
+    
+    /* Make section header icons larger and reduce gap */
+    .section-header-responsive .me-4,
+    .section-header-responsive .me-3 {
+        font-size: 2.5rem !important;
+        margin-right: 0.4rem !important;
+        color: black !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+    
+    /* Ensure icons are properly sized in mobile layout */
+    .section-header-responsive .d-flex.d-md-none .me-3 {
+        font-size: 2.5rem !important;
+        margin-right: 0.4rem !important;
+        color: black !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+    
+    /* Ensure mobile section header container is properly aligned */
+    .section-header-responsive .d-flex.d-md-none .d-flex.align-items-center {
+        display: flex !important;
+        align-items: center !important;
+        flex-direction: row !important;
+    }
+    
+    /* Ensure mobile layout is properly spaced */
+    .section-header-responsive .d-flex.d-md-none {
+        padding: 0;
+    }
+    
+    .section-header-responsive .d-flex.d-md-none .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+}
+
 @media (min-width: 640px) {
     .card > .card-header,
     .card .card-header {
