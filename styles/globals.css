@@ -252,7 +252,7 @@ body {
 @media (max-width: 480px) {
     .sidebar {
         width: 280px; /* Fixed width, not full screen */
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% - 0.5rem)); /* Account for left margin */
         overflow-y: auto;
         z-index: 1030;
         position: fixed;
@@ -285,25 +285,18 @@ body {
     }
     
     .sidebar .nav-link {
-        padding: 0.75rem;
+        padding: 1rem 0.5rem;
         margin-bottom: 0.25rem;
         font-size: 0.9rem;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
     }
     
     .sidebar .nav-link:hover {
-        background: rgba(255, 255, 255, 0.1);
         transform: translateX(5px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .sidebar .nav-link.active {
         background: var(--primary-gradient);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         transform: translateX(5px);
     }
     
@@ -311,14 +304,11 @@ body {
         margin-right: 8px;
         padding: 0.5rem;
         font-size: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
         transition: all 0.3s ease;
     }
     
     .sidebar .nav-link:hover i,
     .sidebar .nav-link.active i {
-        background: rgba(255, 255, 255, 0.2);
         transform: scale(1.1);
     }
     
@@ -350,7 +340,7 @@ body {
 @media (min-width: 481px) and (max-width: 768px) {
     .sidebar {
         width: 280px;
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% - 0.5rem)); /* Account for left margin */
         overflow-y: auto;
         z-index: 1030;
         position: fixed;
@@ -380,38 +370,28 @@ body {
     }
     
     .sidebar .nav-link {
-        padding: 1rem 1rem;
+        padding: 1rem 0.5rem;
         margin-bottom: 0.5rem;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
     }
     
     .sidebar .nav-link:hover {
-        background: rgba(255, 255, 255, 0.1);
         transform: translateX(5px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .sidebar .nav-link.active {
         background: var(--primary-gradient);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         transform: translateX(5px);
     }
     
     .sidebar .nav-link i {
         margin-right: 10px;
         padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
         transition: all 0.3s ease;
     }
     
     .sidebar .nav-link:hover i,
     .sidebar .nav-link.active i {
-        background: rgba(255, 255, 255, 0.2);
         transform: scale(1.1);
     }
     
