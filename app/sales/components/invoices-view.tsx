@@ -894,144 +894,144 @@ const InvoicesView = () => {
   const filteredInvoices = getFilteredInvoices()
 
   return (
-    <div className="container-fluid">
+    <div className="invoices-view">
+      <div>
         {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4 className="mb-0 fw-bold">Invoices</h4>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-outline-secondary"
-            onClick={exportInvoices}
-          >
-            <FileText className="me-2" size={16} />
-            Export
-          </button>
-          <button
-            className="btn btn-primary shadow-sm"
-            style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-            onClick={handleCreate}
-          >
-            <Plus className="me-2" size={16} />
-            New Invoice
-          </button>
-        </div>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5>Invoices</h5>
         </div>
 
-      {/* Filters */}
-      <div className="card mb-4">
-        <div className="card-body">
-          <div className="row g-3">
+        {/* Search and Filter Row */}
+        <div className="row mb-3">
           <div className="col-md-3">
+            <div className="input-group">
+              <span className="input-group-text bg-white border-end-0">
+                <i className="fas fa-search"></i>
+              </span>
               <input
                 type="text"
-                className="form-control"
+                className="form-control border-start-0"
                 placeholder="Search invoices..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
               />
             </div>
-            <div className="col-md-2">
+          </div>
+          
+          <div className="col-md-3">
             <select
-                className="form-select"
+              className="form-select border-0 shadow-sm"
               value={clientFilter}
               onChange={(e) => setClientFilter(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
             >
-                <option value="">All Clients</option>
-                {clients.map(client => (
+              <option value="">All Clients</option>
+              {clients.map(client => (
                 <option key={client.value} value={client.value}>
                   {client.label}
                 </option>
               ))}
             </select>
-      </div>
-            <div className="col-md-2">
+          </div>
+          
+          <div className="col-md-3">
             <select
-                className="form-select"
+              className="form-select border-0 shadow-sm"
               value={dateFilter}
               onChange={(e) => handleDateFilterChange(e.target.value)}
+              style={{ borderRadius: "16px", height: "45px" }}
             >
               <option value="">All Dates</option>
               <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="this_week">This Week</option>
-                <option value="this_month">This Month</option>
-                <option value="specific_date">Specific Date</option>
-                <option value="date_range">Date Range</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="specific_date">Specific Date</option>
+              <option value="date_range">Date Range</option>
             </select>
-            </div>
+            
             {dateFilter === "specific_date" && (
-              <div className="col-md-2">
               <input
                 type="date"
-                  className="form-control"
+                className="form-control border-0 shadow-sm mt-2"
                 value={specificDate}
                 onChange={(e) => setSpecificDate(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              />
+            )}
+            
+            {dateFilter === "date_range" && (
+              <div className="d-flex gap-2 mt-2">
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="Start Date"
+                  value={periodStartDate}
+                  onChange={(e) => setPeriodStartDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
+                />
+                <input
+                  type="date"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="End Date"
+                  value={periodEndDate}
+                  onChange={(e) => setPeriodEndDate(e.target.value)}
+                  style={{ borderRadius: "16px", height: "45px" }}
                 />
               </div>
             )}
-            {dateFilter === "date_range" && (
-              <>
-                <div className="col-md-2">
-                  <input
-                    type="date"
-                    className="form-control"
-                    placeholder="Start Date"
-                    value={periodStartDate}
-                    onChange={(e) => setPeriodStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-2">
-                  <input
-                    type="date"
-                    className="form-control"
-                    placeholder="End Date"
-                    value={periodEndDate}
-                    onChange={(e) => setPeriodEndDate(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
           </div>
+          
+          <div className="col-md-3">
+            <button
+              className="btn w-100 shadow-sm export-btn"
+              onClick={exportInvoices}
+              style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+            >
+              <FileText className="me-2" size={16} />
+              Export
+            </button>
           </div>
         </div>
 
-      {/* Invoices Table */}
-      <div className="card table-section">
-        <div className="w-full overflow-x-auto">
-          <table className="table table-hover">
-          <thead>
-            <tr>
-              <th>Invoice #</th>
-                <th>Date</th>
+        {/* Invoices Table */}
+        <div className="card table-section">
+          <div className="w-full overflow-x-auto">
+            <table className="table table-hover">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
                   <th>Due Date</th>
-              <th>Client</th>
-              <th>Total Amount</th>
+                  <th>Client</th>
+                  <th>Total Amount</th>
                   <th>Paid Amount</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
+                  <th>Balance</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
                     <td colSpan={9} className="text-center py-4">
                       <div className="spinner-border text-primary" role="status">
                         <span className="visually-hidden">Loading...</span>
                       </div>
-                </td>
-              </tr>
-            ) : filteredInvoices.length === 0 ? (
-              <tr>
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length === 0 ? (
+                  <tr>
                     <td colSpan={9} className="text-center py-4 text-muted">
-                  No invoices found
-                </td>
-              </tr>
-            ) : (
-              filteredInvoices.map((invoice) => (
-                <tr key={invoice.id}>
+                      No invoices found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInvoices.map((invoice) => (
+                    <tr key={invoice.id}>
                       <td>{invoice.invoice_number}</td>
-                    <td>{new Date(invoice.date_created).toLocaleDateString()}</td>
+                      <td>{new Date(invoice.date_created).toLocaleDateString()}</td>
                       <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
                       <td>{invoice.client?.name || "Unknown"}</td>
                       <td>KES {invoice.grand_total?.toFixed(2) || "0.00"}</td>
@@ -1039,66 +1039,67 @@ const InvoicesView = () => {
                       <td>KES {invoice.balance_amount?.toFixed(2) || "0.00"}</td>
                       <td>
                         <span className={`badge ${getStatusBadge(invoice.status)}`}>
-                        {invoice.status.replace(/_/g, " ")}
-                    </span>
-                  </td>
-                  <td>
-                      <div className="d-flex gap-1">
-                        <button 
-                            className="btn btn-sm action-btn"
-                          onClick={() => handleView(invoice)}
-                          title="View"
-                        >
-                      <Eye size={14} />
-                    </button>
-                          {invoice.status !== "converted_to_cash_sale" && (
-                        <button 
-                              className="btn btn-sm action-btn"
-                          onClick={() => handleEdit(invoice)}
-                          title="Edit"
-                        >
-                      <Edit size={14} />
-                    </button>
-                          )}
-                        <button 
-                            className="btn btn-sm action-btn"
-                          onClick={() => handleDelete(invoice)}
-                          title="Delete"
-                        >
-                      <Trash2 size={14} />
-                    </button>
-                        <button 
-                            className="btn btn-sm action-btn"
-                          onClick={() => handlePrint(invoice)}
-                          title="Print"
-                        >
-                            <Printer size={14} />
-                        </button>
+                          {invoice.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="d-flex gap-1">
                           <button 
-                            className="btn btn-sm action-btn"
+                            className="action-btn"
+                            onClick={() => handleView(invoice)}
+                            title="View"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          {invoice.status !== "converted_to_cash_sale" && (
+                            <button 
+                              className="action-btn"
+                              onClick={() => handleEdit(invoice)}
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                          <button 
+                            className="action-btn"
+                            onClick={() => handleDelete(invoice)}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <button 
+                            className="action-btn"
+                            onClick={() => handlePrint(invoice)}
+                            title="Print"
+                          >
+                            <Printer size={14} />
+                          </button>
+                          <button 
+                            className="action-btn"
                             onClick={() => handleDownload(invoice)}
                             title="Download"
                           >
                             <Download size={14} />
                           </button>
-                      </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-                </table>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* Invoice Modal */}
-      <InvoiceModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSave={handleModalSave}
-        invoice={selectedInvoice}
-        mode={modalMode}
-      />
+        {/* Invoice Modal */}
+        <InvoiceModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          onSave={handleModalSave}
+          invoice={selectedInvoice}
+          mode={modalMode}
+        />
+      </div>
     </div>
   )
 }
