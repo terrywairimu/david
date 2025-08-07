@@ -454,13 +454,20 @@ body {
     background: var(--tertiary-gradient) !important;
     color: white !important;
     border: none !important;
-    padding: 1.1rem !important;
+    padding: 0.275rem !important; /* 4.4px for mobile */
     position: relative;
     overflow: hidden;
     z-index: 2;
     border-radius: 24px !important;
     margin-bottom: 1.1rem !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+@media (min-width: 640px) {
+    .card > .card-header,
+    .card .card-header {
+        padding: 1.1rem !important; /* 17.6px for larger screens */
+    }
 }
 
 .card > .card-header::before,
