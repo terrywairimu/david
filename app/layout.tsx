@@ -30,12 +30,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="container-fluid">
-            <div className="row">
-              <Sidebar />
-              <div className="col-md-10 content">
-                {children}
-              </div>
+          <div className="app-container">
+            <Sidebar />
+            <div className="content">
+              {children}
             </div>
           </div>
           <Toaster />
