@@ -1427,143 +1427,207 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       {/* Enhanced Search and Filter Row */}
       <div className="card mb-3">
         <div className="card-body">
-          <div className="row g-3 align-items-center">
-            {/* Search Input */}
-            <div className="col-lg-3 col-md-6 col-12">
-              <div className="input-group shadow-sm">
-                <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                  <i className="fas fa-search text-muted"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-start-0 border-end-0"
-                  placeholder="Search transactions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ borderRadius: "0", height: "45px" }}
-                />
+          <div className="account-summary-search-filter">
+            {/* Desktop Layout */}
+            <div className="d-none d-md-block">
+              <div className="row g-3 align-items-center">
+                {/* Search Input */}
+                <div className="col-lg-3 col-md-6 col-12">
+                  <div className="input-group shadow-sm">
+                    <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                      <i className="fas fa-search text-muted"></i>
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control border-start-0 border-end-0"
+                      placeholder="Search transactions..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ borderRadius: "0", height: "45px" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Client Filter */}
+                <div className="col-lg-2 col-md-6 col-12">
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    value={clientFilter}
+                    onChange={(e) => setClientFilter(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">All Clients</option>
+                    {clientOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date Filter */}
+                <div className="col-lg-3 col-md-6 col-12">
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                    <option value="specific">Specific Date</option>
+                    <option value="period">Specific Period</option>
+                  </select>
+                  
+                  {/* Specific Date Input */}
+                  {dateFilter === "specific" && (
+                    <input
+                      type="date"
+                      className="form-control border-0 shadow-sm mt-2"
+                      value={specificDate}
+                      onChange={(e) => setSpecificDate(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                    />
+                  )}
+                  
+                  {/* Period Date Inputs */}
+                  {dateFilter === "period" && (
+                    <div className="d-flex align-items-center justify-content-between mt-2">
+                      <input
+                        type="date"
+                        className="form-control border-0 shadow-sm"
+                        value={periodStartDate}
+                        onChange={(e) => setPeriodStartDate(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                      />
+                      <span className="mx-2">to</span>
+                      <input
+                        type="date"
+                        className="form-control border-0 shadow-sm"
+                        value={periodEndDate}
+                        onChange={(e) => setPeriodEndDate(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Export Button */}
+                <div className="col-lg-2 col-md-6 col-12">
+                  <button
+                    className="btn w-100 shadow-sm export-btn"
+                    onClick={handleExport}
+                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+                  >
+                    <Download size={16} className="me-2" />
+                    Export
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Client Filter */}
-            <div className="col-lg-2 col-md-6 col-12">
-              <select
-                className="form-select border-0 shadow-sm"
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Clients</option>
-                {clientOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Filter */}
-            <div className="col-lg-3 col-md-6 col-12">
-              <select
-                className="form-select border-0 shadow-sm"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Dates</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-                <option value="specific">Specific Date</option>
-                <option value="period">Specific Period</option>
-              </select>
-              
-              {/* Specific Date Input */}
-              {dateFilter === "specific" && (
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm mt-2"
-                  value={specificDate}
-                  onChange={(e) => setSpecificDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-              )}
-              
-              {/* Period Date Inputs */}
-              {dateFilter === "period" && (
-                <div className="d-flex align-items-center justify-content-between mt-2">
+            {/* Mobile Layout */}
+            <div className="d-block d-md-none">
+              {/* Search Input - Full Row */}
+              <div className="mb-3">
+                <div className="input-group shadow-sm">
+                  <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                    <i className="fas fa-search text-muted"></i>
+                  </span>
                   <input
-                    type="date"
-                    className="form-control border-0 shadow-sm"
-                    value={periodStartDate}
-                    onChange={(e) => setPeriodStartDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                    type="text"
+                    className="form-control border-start-0 border-end-0"
+                    placeholder="Search transactions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ borderRadius: "0", height: "45px" }}
                   />
-                  <span className="mx-2">to</span>
+                </div>
+              </div>
+
+              {/* Filters and Export Button - Shared Row */}
+              <div className="d-flex gap-2">
+                <div className="flex-fill">
+                  <select
+                    className="form-select border-0 shadow-sm w-100"
+                    value={clientFilter}
+                    onChange={(e) => setClientFilter(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">All Clients</option>
+                    {clientOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-fill">
+                  <select
+                    className="form-select border-0 shadow-sm w-100"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
+                  >
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                    <option value="specific">Specific Date</option>
+                    <option value="period">Specific Period</option>
+                  </select>
+                </div>
+                <div className="flex-fill">
+                  <button
+                    className="btn w-100 shadow-sm export-btn"
+                    onClick={handleExport}
+                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+                  >
+                    <Download size={16} className="me-2" />
+                    Export
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Date Inputs */}
+              {dateFilter === "specific" && (
+                <div className="mt-2">
                   <input
                     type="date"
-                    className="form-control border-0 shadow-sm"
-                    value={periodEndDate}
-                    onChange={(e) => setPeriodEndDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
+                    className="form-control border-0 shadow-sm w-100"
+                    value={specificDate}
+                    onChange={(e) => setSpecificDate(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px" }}
                   />
                 </div>
               )}
+              
+              {dateFilter === "period" && (
+                <div className="mt-2">
+                  <div className="d-flex gap-2">
+                    <input
+                      type="date"
+                      className="form-control border-0 shadow-sm flex-fill"
+                      value={periodStartDate}
+                      onChange={(e) => setPeriodStartDate(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                    />
+                    <span className="d-flex align-items-center text-muted">to</span>
+                    <input
+                      type="date"
+                      className="form-control border-0 shadow-sm flex-fill"
+                      value={periodEndDate}
+                      onChange={(e) => setPeriodEndDate(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px" }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Export Button */}
-            <div className="col-lg-2 col-md-6 col-12">
-              <button
-                className="btn w-100 shadow-sm export-btn"
-                onClick={handleExport}
-                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-              >
-                <Download size={16} className="me-2" />
-                Export Transactions
-              </button>
-            </div>
-
-            {/* Manual Sync Button */}
-            <div className="col-lg-2 col-md-6 col-12">
-              <button
-                className="btn w-100 shadow-sm btn-primary"
-                onClick={handleManualSync}
-                disabled={isSyncing}
-                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-              >
-                {isSyncing ? (
-                  <>
-                    <div className="spinner-border spinner-border-sm me-2" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={16} className="me-2" />
-                    Sync Now
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Clear Filter Button - only show when filter is active */}
-            {activeAccountFilter && (
-              <div className="col-lg-2 col-md-6 col-12">
-                <button
-                  className="btn w-100 shadow-sm btn-outline-secondary"
-                  onClick={() => {
-                    setActiveAccountFilter("")
-                    toast.success("Filter cleared")
-                  }}
-                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-                >
-                  <Eye size={16} className="me-2" />
-                  Clear Filter
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

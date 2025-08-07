@@ -990,6 +990,243 @@ body {
   border-bottom: none;
 }
 
+/* Search Filter Row Mobile Styles */
+.search-filter-row {
+  margin-bottom: 1.5rem;
+}
+
+/* Register Search Filter Mobile Styles */
+.register-search-filter {
+  margin-bottom: 1.5rem;
+}
+
+/* Stock Search Filter Mobile Styles */
+.stock-search-filter {
+  margin-bottom: 1.5rem;
+}
+
+/* Purchases Search Filter Mobile Styles */
+.purchases-search-filter {
+  margin-bottom: 1.5rem;
+}
+
+/* Account Summary Search Filter Mobile Styles */
+.account-summary-search-filter {
+  margin-bottom: 1.5rem;
+}
+
+/* Mobile-specific styles for search filter row */
+@media (max-width: 767px) {
+  .search-filter-row .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .search-filter-row .flex-fill {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  
+  .search-filter-row .form-select,
+  .search-filter-row .btn {
+    width: 100% !important;
+    height: 45px !important;
+    border-radius: 16px !important;
+  }
+  
+  .search-filter-row .input-group {
+    width: 100% !important;
+  }
+  
+  .search-filter-row .input-group .form-control {
+    height: 45px !important;
+  }
+  
+  .search-filter-row .input-group-text {
+    height: 45px !important;
+  }
+  
+  /* Register search filter mobile styles */
+  .register-search-filter .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .register-search-filter .flex-fill {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  
+  .register-search-filter .form-select,
+  .register-search-filter .btn {
+    width: 100% !important;
+    height: 45px !important;
+    border-radius: 16px !important;
+  }
+  
+  .register-search-filter .input-group {
+    width: 100% !important;
+  }
+  
+  .register-search-filter .input-group .form-control {
+    height: 45px !important;
+  }
+  
+  .register-search-filter .input-group-text {
+    height: 45px !important;
+  }
+  
+  /* Stock search filter mobile styles */
+  .stock-search-filter .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .stock-search-filter .flex-fill {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  
+  .stock-search-filter .form-select,
+  .stock-search-filter .btn {
+    width: 100% !important;
+    height: 45px !important;
+    border-radius: 16px !important;
+  }
+  
+  .stock-search-filter .input-group {
+    width: 100% !important;
+  }
+  
+  .stock-search-filter .input-group .form-control {
+    height: 45px !important;
+  }
+  
+  .stock-search-filter .input-group-text {
+    height: 45px !important;
+  }
+  
+  /* Purchases search filter mobile styles */
+  .purchases-search-filter .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .purchases-search-filter .flex-fill {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  
+  .purchases-search-filter .form-select,
+  .purchases-search-filter .btn {
+    width: 100% !important;
+    height: 45px !important;
+    border-radius: 16px !important;
+  }
+  
+  .purchases-search-filter .input-group {
+    width: 100% !important;
+  }
+  
+  .purchases-search-filter .input-group .form-control {
+    height: 45px !important;
+  }
+  
+  .purchases-search-filter .input-group-text {
+    height: 45px !important;
+  }
+  
+  /* Account summary search filter mobile styles */
+  .account-summary-search-filter .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  .account-summary-search-filter .flex-fill {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  
+  .account-summary-search-filter .form-select,
+  .account-summary-search-filter .btn {
+    width: 100% !important;
+    height: 45px !important;
+    border-radius: 16px !important;
+  }
+  
+  .account-summary-search-filter .input-group {
+    width: 100% !important;
+  }
+  
+  .account-summary-search-filter .input-group .form-control {
+    height: 45px !important;
+  }
+  
+  .account-summary-search-filter .input-group-text {
+    height: 45px !important;
+  }
+  
+  /* Override Bootstrap's responsive grid behavior */
+  .search-filter-row .d-block.d-md-none .d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .search-filter-row .d-block.d-md-none .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Ensure the mobile layout containers work properly */
+  .search-filter-row .d-block.d-md-none > div:first-child {
+    margin-bottom: 1rem !important;
+  }
+  
+  .search-filter-row .d-block.d-md-none > div:last-child {
+    display: flex !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Register search filter mobile layout overrides */
+  .register-search-filter .d-block.d-md-none .d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .register-search-filter .d-block.d-md-none .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Stock search filter mobile layout overrides */
+  .stock-search-filter .d-block.d-md-none .d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .stock-search-filter .d-block.d-md-none .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Purchases search filter mobile layout overrides */
+  .purchases-search-filter .d-block.d-md-none .d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .purchases-search-filter .d-block.d-md-none .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Account summary search filter mobile layout overrides */
+  .account-summary-search-filter .d-block.d-md-none .d-flex {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .account-summary-search-filter .d-block.d-md-none .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+}
+
 .section-header-title-responsive {
   font-size: 1.25rem;
   font-weight: 700;

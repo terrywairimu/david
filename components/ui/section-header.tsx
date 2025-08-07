@@ -72,9 +72,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           </h2>
         </div>
         
-        {/* Actions Section - Below title on mobile with dynamic width */}
+        {/* Actions Section - Below title on mobile with inline layout */}
         {children && (
-          <div className="section-header-actions-mobile" style={{ display: 'flex', flexWrap: 'nowrap', width: '100%', gap: '2px' }}>
+          <div className="section-header-actions-mobile" style={{ display: 'flex', flexWrap: 'nowrap', width: '100%', gap: '0.5rem' }}>
             {React.Children.map(children, (child, index) => {
               if (React.isValidElement(child)) {
                 const element = child as React.ReactElement<any>;
@@ -85,8 +85,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
                     flex: '1 1 0',
                     margin: '0',
                     minWidth: 0,
-                    maxWidth: btnWidth,
-                    flexBasis: btnWidth,
+                    flexBasis: 'auto',
                   }
                 })
               }

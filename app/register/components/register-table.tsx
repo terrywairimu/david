@@ -171,58 +171,124 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
   return (
     <div>
       {/* Search and Filter Controls */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="input-group shadow-sm">
-            <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-              <Search className="text-muted" size={16} />
-            </span>
-            <input
-              type="text"
-              className="form-control border-0 py-2"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-            />
+      <div className="register-search-filter mb-4">
+        {/* Desktop Layout */}
+        <div className="d-none d-md-block">
+          <div className="row">
+            <div className="col-md-4">
+              <div className="input-group shadow-sm">
+                <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                  <Search className="text-muted" size={16} />
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-0 py-2"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+                />
+              </div>
+            </div>
+            <div className="col-md-3">
+              <select
+                className="form-select border-0 py-2 shadow-sm"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Types</option>
+                <option value="client">Clients</option>
+                <option value="supplier">Suppliers</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <select
+                className="form-select border-0 py-2 shadow-sm"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Locations</option>
+                {locations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-2">
+              <button
+                className="btn w-100 shadow-sm export-btn"
+                onClick={exportToCSV}
+                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+              >
+                <Download className="me-2" size={16} />
+                Export
+              </button>
+            </div>
           </div>
         </div>
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 py-2 shadow-sm"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <option value="">All Types</option>
-            <option value="client">Clients</option>
-            <option value="supplier">Suppliers</option>
-          </select>
-        </div>
-        <div className="col-md-3">
-          <select
-            className="form-select border-0 py-2 shadow-sm"
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-            style={{ borderRadius: "16px", height: "45px" }}
-          >
-            <option value="">All Locations</option>
-            {locations.map((location) => (
-              <option key={location} value={location}>
-                {location}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-md-2">
-          <button
-            className="btn w-100 shadow-sm export-btn"
-            onClick={exportToCSV}
-            style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-          >
-            <Download className="me-2" size={16} />
-            Export
-          </button>
+
+        {/* Mobile Layout */}
+        <div className="d-block d-md-none">
+          {/* Search Input - Full Row */}
+          <div className="mb-3">
+            <div className="input-group shadow-sm">
+              <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                <Search className="text-muted" size={16} />
+              </span>
+              <input
+                type="text"
+                className="form-control border-0 py-2"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
+              />
+            </div>
+          </div>
+
+          {/* Filters and Export Button - Shared Row */}
+          <div className="d-flex gap-2">
+            <div className="flex-fill">
+              <select
+                className="form-select border-0 py-2 shadow-sm w-100"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Types</option>
+                <option value="client">Clients</option>
+                <option value="supplier">Suppliers</option>
+              </select>
+            </div>
+            <div className="flex-fill">
+              <select
+                className="form-select border-0 py-2 shadow-sm w-100"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                style={{ borderRadius: "16px", height: "45px" }}
+              >
+                <option value="">All Locations</option>
+                {locations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-fill">
+              <button
+                className="btn w-100 shadow-sm export-btn"
+                onClick={exportToCSV}
+                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+              >
+                <Download className="me-2" size={16} />
+                Export
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
