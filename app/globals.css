@@ -1102,11 +1102,10 @@ body {
     gap: 2px;
   }
   
-  /* Force all buttons to be equal width and inline */
+  /* Remove forced width - let dynamic calculation work */
   .section-header-actions-mobile > * {
     flex: 1;
     min-width: 0;
-    max-width: calc(25% - 1px);
   }
   
   /* Mobile specific btn-add styles */
@@ -1134,5 +1133,29 @@ body {
   .section-header-btn-mobile .me-1,
   .section-header-btn-mobile .me-2 {
     margin-right: 0.25rem !important;
+  }
+  
+  /* Mobile table responsiveness */
+  .table-section {
+    overflow-x: auto;
+  }
+  
+  .table-section .table {
+    min-width: 600px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure all tables are responsive on mobile */
+  .card .table {
+    min-width: 600px;
+  }
+  
+  .card .w-full.overflow-x-auto {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

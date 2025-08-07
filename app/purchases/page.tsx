@@ -837,101 +837,103 @@ const PurchasesPage = () => {
 
       {/* Purchases Table */}
       <div className="card table-section">
-        <table className="table table-hover">
-          <thead>
-            <tr>
-              <th>Order Number</th>
-              <th>Date</th>
-              <th>Supplier</th>
-              {currentView === "client" && (
-                <>
-                  <th>Client</th>
-                  <th>Paid To</th>
-                </>
-              )}
-              <th>Items</th>
-              <th>Total Amount</th>
-              <th style={{ width: "120px" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        <div className="w-full overflow-x-auto">
+          <table className="table table-hover">
+            <thead>
               <tr>
-                <td colSpan={currentView === "client" ? 8 : 6} className="text-center">Loading purchases...</td>
+                <th>Order Number</th>
+                <th>Date</th>
+                <th>Supplier</th>
+                {currentView === "client" && (
+                  <>
+                    <th>Client</th>
+                    <th>Paid To</th>
+                  </>
+                )}
+                <th>Items</th>
+                <th>Total Amount</th>
+                <th style={{ width: "120px" }}>Actions</th>
               </tr>
-            ) : filteredPurchases.length === 0 ? (
-              <tr>
-                <td colSpan={currentView === "client" ? 8 : 6} className="text-center">No purchases found</td>
-              </tr>
-            ) : (
-              filteredPurchases.map(purchase => (
-                <tr key={purchase.id}>
-                  <td>{purchase.purchase_order_number}</td>
-                  <td>{formatDate(purchase.purchase_date)}</td>
-                  <td>{purchase.supplier?.name || "-"}</td>
-                  {currentView === "client" && (
-                    <>
-                      <td>{purchase.client?.name || "-"}</td>
-                      <td>{purchase.paid_to || "-"}</td>
-                    </>
-                  )}
-                  <td>
-                    {purchase.items && purchase.items.length > 0 ? (
-                      <div style={{ maxHeight: "60px", overflowY: "auto" }}>
-                        {purchase.items.map((item, index) => (
-                          <div key={index} className="small">
-                            {(
-                              item.stock_item?.description && item.stock_item.description.trim() !== ''
-                                ? item.stock_item.description
-                                : (item.stock_item?.name && item.stock_item.name.trim() !== ''
-                                    ? item.stock_item.name
-                                    : 'N/A')
-                            )} ({item.quantity} {item.stock_item?.unit || 'N/A'})
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td>KES {purchase.total_amount.toFixed(2)}</td>
-                  <td>
-                    <div className="btn-group" role="group">
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleView(purchase)}
-                        title="View"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleEdit(purchase)}
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handlePrint(purchase)}
-                        title="Print"
-                      >
-                        <Printer size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm action-btn"
-                        onClick={() => handleDownload(purchase)}
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  </td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={currentView === "client" ? 8 : 6} className="text-center">Loading purchases...</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredPurchases.length === 0 ? (
+                <tr>
+                  <td colSpan={currentView === "client" ? 8 : 6} className="text-center">No purchases found</td>
+                </tr>
+              ) : (
+                filteredPurchases.map(purchase => (
+                  <tr key={purchase.id}>
+                    <td>{purchase.purchase_order_number}</td>
+                    <td>{formatDate(purchase.purchase_date)}</td>
+                    <td>{purchase.supplier?.name || "-"}</td>
+                    {currentView === "client" && (
+                      <>
+                        <td>{purchase.client?.name || "-"}</td>
+                        <td>{purchase.paid_to || "-"}</td>
+                      </>
+                    )}
+                    <td>
+                      {purchase.items && purchase.items.length > 0 ? (
+                        <div style={{ maxHeight: "60px", overflowY: "auto" }}>
+                          {purchase.items.map((item, index) => (
+                            <div key={index} className="small">
+                              {(
+                                item.stock_item?.description && item.stock_item.description.trim() !== ''
+                                  ? item.stock_item.description
+                                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
+                                      ? item.stock_item.name
+                                      : 'N/A')
+                              )} ({item.quantity} {item.stock_item?.unit || 'N/A'})
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>KES {purchase.total_amount.toFixed(2)}</td>
+                    <td>
+                      <div className="btn-group" role="group">
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleView(purchase)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleEdit(purchase)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handlePrint(purchase)}
+                          title="Print"
+                        >
+                          <Printer size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm action-btn"
+                          onClick={() => handleDownload(purchase)}
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* General Purchase Modal */}

@@ -190,7 +190,8 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
         />
 
         {/* Payments Table */}
-              <table className="table table-hover">
+        <div className="w-full overflow-x-auto">
+          <table className="table table-hover">
             <thead>
               <tr>
                 <th>Payment #</th>
@@ -269,6 +270,7 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
               )}
             </tbody>
           </table>
+        </div>
 
       {/* Payment Modal */}
       {showPaymentModal && (
