@@ -503,8 +503,8 @@ body {
     background: var(--primary-gradient) !important;
     color: white !important;
     border: none !important;
-    border-radius: 24px !important; /* Match card header border radius */
-    padding: 0.275rem 0.5rem !important; /* Match card header padding for mobile */
+    border-radius: 20px !important; /* Adjusted border radius */
+    padding: 0.75rem 0.5rem !important; /* Maintain button height while reducing horizontal padding for mobile */
     font-weight: 500 !important;
     display: flex !important;
     align-items: center !important;
