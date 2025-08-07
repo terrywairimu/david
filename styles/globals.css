@@ -503,14 +503,22 @@ body {
     background: var(--primary-gradient) !important;
     color: white !important;
     border: none !important;
-    border-radius: 16px !important;
-    padding: 12px 24px !important;
+    border-radius: 24px !important; /* Match card header border radius */
+    padding: 0.275rem 0.5rem !important; /* Match card header padding for mobile */
     font-weight: 500 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 0.275rem !important; /* Match card header padding for gap */
     transition: all 0.3s !important;
     cursor: pointer !important;
+}
+
+@media (min-width: 640px) {
+    .card > .card-header .btn-add,
+    .card .card-header .btn-add {
+        padding: 12px 24px !important; /* Original padding for larger screens */
+        gap: 8px !important; /* Original gap for larger screens */
+    }
 }
 
 .card > .card-header .btn-add:hover,
