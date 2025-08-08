@@ -79,11 +79,16 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 // Export functions
 export const exportQuotations = async (quotations: any[]) => {
   try {
-    // Dynamic import for jsPDF
+    // Dynamic import for jsPDF and autoTable plugin
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-const doc = new jsPDF() as any as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     // Add title
     doc.setFontSize(20)
@@ -136,9 +141,14 @@ const doc = new jsPDF() as any as any
 export const exportSalesOrders = async (salesOrders: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     doc.setFontSize(20)
     doc.text('Sales Orders Report', 105, 20, { align: 'center' })
@@ -186,9 +196,14 @@ export const exportSalesOrders = async (salesOrders: any[]) => {
 export const exportInvoices = async (invoices: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     doc.setFontSize(20)
     doc.text('Invoices Report', 105, 20, { align: 'center' })
@@ -238,9 +253,14 @@ export const exportInvoices = async (invoices: any[]) => {
 export const exportCashSales = async (cashSales: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     doc.setFontSize(20)
     doc.text('Cash Sales Report', 105, 20, { align: 'center' })
@@ -288,9 +308,14 @@ export const exportCashSales = async (cashSales: any[]) => {
 export const exportPayments = async (payments: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     // Add title
     doc.setFontSize(20)
@@ -345,9 +370,14 @@ export const exportPayments = async (payments: any[]) => {
 export const exportClientExpenses = async (expenses: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     // Add title
     doc.setFontSize(20)
@@ -402,9 +432,14 @@ export const exportClientExpenses = async (expenses: any[]) => {
 export const exportCompanyExpenses = async (expenses: any[]) => {
   try {
     const { jsPDF } = await import('jspdf')
-    require('jspdf-autotable')
+    await import('jspdf-autotable')
     
-    const doc = new jsPDF() as any
+    const doc = new jsPDF()
+    
+    // Ensure autoTable is available
+    if (!doc.autoTable) {
+      throw new Error('AutoTable plugin not loaded properly')
+    }
     
     // Add title
     doc.setFontSize(20)
