@@ -1012,6 +1012,29 @@ body {
     padding: 8px 12px 12px;
   }
 
+  /* PDF iframe mobile responsive */
+  .quotation-modal .modal-body iframe {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 60vh !important;
+  }
+
+  /* Ensure modal doesn't overflow on mobile */
+  .quotation-modal .modal-dialog {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+  }
+
+  .quotation-modal .modal-content {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+  }
+
+  .quotation-modal .modal-body {
+    max-height: calc(90vh - 120px) !important;
+    overflow-y: auto !important;
+  }
+
   /* Quotation item rows mobile layout */
   .quotation-item-row {
     flex-direction: column;
@@ -1036,6 +1059,34 @@ body {
   }
   .quotation-modal .modal-footer .btn:last-child {
     margin-bottom: 0;
+  }
+
+  /* Sales Order Modal Mobile Responsive Styles */
+  .modal-dialog[style*="794px"] {
+    max-width: min(794px, 95vw) !important;
+    width: min(794px, 95vw) !important;
+  }
+
+  .modal-body iframe {
+    width: min(794px, 100%) !important;
+    max-width: 100% !important;
+    height: 60vh !important;
+  }
+
+  /* Ensure all modals don't overflow on mobile */
+  .modal-dialog {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+  }
+
+  .modal-content {
+    max-height: 90vh !important;
+    overflow: hidden !important;
+  }
+
+  .modal-body {
+    max-height: calc(90vh - 120px) !important;
+    overflow-y: auto !important;
   }
 }
 

@@ -1508,8 +1508,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       <div 
         className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
-          maxWidth: "794px", // A4 width at 96 DPI (210mm = 794px)
-          width: "794px",
+          maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
+          width: "min(794px, 95vw)",
           margin: "1.75rem auto"
         } : {}}
       >
@@ -1558,10 +1558,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 <iframe
                   src={pdfUrl}
                   style={{
-                    width: "794px", // Exact A4 width
+                    width: "min(794px, 100%)", // Responsive width
                     height: "70vh",
                     border: "none",
-                    borderRadius: "0"
+                    borderRadius: "0",
+                    maxWidth: "100%"
                   }}
                   title="Quotation PDF"
                 />

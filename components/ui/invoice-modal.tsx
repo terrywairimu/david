@@ -1118,12 +1118,21 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
-      // Open in new window for printing
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile devices, open in new tab and let user manually print
+        window.open(url, '_blank');
+        toast.success("PDF opened in new tab. Please use your browser's print function.");
+      } else {
+        // For desktop, use automatic print
+        const printWindow = window.open(url, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
       }
       
     } catch (error) {
@@ -1480,10 +1489,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <iframe
                   src={pdfUrl}
                   style={{
-                    width: "794px", // Exact A4 width
+                    width: "min(794px, 100%)", // Responsive width
                     height: "70vh",
                     border: "none",
-                    borderRadius: "0"
+                    borderRadius: "0",
+                    maxWidth: "100%"
                   }}
                   title="Invoice PDF"
                 />

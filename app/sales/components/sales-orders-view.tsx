@@ -635,12 +635,24 @@ const SalesOrdersView = () => {
 
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
+      
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile devices, open in new tab and let user manually print
+        window.open(url, '_blank');
+        toast.success("PDF opened in new tab. Please use your browser's print function.");
+      } else {
+        // For desktop, use automatic print
+        const printWindow = window.open(url, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
       }
+      
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Error printing sales order:', error);
