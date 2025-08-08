@@ -1527,9 +1527,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const grandTotal = subtotalWithLabour; // Grand total remains the same
 
   return (
-    <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+    <div className="modal fade show d-block quotation-modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
       <div 
-        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-lg") : "modal-lg"} modal-dialog-centered`}
+        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
           maxWidth: "794px", // A4 width at 96 DPI (210mm = 794px)
           width: "794px",
@@ -1807,24 +1807,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         </div>
                     </div>
                         
-                        <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                          <div className="flex-fill flex-md-fill">
-                            <label className="d-md-none small text-white mb-1">Units</label>
-                    <input
-                      type="text"
+                        <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="text"
                             className="form-control"
                             value={item.unit}
                             onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
                             placeholder="Units"
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                    />
-                          </div>
-                          
-                          <div className="flex-fill flex-md-fill">
-                            <label className="d-md-none small text-white mb-1">Qty</label>
-                    <input
-                      type="number"
+                          />
+                        </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px" }}>
+                          <input
+                            type="number"
                             value={
                               rawQuantityValues[item.id?.toString() || ""] !== undefined
                                 ? rawQuantityValues[item.id?.toString() || ""]
@@ -1866,13 +1863,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             readOnly={isReadOnly}
                             min="0"
                             step="0.01"
-                    />
-                          </div>
+                          />
                         </div>
                         
-                        <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                          <div className="flex-fill flex-md-fill">
-                            <label className="d-md-none small text-white mb-1">Unit Price</label>
+                        <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                             className="form-control"
@@ -1884,14 +1878,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             min="0"
                             step="0.01"
                           />
-                          </div>
-                          
-                          <div className="flex-fill flex-md-fill">
-                            <label className="d-md-none small text-white mb-1">Total</label>
-                        <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
-                          KES {item.total_price.toFixed(2)}
                         </div>
-                          </div>
+                        
+                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                          KES {item.total_price.toFixed(2)}
                         </div>
 
                         {!isReadOnly && (
@@ -2122,91 +2112,81 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           </div>
                           
-                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Units</label>
-                          <input
-                            type="text"
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="text"
                               className="form-control"
-                            value={item.unit}
+                              value={item.unit}
                               onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
                               placeholder="Units"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                            </div>
-                            
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Qty</label>
-                          <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "100%",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                            </div>
+                              readOnly={isReadOnly}
+                            />
                           </div>
                           
-                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Unit Price</label>
-                          <input
-                            type="number"
-                              className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                            </div>
-                            
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Total</label>
-                          <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
-                            KES {item.total_price.toFixed(2)}
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              value={
+                                rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                  ? rawQuantityValues[item.id?.toString() || ""]
+                                  : (item.quantity === 1 ? "" : item.quantity)
+                              }
+                              onFocus={e => {
+                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                              }}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                              }}
+                              onBlur={e => {
+                                const val = e.target.value;
+                                const num = val === '' ? 1 : parseFloat(val);
+                                updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
+                                setRawQuantityValues(prev => {
+                                  const copy = { ...prev };
+                                  delete copy[item.id?.toString() || ""];
+                                  return copy;
+                                });
+                              }}
+                              placeholder="1"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "12px", 
+                                height: "40px", 
+                                fontSize: "13px",
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 12px",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
                           </div>
-                            </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.unit_price || ""}
+                              onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              placeholder="Unit Price"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
                           </div>
                           
                         {!isReadOnly && (
@@ -2473,89 +2453,81 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           </div>
                           
-                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Units</label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={item.unit}
-                                onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                                placeholder="Units"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Qty</label>
-                              <input
-                                type="number"
-                                value={
-                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                    ? rawQuantityValues[item.id?.toString() || ""]
-                                    : (item.quantity === 1 ? "" : item.quantity)
-                                }
-                                onFocus={e => {
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                                }}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                                }}
-                                onBlur={e => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 1 : parseFloat(val);
-                                  updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
-                                  setRawQuantityValues(prev => {
-                                    const copy = { ...prev };
-                                    delete copy[item.id?.toString() || ""];
-                                    return copy;
-                                  });
-                                }}
-                                placeholder="1"
-                                style={{ 
-                                  width: "100%",
-                                  borderRadius: "12px", 
-                                  height: "40px", 
-                                  fontSize: "13px",
-                                  background: "transparent", 
-                                  color: "#fff", 
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={item.unit}
+                              onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                              placeholder="Units"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                            />
                           </div>
                           
-                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Unit Price</label>
-                              <input
-                                type="number"
-                                className="form-control"
-                                value={item.unit_price || ""}
-                                onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                                placeholder="Unit Price"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                                readOnly={isReadOnly}
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            <div className="flex-fill flex-md-fill">
-                              <label className="d-md-none small text-white mb-1">Total</label>
-                              <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
-                                KES {item.total_price.toFixed(2)}
-                              </div>
-                            </div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              value={
+                                rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                  ? rawQuantityValues[item.id?.toString() || ""]
+                                  : (item.quantity === 1 ? "" : item.quantity)
+                              }
+                              onFocus={e => {
+                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                              }}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                              }}
+                              onBlur={e => {
+                                const val = e.target.value;
+                                const num = val === '' ? 1 : parseFloat(val);
+                                updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                                setRawQuantityValues(prev => {
+                                  const copy = { ...prev };
+                                  delete copy[item.id?.toString() || ""];
+                                  return copy;
+                                });
+                              }}
+                              placeholder="1"
+                              style={{ 
+                                width: "100%",
+                                borderRadius: "12px", 
+                                height: "40px", 
+                                fontSize: "13px",
+                                background: "transparent", 
+                                color: "#fff", 
+                                border: "none",
+                                padding: "8px 12px",
+                                boxShadow: "none",
+                                backgroundColor: "transparent",
+                                WebkitAppearance: "none",
+                                MozAppearance: "textfield",
+                                outline: "none"
+                              }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={item.unit_price || ""}
+                              onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              placeholder="Unit Price"
+                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                              readOnly={isReadOnly}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            KES {item.total_price.toFixed(2)}
                           </div>
                           
                         {!isReadOnly && (
