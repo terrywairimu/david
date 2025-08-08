@@ -2416,17 +2416,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         fontWeight: "600",
                         color: "white"
                       }}>
-                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
                       </div>
 
                       {/* Item Rows */}
                       {accessoriesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2">
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2473,85 +2473,93 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
-                              className="form-control"
-                            value={item.unit}
-                              onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
+                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Units</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Qty</label>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : parseFloat(val);
+                                  updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{ 
+                                  width: "100%",
+                                  borderRadius: "12px", 
+                                  height: "40px", 
+                                  fontSize: "13px",
+                                  background: "transparent", 
+                                  color: "#fff", 
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "100%",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                              className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            KES {item.total_price.toFixed(2)}
+                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Unit Price</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Total</label>
+                              <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
+                                KES {item.total_price.toFixed(2)}
+                              </div>
+                            </div>
                           </div>
                           
                         {!isReadOnly && (
-                            <div style={{ flex: "0 0 40px" }}>
+                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
@@ -2722,17 +2730,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         fontWeight: "600",
                         color: "white"
                       }}>
-                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
                       </div>
 
                       {/* Item Rows */}
                       {appliancesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2">
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2857,7 +2865,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           </div>
                           
                         {!isReadOnly && (
-                            <div style={{ flex: "0 0 40px" }}>
+                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
@@ -3028,17 +3036,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         fontWeight: "600",
                         color: "white"
                       }}>
-                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
                       </div>
 
                       {/* Item Rows */}
                       {wardrobesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2">
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3163,7 +3171,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           </div>
                           
                         {!isReadOnly && (
-                            <div style={{ flex: "0 0 40px" }}>
+                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
@@ -3334,17 +3342,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         fontWeight: "600",
                         color: "white"
                       }}>
-                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
                       </div>
 
                       {/* Item Rows */}
                       {tvUnitItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2">
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3469,7 +3477,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           </div>
                           
                         {!isReadOnly && (
-                            <div style={{ flex: "0 0 40px" }}>
+                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
