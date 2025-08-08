@@ -407,6 +407,50 @@ const SalesOrdersView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Calculate section total first to determine if we should include this section
+        let sectionPrintTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          sectionPrintTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = salesOrder.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionPrintTotal += labourCharge;
+          }
+        }
+        
+        // Only include section if total is greater than 0
+        if (sectionPrintTotal <= 0) return;
+        
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: salesOrder.section_names?.cabinet || "General",
@@ -506,10 +550,10 @@ const SalesOrdersView = () => {
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionSummaryTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
-          sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+          sectionSummaryTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
@@ -537,7 +581,7 @@ const SalesOrdersView = () => {
           
           const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
           if (labourCharge > 0) {
-            sectionTotal += labourCharge;
+            sectionSummaryTotal += labourCharge;
           }
         }
         
@@ -548,7 +592,7 @@ const SalesOrdersView = () => {
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
+          total: sectionSummaryTotal.toFixed(2) // Always show total, even if 0.00
         });
       });
 
@@ -629,6 +673,50 @@ const SalesOrdersView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Calculate section total first to determine if we should include this section
+        let sectionDownloadTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
+          sectionDownloadTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = salesOrder.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionDownloadTotal += labourCharge;
+          }
+        }
+        
+        // Only include section if total is greater than 0
+        if (sectionDownloadTotal <= 0) return;
+        
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: salesOrder.section_names?.cabinet || "General",
@@ -728,10 +816,10 @@ const SalesOrdersView = () => {
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionSummaryTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
-          sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
+          sectionSummaryTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
@@ -759,7 +847,7 @@ const SalesOrdersView = () => {
           
           const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
           if (labourCharge > 0) {
-            sectionTotal += labourCharge;
+            sectionSummaryTotal += labourCharge;
           }
         }
         
@@ -770,7 +858,7 @@ const SalesOrdersView = () => {
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
+          total: sectionSummaryTotal.toFixed(2) // Always show total, even if 0.00
         });
       });
 

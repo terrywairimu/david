@@ -863,57 +863,58 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       
       // Add cabinet section header and items
       if (cabinetItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.cabinet,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        cabinetItems.forEach(item => {
+        const cabinetTotalWithLabour = totals.cabinetTotal + cabinetLabour;
+        if (cabinetTotalWithLabour > 0) {
           items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            isSection: true,
+            description: sectionNames.cabinet,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-        });
-        // Add cabinet section summary
-        if (totals.cabinetTotal > 0) {
+          cabinetItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add cabinet section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.cabinet} Total`,
             quantity: 0,
             unit: "",
             unitPrice: totals.cabinetTotal,
-            total: totals.cabinetTotal + cabinetLabour
+            total: cabinetTotalWithLabour
           });
         }
       }
       
       // Add worktop section header and items
       if (worktopItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.worktop,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        worktopItems.forEach(item => {
-          items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
-          });
-        });
-        // Add worktop section summary
         if (totals.worktopTotal > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.worktop,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          worktopItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add worktop section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.worktop} Total`,
@@ -927,128 +928,132 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       
       // Add accessories section header and items
       if (accessoriesItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.accessories,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        accessoriesItems.forEach(item => {
+        const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
+        if (accessoriesTotalWithLabour > 0) {
           items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            isSection: true,
+            description: sectionNames.accessories,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-        });
-        // Add accessories section summary
-        if (totals.accessoriesTotal > 0) {
+          accessoriesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add accessories section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.accessories} Total`,
             quantity: 0,
             unit: "",
             unitPrice: totals.accessoriesTotal,
-            total: totals.accessoriesTotal + accessoriesLabour
+            total: accessoriesTotalWithLabour
           });
         }
       }
       
       // Add appliances section header and items
       if (appliancesItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.appliances,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        appliancesItems.forEach(item => {
+        const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
+        if (appliancesTotalWithLabour > 0) {
           items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            isSection: true,
+            description: sectionNames.appliances,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-        });
-        // Add appliances section summary
-        if (totals.appliancesTotal > 0) {
+          appliancesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add appliances section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.appliances} Total`,
             quantity: 0,
             unit: "",
             unitPrice: totals.appliancesTotal,
-            total: totals.appliancesTotal + appliancesLabour
+            total: appliancesTotalWithLabour
           });
         }
       }
       
       // Add wardrobes section header and items
       if (wardrobesItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.wardrobes,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        wardrobesItems.forEach(item => {
+        const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
+        if (wardrobesTotalWithLabour > 0) {
           items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            isSection: true,
+            description: sectionNames.wardrobes,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-        });
-        // Add wardrobes section summary
-        if (totals.wardrobesTotal > 0) {
+          wardrobesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add wardrobes section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.wardrobes} Total`,
             quantity: 0,
             unit: "",
             unitPrice: totals.wardrobesTotal,
-            total: totals.wardrobesTotal + wardrobesLabour
+            total: wardrobesTotalWithLabour
           });
         }
       }
       
       // Add TV Unit section header and items
       if (tvUnitItems.length > 0) {
-        items.push({
-          isSection: true,
-          description: sectionNames.tvunit,
-          quantity: 0,
-          unit: "",
-          unitPrice: 0,
-          total: 0
-        });
-        tvUnitItems.forEach(item => {
+        const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
+        if (tvUnitTotalWithLabour > 0) {
           items.push({
-            quantity: item.quantity,
-            unit: item.unit,
-            description: item.description,
-            unitPrice: item.unit_price,
-            total: item.total_price
+            isSection: true,
+            description: sectionNames.tvunit,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-        });
-        // Add TV Unit section summary
-        if (totals.tvUnitTotal > 0) {
+          tvUnitItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add TV Unit section summary
           items.push({
             isSectionSummary: true,
             description: `${sectionNames.tvunit} Total`,
             quantity: 0,
             unit: "",
             unitPrice: totals.tvUnitTotal,
-            total: totals.tvUnitTotal + tvUnitLabour
+            total: tvUnitTotalWithLabour
           });
         }
       }
@@ -1144,6 +1149,50 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Calculate section total first to determine if we should include this section
+        let currentSectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+        
+        // Add worktop labor to section total if it exists
+        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          currentSectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop sections)
+        if (category !== 'worktop' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            currentSectionTotal += labourCharge;
+          }
+        }
+        
+        // Only include section if total is greater than 0
+        if (currentSectionTotal <= 0) return;
+        
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: quotation.section_names?.cabinet || "General",
@@ -1249,11 +1298,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+        let sectionTotal2 = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
-          sectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+          sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
@@ -1281,7 +1330,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           
           const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
           if (labourCharge > 0) {
-            sectionTotal += labourCharge;
+            sectionTotal2 += labourCharge;
           }
         }
         
@@ -1292,7 +1341,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           unit: "",
           description: `${sectionLabel} Total`,
           unitPrice: "",
-          total: sectionTotal.toFixed(2) // Always show total, even if 0.00
+          total: sectionTotal2.toFixed(2) // Always show total, even if 0.00
         };
         
         items.push(summaryRow);
