@@ -124,7 +124,7 @@ const calculateTextWidth = (text: string, fontSize: number, fontName: string = '
   // Average character width multipliers for different fonts (in mm per point)
   const fontMultipliers = {
     'Helvetica': 0.52,
-    'Helvetica-Bold': 0.56,
+    'Helvetica-Bold': 0.58, // Increased for better accuracy
     'Helvetica-Oblique': 0.52,
     'Times-Roman': 0.48,
     'Times-Bold': 0.52
@@ -135,7 +135,16 @@ const calculateTextWidth = (text: string, fontSize: number, fontName: string = '
   // Calculate approximate width in mm
   // Convert font size from points to mm (1 point = 0.352778 mm)
   const fontSizeInMM = fontSize * 0.352778;
-  return text.length * fontSizeInMM * multiplier;
+  
+  // For section headers, add a small buffer to account for character variations
+  const baseWidth = text.length * fontSizeInMM * multiplier;
+  
+  // Add extra padding for section headers to prevent wrapping
+  if (fontName === 'Helvetica-Bold' && fontSize === 11) {
+    return baseWidth + 1; // Add 1mm buffer for section headers
+  }
+  
+  return baseWidth;
 };
 
 // Function to truncate text to fit within a given width
@@ -387,8 +396,8 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       const y = tableHeaderY + tableHeaderHeight + rowIdx * rowHeight;
       if (rowObj.isSection) {
         // Section heading: large, bold, all caps, span description column
-        // Calculate available width (from description column start to end of unit price column)
-        const maxSectionWidth = 108; // From x:29 to x:137 (end of unit price column)
+        // Calculate available width (from description column start to end of quantity column)
+        const maxSectionWidth = 113; // From x:24 to x:137 (end of quantity column)
         const sectionText = rowObj.row[1];
         const fontSize = 11;
         const fontName = 'Helvetica-Bold';
@@ -396,20 +405,20 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         // Check if text fits within available space
         const textWidth = calculateTextWidth(sectionText, fontSize, fontName);
         let displayText = sectionText;
-        let sectionWidth = Math.min(textWidth + 2, maxSectionWidth); // Add 2mm padding
+        let sectionWidth = Math.min(textWidth + 3, maxSectionWidth); // Increased padding to 3mm
         
         // If text is too long, truncate it to fit
-        if (textWidth > maxSectionWidth - 2) {
-          displayText = truncateTextToFit(sectionText, maxSectionWidth - 2, fontSize, fontName);
+        if (textWidth > maxSectionWidth - 3) {
+          displayText = truncateTextToFit(sectionText, maxSectionWidth - 3, fontSize, fontName);
           sectionWidth = maxSectionWidth;
         }
         
         pageSchemas.push({
           name: `descSection${pageIdx}_${rowIdx}`,
           type: 'text',
-          position: { x: 29, y },
+          position: { x: 24, y }, // Start at description column position
           width: sectionWidth,
-          height: 7,
+          height: 8, // Increased height for better text display
           fontSize: fontSize,
           fontColor: '#000',
           fontName: fontName,
@@ -693,7 +702,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     rows.forEach((rowObj, rowIdx) => {
       if (rowObj.isSection) {
         // Apply the same text truncation logic as used in the schema generation
-        const maxSectionWidth = 108;
+        const maxSectionWidth = 113; // Updated to match schema generation
         const fontSize = 11;
         const fontName = 'Helvetica-Bold';
         const sectionText = rowObj.row[1];
@@ -702,8 +711,8 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         let displayText = sectionText;
         
         // If text is too long, truncate it to fit
-        if (textWidth > maxSectionWidth - 2) {
-          displayText = truncateTextToFit(sectionText, maxSectionWidth - 2, fontSize, fontName);
+        if (textWidth > maxSectionWidth - 3) {
+          displayText = truncateTextToFit(sectionText, maxSectionWidth - 3, fontSize, fontName);
         }
         
         dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = displayText;
