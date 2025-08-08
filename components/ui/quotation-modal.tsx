@@ -1529,7 +1529,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
       <div 
-        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
+        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-lg") : "modal-lg"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
           maxWidth: "794px", // A4 width at 96 DPI (210mm = 794px)
           width: "794px",
@@ -1615,7 +1615,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Client and Quotation Number Section */}
             <div className="row mb-4">
-              <div className="col-md-8">
+              <div className="col-md-8 col-12 mb-3 mb-md-0">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
@@ -1685,7 +1685,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 </div>
               </div>
 
-              <div className="col-md-4">
+              <div className="col-md-4 col-12">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
                     
@@ -1750,18 +1750,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       fontWeight: "600",
                       color: "white"
                     }}>
-                      <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                      <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                      <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                      <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                      <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                      {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                      <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                      {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
                 </div>
 
                     {/* Item Rows */}
                     {cabinetItems.map((item, index) => (
-                      <div key={item.id} className="d-flex align-items-center mb-2">
-                        <div style={{ flex: "2", marginRight: "16px" }}>
+                      <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                           <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                       <input
                         type="text"
@@ -1807,7 +1807,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         </div>
                     </div>
                         
-                        <div style={{ flex: "1", marginRight: "16px" }}>
+                        <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="flex-fill flex-md-fill">
+                            <label className="d-md-none small text-white mb-1">Units</label>
                     <input
                       type="text"
                             className="form-control"
@@ -1817,9 +1819,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
                     />
-                  </div>
-                        
-                        <div style={{ flex: "1", marginRight: "16px" }}>
+                          </div>
+                          
+                          <div className="flex-fill flex-md-fill">
+                            <label className="d-md-none small text-white mb-1">Qty</label>
                     <input
                       type="number"
                             value={
@@ -1864,9 +1867,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             min="0"
                             step="0.01"
                     />
-                  </div>
+                          </div>
+                        </div>
                         
-                        <div style={{ flex: "1", marginRight: "16px" }}>
+                        <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="flex-fill flex-md-fill">
+                            <label className="d-md-none small text-white mb-1">Unit Price</label>
                           <input
                             type="number"
                             className="form-control"
@@ -1878,14 +1884,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             min="0"
                             step="0.01"
                           />
-                </div>
-                        
-                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                          </div>
+                          
+                          <div className="flex-fill flex-md-fill">
+                            <label className="d-md-none small text-white mb-1">Total</label>
+                        <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
                           KES {item.total_price.toFixed(2)}
-              </div>
+                        </div>
+                          </div>
+                        </div>
 
                         {!isReadOnly && (
-                          <div style={{ flex: "0 0 40px" }}>
+                          <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
@@ -2065,8 +2075,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {worktopItems.map((item, index) => (
-                        <div key={item.id} className="d-flex align-items-center mb-2">
-                          <div style={{ flex: "2", marginRight: "16px" }}>
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                          <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
                             type="text"
@@ -2112,7 +2122,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Units</label>
                           <input
                             type="text"
                               className="form-control"
@@ -2122,9 +2134,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
                           />
-                          </div>
-                          
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                            </div>
+                            
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Qty</label>
                           <input
                             type="number"
                             value={
@@ -2169,9 +2182,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             min="0"
                             step="0.01"
                           />
+                            </div>
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="d-flex flex-row flex-md-column gap-2 gap-md-0 w-100 w-md-auto" style={{ flex: "1", marginRight: "16px" }}>
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Unit Price</label>
                           <input
                             type="number"
                               className="form-control"
@@ -2183,14 +2199,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             min="0"
                             step="0.01"
                           />
-                          </div>
-                          
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            </div>
+                            
+                            <div className="flex-fill flex-md-fill">
+                              <label className="d-md-none small text-white mb-1">Total</label>
+                          <div style={{ fontWeight: "600", color: "#ffffff", padding: "8px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.1)" }}>
                             KES {item.total_price.toFixed(2)}
+                          </div>
+                            </div>
                           </div>
                           
                         {!isReadOnly && (
-                            <div style={{ flex: "0 0 40px" }}>
+                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
@@ -3669,7 +3689,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           {/* Footer */}
           <div className="modal-footer border-0" style={{ padding: "16px 32px 24px" }}>
             {mode === "view" ? (
-              <>
+              <div className="d-flex flex-column flex-md-row gap-2 gap-md-0 w-100">
                 <button
                   type="button"
                   className="btn btn-light"
@@ -3693,7 +3713,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   return showButton ? (
                   <button
                     type="button"
-                    className="btn btn-primary me-2"
+                    className="btn btn-primary"
                     onClick={() => onProceedToSalesOrder(quotation)}
                     style={{ 
                       borderRadius: "12px", 
@@ -3721,9 +3741,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   <Download className="me-2" size={16} />
                   Download
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="d-flex flex-column flex-md-row gap-2 gap-md-0 w-100">
                 <button
                   type="button"
                   className="btn btn-light"
@@ -3739,7 +3759,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   return showButton ? (
                   <button
                     type="button"
-                    className="btn btn-primary me-2"
+                    className="btn btn-primary"
                     onClick={() => onProceedToSalesOrder(quotation)}
                     style={{ 
                       borderRadius: "12px", 
@@ -3775,7 +3795,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     "Save Quotation"
                   )}
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
