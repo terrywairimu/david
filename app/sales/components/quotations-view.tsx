@@ -1069,10 +1069,13 @@ const QuotationsView = () => {
           }
         }
         
-        sectionTotals.push({
-          name: sectionLabel,
-          total: sectionTotal5
-        });
+        // Only add section total if it's greater than 0
+        if (sectionTotal5 > 0) {
+          sectionTotals.push({
+            name: sectionLabel,
+            total: sectionTotal5
+          });
+        }
       });
 
       // Prepare quotation data
