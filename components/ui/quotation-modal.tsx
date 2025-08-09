@@ -3829,14 +3829,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 {(() => {
                   const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
                   
-                  // Debug logging for button visibility
-                  console.log('Proceed to Sales Order Button Debug:', {
-                    hasPayments,
-                    quotation_status: quotation?.status,
-                    onProceedToSalesOrder: !!onProceedToSalesOrder,
-                    showButton,
-                    quotation_number: quotation?.quotation_number
-                  });
+                  // Debug logging for button visibility (only when showButton changes)
+                  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+                    console.log('Proceed to Sales Order Button Debug:', {
+                      hasPayments,
+                      quotation_status: quotation?.status,
+                      onProceedToSalesOrder: !!onProceedToSalesOrder,
+                      showButton,
+                      quotation_number: quotation?.quotation_number
+                    });
+                  }
                   
                   return showButton ? (
                   <button

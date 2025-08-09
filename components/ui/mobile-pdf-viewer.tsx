@@ -21,11 +21,34 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
 }) => {
   const [isClient, setIsClient] = useState<boolean>(false)
   const [fullscreen, setFullscreen] = useState<boolean>(false)
+  const [iframeError, setIframeError] = useState<boolean>(false)
 
   // Ensure component only renders on client side
   useEffect(() => {
     setIsClient(true)
-  }, [])
+    // Debug log the PDF URL (only in development)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('Mobile PDF Viewer - PDF URL:', pdfUrl)
+    }
+  }, [pdfUrl])
+
+  // Set a timeout to show fallback if iframe doesn't load within 3 seconds
+  useEffect(() => {
+    if (pdfUrl && isClient) {
+      const timer = setTimeout(() => {
+        // On mobile, many browsers don't support PDF iframes, so show fallback
+        const userAgent = navigator.userAgent.toLowerCase()
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+        
+        if (isMobile) {
+          console.warn('Mobile PDF Viewer - Mobile device detected, showing fallback for better UX')
+          setIframeError(true)
+        }
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [pdfUrl, isClient])
 
   const handleOpenInNewTab = () => {
     if (pdfUrl) {
@@ -35,6 +58,11 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
 
   const handleToggleFullscreen = () => {
     setFullscreen(!fullscreen)
+  }
+
+  const handleIframeError = () => {
+    setIframeError(true)
+    console.error('Mobile PDF Viewer - Iframe failed to load PDF')
   }
 
   // Show loading state during SSR or if PDF URL is not available
@@ -104,18 +132,50 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           backgroundColor: "#f8f9fa"
         }}
       >
-        <iframe
-          src={`${pdfUrl}#view=FitH&toolbar=1&navpanes=1&scrollbar=1`}
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            borderRadius: fullscreen ? "0" : "8px"
-          }}
-          title={`Quotation ${quotationNumber} PDF`}
-          loading="lazy"
-          sandbox="allow-scripts allow-same-origin allow-downloads"
-        />
+        {!iframeError ? (
+          <iframe
+            src={pdfUrl}
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              borderRadius: fullscreen ? "0" : "8px"
+            }}
+            title={`Quotation ${quotationNumber} PDF`}
+            loading="lazy"
+            allow="fullscreen"
+            onError={handleIframeError}
+          />
+        ) : (
+          <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center p-4">
+            <div className="mb-3" style={{ fontSize: "48px", color: "#667eea" }}>📱📄</div>
+            <h5 className="mb-3">Mobile PDF Viewer</h5>
+            <p className="text-muted mb-4">
+              For the best mobile experience, tap <strong>"Open PDF"</strong> to view in your browser's PDF viewer with zoom and navigation controls.
+            </p>
+            <div className="d-flex gap-2 flex-wrap justify-content-center">
+              <button
+                className="btn btn-primary btn-lg"
+                onClick={handleOpenInNewTab}
+              >
+                <ExternalLink size={18} className="me-2" />
+                Open PDF
+              </button>
+              {onDownload && (
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={onDownload}
+                >
+                  <Download size={16} className="me-1" />
+                  Download
+                </button>
+              )}
+            </div>
+            <small className="text-muted mt-3">
+              💡 Your browser's PDF viewer provides better zoom and navigation on mobile
+            </small>
+          </div>
+        )}
         
         {fullscreen && (
           <button
