@@ -1,13 +1,31 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
+import { useIsMobile } from "@/hooks/use-mobile"
+import PrintModal from "./print-modal"
+import dynamic from 'next/dynamic'
+
+// Dynamically import MobilePDFViewer to avoid SSR issues
+const MobilePDFViewer = dynamic(() => import('./mobile-pdf-viewer'), { 
+  ssr: false,
+  loading: () => (
+    <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+      <div className="text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2 text-muted">Loading PDF Viewer...</p>
+      </div>
+    </div>
+  )
+})
 
 interface Client {
   id: number
@@ -173,6 +191,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // PDF viewing state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  
+  // Mobile detection and print modal state
+  const isMobile = useIsMobile()
+  const [showPrintModal, setShowPrintModal] = useState(false)
   
   // Payment tracking state
   const [totalPaid, setTotalPaid] = useState(0)
@@ -832,8 +854,6 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const generatePDF = async () => {
-    alert('generatePDF function called');
-
     try {
   
       const { generate } = await import('@pdfme/generator');
@@ -1117,6 +1137,72 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     } catch (error) {
 
       toast.error("Failed to generate PDF. Please try again.");
+    }
+  }
+
+  // Print modal handlers
+  const handlePrintModalOpen = () => {
+    if (isMobile) {
+      setShowPrintModal(true)
+    } else {
+      // On desktop, directly download
+      generatePDF()
+    }
+  }
+
+  const handlePrintModalClose = () => {
+    setShowPrintModal(false)
+  }
+
+  const handlePrint = async () => {
+    try {
+      if (!pdfUrl) {
+        await generatePDFForViewing()
+      }
+      
+      // Create a new window for printing
+      const printWindow = window.open(pdfUrl || '', '_blank')
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print()
+        }
+      }
+      setShowPrintModal(false)
+    } catch (error) {
+      toast.error("Failed to print. Please try again.")
+    }
+  }
+
+  const handleDownload = () => {
+    generatePDF()
+    setShowPrintModal(false)
+  }
+
+  const handleView = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank')
+    } else {
+      generatePDFForViewing().then(() => {
+        if (pdfUrl) {
+          window.open(pdfUrl, '_blank')
+        }
+      })
+    }
+    setShowPrintModal(false)
+  }
+
+  const handleShare = async () => {
+    if (navigator.share && pdfUrl) {
+      try {
+        await navigator.share({
+          title: `Quotation ${quotationNumber}`,
+          text: `Quotation ${quotationNumber} from Cabinet Master Styles`,
+          url: pdfUrl
+        })
+        setShowPrintModal(false)
+      } catch (error) {
+        toast.error("Failed to share. Please try again.")
+      }
     }
   }
 
@@ -1576,7 +1662,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const grandTotal = subtotalWithLabour; // Grand total remains the same
 
   return (
-    <div className="modal fade show d-block quotation-modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+    <>
+      <div className="modal fade show d-block quotation-modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
       <div 
         className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
@@ -1621,24 +1708,35 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           {mode === "view" && pdfUrl ? (
             <div className="modal-body" style={{ 
               padding: "0", 
-              maxHeight: "70vh", 
+              maxHeight: isMobile ? "80vh" : "70vh", 
               overflowY: "hidden",
               display: "flex",
               justifyContent: "center"
             }}>
-              <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
-                <iframe
-                  src={pdfUrl}
-                  style={{
-                    width: "min(794px, 100%)", // Responsive width
-                    height: "70vh",
-                    border: "none",
-                    borderRadius: "0",
-                    maxWidth: "100%"
-                  }}
-                  title="Quotation PDF"
+              {isMobile ? (
+                <MobilePDFViewer
+                  pdfUrl={pdfUrl}
+                  quotationNumber={quotationNumber}
+                  onDownload={handleDownload}
+                  onPrint={handlePrint}
+                  onShare={handleShare}
                 />
-              </div>
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
+                  <iframe
+                    src={pdfUrl}
+                    style={{
+                      width: "min(794px, 100%)",
+                      height: "70vh",
+                      border: "none",
+                      borderRadius: "0",
+                      maxWidth: "100%"
+                    }}
+                    title="Quotation PDF"
+                    allowFullScreen={true}
+                  />
+                </div>
+              )}
             </div>
           ) : mode === "view" && pdfLoading ? (
             <div className="modal-body" style={{ 
@@ -3760,7 +3858,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 <button
                   type="button"
                   className="btn btn-success"
-                  onClick={generatePDF}
+                  onClick={handlePrintModalOpen}
                   style={{ 
                     borderRadius: "12px", 
                     padding: "10px 24px",
@@ -3768,8 +3866,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     border: "none"
                   }}
                 >
-                  <Download className="me-2" size={16} />
-                  Download
+                  {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
+                  {isMobile ? "Print/Share" : "Download"}
                 </button>
               </div>
             ) : (
@@ -3830,7 +3928,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      
+      {/* Print Modal for Mobile */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={handlePrintModalClose}
+        pdfUrl={pdfUrl}
+        quotationNumber={quotationNumber}
+        onDownload={handleDownload}
+        onPrint={handlePrint}
+        onView={handleView}
+        onShare={handleShare}
+      />
+    </>
   )
 }
 
