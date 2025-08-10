@@ -1750,7 +1750,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             <div className="modal-body" style={{ 
               padding: "0", 
               maxHeight: isMobile ? "80vh" : "70vh", 
-              overflowY: "hidden",
+              overflowY: isMobile ? "auto" : "hidden",
+              WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
               display: "flex",
               justifyContent: "center"
             }}>

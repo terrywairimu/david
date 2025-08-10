@@ -66,12 +66,20 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum)
             if (canceled || !container.isConnected) return
-            const viewport = page.getViewport({ scale: Math.min((typeof window !== 'undefined' ? window.innerWidth - 24 : 360) / page.getViewport({ scale: 1 }).width, 1.3) })
+            const devicePixelRatio = typeof window !== 'undefined' ? Math.max(window.devicePixelRatio || 1, 1) : 1
+            const baseScale = (typeof window !== 'undefined' ? (window.innerWidth - 24) : 360) / page.getViewport({ scale: 1 }).width
+            // Improve clarity by rendering at higher pixel density
+            const scale = Math.min(baseScale * devicePixelRatio, 2.5)
+            const viewport = page.getViewport({ scale })
             const canvas = document.createElement('canvas')
             const context = canvas.getContext('2d')!
-            canvas.width = viewport.width
-            canvas.height = viewport.height
+            canvas.width = Math.floor(viewport.width)
+            canvas.height = Math.floor(viewport.height)
             canvas.style.marginBottom = '12px'
+            // Display size independent of DPR
+            const cssScale = Math.max(baseScale, 0.5)
+            canvas.style.width = `${Math.floor(page.getViewport({ scale: cssScale }).width)}px`
+            canvas.style.height = `${Math.floor(page.getViewport({ scale: cssScale }).height)}px`
             container.appendChild(canvas)
             await page.render({ canvasContext: context, viewport }).promise
           }
@@ -261,7 +269,9 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           top: fullscreen ? 0 : "auto",
           left: fullscreen ? 0 : "auto",
           zIndex: fullscreen ? 9999 : "auto",
-          backgroundColor: "#f8f9fa"
+          backgroundColor: "#f8f9fa",
+          overflowY: (usePdfjs || iframeError) ? 'auto' : 'hidden',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {!iframeError && !usePdfjs ? (
@@ -281,7 +291,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
             onLoad={handleIframeLoad}
           />
         ) : (
-          <div className="h-100 w-100 overflow-auto d-flex flex-column align-items-center">
+          <div className="h-100 w-100" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div ref={viewerRef} className="w-100 d-flex flex-column align-items-center p-2" />
           </div>
         )}
