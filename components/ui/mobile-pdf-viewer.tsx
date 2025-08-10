@@ -67,7 +67,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
             const page = await pdf.getPage(pageNum)
             if (canceled || !container.isConnected) return
             const devicePixelRatio = typeof window !== 'undefined' ? Math.max(window.devicePixelRatio || 1, 1) : 1
-            const baseScale = (typeof window !== 'undefined' ? (window.innerWidth - 24) : 360) / page.getViewport({ scale: 1 }).width
+            const baseScale = (typeof window !== 'undefined' ? window.innerWidth : 360) / page.getViewport({ scale: 1 }).width
             // Improve clarity by rendering at higher pixel density
             const scale = Math.min(baseScale * devicePixelRatio, 2.5)
             const viewport = page.getViewport({ scale })
@@ -222,7 +222,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   return (
     <div className="mobile-pdf-viewer" style={{ width: "100%", height: "100%" }}>
       {/* Action Buttons */}
-      <div className="quotation-mobile-actions d-flex justify-content-center gap-2 p-3">
+      <div className="quotation-mobile-actions d-flex justify-content-center gap-2 p-3" style={{ margin: 0 }}>
         <button
           className="btn btn-sm btn-mobile-outline"
           onClick={handleOpenFullClick}
@@ -271,7 +271,9 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           zIndex: fullscreen ? 9999 : "auto",
           backgroundColor: "#f8f9fa",
           overflowY: (usePdfjs || iframeError) ? 'auto' : 'hidden',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          padding: 0,
+          margin: 0
         }}
       >
         {!iframeError && !usePdfjs ? (
@@ -281,7 +283,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
               width: "100%",
               height: "100%",
               border: "none",
-              borderRadius: fullscreen ? "0" : "8px"
+              borderRadius: fullscreen ? "0" : "0"
             }}
             title={`Quotation ${quotationNumber} PDF`}
             loading="lazy"
@@ -291,8 +293,8 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
             onLoad={handleIframeLoad}
           />
         ) : (
-          <div className="h-100 w-100" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <div ref={viewerRef} className="w-100 d-flex flex-column align-items-center p-2" />
+          <div className="h-100 w-100" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: 0, margin: 0 }}>
+            <div ref={viewerRef} className="w-100 d-flex flex-column align-items-stretch" />
           </div>
         )}
         
@@ -311,12 +313,6 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         )}
       </div>
 
-      {/* Mobile Tips */}
-      <div className="p-2 bg-light border-top">
-        <small className="text-muted d-block text-center">
-          💡 Tip: Use pinch to zoom, swipe to navigate. Tap "Open Full" for better viewing.
-        </small>
-      </div>
     </div>
   )
 }

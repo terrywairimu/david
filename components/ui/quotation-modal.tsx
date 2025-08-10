@@ -1748,12 +1748,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           {/* Body */}
           {mode === "view" && pdfUrl ? (
             <div className="modal-body" style={{ 
-              padding: "0", 
+              padding: 0, 
               maxHeight: isMobile ? "80vh" : "70vh", 
               overflowY: isMobile ? "auto" : "hidden",
               WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
               display: "flex",
-              justifyContent: "center"
+              justifyContent: "center",
+              margin: 0
             }}>
               {isMobile ? (
                 <MobilePDFViewer
@@ -1768,11 +1769,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   <iframe
                     src={pdfUrl}
                     style={{
-                      width: "min(794px, 100%)",
+                      width: "100%",
                       height: "70vh",
                       border: "none",
                       borderRadius: "0",
-                      maxWidth: "100%"
+                      maxWidth: "100%",
+                      margin: 0
                     }}
                     title="Quotation PDF"
                     allowFullScreen={true}
@@ -1802,12 +1804,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="modal-body" style={{ padding: "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
+            <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Client and Quotation Number Section */}
             <div className="row mb-4">
               <div className="col-md-8 col-12 mb-3 mb-md-0">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
+                  <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
                       <User size={18} className="me-2" />
                       Client Information
@@ -2070,12 +2072,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                         </div>
                         
-                        <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                        <div className="item-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                           KES {item.total_price.toFixed(2)}
                         </div>
 
                         {!isReadOnly && (
-                          <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                          <div className="item-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
@@ -3955,59 +3957,115 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 </div>
               </>
             ) : (
-              <div className="d-flex flex-column flex-md-row gap-2 gap-md-0 w-100">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "10px 24px" }}
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                {(() => {
-                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                  
-                  return showButton ? (
+              <>
+                {/* Mobile: single row, right-aligned */}
+                <div className="d-flex d-md-none w-100 justify-content-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-light"
+                    onClick={onClose}
+                    style={{ borderRadius: "12px", padding: "10px 24px" }}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  {(() => {
+                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                    return showButton ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => onProceedToSalesOrder(quotation)}
+                        style={{ 
+                          borderRadius: "12px", 
+                          padding: "10px 24px",
+                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                          border: "none"
+                        }}
+                        disabled={loading}
+                      >
+                        <CreditCard className="me-2" size={16} />
+                        Proceed to Sales Order
+                      </button>
+                    ) : null;
+                  })()}
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={() => onProceedToSalesOrder(quotation)}
+                    onClick={handleSave}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       border: "none"
                     }}
                     disabled={loading}
                   >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Quotation"
+                    )}
                   </button>
-                  ) : null;
-                })()}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSave}
-                  style={{ 
-                    borderRadius: "12px", 
-                    padding: "10px 24px",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    border: "none"
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Quotation"
-                  )}
-                </button>
-              </div>
+                </div>
+
+                {/* Desktop: inline, right-aligned */}
+                <div className="d-none d-md-flex w-100 justify-content-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-light"
+                    onClick={onClose}
+                    style={{ borderRadius: "12px", padding: "10px 24px" }}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  {(() => {
+                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                    return showButton ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => onProceedToSalesOrder(quotation)}
+                        style={{ 
+                          borderRadius: "12px", 
+                          padding: "10px 24px",
+                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                          border: "none"
+                        }}
+                        disabled={loading}
+                      >
+                        <CreditCard className="me-2" size={16} />
+                        Proceed to Sales Order
+                      </button>
+                    ) : null;
+                  })()}
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSave}
+                    style={{ 
+                      borderRadius: "12px", 
+                      padding: "10px 24px",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      border: "none"
+                    }}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Quotation"
+                    )}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

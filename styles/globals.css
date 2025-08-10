@@ -589,6 +589,36 @@ body {
   }
 }
 
+/* Quotation item rows mobile layout (duplicate to ensure load order) */
+@media (max-width: 768px) {
+  .quotation-item-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .quotation-item-row > div {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    margin-right: 8px !important;
+  }
+  .quotation-item-row > div:first-child {
+    flex: 1 1 auto !important;
+    min-width: 40% !important;
+  }
+  .quotation-item-row input.form-control,
+  .quotation-item-row input[type="number"],
+  .quotation-item-row input[type="text"],
+  .quotation-item-row select.form-select {
+    width: auto !important;
+    min-width: 72px !important;
+    height: 40px !important;
+    font-size: 13px !important;
+  }
+}
+
 /* Legacy sidebar toggle - deprecated in favor of floating button */
 .sidebar-toggle {
     display: none;
