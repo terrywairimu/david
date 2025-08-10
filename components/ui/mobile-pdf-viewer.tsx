@@ -103,19 +103,19 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
     if (isMobile) return
 
     // Desktop safety timer; if iframe doesn't load, flip to fallback
-    timerRef.current = window.setTimeout(() => {
-      if (!iframeLoaded) {
-        setIframeError(true)
+      timerRef.current = window.setTimeout(() => {
+        if (!iframeLoaded) {
+            setIframeError(true)
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
           console.warn('Mobile PDF Viewer - Fallback shown (iframe did not load in time)')
+          }
         }
-      }
     }, 5000) as unknown as number
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current)
+          timerRef.current = null
       }
     }
   }, [pdfUrl, isClient, iframeLoaded])
@@ -169,22 +169,53 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         onPrint && onPrint()
         return
       }
-      const htmlParts: string[] = []
-      for (const c of canvases) {
-        try {
-          const dataUrl = c.toDataURL('image/png')
-          htmlParts.push(`<img src="${dataUrl}" style="width:100%; display:block; page-break-after:always;" />`)
-        } catch {}
-      }
+      // Build document and ensure images are decoded before printing to avoid blank pages
+      printWindow.document.open()
       printWindow.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Print</title>
-        <style>@page{ margin:0 } body{ margin:0; background:#fff } img{ -webkit-user-select:none; user-select:none; }</style>
-      </head><body>${htmlParts.join('')}</body></html>`)
+        <style>
+          @page { margin: 0; size: auto }
+          html, body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .page { page-break-after: always; break-after: page; }
+          .page:last-child { page-break-after: auto; break-after: auto; }
+          img { display: block; width: 100%; height: auto; page-break-inside: avoid; break-inside: avoid; }
+        </style>
+      </head><body></body></html>`)
       printWindow.document.close()
-      // Give the browser a moment to layout images before printing
-      setTimeout(() => {
-        try { printWindow.focus(); printWindow.print(); } catch {}
-      }, 300)
+
+      let loaded = 0
+      const total = canvases.length
+      const maybePrint = () => {
+        loaded += 1
+        if (loaded >= total) {
+          setTimeout(() => {
+            try { printWindow.focus(); printWindow.print(); } catch {}
+          }, 200)
+        }
+      }
+
+      const body = printWindow.document.body
+      for (const c of canvases) {
+        try {
+          // Use JPEG to reduce size and avoid transparency edge cases
+          const dataUrl = c.toDataURL('image/jpeg', 0.95)
+          const wrapper = printWindow.document.createElement('div')
+          wrapper.className = 'page'
+          const img = printWindow.document.createElement('img')
+          img.src = dataUrl
+          if ('decode' in img) {
+            // @ts-ignore
+            img.decode().then(maybePrint).catch(maybePrint)
+          } else {
+            img.onload = maybePrint
+            img.onerror = maybePrint
+          }
+          wrapper.appendChild(img)
+          body.appendChild(wrapper)
+        } catch {
+          maybePrint()
+        }
+      }
       return
     }
     // Desktop: delegate
