@@ -190,6 +190,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   
   // PDF viewing state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   
   // Mobile detection and print modal state
@@ -524,8 +525,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
       }
+      if (pdfBlob) {
+        // Let GC reclaim blob; no revoke needed
+      }
+      setPdfUrl(null);
+      setPdfBlob(null);
     }
   }, [isOpen, mode, quotation?.id]);
 
@@ -1124,6 +1129,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Download the PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      setPdfBlob(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `quotation-${quotationNumber}.pdf`;
@@ -1194,17 +1200,49 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const handleShare = async () => {
-    if (navigator.share && pdfUrl) {
-      try {
+    try {
+      if (!pdfUrl) {
+        // Generate if missing
+        await generatePDFForViewing()
+      }
+
+      // Prefer Web Share Level 2 with files when supported
+      const canShareFile = typeof navigator !== 'undefined' && 'canShare' in navigator && typeof window !== 'undefined'
+      if (canShareFile && pdfBlob) {
+        const file = new File([pdfBlob], `quotation-${quotationNumber}.pdf`, { type: 'application/pdf' })
+        // @ts-ignore - canShare exists in supporting browsers
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // @ts-ignore - share with files
+          await navigator.share({
+            title: `Quotation ${quotationNumber}`,
+            text: `Quotation ${quotationNumber} from Cabinet Master Styles`,
+            files: [file]
+          })
+          setShowPrintModal(false)
+          return
+        }
+      }
+
+      // Fallback to URL sharing when files not supported
+      if (navigator.share && pdfUrl) {
         await navigator.share({
           title: `Quotation ${quotationNumber}`,
           text: `Quotation ${quotationNumber} from Cabinet Master Styles`,
           url: pdfUrl
         })
         setShowPrintModal(false)
-      } catch (error) {
-        toast.error("Failed to share. Please try again.")
+        return
       }
+
+      // Ultimate fallback: copy link
+      if (pdfUrl) {
+        await navigator.clipboard.writeText(pdfUrl)
+        toast.success('Link copied to clipboard')
+      } else {
+        toast.error('Unable to share on this device/browser')
+      }
+    } catch (error) {
+      toast.error('Failed to share. Please try again.')
     }
   }
 
@@ -1472,6 +1510,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Create blob URL for viewing
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      setPdfBlob(blob);
       
       // Clean up previous URL
       if (pdfUrl) {

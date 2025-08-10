@@ -51,18 +51,21 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
     if (usePdfjs && isClient && pdfUrl && viewerRef.current) {
       ;(async () => {
         try {
+          // Capture container synchronously to avoid it becoming null after awaits
+          const container = viewerRef.current
+          if (!container) return
+
           // Use the standard build entry; avoid legacy which pulls 'canvas'
           const pdfjsLib = await import('pdfjs-dist/build/pdf.js')
           // Use local worker to avoid CORS
           pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`
           const loadingTask = pdfjsLib.getDocument({ url: pdfUrl })
           const pdf = await loadingTask.promise
-          if (canceled) return
-          const container = viewerRef.current!
+          if (canceled || !container.isConnected) return
           container.innerHTML = ''
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum)
-            if (canceled) return
+            if (canceled || !container.isConnected) return
             const viewport = page.getViewport({ scale: Math.min((typeof window !== 'undefined' ? window.innerWidth - 24 : 360) / page.getViewport({ scale: 1 }).width, 1.3) })
             const canvas = document.createElement('canvas')
             const context = canvas.getContext('2d')!
@@ -83,24 +86,28 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
 
   // Set a timeout to show fallback if iframe doesn't load within 3 seconds
   useEffect(() => {
-    if (pdfUrl && isClient) {
-      // Start a safety timer; will be cleared on successful iframe load
-      timerRef.current = window.setTimeout(() => {
-        if (!iframeLoaded) {
-          const userAgent = navigator.userAgent.toLowerCase()
-          const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
-          if (isMobile) {
-            console.warn('Mobile PDF Viewer - Fallback shown (iframe did not load in time on mobile)')
-            setIframeError(true)
-          }
-        }
-      }, 3000) as unknown as number
+    if (!pdfUrl || !isClient) return
+    // If already using pdf.js or iframe already errored, skip timer
+    if (usePdfjs || iframeError) return
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+    // On mobile we switch to pdf.js immediately; no need for a timer or warning
+    if (isMobile) return
 
-      return () => {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current)
-          timerRef.current = null
+    // Desktop safety timer; if iframe doesn't load, flip to fallback
+    timerRef.current = window.setTimeout(() => {
+      if (!iframeLoaded) {
+        setIframeError(true)
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.warn('Mobile PDF Viewer - Fallback shown (iframe did not load in time)')
         }
+      }
+    }, 5000) as unknown as number
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
       }
     }
   }, [pdfUrl, isClient, iframeLoaded])
