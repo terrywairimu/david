@@ -122,6 +122,67 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
     setFullscreen(!fullscreen)
   }
 
+  const isMobileDevice = () => {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent.toLowerCase()
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+  }
+
+  const handleOpenFullClick = () => {
+    if (isMobileDevice()) {
+      // On mobile, stay in-app and use fullscreen instead of opening a new tab
+      setUsePdfjs(true)
+      setIframeError(true)
+      setFullscreen(true)
+      return
+    }
+    handleOpenInNewTab()
+  }
+
+  const handlePrintClick = () => {
+    if (isMobileDevice()) {
+      // Create a print-friendly window with canvas images
+      const container = viewerRef.current
+      if (!container) {
+        // Fallback to parent handler if canvases are not available
+        onPrint && onPrint()
+        return
+      }
+      const canvases = Array.from(container.querySelectorAll('canvas')) as HTMLCanvasElement[]
+      if (canvases.length === 0) {
+        // Ensure we render via pdfjs then try again
+        setUsePdfjs(true)
+        setIframeError(true)
+        onPrint && onPrint()
+        return
+      }
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        onPrint && onPrint()
+        return
+      }
+      const htmlParts: string[] = []
+      for (const c of canvases) {
+        try {
+          const dataUrl = c.toDataURL('image/png')
+          htmlParts.push(`<img src="${dataUrl}" style="width:100%; display:block; page-break-after:always;" />`)
+        } catch {}
+      }
+      printWindow.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Print</title>
+        <style>@page{ margin:0 } body{ margin:0; background:#fff } img{ -webkit-user-select:none; user-select:none; }</style>
+      </head><body>${htmlParts.join('')}</body></html>`)
+      printWindow.document.close()
+      // Give the browser a moment to layout images before printing
+      setTimeout(() => {
+        try { printWindow.focus(); printWindow.print(); } catch {}
+      }, 300)
+      return
+    }
+    // Desktop: delegate
+    onPrint && onPrint()
+  }
+
   const handleIframeError = () => {
     setIframeError(true)
     console.error('Mobile PDF Viewer - Iframe failed to load PDF')
@@ -156,7 +217,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
       <div className="d-flex justify-content-center gap-2 p-3 bg-light border-bottom">
         <button
           className="btn btn-sm btn-outline-primary"
-          onClick={handleOpenInNewTab}
+          onClick={handleOpenFullClick}
         >
           <ExternalLink size={14} className="me-1" />
           Open Full
@@ -173,7 +234,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         {onPrint && (
           <button
             className="btn btn-sm btn-success"
-            onClick={onPrint}
+            onClick={handlePrintClick}
           >
             <Printer size={14} className="me-1" />
             Print
