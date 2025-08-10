@@ -771,25 +771,30 @@ const QuotationsView = () => {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       if (isMobile) {
-        // For mobile devices, open a hidden iframe and call print in the same tab
-        const iframe = document.createElement('iframe')
-        iframe.style.position = 'fixed'
-        iframe.style.right = '0'
-        iframe.style.bottom = '0'
-        iframe.style.width = '0'
-        iframe.style.height = '0'
-        iframe.style.border = '0'
-        document.body.appendChild(iframe)
-        const cleanup = () => { try { document.body.removeChild(iframe) } catch {} }
-        iframe.onload = () => {
-          setTimeout(() => {
-            try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch {}
-            // @ts-ignore
-            if (iframe.contentWindow) iframe.contentWindow.onafterprint = cleanup
-            setTimeout(cleanup, 2000)
-          }, 250)
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+        if (isIOS) {
+          // iOS Safari limitation: navigate to PDF in same tab and let user hit share/print
+          window.location.href = url
+        } else {
+          const iframe = document.createElement('iframe')
+          iframe.style.position = 'fixed'
+          iframe.style.right = '0'
+          iframe.style.bottom = '0'
+          iframe.style.width = '0'
+          iframe.style.height = '0'
+          iframe.style.border = '0'
+          document.body.appendChild(iframe)
+          const cleanup = () => { try { document.body.removeChild(iframe) } catch {} }
+          iframe.onload = () => {
+            setTimeout(() => {
+              try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch {}
+              // @ts-ignore
+              if (iframe.contentWindow) iframe.contentWindow.onafterprint = cleanup
+              setTimeout(cleanup, 2000)
+            }, 250)
+          }
+          iframe.src = url
         }
-        iframe.src = url
       } else {
         // For desktop, use automatic print
         const printWindow = window.open(url, '_blank');

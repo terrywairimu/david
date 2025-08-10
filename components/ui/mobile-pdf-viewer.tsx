@@ -148,8 +148,14 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   }
 
   const handlePrintClick = () => {
-    // On mobile: trigger the browser print dialog in the same tab using a hidden iframe
+    // On mobile: trigger the browser print flow in the same tab
     if (isMobileDevice() && pdfUrl) {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+      if (isIOS) {
+        // iOS Safari cannot reliably auto-open the print dialog for PDFs. Open in same tab.
+        window.location.href = pdfUrl
+        return
+      }
       const iframe = document.createElement('iframe')
       iframe.style.position = 'fixed'
       iframe.style.right = '0'
