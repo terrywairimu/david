@@ -222,9 +222,9 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   return (
     <div className="mobile-pdf-viewer" style={{ width: "100%", height: "100%" }}>
       {/* Action Buttons */}
-      <div className="d-flex justify-content-center gap-2 p-3 bg-light border-bottom">
+      <div className="quotation-mobile-actions d-flex justify-content-center gap-2 p-3">
         <button
-          className="btn btn-sm btn-outline-primary"
+          className="btn btn-sm btn-mobile-outline"
           onClick={handleOpenFullClick}
         >
           <ExternalLink size={14} className="me-1" />
@@ -232,7 +232,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         </button>
         {onDownload && (
           <button
-            className="btn btn-sm btn-primary"
+            className="btn btn-sm btn-mobile-outline"
             onClick={onDownload}
           >
             <Download size={14} className="me-1" />
@@ -241,7 +241,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         )}
         {onPrint && (
           <button
-            className="btn btn-sm btn-success"
+            className="btn btn-sm btn-mobile-outline"
             onClick={handlePrintClick}
           >
             <Printer size={14} className="me-1" />
@@ -250,7 +250,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         )}
         {onShare && navigator.share && (
           <button
-            className="btn btn-sm btn-info"
+            className="btn btn-sm btn-mobile-outline"
             onClick={onShare}
           >
             <Share2 size={14} className="me-1" />

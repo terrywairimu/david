@@ -1,3 +1,14 @@
+/* Ensure default modal close icons are white across the app */
+body .modal .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  opacity: 1;
+}
+
+/* Ensure Radix close icon is white across the app */
+.radix-dialog-close svg {
+  color: #ffffff;
+  stroke: #ffffff;
+}
 :root {
     --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
@@ -433,6 +444,130 @@ body {
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
+}
+
+/* Edge-to-edge modals on mobile (override Bootstrap) */
+@media (max-width: 768px) {
+  body .modal,
+  body .modal.fade.show,
+  body .modal.d-block {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  body .modal .modal-dialog,
+  body .modal-dialog {
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    position: fixed !important;
+    left: 50% !important;
+    bottom: 0 !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+  }
+
+  body .modal .modal-content,
+  body .modal-content {
+    border-radius: 36px 36px 0 0 !important;
+    padding: 0 !important; /* p-0 on mobile */
+    transform: translateY(100%) !important;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1) !important; /* spring-ish */
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+  }
+
+  /* Slide-up when shown */
+  body .modal.show .modal-content,
+  body .modal.d-block .modal-content {
+    transform: translateY(0) !important;
+  }
+
+  /* Radix bottom sheet: body scrolls; footer moves with body */
+  .radix-mobile-bottom-sheet {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+  }
+  .radix-mobile-bottom-sheet .radix-dialog-footer {
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    background: transparent; /* Match modal body */
+    backdrop-filter: none;
+  }
+
+  /* Make body scrollable; footer not fixed */
+  body .modal .modal-body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex: 1 1 auto !important;
+  }
+
+  body .modal .modal-footer {
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto !important;
+    background: transparent !important; /* Match modal body */
+    backdrop-filter: none !important;
+  }
+
+  /* Headers: match body background and 36px radius at top */
+  body .modal .modal-header,
+  .radix-dialog-header {
+    background: transparent !important; /* Match modal body */
+    border-bottom: none !important;
+    border-radius: 36px 36px 0 0 !important;
+  }
+
+  /* Ensure close icon is visible and white on mobile */
+  .radix-dialog-close svg,
+  body .modal .btn-close svg,
+  body .modal .modal-header .btn-close svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+  }
+
+  /* Quotation modal mobile override */
+  body .quotation-modal .modal-dialog {
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* View Quotation mobile actions bar: match modal header/body background */
+  .quotation-mobile-actions {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+  }
+
+  /* Ultra-modern outlined buttons (rounded, no fill) */
+  .btn-mobile-outline {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1.5px solid rgba(255,255,255,0.35) !important;
+    border-radius: 9999px !important;
+    padding: 8px 14px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15) inset !important;
+    backdrop-filter: none !important;
+  }
+
+  .btn-mobile-outline:hover {
+    border-color: rgba(255,255,255,0.6) !important;
+    transform: translateY(-1px);
+  }
+
+  .btn-mobile-outline:active {
+    transform: translateY(0);
+  }
 }
 
 /* Legacy sidebar toggle - deprecated in favor of floating button */
