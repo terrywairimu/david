@@ -1156,15 +1156,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const handlePrint = async () => {
     try {
+      // Open a placeholder window synchronously to avoid mobile popup blockers
+      const printWindow = window.open('', '_blank')
       if (!pdfUrl) {
         await generatePDFForViewing()
       }
-      
-      // Create a new window for printing
-      const printWindow = window.open(pdfUrl || '', '_blank')
-      if (printWindow) {
+      if (printWindow && pdfUrl) {
+        printWindow.location.href = pdfUrl
         printWindow.onload = () => {
-          printWindow.print()
+          try { printWindow.print() } catch {}
         }
       }
       setShowPrintModal(false)
@@ -1179,12 +1179,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const handleView = () => {
+    // Open a placeholder window synchronously to avoid mobile popup blockers
+    const viewWindow = window.open('', '_blank')
     if (pdfUrl) {
-      window.open(pdfUrl, '_blank')
+      if (viewWindow) viewWindow.location.href = pdfUrl
     } else {
       generatePDFForViewing().then(() => {
-        if (pdfUrl) {
-          window.open(pdfUrl, '_blank')
+        if (viewWindow && pdfUrl) {
+          viewWindow.location.href = pdfUrl
         }
       })
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Download, Printer, Share2, ExternalLink, RotateCw } from "lucide-react"
 import { toast } from "sonner"
 
@@ -22,6 +22,10 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   const [isClient, setIsClient] = useState<boolean>(false)
   const [fullscreen, setFullscreen] = useState<boolean>(false)
   const [iframeError, setIframeError] = useState<boolean>(false)
+  const timerRef = useRef<number | null>(null)
+  const [iframeLoaded, setIframeLoaded] = useState<boolean>(false)
+  const viewerRef = useRef<HTMLDivElement | null>(null)
+  const [usePdfjs, setUsePdfjs] = useState<boolean>(false)
 
   // Ensure component only renders on client side
   useEffect(() => {
@@ -30,25 +34,76 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
       console.log('Mobile PDF Viewer - PDF URL:', pdfUrl)
     }
+    // If on mobile, skip iframe entirely and show fallback immediately (most mobile browsers don't render PDFs in iframes)
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent.toLowerCase()
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
+      if (isMobile) {
+        setIframeError(true)
+        setUsePdfjs(true)
+      }
+    }
   }, [pdfUrl])
+
+  // When using pdfjs inline renderer (mobile), render into canvases
+  useEffect(() => {
+    let canceled = false
+    if (usePdfjs && isClient && pdfUrl && viewerRef.current) {
+      ;(async () => {
+        try {
+          // Use the standard build entry; avoid legacy which pulls 'canvas'
+          const pdfjsLib = await import('pdfjs-dist/build/pdf.js')
+          // Use local worker to avoid CORS
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`
+          const loadingTask = pdfjsLib.getDocument({ url: pdfUrl })
+          const pdf = await loadingTask.promise
+          if (canceled) return
+          const container = viewerRef.current!
+          container.innerHTML = ''
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum)
+            if (canceled) return
+            const viewport = page.getViewport({ scale: Math.min((typeof window !== 'undefined' ? window.innerWidth - 24 : 360) / page.getViewport({ scale: 1 }).width, 1.3) })
+            const canvas = document.createElement('canvas')
+            const context = canvas.getContext('2d')!
+            canvas.width = viewport.width
+            canvas.height = viewport.height
+            canvas.style.marginBottom = '12px'
+            container.appendChild(canvas)
+            await page.render({ canvasContext: context, viewport }).promise
+          }
+        } catch (e) {
+          // Fallback silently; controls still allow Open Full
+          console.error('PDFJS inline render failed', e)
+        }
+      })()
+    }
+    return () => { canceled = true }
+  }, [usePdfjs, isClient, pdfUrl])
 
   // Set a timeout to show fallback if iframe doesn't load within 3 seconds
   useEffect(() => {
     if (pdfUrl && isClient) {
-      const timer = setTimeout(() => {
-        // On mobile, many browsers don't support PDF iframes, so show fallback
-        const userAgent = navigator.userAgent.toLowerCase()
-        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
-        
-        if (isMobile) {
-          console.warn('Mobile PDF Viewer - Mobile device detected, showing fallback for better UX')
-          setIframeError(true)
+      // Start a safety timer; will be cleared on successful iframe load
+      timerRef.current = window.setTimeout(() => {
+        if (!iframeLoaded) {
+          const userAgent = navigator.userAgent.toLowerCase()
+          const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+          if (isMobile) {
+            console.warn('Mobile PDF Viewer - Fallback shown (iframe did not load in time on mobile)')
+            setIframeError(true)
+          }
         }
-      }, 3000)
+      }, 3000) as unknown as number
 
-      return () => clearTimeout(timer)
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current)
+          timerRef.current = null
+        }
+      }
     }
-  }, [pdfUrl, isClient])
+  }, [pdfUrl, isClient, iframeLoaded])
 
   const handleOpenInNewTab = () => {
     if (pdfUrl) {
@@ -63,6 +118,15 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   const handleIframeError = () => {
     setIframeError(true)
     console.error('Mobile PDF Viewer - Iframe failed to load PDF')
+  }
+
+  const handleIframeLoad = () => {
+    setIframeLoaded(true)
+    setIframeError(false)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
   }
 
   // Show loading state during SSR or if PDF URL is not available
@@ -132,7 +196,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           backgroundColor: "#f8f9fa"
         }}
       >
-        {!iframeError ? (
+        {!iframeError && !usePdfjs ? (
           <iframe
             src={pdfUrl}
             style={{
@@ -144,36 +208,13 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
             title={`Quotation ${quotationNumber} PDF`}
             loading="lazy"
             allow="fullscreen"
+            sandbox="allow-scripts allow-same-origin allow-downloads"
             onError={handleIframeError}
+            onLoad={handleIframeLoad}
           />
         ) : (
-          <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center p-4">
-            <div className="mb-3" style={{ fontSize: "48px", color: "#667eea" }}>📱📄</div>
-            <h5 className="mb-3">Mobile PDF Viewer</h5>
-            <p className="text-muted mb-4">
-              For the best mobile experience, tap <strong>"Open PDF"</strong> to view in your browser's PDF viewer with zoom and navigation controls.
-            </p>
-            <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button
-                className="btn btn-primary btn-lg"
-                onClick={handleOpenInNewTab}
-              >
-                <ExternalLink size={18} className="me-2" />
-                Open PDF
-              </button>
-              {onDownload && (
-                <button
-                  className="btn btn-outline-secondary"
-                  onClick={onDownload}
-                >
-                  <Download size={16} className="me-1" />
-                  Download
-                </button>
-              )}
-            </div>
-            <small className="text-muted mt-3">
-              💡 Your browser's PDF viewer provides better zoom and navigation on mobile
-            </small>
+          <div className="h-100 w-100 overflow-auto d-flex flex-column align-items-center">
+            <div ref={viewerRef} className="w-100 d-flex flex-column align-items-center p-2" />
           </div>
         )}
         
