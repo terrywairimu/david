@@ -148,23 +148,8 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
   }
 
   const handlePrintClick = () => {
-    if (isMobileDevice()) {
-      // Create a print-friendly window with canvas images
-      const container = viewerRef.current
-      if (!container) {
-        // Fallback to parent handler if canvases are not available
-        onPrint && onPrint()
-        return
-      }
-      const canvases = Array.from(container.querySelectorAll('canvas')) as HTMLCanvasElement[]
-      if (canvases.length === 0) {
-        // Ensure we render via pdfjs then try again
-        setUsePdfjs(true)
-        setIframeError(true)
-        onPrint && onPrint()
-        return
-      }
-      // Use hidden iframe to avoid popup blockers on mobile
+    // On mobile: trigger the browser print dialog in the same tab using a hidden iframe
+    if (isMobileDevice() && pdfUrl) {
       const iframe = document.createElement('iframe')
       iframe.style.position = 'fixed'
       iframe.style.right = '0'
@@ -174,76 +159,30 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
       iframe.style.border = '0'
       document.body.appendChild(iframe)
 
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-      if (!doc) {
-        document.body.removeChild(iframe)
-        onPrint && onPrint()
-        return
-      }
-      doc.open()
-      doc.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Print</title>
-        <style>
-          @page { margin: 0; size: auto }
-          html, body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .page { page-break-after: always; break-after: page; }
-          .page:last-child { page-break-after: auto; break-after: auto; }
-          img { display: block; width: 100%; height: auto; page-break-inside: avoid; break-inside: avoid; }
-        </style>
-      </head><body></body></html>`)
-      doc.close()
-
-      let loaded = 0
-      const total = canvases.length
-      const maybePrint = () => {
-        loaded += 1
-        if (loaded >= total) {
-          setTimeout(() => {
-            try {
-              iframe.contentWindow?.focus()
-              iframe.contentWindow?.print()
-            } catch {}
-            const cleanup = () => {
-              try { document.body.removeChild(iframe) } catch {}
-              if (iframe.contentWindow) {
-                // @ts-ignore
-                iframe.contentWindow.onafterprint = null
-              }
-            }
-            if (iframe.contentWindow) {
-              // @ts-ignore
-              iframe.contentWindow.onafterprint = cleanup
-            }
-            setTimeout(cleanup, 2000)
-          }, 250)
-        }
+      const cleanup = () => {
+        try { document.body.removeChild(iframe) } catch {}
       }
 
-      const body = doc.body
-      for (const c of canvases) {
-        try {
-          const dataUrl = c.toDataURL('image/jpeg', 0.95)
-          const wrapper = doc.createElement('div')
-          wrapper.className = 'page'
-          const img = doc.createElement('img')
-          img.src = dataUrl
-          if ('decode' in img) {
-            // @ts-ignore
-            img.decode().then(maybePrint).catch(maybePrint)
-          } else {
-            img.onload = maybePrint
-            img.onerror = maybePrint
+      iframe.onload = () => {
+        // Give the PDF viewer a brief moment to initialize before printing
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.focus()
+            iframe.contentWindow?.print()
+          } catch {}
+          if (iframe.contentWindow) {
+            // @ts-ignore onafterprint exists in browsers
+            iframe.contentWindow.onafterprint = cleanup
           }
-          wrapper.appendChild(img)
-          body.appendChild(wrapper)
-        } catch {
-          maybePrint()
-        }
+          // Fallback cleanup in case onafterprint doesn't fire
+          setTimeout(cleanup, 2000)
+        }, 250)
       }
+      iframe.src = pdfUrl
       return
     }
-    // Desktop: delegate
-    onPrint && onPrint()
+    // Otherwise delegate to parent print flow (desktop/new tab behavior)
+    if (onPrint) onPrint()
   }
 
   const handleIframeError = () => {
