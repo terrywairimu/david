@@ -164,14 +164,24 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         onPrint && onPrint()
         return
       }
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
+      // Use hidden iframe to avoid popup blockers on mobile
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.right = '0'
+      iframe.style.bottom = '0'
+      iframe.style.width = '0'
+      iframe.style.height = '0'
+      iframe.style.border = '0'
+      document.body.appendChild(iframe)
+
+      const doc = iframe.contentDocument || iframe.contentWindow?.document
+      if (!doc) {
+        document.body.removeChild(iframe)
         onPrint && onPrint()
         return
       }
-      // Build document and ensure images are decoded before printing to avoid blank pages
-      printWindow.document.open()
-      printWindow.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
+      doc.open()
+      doc.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Print</title>
         <style>
           @page { margin: 0; size: auto }
@@ -181,7 +191,7 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
           img { display: block; width: 100%; height: auto; page-break-inside: avoid; break-inside: avoid; }
         </style>
       </head><body></body></html>`)
-      printWindow.document.close()
+      doc.close()
 
       let loaded = 0
       const total = canvases.length
@@ -189,19 +199,33 @@ const MobilePDFViewer: React.FC<MobilePDFViewerProps> = ({
         loaded += 1
         if (loaded >= total) {
           setTimeout(() => {
-            try { printWindow.focus(); printWindow.print(); } catch {}
-          }, 200)
+            try {
+              iframe.contentWindow?.focus()
+              iframe.contentWindow?.print()
+            } catch {}
+            const cleanup = () => {
+              try { document.body.removeChild(iframe) } catch {}
+              if (iframe.contentWindow) {
+                // @ts-ignore
+                iframe.contentWindow.onafterprint = null
+              }
+            }
+            if (iframe.contentWindow) {
+              // @ts-ignore
+              iframe.contentWindow.onafterprint = cleanup
+            }
+            setTimeout(cleanup, 2000)
+          }, 250)
         }
       }
 
-      const body = printWindow.document.body
+      const body = doc.body
       for (const c of canvases) {
         try {
-          // Use JPEG to reduce size and avoid transparency edge cases
           const dataUrl = c.toDataURL('image/jpeg', 0.95)
-          const wrapper = printWindow.document.createElement('div')
+          const wrapper = doc.createElement('div')
           wrapper.className = 'page'
-          const img = printWindow.document.createElement('img')
+          const img = doc.createElement('img')
           img.src = dataUrl
           if ('decode' in img) {
             // @ts-ignore
