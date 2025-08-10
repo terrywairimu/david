@@ -640,9 +640,25 @@ const SalesOrdersView = () => {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       if (isMobile) {
-        // For mobile devices, open in new tab and let user manually print
-        window.open(url, '_blank');
-        toast.success("PDF opened in new tab. Please use your browser's print function.");
+        // For mobile devices, open hidden iframe and invoke print in same tab
+        const iframe = document.createElement('iframe')
+        iframe.style.position = 'fixed'
+        iframe.style.right = '0'
+        iframe.style.bottom = '0'
+        iframe.style.width = '0'
+        iframe.style.height = '0'
+        iframe.style.border = '0'
+        document.body.appendChild(iframe)
+        const cleanup = () => { try { document.body.removeChild(iframe) } catch {} }
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch {}
+            // @ts-ignore
+            if (iframe.contentWindow) iframe.contentWindow.onafterprint = cleanup
+            setTimeout(cleanup, 2000)
+          }, 250)
+        }
+        iframe.src = url
       } else {
         // For desktop, use automatic print
         const printWindow = window.open(url, '_blank');
