@@ -1173,13 +1173,24 @@ body {
     font-size: 14px;
   }
 
-  /* Footer buttons full width */
+  /* Quotation modal: inline footer buttons on mobile */
   .quotation-modal .modal-footer .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
+    width: auto !important;
+    margin-bottom: 0 !important;
   }
-  .quotation-modal .modal-footer .btn:last-child {
-    margin-bottom: 0;
+  .quotation-modal .modal-footer .d-flex {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  /* Anchor quotation footer at bottom on mobile */
+  .quotation-modal .modal-footer {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 2 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
   }
 
   /* Sales Order Modal Mobile Responsive Styles */

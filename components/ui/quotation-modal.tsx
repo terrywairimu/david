@@ -3857,63 +3857,103 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="modal-footer border-0" style={{ padding: "16px 32px 24px" }}>
+          <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
             {mode === "view" ? (
-              <div className="d-flex flex-column flex-md-row gap-2 gap-md-0 w-100">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "10px 24px" }}
-                >
-                  Close
-                </button>
-                {(() => {
-                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                  
-                  // Debug logging for button visibility (only when showButton changes)
-                  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-                    console.log('Proceed to Sales Order Button Debug:', {
-                      hasPayments,
-                      quotation_status: quotation?.status,
-                      onProceedToSalesOrder: !!onProceedToSalesOrder,
-                      showButton,
-                      quotation_number: quotation?.quotation_number
-                    });
-                  }
-                  
-                  return showButton ? (
+              <>
+                {/* Mobile layout: Proceed on its own row above; Close + Print/Share on next row, all right-aligned */}
+                <div className="d-flex d-md-none flex-column w-100 gap-2">
+                  {(() => {
+                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                    return showButton ? (
+                      <div className="d-flex justify-content-end">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onProceedToSalesOrder(quotation)}
+                          style={{ 
+                            borderRadius: "12px", 
+                            padding: "10px 24px",
+                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                            border: "none"
+                          }}
+                        >
+                          <CreditCard className="me-2" size={16} />
+                          Proceed to Sales Order
+                        </button>
+                      </div>
+                    ) : null;
+                  })()}
+                  <div className="d-flex justify-content-end gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      onClick={onClose}
+                      style={{ borderRadius: "12px", padding: "10px 24px" }}
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={handlePrintModalOpen}
+                      style={{ 
+                        borderRadius: "12px", 
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                        border: "none"
+                      }}
+                    >
+                      {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
+                      {isMobile ? "Print/Share" : "Download"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop layout: all inline, right-aligned */}
+                <div className="d-none d-md-flex w-100 justify-content-end gap-2">
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    onClick={() => onProceedToSalesOrder(quotation)}
+                    className="btn btn-light"
+                    onClick={onClose}
+                    style={{ borderRadius: "12px", padding: "10px 24px" }}
+                  >
+                    Close
+                  </button>
+                  {(() => {
+                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                    return showButton ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => onProceedToSalesOrder(quotation)}
+                        style={{ 
+                          borderRadius: "12px", 
+                          padding: "10px 24px",
+                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                          border: "none"
+                        }}
+                      >
+                        <CreditCard className="me-2" size={16} />
+                        Proceed to Sales Order
+                      </button>
+                    ) : null;
+                  })()}
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={handlePrintModalOpen}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                      background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
                       border: "none"
                     }}
                   >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
+                    {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
+                    {isMobile ? "Print/Share" : "Download"}
                   </button>
-                  ) : null;
-                })()}
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={handlePrintModalOpen}
-                  style={{ 
-                    borderRadius: "12px", 
-                    padding: "10px 24px",
-                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
-                    border: "none"
-                  }}
-                >
-                  {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
-                  {isMobile ? "Print/Share" : "Download"}
-                </button>
-              </div>
+                </div>
+              </>
             ) : (
               <div className="d-flex flex-column flex-md-row gap-2 gap-md-0 w-100">
                 <button

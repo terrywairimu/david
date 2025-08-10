@@ -448,6 +448,25 @@ body {
 
 /* Edge-to-edge modals on mobile (override Bootstrap) */
 @media (max-width: 768px) {
+  /* Quotation modal: inline footer buttons on mobile */
+  .quotation-modal .modal-footer .btn {
+    width: auto !important;
+    margin-bottom: 0 !important;
+  }
+  .quotation-modal .modal-footer .d-flex {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  /* Anchor quotation footer at bottom on mobile */
+  .quotation-modal .modal-footer {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 2 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
   body .modal,
   body .modal.fade.show,
   body .modal.d-block {
