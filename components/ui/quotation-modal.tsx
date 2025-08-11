@@ -1807,7 +1807,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Client and Quotation Number Section */}
             <div className="row mb-4">
-              <div className="col-md-8 col-12 mb-3 mb-md-0">
+              <div className="col-md-8 col-12 mb-1 mb-md-0">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
@@ -1880,37 +1880,70 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               <div className="col-md-4 col-12">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
-                    
-                    <div className="mb-3">
-                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                        Quotation Number
-                      </label>
-                    <input
-                      type="text"
-                        className="form-control"
-                      value={quotationNumber}
-                      readOnly
-                        style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                    />
-                  </div>
-                    <div>
-                      <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                        Date
-                      </label>
-                      <div className="input-group">
-                    <input
-                          type="date"
-                          className="form-control"
-                          value={quotationDate}
-                          onChange={e => setQuotationDate(e.target.value)}
-                          style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
-                          readOnly={isReadOnly}
-                        />
-                  </div>
-                    </div>
+                    {isMobile && mode === "create" ? (
+                      <div className="d-flex d-md-block" style={{ gap: "0.3rem" }}>
+                        <div className="flex-fill" style={{ minWidth: 0, flex: "1 1 0" }}>
+                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                            Quotation Number
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={quotationNumber}
+                            readOnly
+                            style={{ borderRadius: "12px", width: "100%", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                          />
+                        </div>
+                        <div className="flex-fill" style={{ minWidth: 0, flex: "1 1 0" }}>
+                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                            Date
+                          </label>
+                          <div className="input-group" style={{ width: "100%" }}>
+                            <input
+                              type="date"
+                              className="form-control"
+                              value={quotationDate}
+                              onChange={e => setQuotationDate(e.target.value)}
+                              style={{ borderRadius: "12px", width: "100%", height: "45px", border: "1px solid #e9ecef" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mb-3">
+                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                            Quotation Number
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={quotationNumber}
+                            readOnly
+                            style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
+                            Date
+                          </label>
+                          <div className="input-group">
+                            <input
+                              type="date"
+                              className="form-control"
+                              value={quotationDate}
+                              onChange={e => setQuotationDate(e.target.value)}
+                              style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
-                  </div>
+              </div>
                 </div>
 
             {/* Cabinet Items Section */}
