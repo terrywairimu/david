@@ -2399,10 +2399,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Render the Worktop Installation Labor footer row after the item rows: */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
@@ -2434,7 +2434,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="1"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000? "" : worktopLaborUnitPrice)}
@@ -2466,10 +2466,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="0.01"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
                             KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
                           </div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
 

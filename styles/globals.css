@@ -525,6 +525,17 @@ body {
   .quotation-item-row.worktop-row .worktop-total-currency { font-size: 11px; opacity: 0.85; line-height: 1; }
   .quotation-item-row.worktop-row .worktop-total-value { font-size: 13px; line-height: 1.1; }
 
+  /* Worktop labor footer row aligns to same columns */
+  .quotation-item-row.worktop-labor-row { flex-wrap: nowrap !important; gap: 3px !important; }
+  .quotation-item-row.worktop-labor-row > div { margin-right: 0 !important; margin-bottom: 0 !important; min-width: 0 !important; box-sizing: border-box; }
+  .quotation-item-row.worktop-labor-row > div:first-child { flex: 0 1 33% !important; }
+  .quotation-item-row.worktop-labor-row .col-units { flex: 0 1 15% !important; }
+  .quotation-item-row.worktop-labor-row .col-qty { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-labor-row .col-unit-price { flex: 0 1 20% !important; }
+  .quotation-item-row.worktop-labor-row .col-total { flex: 0 1 18% !important; }
+  .quotation-item-row.worktop-labor-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
+  .quotation-item-row.worktop-labor-row input { width: 100% !important; }
+
   /* Radix bottom sheet: body scrolls; footer moves with body */
   .radix-mobile-bottom-sheet {
     display: flex;
