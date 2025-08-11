@@ -513,8 +513,8 @@ body {
   /* Percentages sum to leave room for gaps and delete */
   .quotation-item-row.worktop-row > div:first-child { flex: 0 1 35% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-units { flex: 0 1 11% !important; min-width: 0 !important; }
-  .quotation-item-row.worktop-row .col-qty { flex: 0 1 8% !important; min-width: 0 !important; }
-  .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 17% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-qty { flex: 0 1 10% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 15% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-total { flex: 0 1 18% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
   .quotation-item-row.worktop-row input.form-control,
@@ -540,8 +540,8 @@ body {
   .quotation-item-row.worktop-labor-row > div:not(:last-child) { margin-right: 1.5px !important; }
   .quotation-item-row.worktop-labor-row > div:first-child { flex: 0 1 35% !important; }
   .quotation-item-row.worktop-labor-row .col-units { flex: 0 1 11% !important; }
-  .quotation-item-row.worktop-labor-row .col-qty { flex: 0 1 8% !important; }
-  .quotation-item-row.worktop-labor-row .col-unit-price { flex: 0 1 17% !important; }
+  .quotation-item-row.worktop-labor-row .col-qty { flex: 0 1 10% !important; }
+  .quotation-item-row.worktop-labor-row .col-unit-price { flex: 0 1 15% !important; }
   .quotation-item-row.worktop-labor-row .col-total { flex: 0 1 18% !important; }
   .quotation-item-row.worktop-labor-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
   .quotation-item-row.worktop-labor-row input { width: 100% !important; }
