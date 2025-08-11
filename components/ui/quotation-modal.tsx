@@ -1807,7 +1807,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Client and Quotation Number Section */}
             <div className="row mb-4">
-              <div className="col-md-8 col-12 mb-1 mb-md-0">
+              <div className="col-md-8 col-12 mb-1 mb-md-0 client-col">
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
                     <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
@@ -1881,8 +1881,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                   <div className="card-body p-4">
                     {isMobile && mode === "create" ? (
-                      <div className="d-flex d-md-block" style={{ gap: "0.3rem" }}>
-                        <div className="flex-fill" style={{ minWidth: 0, flex: "1 1 0" }}>
+                      <div className="d-flex d-md-block quote-meta-row" style={{ gap: "0.3rem" }}>
+                        <div className="flex-fill quote-field" style={{ minWidth: 0, flex: "1 1 0" }}>
                           <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
                             Quotation Number
                           </label>
@@ -1894,7 +1894,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             style={{ borderRadius: "12px", width: "100%", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
                           />
                         </div>
-                        <div className="flex-fill" style={{ minWidth: 0, flex: "1 1 0" }}>
+                        <div className="flex-fill quote-field" style={{ minWidth: 0, flex: "1 1 0" }}>
                           <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
                             Date
                           </label>

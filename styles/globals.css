@@ -455,6 +455,12 @@ body {
 
 /* Edge-to-edge modals on mobile (override Bootstrap) */
 @media (max-width: 768px) {
+  /* New Quotation: exact mobile spacing and equal meta row widths */
+  .quotation-modal .client-col { margin-bottom: 0.5rem !important; }
+  .quotation-modal .quote-meta-row { display: flex !important; gap: 0.3rem !important; }
+  .quotation-modal .quote-meta-row .quote-field { flex: 1 1 0 !important; min-width: 0 !important; }
+  .quotation-modal .quote-meta-row .quote-field .form-control { width: 100% !important; border-radius: 12px !important; }
+
   /* Worktop item description: allow wrapping on mobile */
   .quotation-item-row textarea.form-control,
   .quotation-item-row .worktop-item-textarea {
