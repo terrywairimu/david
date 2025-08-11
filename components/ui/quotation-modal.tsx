@@ -3537,7 +3537,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {tvUnitItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3584,7 +3584,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="text"
                               className="form-control"
@@ -3596,7 +3596,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                             value={
@@ -3643,7 +3643,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                               className="form-control"
@@ -3657,12 +3657,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                           </div>
                           
-                          <div style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            KES {item.total_price.toFixed(2)}
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            <span className="worktop-total-currency">KES</span>
+                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
                           </div>
                           
                         {!isReadOnly && (
-                            <div className="w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                            <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
                             <button
                               type="button"
                                 className="btn btn-sm btn-outline-danger"
