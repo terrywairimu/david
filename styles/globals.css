@@ -1,3 +1,10 @@
+@media (max-width: 768px) {
+  .quotation-modal .quotation-item-row.worktop-row,
+  .quotation-modal .quotation-item-row.worktop-labor-row {
+    margin-bottom: 6px !important; /* half of previous 12px */
+  }
+}
+
 /* Ensure default modal close icons are white across the app */
 body .modal .modal-header .btn-close {
   filter: invert(1) grayscale(100%) brightness(200%);
@@ -561,6 +568,20 @@ body {
   .quotation-item-row.worktop-labor-row .col-total { flex: 0 1 18% !important; }
   .quotation-item-row.worktop-labor-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
   .quotation-item-row.worktop-labor-row input { width: 100% !important; }
+
+  /* Worktop headers: align to same widths and left-align text for Units/Qty */
+  .quotation-modal .worktop-headers {
+    display: flex !important;
+    gap: 1.5px !important;
+  }
+  .quotation-modal .worktop-headers > div { margin-right: 0 !important; }
+  .quotation-modal .worktop-headers > div:not(:last-child) { margin-right: 1.5px !important; }
+  .quotation-modal .worktop-headers > div:first-child { flex: 0 1 35% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(2) { flex: 0 1 11% !important; text-align: left !important; }
+  .quotation-modal .worktop-headers > div:nth-child(3) { flex: 0 1 10% !important; text-align: left !important; }
+  .quotation-modal .worktop-headers > div:nth-child(4) { flex: 0 1 15% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(5) { flex: 0 1 18% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(6) { flex: 0 0 40px !important; }
 
   /* Radix bottom sheet: body scrolls; footer moves with body */
   .radix-mobile-bottom-sheet {

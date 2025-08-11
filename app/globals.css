@@ -1,3 +1,10 @@
+@media (max-width: 768px) {
+  .quotation-modal .quotation-item-row.worktop-row,
+  .quotation-modal .quotation-item-row.worktop-labor-row {
+    margin-bottom: 6px !important; /* half of previous 12px */
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -1268,6 +1275,20 @@ body {
     padding-right: 2px !important;
     font-size: 12px !important;
   }
+
+  /* Worktop headers: align to same widths and left-align text for Units/Qty */
+  .quotation-modal .worktop-headers {
+    display: flex !important;
+    gap: 1.5px !important;
+  }
+  .quotation-modal .worktop-headers > div { margin-right: 0 !important; }
+  .quotation-modal .worktop-headers > div:not(:last-child) { margin-right: 1.5px !important; }
+  .quotation-modal .worktop-headers > div:first-child { flex: 0 1 35% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(2) { flex: 0 1 11% !important; text-align: left !important; }
+  .quotation-modal .worktop-headers > div:nth-child(3) { flex: 0 1 10% !important; text-align: left !important; }
+  .quotation-modal .worktop-headers > div:nth-child(4) { flex: 0 1 15% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(5) { flex: 0 1 18% !important; }
+  .quotation-modal .worktop-headers > div:nth-child(6) { flex: 0 0 40px !important; }
 
   /* Quotation modal: inline footer buttons on mobile */
   .quotation-modal .modal-footer .btn {

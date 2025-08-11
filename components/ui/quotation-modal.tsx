@@ -2242,7 +2242,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     <div className="mb-3">
                       
                       {/* Column Headers */}
-                      <div className="d-flex mb-3" style={{ 
+                      <div className="d-flex mb-3 worktop-headers" style={{ 
                         fontSize: "13px",
                         fontWeight: "600",
                         color: "white"
