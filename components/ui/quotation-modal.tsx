@@ -1952,8 +1952,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                     {/* Item Rows */}
                     {cabinetItems.map((item, index) => (
-                      <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
-                        <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
+                      <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
+                        <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "1 1 auto", marginRight: "16px", minWidth: '40%' }}>
                           <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                       <input
                         type="text"
@@ -2038,7 +2038,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             placeholder="1"
                             style={{ 
-                              width: "100%",
+                              width: "auto",
                               borderRadius: "12px", 
                               height: "40px", 
                               fontSize: "13px",
@@ -2077,7 +2077,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         </div>
 
                         {!isReadOnly && (
-                          <div className="item-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                          <div className="item-delete w-md-auto text-center text-md-left" style={{ flex: "0 0 40px", marginLeft: 'auto' }}>
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
@@ -2257,7 +2257,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {worktopItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
                           <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2343,7 +2343,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               }}
                               placeholder="1"
                               style={{ 
-                                width: "100%",
+                                width: "auto",
                                 borderRadius: "12px", 
                                 height: "40px", 
                                 fontSize: "13px",
@@ -2415,7 +2415,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               }}
                               placeholder="1"
                               style={{
-                                width: "100%",
+                                width: "auto",
                                 borderRadius: "8px",
                                 fontSize: "13px",
                                 background: "transparent",
@@ -2598,7 +2598,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {accessoriesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2904,7 +2904,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {appliancesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2990,7 +2990,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             placeholder="1"
                             style={{ 
-                              width: "100%",
+                              width: "auto",
                               borderRadius: "12px", 
                               height: "40px", 
                               fontSize: "13px",
@@ -3210,7 +3210,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {wardrobesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3296,7 +3296,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             }}
                             placeholder="1"
                             style={{ 
-                              width: "100%",
+                              width: "auto",
                               borderRadius: "12px", 
                               height: "40px", 
                               fontSize: "13px",
