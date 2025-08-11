@@ -2260,6 +2260,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                          {isMobile ? (
+                            <textarea
+                              className="form-control worktop-item-textarea"
+                              value={item.description}
+                              onChange={(e) => {
+                                updateItem("worktop", index, "description", e.target.value)
+                                handleItemSearch(item.id?.toString() || "", e.target.value)
+                                setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                              }}
+                              onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                              placeholder="Search and select item"
+                              style={{ borderRadius: "12px", fontSize: "13px", minHeight: "40px" }}
+                              readOnly={isReadOnly}
+                            />
+                          ) : (
                           <input
                             type="text"
                                 className="form-control"
@@ -2274,6 +2289,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
                           />
+                          )}
                               
                               <PortalDropdown
                                 isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}

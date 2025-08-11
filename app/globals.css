@@ -437,6 +437,22 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Worktop item description: allow wrapping on mobile */
+  .quotation-item-row textarea.form-control,
+  .quotation-item-row .worktop-item-textarea {
+    width: 100% !important;
+    min-height: 40px !important;
+    height: 40px !important;          /* match other inputs */
+    max-height: 40px !important;      /* prevent auto expansion */
+    resize: none !important;          /* keep consistent height */
+    overflow-y: auto !important;      /* allow scrolling for long text */
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 12px !important;
+  }
   /* Quotation modal add/edit: remove internal padding */
   .quotation-modal .modal-body {
     padding: 0 !important;
@@ -1117,27 +1133,27 @@ body {
 
 /* Quotation Modal Mobile Responsive Styles */
 @media (max-width: 768px) {
-    .quotation-modal .modal-dialog {
-      max-width: 100% !important;
-      width: 100% !important;
-      margin: 0.5rem auto !important;
+  .quotation-modal .modal-dialog {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0.5rem auto !important;
       padding-left: 0 !important;
       padding-right: 0 !important;
-    }
+  }
 
   .quotation-modal .modal-content {
     border-radius: 16px;
   }
-    .quotation-modal .modal-header {
+  .quotation-modal .modal-header {
       padding-left: 0 !important;
       padding-right: 0 !important;
       padding-top: 12px;
       padding-bottom: 8px;
-    }
-    .quotation-modal .modal-body {
+  }
+  .quotation-modal .modal-body {
       padding: 0 0.3rem !important; /* keep a tiny 0.3rem side gap only */
-    }
-    .quotation-modal .modal-footer {
+  }
+  .quotation-modal .modal-footer {
       padding-left: 0 !important;
       padding-right: 0 !important;
       padding-top: 8px;
@@ -1160,7 +1176,7 @@ body {
     /* Ensure content wrapper has no extra padding */
     .quotation-modal .modal-content {
       padding: 0 !important;
-    }
+  }
 
   /* PDF iframe mobile responsive */
   .quotation-modal .modal-body iframe {
@@ -1215,7 +1231,7 @@ body {
     .quotation-item-row input[type="number"],
     .quotation-item-row input[type="text"],
     .quotation-item-row select.form-select {
-      width: 100% !important;
+    width: 100% !important;
     }
   }
   /* Place total on its own row followed by delete button at extreme right */

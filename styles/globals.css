@@ -448,6 +448,22 @@ body {
 
 /* Edge-to-edge modals on mobile (override Bootstrap) */
 @media (max-width: 768px) {
+  /* Worktop item description: allow wrapping on mobile */
+  .quotation-item-row textarea.form-control,
+  .quotation-item-row .worktop-item-textarea {
+    width: 100% !important;
+    min-height: 40px !important;
+    height: 40px !important;          /* match other inputs */
+    max-height: 40px !important;      /* prevent auto expansion */
+    resize: none !important;          /* keep consistent height */
+    overflow-y: auto !important;      /* allow scrolling for long text */
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 12px !important;
+  }
   /* Quotation modal: inline footer buttons on mobile */
   .quotation-modal .modal-footer .btn {
     width: auto !important;
