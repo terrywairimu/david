@@ -506,19 +506,28 @@ body {
   }
 
   /* Worktop section mobile inline sizing ratios */
-  .quotation-item-row.worktop-row { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; gap: 3px !important; }
+  .quotation-item-row.worktop-row { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; gap: 1.5px !important; }
   .quotation-item-row.worktop-row > div { margin-right: 0 !important; margin-bottom: 0 !important; min-width: 0 !important; box-sizing: border-box; }
+  /* Ensure visible gap between all cells as fallback for browsers without flex-gap */
+  .quotation-item-row.worktop-row > div:not(:last-child) { margin-right: 1.5px !important; }
   /* Percentages sum to ~95% to leave room for gaps and delete */
   .quotation-item-row.worktop-row > div:first-child { flex: 0 1 33% !important; min-width: 0 !important; }
-  .quotation-item-row.worktop-row .col-units { flex: 0 1 15% !important; min-width: 0 !important; }
-  .quotation-item-row.worktop-row .col-qty { flex: 0 1 9% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-units { flex: 0 1 9% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-qty { flex: 0 1 5% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 20% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-total { flex: 0 1 18% !important; min-width: 0 !important; }
   .quotation-item-row.worktop-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
   .quotation-item-row.worktop-row input.form-control,
   .quotation-item-row.worktop-row input[type="number"],
   .quotation-item-row.worktop-row input[type="text"],
-  .quotation-item-row.worktop-row select.form-select { width: 100% !important; }
+  .quotation-item-row.worktop-row select.form-select {
+    width: 100% !important;
+    min-width: 0 !important;           /* allow shrink inside narrow columns */
+    box-sizing: border-box !important;  /* include padding within width */
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 12px !important;
+  }
 
   /* Stack currency over value inside total cell for mobile */
   .quotation-item-row.worktop-row .col-total { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
@@ -526,11 +535,12 @@ body {
   .quotation-item-row.worktop-row .worktop-total-value { font-size: 13px; line-height: 1.1; }
 
   /* Worktop labor footer row aligns to same columns */
-  .quotation-item-row.worktop-labor-row { flex-wrap: nowrap !important; gap: 3px !important; }
+  .quotation-item-row.worktop-labor-row { flex-wrap: nowrap !important; gap: 1.5px !important; }
   .quotation-item-row.worktop-labor-row > div { margin-right: 0 !important; margin-bottom: 0 !important; min-width: 0 !important; box-sizing: border-box; }
+  .quotation-item-row.worktop-labor-row > div:not(:last-child) { margin-right: 1.5px !important; }
   .quotation-item-row.worktop-labor-row > div:first-child { flex: 0 1 33% !important; }
-  .quotation-item-row.worktop-labor-row .col-units { flex: 0 1 15% !important; }
-  .quotation-item-row.worktop-labor-row .col-qty { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-labor-row .col-units { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-labor-row .col-qty { flex: 0 1 5% !important; }
   .quotation-item-row.worktop-labor-row .col-unit-price { flex: 0 1 20% !important; }
   .quotation-item-row.worktop-labor-row .col-total { flex: 0 1 18% !important; }
   .quotation-item-row.worktop-labor-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }

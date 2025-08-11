@@ -1225,7 +1225,7 @@ body {
   /* Worktop row: force true inline, override inline styles */
   .quotation-item-row.worktop-row {
     flex-wrap: nowrap !important;
-    gap: 3px !important;
+    gap: 1.5px !important;
   }
   .quotation-item-row.worktop-row > div {
     margin-right: 0 !important;
@@ -1233,16 +1233,25 @@ body {
     min-width: 0 !important;
     box-sizing: border-box !important;
   }
+  /* Fallback margin to ensure consistent gaps where flex-gap may collapse */
+  .quotation-item-row.worktop-row > div:not(:last-child) { margin-right: 1.5px !important; }
   .quotation-item-row.worktop-row > div:first-child { flex: 0 1 33% !important; }
-  .quotation-item-row.worktop-row .col-units { flex: 0 1 15% !important; }
-  .quotation-item-row.worktop-row .col-qty { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-row .col-units { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-row .col-qty { flex: 0 1 5% !important; }
   .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 20% !important; }
   .quotation-item-row.worktop-row .col-total { flex: 0 1 18% !important; }
   .quotation-item-row.worktop-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
   .quotation-item-row.worktop-row input.form-control,
   .quotation-item-row.worktop-row input[type="number"],
   .quotation-item-row.worktop-row input[type="text"],
-  .quotation-item-row.worktop-row select.form-select { width: 100% !important; }
+  .quotation-item-row.worktop-row select.form-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 12px !important;
+  }
 
   /* Quotation modal: inline footer buttons on mobile */
   .quotation-modal .modal-footer .btn {
