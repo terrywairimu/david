@@ -1182,7 +1182,7 @@ body {
   .quotation-item-row {
     display: flex !important;
     flex-direction: row !important;
-    flex-wrap: wrap !important;
+    flex-wrap: wrap !important; /* default for non-worktop */
     align-items: center !important;
     gap: 8px !important;
     margin-bottom: 12px !important;
@@ -1213,6 +1213,28 @@ body {
   /* Place total on its own row followed by delete button at extreme right */
   .quotation-item-row .item-total { order: 100 !important; margin-left: 0 !important; }
   .quotation-item-row .item-delete { order: 101 !important; margin-left: auto !important; }
+
+  /* Worktop row: force true inline, override inline styles */
+  .quotation-item-row.worktop-row {
+    flex-wrap: nowrap !important;
+    gap: 3px !important;
+  }
+  .quotation-item-row.worktop-row > div {
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .quotation-item-row.worktop-row > div:first-child { flex: 0 1 33% !important; }
+  .quotation-item-row.worktop-row .col-units { flex: 0 1 15% !important; }
+  .quotation-item-row.worktop-row .col-qty { flex: 0 1 9% !important; }
+  .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 20% !important; }
+  .quotation-item-row.worktop-row .col-total { flex: 0 1 18% !important; }
+  .quotation-item-row.worktop-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
+  .quotation-item-row.worktop-row input.form-control,
+  .quotation-item-row.worktop-row input[type="number"],
+  .quotation-item-row.worktop-row input[type="text"],
+  .quotation-item-row.worktop-row select.form-select { width: 100% !important; }
 
   /* Quotation modal: inline footer buttons on mobile */
   .quotation-modal .modal-footer .btn {
