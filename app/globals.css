@@ -1135,7 +1135,7 @@ body {
       padding-bottom: 8px;
     }
     .quotation-modal .modal-body {
-      padding: 0 !important;
+      padding: 0 0.3rem !important; /* keep a tiny 0.3rem side gap only */
     }
     .quotation-modal .modal-footer {
       padding-left: 0 !important;
@@ -1145,9 +1145,17 @@ body {
     }
 
     /* Remove inner card padding to maximize inline space */
-    .quotation-modal .card-body {
+    .quotation-modal .card-body,
+    .quotation-modal .card-body.p-4,
+    .quotation-modal .card-body.px-4,
+    .quotation-modal .card-body.px-3 {
       padding: 0 !important;
     }
+
+    /* Remove Bootstrap grid gutters inside quotation modal */
+    .quotation-modal .row { --bs-gutter-x: 0 !important; --bs-gutter-y: 0 !important; }
+    .quotation-modal [class^="col-"],
+    .quotation-modal [class*=" col-"] { padding-left: 0 !important; padding-right: 0 !important; }
 
     /* Ensure content wrapper has no extra padding */
     .quotation-modal .modal-content {

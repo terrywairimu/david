@@ -590,6 +590,16 @@ body {
     padding: 0 !important;
   }
 
+  /* Add/Edit Quotation (mobile): remove internal horizontal padding and gutters */
+  .quotation-modal .modal-body { padding: 0 0.3rem !important; }
+  .quotation-modal .card-body,
+  .quotation-modal .card-body.p-4,
+  .quotation-modal .card-body.px-4,
+  .quotation-modal .card-body.px-3 { padding: 0 !important; }
+  .quotation-modal .row { --bs-gutter-x: 0 !important; --bs-gutter-y: 0 !important; }
+  .quotation-modal [class^="col-"],
+  .quotation-modal [class*=" col-"] { padding-left: 0 !important; padding-right: 0 !important; }
+
   /* View Quotation mobile actions bar: match modal header/body background */
   .quotation-mobile-actions {
     background: transparent !important;
