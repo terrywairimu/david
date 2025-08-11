@@ -1952,8 +1952,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                     {/* Item Rows */}
                     {cabinetItems.map((item, index) => (
-                      <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
-                        <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "1 1 auto", marginRight: "16px", minWidth: '40%' }}>
+                      <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
+                        <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                           <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                       <input
                         type="text"
@@ -2093,10 +2093,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                     {/* Minimalistic Labour Footer for Cabinet Section */}
                     {mode !== "view" && (
-                      <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                      <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                         <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                        <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                        <div style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                             value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
@@ -2126,8 +2126,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             step="0.01"
                           />
                         </div>
-                        <div style={{ flex: "1", marginRight: "16px" }}></div>
-                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                        <div style={{ flex: "1", marginRight: "16px" }} />
+                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
                         {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                       </div>
                     )}
@@ -2257,7 +2257,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {worktopItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2398,10 +2398,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Render the Worktop Installation Labor footer row after the item rows: */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>per slab</div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
@@ -2433,7 +2433,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="1"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000? "" : worktopLaborUnitPrice)}
@@ -2447,7 +2447,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               }}
                               placeholder="3000"
                               style={{
-                                width: "100%",
+                                width: "auto",
                                 borderRadius: "8px",
                                 fontSize: "13px",
                                 background: "transparent",
@@ -2465,7 +2465,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="0.01"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
                             KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
                           </div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
@@ -2598,7 +2598,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {accessoriesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -2739,10 +2739,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for Accessories Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
@@ -2773,7 +2773,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -2904,7 +2904,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {appliancesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row" style={{ flexDirection: 'row' }}>
+                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3045,10 +3045,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for Appliances Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
@@ -3079,7 +3079,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.appliancesLabour.toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -3351,10 +3351,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for Wardrobes Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
@@ -3385,7 +3385,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             />
                           </div>
                           <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
                           {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
@@ -3913,64 +3913,64 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                 {/* Desktop layout: all inline, right-aligned */}
                 <div className="d-none d-md-flex w-100 justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={onClose}
+                  style={{ borderRadius: "12px", padding: "10px 24px" }}
+                >
+                  Close
+                </button>
+                {(() => {
+                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                  return showButton ? (
                   <button
                     type="button"
-                    className="btn btn-light"
-                    onClick={onClose}
-                    style={{ borderRadius: "12px", padding: "10px 24px" }}
-                  >
-                    Close
-                  </button>
-                  {(() => {
-                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                    return showButton ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onProceedToSalesOrder(quotation)}
-                        style={{ 
-                          borderRadius: "12px", 
-                          padding: "10px 24px",
-                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                          border: "none"
-                        }}
-                      >
-                        <CreditCard className="me-2" size={16} />
-                        Proceed to Sales Order
-                      </button>
-                    ) : null;
-                  })()}
-                  <button
-                    type="button"
-                    className="btn btn-success"
-                    onClick={handlePrintModalOpen}
+                    className="btn btn-primary"
+                    onClick={() => onProceedToSalesOrder(quotation)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
                       border: "none"
                     }}
                   >
-                    {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
-                    {isMobile ? "Print/Share" : "Download"}
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
                   </button>
-                </div>
+                  ) : null;
+                })()}
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={handlePrintModalOpen}
+                  style={{ 
+                    borderRadius: "12px", 
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                    border: "none"
+                  }}
+                >
+                  {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
+                  {isMobile ? "Print/Share" : "Download"}
+                </button>
+              </div>
               </>
             ) : (
               <>
                 {/* Mobile: single row, right-aligned */}
                 <div className="d-flex d-md-none w-100 justify-content-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    onClick={onClose}
-                    style={{ borderRadius: "12px", padding: "10px 24px" }}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  {(() => {
-                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={onClose}
+                  style={{ borderRadius: "12px", padding: "10px 24px" }}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                {(() => {
+                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
                     return showButton ? (
                       <button
                         type="button"
@@ -4025,46 +4025,46 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </button>
                   {(() => {
                     const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                    return showButton ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onProceedToSalesOrder(quotation)}
-                        style={{ 
-                          borderRadius: "12px", 
-                          padding: "10px 24px",
-                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                          border: "none"
-                        }}
-                        disabled={loading}
-                      >
-                        <CreditCard className="me-2" size={16} />
-                        Proceed to Sales Order
-                      </button>
-                    ) : null;
-                  })()}
+                  return showButton ? (
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={handleSave}
+                    onClick={() => onProceedToSalesOrder(quotation)}
                     style={{ 
                       borderRadius: "12px", 
                       padding: "10px 24px",
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
                       border: "none"
                     }}
                     disabled={loading}
                   >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Quotation"
-                    )}
+                    <CreditCard className="me-2" size={16} />
+                    Proceed to Sales Order
                   </button>
-                </div>
+                  ) : null;
+                })()}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  style={{ 
+                    borderRadius: "12px", 
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none"
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Quotation"
+                  )}
+                </button>
+              </div>
               </>
             )}
           </div>
