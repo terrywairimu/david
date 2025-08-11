@@ -2073,7 +2073,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         </div>
                         
                         <div className="item-total col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                          KES {item.total_price.toFixed(2)}
+                          <span className="worktop-total-currency">KES</span>
+                          <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
                         </div>
 
                         {!isReadOnly && (
@@ -2092,11 +2093,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     ))}
 
                     {/* Minimalistic Labour Footer for Cabinet Section */}
-                    {mode !== "view" && (
-                      <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                        <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                        <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>
+                      {mode !== "view" && (
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                           <input
                             type="number"
                             value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
@@ -2126,9 +2127,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             step="0.01"
                           />
                         </div>
-                        <div style={{ flex: "1", marginRight: "16px" }} />
-                        <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
                       </div>
                     )}
 
@@ -2735,7 +2736,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             />
                           </div>
                           
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>KES {item.total_price.toFixed(2)}</div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            <span className="worktop-total-currency">KES</span>
+                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                          </div>
                           
                         {!isReadOnly && (
                             <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
@@ -2754,10 +2758,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for Accessories Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
@@ -2787,9 +2791,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="0.01"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
 
@@ -3039,7 +3043,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                           </div>
                           
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>KES {item.total_price.toFixed(2)}</div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            <span className="worktop-total-currency">KES</span>
+                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                          </div>
                           
                         {!isReadOnly && (
                             <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
@@ -3343,7 +3350,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                           </div>
                           
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>KES {item.total_price.toFixed(2)}</div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                            <span className="worktop-total-currency">KES</span>
+                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                          </div>
                           
                         {!isReadOnly && (
                             <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
@@ -3362,10 +3372,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for Wardrobes Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px" }}>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
@@ -3395,9 +3405,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="0.01"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
 
@@ -3668,10 +3678,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Minimalistic Labour Footer for TV Unit Section */}
                       {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
                           <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", paddingLeft: "12px" }}>%</div>
-                          <div style={{ flex: "1", marginRight: "16px", paddingLeft: "12px" }}>
+                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
                             <input
                               type="number"
                               value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
@@ -3701,9 +3711,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               step="0.01"
                             />
                           </div>
-                          <div style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600, paddingLeft: "12px" }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
+                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
                         </div>
                       )}
 
