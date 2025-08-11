@@ -21,7 +21,8 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+      <DialogContent aria-describedby={"modal-description"} className={cn("sm:max-w-[425px]", className)}>
+        <DialogDescription id="modal-description" className="sr-only">Modal dialog</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <button
@@ -66,10 +67,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent aria-describedby={"confirm-description"} className="sm:max-w-[425px]">
+        <DialogDescription id="confirm-description">{description}</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <button
@@ -128,9 +129,13 @@ export const FormModal: React.FC<FormModalProps> = ({
     onSubmit(e)
   }
 
+  // Add debugging
+  console.log("[FormModal] rendering", { isOpen, title, children: !!children })
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+      <DialogContent aria-describedby={"form-description"} className={cn("w-[min(92vw,900px)] max-h-[90vh]", className)}>
+        <DialogDescription id="form-description" className="sr-only">Form dialog</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -188,7 +193,8 @@ export const DataTableModal: React.FC<DataTableModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("sm:max-w-[600px]", className)}>
+      <DialogContent aria-describedby={"datatable-description"} className={cn("sm:max-w-[600px]", className)}>
+        <DialogDescription id="datatable-description" className="sr-only">Data table dialog</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -259,7 +265,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+      <DialogContent aria-describedby={"detail-description"} className={cn("sm:max-w-[425px]", className)}>
+        <DialogDescription id="detail-description" className="sr-only">Detail dialog</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -329,7 +336,8 @@ export const MultiStepModal: React.FC<MultiStepModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("sm:max-w-[500px]", className)}>
+      <DialogContent aria-describedby={"multistep-description"} className={cn("sm:max-w-[500px]", className)}>
+        <DialogDescription id="multistep-description" className="sr-only">Multi-step dialog</DialogDescription>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <div className="flex space-x-2 mt-2">

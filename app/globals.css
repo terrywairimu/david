@@ -424,6 +424,56 @@ body {
   padding: 16px 24px 24px;
 }
 
+/* Radix UI Dialog overrides - ensure visibility */
+[data-radix-dialog-content] {
+  z-index: 10000 !important;
+  position: fixed !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+[data-radix-dialog-overlay] {
+  z-index: 9999 !important;
+  position: fixed !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Override any Bootstrap modal conflicts */
+.radix-dialog-content,
+.radix-dialog-overlay {
+  z-index: 10000 !important;
+  position: fixed !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Force modal visibility - override any hidden states */
+[data-state="open"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure DialogContent is visible */
+[data-radix-dialog-content][data-state="open"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 10000 !important;
+}
+
+/* Override any potential display:none */
+.radix-dialog-content,
+[data-radix-dialog-content] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
   .sidebar {

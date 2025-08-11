@@ -11,6 +11,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Business Management System",
   description: "Complete business management solution",
+  icons: { icon: "/favicon.ico" },
 }
 
 export default function RootLayout({
