@@ -479,8 +479,8 @@ body {
     margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    padding-left: 0.3rem !important;
-    padding-right: 0.3rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     position: fixed !important;
     left: 50% !important;
     bottom: 0 !important;
@@ -491,10 +491,7 @@ body {
   body .modal .modal-content,
   body .modal-content {
     border-radius: 36px 36px 0 0 !important;
-    padding-left: 0.3rem !important; /* small side gap */
-    padding-right: 0.3rem !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    padding: 0 !important;
     transform: translateY(100%) !important;
     transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1) !important; /* spring-ish */
     display: flex !important;
@@ -507,6 +504,26 @@ body {
   body .modal.d-block .modal-content {
     transform: translateY(0) !important;
   }
+
+  /* Worktop section mobile inline sizing ratios */
+  .quotation-item-row.worktop-row { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; gap: 3px !important; }
+  .quotation-item-row.worktop-row > div { margin-right: 0 !important; margin-bottom: 0 !important; min-width: 0 !important; box-sizing: border-box; }
+  /* Percentages sum to ~95% to leave room for gaps and delete */
+  .quotation-item-row.worktop-row > div:first-child { flex: 0 1 33% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-units { flex: 0 1 15% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-qty { flex: 0 1 9% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-unit-price { flex: 0 1 20% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-total { flex: 0 1 18% !important; min-width: 0 !important; }
+  .quotation-item-row.worktop-row .col-delete { margin-left: auto !important; flex: 0 0 auto !important; }
+  .quotation-item-row.worktop-row input.form-control,
+  .quotation-item-row.worktop-row input[type="number"],
+  .quotation-item-row.worktop-row input[type="text"],
+  .quotation-item-row.worktop-row select.form-select { width: 100% !important; }
+
+  /* Stack currency over value inside total cell for mobile */
+  .quotation-item-row.worktop-row .col-total { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+  .quotation-item-row.worktop-row .worktop-total-currency { font-size: 11px; opacity: 0.85; line-height: 1; }
+  .quotation-item-row.worktop-row .worktop-total-value { font-size: 13px; line-height: 1.1; }
 
   /* Radix bottom sheet: body scrolls; footer moves with body */
   .radix-mobile-bottom-sheet {
