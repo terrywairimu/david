@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[9999] bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[9999] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     style={{
@@ -31,7 +31,8 @@ const DialogOverlay = React.forwardRef<
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 9999
+      zIndex: 9999,
+      backgroundColor: 'rgba(0,0,0,0.5)'
     }}
     {...props}
   />
@@ -54,8 +55,8 @@ const DialogContent = React.forwardRef<
         {...safeProps}
         aria-describedby={describedBy}
         className={cn(
-          // Simple centered modal to avoid any animation/layout issues
-          "fixed left-1/2 top-1/2 z-[10000] w-[min(92vw,900px)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border bg-background p-6 shadow-lg",
+          // Match existing modal styling from the app
+          "fixed left-1/2 top-1/2 z-[10000] w-[min(92vw,900px)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border-0 bg-white shadow-2xl",
           className
         )}
         style={{
@@ -64,7 +65,8 @@ const DialogContent = React.forwardRef<
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          zIndex: 10000
+          zIndex: 10000,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
         }}
       >
         {!incomingDescribedBy && (
@@ -89,7 +91,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "radix-dialog-header flex flex-col space-y-1.5 text-center sm:text-left",
+      "flex flex-col space-y-1.5 text-center sm:text-left border-b border-gray-200 pb-4 mb-4",
       className
     )}
     {...props}
@@ -103,7 +105,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "radix-dialog-footer flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 border-t border-gray-200 pt-4 mt-4",
       className
     )}
     {...props}
@@ -118,7 +120,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "text-xl font-bold leading-none tracking-tight text-gray-900",
       className
     )}
     {...props}

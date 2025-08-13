@@ -299,20 +299,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       onSubmit={(e) => { e.preventDefault(); runAndExport() }}
       confirmLabel="Generate Report"
       showFooter={false}
+      showHeader={false}
+      useGlassBody
     >
-        {/* Header banner */}
-        <div className="p-3 rounded mb-3" style={headerStyle}>
-          <div className="d-flex align-items-center gap-2">
-            <Calendar size={16} />
-            <strong className="me-2 text-white text-uppercase" style={{letterSpacing:1}}>{type} report</strong>
-            <span className="opacity-75">Configure filters and format</span>
-          </div>
-        </div>
-
-        {/* Date Range Selection */}
-      <div className="row g-2 align-items-end mb-3">
+      {/* Date Range Selection */}
+      <div className="row g-3 align-items-end mb-4">
         <div className="col-md-4">
-          <label className="form-label">Date Range</label>
+          <label className="form-label fw-semibold">Date Range</label>
           <select className="form-select" value={datePreset} onChange={e=>setDatePreset(e.target.value as DateRangeKey)}>
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -327,13 +320,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         </div>
         {datePreset === 'custom' && (
           <div className="col-md-4">
-            <label className="form-label">Start Date</label>
+            <label className="form-label fw-semibold">Start Date</label>
             <input type="date" className="form-control" value={startDate} onChange={e=>setStartDate(e.target.value)} />
           </div>
         )}
         {datePreset === 'custom' && (
           <div className="col-md-4">
-            <label className="form-label">End Date</label>
+            <label className="form-label fw-semibold">End Date</label>
             <input type="date" className="form-control" value={endDate} onChange={e=>setEndDate(e.target.value)} />
           </div>
         )}
@@ -342,8 +335,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       {/* Dynamic form content */}
       {type === 'sales' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Group By</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Group By</label>
             <select className="form-select" value={salesGroupBy} onChange={e=>setSalesGroupBy(e.target.value as any)}>
               <option value="day">Day</option>
               <option value="week">Week</option>
@@ -352,8 +345,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="product">Product/Service</option>
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Include</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Include</label>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeCashSales} onChange={e=>setIncludeCashSales(e.target.checked)} id="inc-cash" /><label htmlFor="inc-cash" className="form-check-label">Cash Sales</label></div>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeInvoices} onChange={e=>setIncludeInvoices(e.target.checked)} id="inc-inv" /><label htmlFor="inc-inv" className="form-check-label">Invoiced Sales</label></div>
           </div>
@@ -362,8 +355,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'expenses' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Group By</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Group By</label>
             <select className="form-select" value={expensesGroupBy} onChange={e=>setExpensesGroupBy(e.target.value as any)}>
               <option value="day">Day</option>
               <option value="week">Week</option>
@@ -372,8 +365,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="department">Department</option>
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Include</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Include</label>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeClientExpenses} onChange={e=>setIncludeClientExpenses(e.target.checked)} id="inc-ce" /><label htmlFor="inc-ce" className="form-check-label">Client Expenses</label></div>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeCompanyExpenses} onChange={e=>setIncludeCompanyExpenses(e.target.checked)} id="inc-coe" /><label htmlFor="inc-coe" className="form-check-label">Company Expenses</label></div>
           </div>
@@ -382,8 +375,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'inventory' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Report Type</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Report Type</label>
             <select className="form-select" value={inventoryReportType} onChange={e=>setInventoryReportType(e.target.value as any)}>
               <option value="current">Current Inventory Levels</option>
               <option value="movement">Inventory Movement</option>
@@ -391,8 +384,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="lowStock">Low Stock Items</option>
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Group By</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Group By</label>
             <select className="form-select" value={inventoryGroupBy} onChange={e=>setInventoryGroupBy(e.target.value as any)}>
               <option value="category">Category</option>
               <option value="item">Individual Items</option>
@@ -403,8 +396,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'clients' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Report Type</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Report Type</label>
             <select className="form-select" value={clientReportType} onChange={e=>setClientReportType(e.target.value as any)}>
               <option value="activity">Client Activity</option>
               <option value="sales">Sales by Client</option>
@@ -412,8 +405,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="newClients">New Clients</option>
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Client</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Client</label>
             <select className="form-select" value={String(clientSelection)} onChange={e=>setClientSelection(e.target.value === 'all'? 'all' : Number(e.target.value))}>
               <option value="all">All Clients</option>
               {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -424,8 +417,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'financial' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Report Type</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Report Type</label>
             <select className="form-select" value={financialReportType} onChange={e=>setFinancialReportType(e.target.value as any)}>
               <option value="summary">Financial Summary</option>
               <option value="profitLoss">Profit & Loss Statement</option>
@@ -433,8 +426,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="cashFlow">Cash Flow Statement</option>
             </select>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Comparison</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Comparison</label>
             <select className="form-select" value={comparisonPeriod} onChange={e=>setComparisonPeriod(e.target.value as any)}>
               <option value="none">None</option>
               <option value="previousPeriod">Previous Period</option>
@@ -446,15 +439,15 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'custom' && (
         <>
-          <div className="mb-3">
-            <label className="form-label">Include Data From</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Include Data From</label>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeClients} onChange={e=>setIncludeClients(e.target.checked)} id="inc-cli" /><label htmlFor="inc-cli" className="form-check-label">Clients</label></div>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeSales} onChange={e=>setIncludeSales(e.target.checked)} id="inc-sales" /><label htmlFor="inc-sales" className="form-check-label">Sales</label></div>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeExpensesData} onChange={e=>setIncludeExpensesData(e.target.checked)} id="inc-exp" /><label htmlFor="inc-exp" className="form-check-label">Expenses</label></div>
             <div className="form-check"><input className="form-check-input" type="checkbox" checked={includeInventoryData} onChange={e=>setIncludeInventoryData(e.target.checked)} id="inc-inv-data" /><label htmlFor="inc-inv-data" className="form-check-label">Inventory</label></div>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Group By</label>
+          <div className="mb-4">
+            <label className="form-label fw-semibold">Group By</label>
             <select className="form-select" value={customGroupBy} onChange={e=>setCustomGroupBy(e.target.value as any)}>
               <option value="none">No Grouping</option>
               <option value="day">Day</option>
@@ -468,7 +461,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       )}
 
       {/* Format + Generate */}
-      <div className="row g-2 align-items-end">
+      <div className="row g-3 align-items-end">
         <div className="col-md-4">
           <label className="form-label">Format</label>
           <select className="form-select" value={format} onChange={e=>setFormat(e.target.value as any)}>
@@ -477,9 +470,15 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             <option value="csv">CSV</option>
           </select>
         </div>
-        <div className="col-md-8 d-flex justify-content-end gap-2">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => window.print()}><Printer size={16} className="me-1"/>Preview</button>
-          <button type="button" className={`btn ${buttonClass}`} onClick={runAndExport}><Download size={16} className="me-1"/>Generate Report</button>
+        <div className="col-md-8 d-flex justify-content-end gap-3">
+          <button type="button" className="btn btn-outline-secondary" onClick={() => window.print()}>
+            <Printer size={16} className="me-2"/>
+            Preview
+          </button>
+          <button type="button" className="btn btn-add" onClick={runAndExport}>
+            <Download size={16} className="me-2"/>
+            Generate Report
+          </button>
         </div>
       </div>
     </FormModal>

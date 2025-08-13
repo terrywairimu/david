@@ -105,6 +105,8 @@ interface FormModalProps {
   submitLoading?: boolean
   submitDisabled?: boolean
   className?: string
+  showHeader?: boolean
+  useGlassBody?: boolean
 }
 
 export const FormModal: React.FC<FormModalProps> = ({
@@ -118,7 +120,9 @@ export const FormModal: React.FC<FormModalProps> = ({
   showFooter = true,
   submitLoading = false,
   submitDisabled = false,
-  className
+  className,
+  showHeader = true,
+  useGlassBody = false
 }) => {
   const handleCancel = () => {
     onClose()
@@ -129,40 +133,69 @@ export const FormModal: React.FC<FormModalProps> = ({
     onSubmit(e)
   }
 
-  // Add debugging
-  console.log("[FormModal] rendering", { isOpen, title, children: !!children })
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent aria-describedby={"form-description"} className={cn("w-[min(92vw,900px)] max-h-[90vh]", className)}>
+      <DialogContent aria-describedby={"form-description"} className={cn("w-[min(92vw,900px)] max-h-[90vh] p-0 bg-white", className)}>
         <DialogDescription id="form-description" className="sr-only">Form dialog</DialogDescription>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
+        {showHeader ? (
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+        ) : (
+          <DialogTitle className="sr-only">{title}</DialogTitle>
+        )}
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {children}
-          
-          {showFooter && (
-            <DialogFooter>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleCancel}
-                disabled={submitLoading}
-              >
-                {cancelLabel}
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={submitLoading || submitDisabled}
-              >
-                {submitLoading ? "Loading..." : confirmLabel}
-              </button>
-            </DialogFooter>
-          )}
-        </form>
+        {useGlassBody ? (
+          <div className="card-body">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {children}
+              {showFooter && (
+                <DialogFooter className="border-t-0 pt-0 mt-6">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCancel}
+                    disabled={submitLoading}
+                  >
+                    {cancelLabel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={submitLoading || submitDisabled}
+                  >
+                    {submitLoading ? "Loading..." : confirmLabel}
+                  </button>
+                </DialogFooter>
+              )}
+            </form>
+          </div>
+        ) : (
+          <div className="px-6 pb-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {children}
+              {showFooter && (
+                <DialogFooter className="border-t-0 pt-0 mt-6">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCancel}
+                    disabled={submitLoading}
+                  >
+                    {cancelLabel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={submitLoading || submitDisabled}
+                  >
+                    {submitLoading ? "Loading..." : confirmLabel}
+                  </button>
+                </DialogFooter>
+              )}
+            </form>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
