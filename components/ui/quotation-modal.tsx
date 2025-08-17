@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
+import { dateInputToDateOnly } from "@/lib/timezone"
 import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -1578,10 +1579,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
     const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
 
+    // Convert date input to date-only value for database storage
+    // This prevents the "one day less" issue by treating the date as a pure calendar date
+    const dateToSave = quotationDate ? dateInputToDateOnly(quotationDate) : new Date()
+    
     const quotationData = {
       quotation_number: quotationNumber,
       client_id: selectedClient.id,
-      date_created: quotationDate ? new Date(quotationDate).toISOString() : new Date().toISOString(),
+      date_created: dateToSave.toISOString(),
       cabinet_total: totals.cabinetTotal,
       worktop_total: totals.worktopTotal,
       accessories_total: totals.accessoriesTotal,

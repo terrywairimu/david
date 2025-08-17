@@ -5,6 +5,7 @@ import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generatePaymentNumber } from "@/lib/workflow-utils"
+import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
 interface PaymentModalProps {
   payment?: any
@@ -47,14 +48,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   useEffect(() => {
     if (payment && mode !== "create") {
-      // Fix date handling to prevent timezone issues
+      // Convert UTC from database to Nairobi time for display
       const paymentDate = new Date(payment.date_created)
-      const localDate = new Date(paymentDate.getTime() - (paymentDate.getTimezoneOffset() * 60000))
+      const nairobiDate = utcToNairobi(paymentDate)
       
       setFormData({
         payment_number: payment.payment_number || "",
         client_id: payment.client_id?.toString() || "",
-        date_created: localDate.toISOString().split('T')[0],
+        date_created: nairobiDate.toISOString().split('T')[0],
         description: payment.description || "",
         amount: payment.amount?.toString() || "",
         paid_to: payment.paid_to || "",
@@ -174,9 +175,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setLoading(true)
 
     try {
-      // Fix date handling to prevent timezone issues
-      const dateToSave = new Date(formData.date_created)
-      const utcDate = new Date(dateToSave.getTime() + (dateToSave.getTimezoneOffset() * 60000))
+      // Convert date input to date-only value for database storage
+      // This prevents the "one day less" issue by treating the date as a pure calendar date
+      const dateToSave = dateInputToDateOnly(formData.date_created)
       
       const paymentData = {
         payment_number: formData.payment_number,
@@ -187,8 +188,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         account_credited: formData.account_credited,
         status: formData.status,
         payment_method: formData.payment_method,
-        date_created: utcDate.toISOString(),
-        date_paid: utcDate.toISOString()
+        date_created: dateToSave.toISOString(),
+        date_paid: dateToSave.toISOString()
       }
 
       if (mode === "create") {

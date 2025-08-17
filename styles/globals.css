@@ -29,6 +29,43 @@ body .modal .modal-header .btn-close {
     --text-secondary: #64748b;
     --text-tertiary: #e7e5d8;
     --text-primary-light: #ffffff;
+    
+    /* Chart color variables for analytics - matching seller analytics */
+    --chart-1: 12 76% 61%; /* Orange/Amber */
+    --chart-2: 173 58% 39%; /* Teal */
+    --chart-3: 197 37% 24%; /* Dark Blue */
+    --chart-4: 43 74% 66%; /* Yellow */
+    --chart-5: 27 87% 67%; /* Red */
+    
+    /* Additional color variables for better chart visibility */
+    --success: 142 76% 36%; /* Green */
+    --error: 0 84% 60%; /* Red */
+    --warning: 38 92% 50%; /* Yellow */
+    --info: 199 89% 48%; /* Blue */
+    
+    /* Core color variables for charts and UI */
+    --primary: 221 83% 53%; /* Blue */
+    --primary-foreground: 210 40% 98%; /* Light blue */
+    --secondary: 210 40% 96%; /* Light grey */
+    --secondary-foreground: 222 84% 5%; /* Dark blue */
+    --muted: 210 40% 96%; /* Light grey */
+    --muted-foreground: 215 16% 47%; /* Medium grey */
+    --accent: 210 40% 96%; /* Light grey */
+    --accent-foreground: 222 84% 5%; /* Dark blue */
+    --destructive: 0 84% 60%; /* Red */
+    --destructive-foreground: 210 40% 98%; /* Light blue */
+    --border: 214 32% 91%; /* Light grey */
+    --input: 214 32% 91%; /* Light grey */
+    --ring: 221 83% 53%; /* Blue */
+    --radius: 0.5rem; /* Border radius */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 222 84% 5%; /* Dark blue */
+    
+    /* Additional UI colors for components */
+    --background: 0 0% 100%; /* White */
+    --foreground: 222 84% 5%; /* Dark blue */
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 222 84% 5%; /* Dark blue */
 }
 
 body {
@@ -2358,4 +2395,53 @@ input:checked + .toggle-slider:before {
 .table-section .action-btn i {
     font-size: 1rem;
     color: var(--text-secondary);
+}
+
+/* Chart-specific styles for analytics - matching seller analytics */
+.recharts-wrapper {
+  background: transparent;
+}
+
+.recharts-surface {
+  background: transparent;
+}
+
+.recharts-chart {
+  background: transparent;
+}
+
+/* Ensure chart containers are properly styled */
+.recharts-responsive-container {
+  background: transparent;
+}
+
+/* Chart grid lines - subtle and clean */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: hsl(var(--border));
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+/* Chart text styling */
+.recharts-text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+/* Chart tooltip styling - clean and modern */
+.recharts-tooltip-wrapper {
+  z-index: 1000;
+}
+
+.recharts-default-tooltip {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }

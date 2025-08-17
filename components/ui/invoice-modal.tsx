@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
+import { dateInputToDateOnly } from "@/lib/timezone"
 import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -1397,11 +1398,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       const vat = (subtotalWithLabour * vatPercentageNum) / 100;
       const grandTotal = subtotalWithLabour + vat;
 
+      // Convert date inputs to date-only values for database storage
+      // This prevents the "one day less" issue by treating the dates as pure calendar dates
+      const dateToSave = dateInputToDateOnly(invoiceDate)
+      const dueDateToSave = dueDate ? dateInputToDateOnly(dueDate) : null
+      
       const invoiceData = {
         invoice_number: invoiceNumber,
         original_quotation_number: originalQuotationNumber,
-        date_created: invoiceDate,
-        due_date: dueDate,
+        date_created: dateToSave.toISOString(),
+        due_date: dueDateToSave ? dueDateToSave.toISOString() : null,
         client_id: selectedClient.id,
         total_amount: grandTotal,
         subtotal: subtotalWithLabour,

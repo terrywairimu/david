@@ -5,6 +5,7 @@ import { FormModal } from "@/components/ui/modal"
 import { supabase } from "@/lib/supabase-client"
 import { Calendar, Download, Printer } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { getNairobiDayBoundaries, getNairobiWeekBoundaries, getNairobiMonthBoundaries } from "@/lib/timezone"
 
 type ReportType = 'sales' | 'expenses' | 'inventory' | 'clients' | 'financial' | 'custom'
 
@@ -35,32 +36,39 @@ const buttonVariants: Record<ReportType, string> = {
 }
 
 function computeDateRange(selection: DateRangeKey): { start: Date, end: Date } {
+  // Use Nairobi timezone for all date calculations
   const today = new Date()
-  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0)
-  const startOfThisWeek = new Date(endOfToday)
-  startOfThisWeek.setDate(endOfToday.getDate() - endOfToday.getDay())
-  startOfThisWeek.setHours(0,0,0,0)
+  const { start: startOfToday, end: endOfToday } = getNairobiDayBoundaries(today)
+  
+  const { start: startOfThisWeek, end: endOfThisWeek } = getNairobiWeekBoundaries(today)
+  
   const startOfLastWeek = new Date(startOfThisWeek)
   startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
   const endOfLastWeek = new Date(startOfThisWeek)
   endOfLastWeek.setDate(endOfLastWeek.getDate() - 1)
-  endOfLastWeek.setHours(23,59,59,999)
-  const startOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-  const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-  const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-  endOfLastMonth.setHours(23,59,59,999)
+  endOfLastWeek.setHours(23, 59, 59, 999)
+  
+  const { start: startOfThisMonth, end: endOfThisMonth } = getNairobiMonthBoundaries(today)
+  
+  const startOfLastMonth = new Date(startOfThisMonth)
+  startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1)
+  const endOfLastMonth = new Date(startOfThisMonth)
+  endOfLastMonth.setDate(0)
+  endOfLastMonth.setHours(23, 59, 59, 999)
+  
   const startOfThisQuarter = new Date(today)
-  startOfThisQuarter.setMonth(Math.floor(today.getMonth()/3)*3,1)
-  startOfThisQuarter.setHours(0,0,0,0)
+  startOfThisQuarter.setMonth(Math.floor(today.getMonth() / 3) * 3, 1)
+  startOfThisQuarter.setHours(0, 0, 0, 0)
+  
   const startOfThisYear = new Date(today.getFullYear(), 0, 1)
+  
   switch(selection){
     case 'today': return { start: startOfToday, end: endOfToday }
     case 'yesterday': {
       const yStart = new Date(startOfToday)
-      yStart.setDate(yStart.getDate()-1)
+      yStart.setDate(yStart.getDate() - 1)
       const yEnd = new Date(endOfToday)
-      yEnd.setDate(yEnd.getDate()-1)
+      yEnd.setDate(yEnd.getDate() - 1)
       return { start: yStart, end: yEnd }
     }
     case 'week': return { start: startOfThisWeek, end: endOfToday }

@@ -5,6 +5,7 @@ import { X, Plus, Truck, Package } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
+import { dateInputToDateOnly } from "@/lib/timezone"
 import { createPortal } from "react-dom"
 
 interface PurchaseModalProps {
@@ -495,8 +496,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
     setLoading(true)
     try {
+      // Convert date input to date-only value for database storage
+      // This prevents the "one day less" issue by treating the date as a pure calendar date
+      const dateToSave = dateInputToDateOnly(purchaseDate)
+      
       const purchaseData = {
-        purchase_date: purchaseDate,
+        purchase_date: dateToSave.toISOString(),
         purchase_order_number: purchaseOrderNumber,
         supplier_id: supplierId,
         payment_method: paymentMethod,

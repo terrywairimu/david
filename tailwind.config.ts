@@ -7,38 +7,38 @@ const config: Config = {
     extend: {
       colors: {
         // Custom colors to match HTML version
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "#e2e8f0", // Direct light grey color
+        input: "#e2e8f0", // Direct light grey color
+        ring: "#3b82f6", // Direct blue color
+        background: "#ffffff", // Direct white color
+        foreground: "#1e293b", // Direct dark color
         primary: {
-          DEFAULT: "#6366f1", // From --primary-gradient start
+          DEFAULT: "#3b82f6", // Direct blue color instead of CSS custom property
           foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#3b82f6", // From --secondary-gradient start
-          foreground: "#ffffff",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "#ef4444",
-          foreground: "#ffffff",
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "#f8fafc",
-          foreground: "#64748b", // --text-secondary
+          DEFAULT: "#f8fafc", // Direct light grey color
+          foreground: "#64748b", // Direct medium grey color
         },
         accent: {
-          DEFAULT: "#f1f5f9",
-          foreground: "#1e293b", // --text-primary
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          DEFAULT: "#ffffff",
-          foreground: "#1e293b", // --text-primary
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: "#ffffff",
-          foreground: "#1e293b", // --text-primary
+          DEFAULT: "#ffffff", // Direct white color
+          foreground: "#1e293b", // Direct dark color
         },
         // Custom text colors from HTML
         "text-primary": "#1e293b",
@@ -49,6 +49,19 @@ const config: Config = {
         "primary-gradient": "#6366f1",
         "secondary-gradient": "#3b82f6",
         "tertiary-gradient": "#3f3f42",
+        
+        // Chart colors for analytics - matching seller analytics
+        "chart-1": "hsl(var(--chart-1))",
+        "chart-2": "hsl(var(--chart-2))",
+        "chart-3": "hsl(var(--chart-3))",
+        "chart-4": "hsl(var(--chart-4))",
+        "chart-5": "hsl(var(--chart-5))",
+        
+        // Additional semantic colors
+        "success": "hsl(var(--success))",
+        "error": "hsl(var(--error))",
+        "warning": "hsl(var(--warning))",
+        "info": "hsl(var(--info))",
       },
       borderRadius: {
         lg: "var(--radius)",

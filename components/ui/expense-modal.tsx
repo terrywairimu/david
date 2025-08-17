@@ -5,6 +5,7 @@ import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generateExpenseNumber } from "@/lib/workflow-utils"
+import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 import { Expense } from "@/lib/types"
 
 interface ExpenseItem {
@@ -94,9 +95,9 @@ const ExpenseModal = ({
 
   useEffect(() => {
     if (expense && mode !== "create") {
-      // Fix date handling to prevent timezone issues
+      // Convert UTC from database to Nairobi time for display
       const expenseDate = new Date(expense.date_created)
-      const localDate = new Date(expenseDate.getTime() - (expenseDate.getTimezoneOffset() * 60000))
+      const nairobiDate = utcToNairobi(expenseDate)
       
       setFormData({
         expense_number: expense.expense_number || "",
@@ -107,7 +108,7 @@ const ExpenseModal = ({
         description: expense.description || "",
         receipt_number: expense.receipt_number || "",
         account_debited: expense.account_debited || "",
-        date_created: localDate.toISOString().split('T')[0],
+        date_created: nairobiDate.toISOString().split('T')[0],
         expense_type: expense.expense_type || expenseType
       })
       setSelectedQuotation(expense.quotation_number || "");
@@ -256,14 +257,14 @@ const ExpenseModal = ({
     setLoading(true)
 
     try {
-      // Fix date handling to prevent timezone issues
-      const dateToSave = new Date(formData.date_created)
-      const utcDate = new Date(dateToSave.getTime() + (dateToSave.getTimezoneOffset() * 60000))
+      // Convert date input to date-only value for database storage
+      // This prevents the "one day less" issue by treating the date as a pure calendar date
+      const dateToSave = dateInputToDateOnly(formData.date_created)
       
       const expenseData = {
         ...formData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
-        date_created: utcDate.toISOString(),
+        date_created: dateToSave.toISOString(),
         quotation_number: selectedQuotation || null
       }
 

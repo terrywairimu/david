@@ -6,6 +6,7 @@ import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-cl
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPayments } from "@/lib/workflow-utils"
+import { getCurrentNairobiTime } from "@/lib/timezone"
 
 interface AccountSummaryViewProps {
   clients: RegisteredEntity[]
@@ -541,7 +542,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       amount: payment.amount,
                       description: payment.description || payment.payment_number,
                       transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
-                      updated_at: new Date().toISOString()
+                      updated_at: getCurrentNairobiTime().toISOString()
                     })
                     .eq('reference_type', 'payment')
                     .eq('reference_id', payment.id)
@@ -733,7 +734,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       amount: expense.amount,
                       description: realDescription,
                       transaction_date: new Date(expense.date_created).toISOString().split('T')[0],
-                      updated_at: new Date().toISOString()
+                      updated_at: getCurrentNairobiTime().toISOString()
                     })
                     .eq('reference_type', 'expense')
                     .eq('reference_id', expense.id)
@@ -955,7 +956,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       amount: purchase.total_amount,
                       description: realDescription,
                       transaction_date: purchase.purchase_date,
-                      updated_at: new Date().toISOString()
+                      updated_at: getCurrentNairobiTime().toISOString()
                     })
                     .eq('reference_type', 'purchase')
                     .eq('reference_id', purchase.id)
@@ -1116,8 +1117,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           .from('account_balances')
           .update({
             current_balance: balance.current_balance,
-            last_transaction_date: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            last_transaction_date: getCurrentNairobiTime().toISOString(),
+            updated_at: getCurrentNairobiTime().toISOString()
           })
           .eq('account_type', accountType)
 

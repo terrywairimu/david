@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.12",
     "@hookform/resolvers": "^3.9.1",
     "@pdfme/common": "^5.4.2",
     "@pdfme/generator": "^5.4.2",
@@ -43,6 +44,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@supabase/supabase-js": "latest",
+    "ai": "^5.0.12",
     "autoprefixer": "^10.4.20",
     "bootstrap": "^5.3.7",
     "class-variance-authority": "^0.7.1",
@@ -50,6 +52,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.23.12",
     "input-otp": "1.4.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
