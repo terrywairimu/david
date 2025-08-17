@@ -1,9 +1,7 @@
-// Report PDF Templates - Customized for each report type
-// Maintains the same modern layout and styling as quotation templates
+// Report PDF Templates - Professional styling matching quotation template
+// Uses the same approach: @pdfme/generator with plugins for text, rectangle, line, image
 
-import { imageToBase64 } from './pdf-template';
-
-// Base template structure for all reports
+// Base report template with professional styling
 const baseReportTemplate = {
   basePdf: {
     width: 210,
@@ -12,14 +10,14 @@ const baseReportTemplate = {
   },
   schemas: [
     [
-      // Header Section
+      // Company Logo and Header
       { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
       { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
       { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
       
-      // Report Header Background
+      // Report Header Background and Title
       { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
       { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
       
@@ -31,11 +29,11 @@ const baseReportTemplate = {
       { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'reportGeneratedLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'reportGeneratedValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'reportNumberLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'reportNumberValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       
-      // Report Number (top right)
-      { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      // Report Number (right aligned)
+      { name: 'reportNumberFull', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
       
       // Watermark Logo
       { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
@@ -43,14 +41,16 @@ const baseReportTemplate = {
       // Table Header Background
       { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
       
-      // Footer Section
+      // Footer Elements
       { name: 'summaryTitle', type: 'text', position: { x: 15, y: 245 }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      
+      // Totals Box
       { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: 245 }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
       { name: 'totalLabel', type: 'text', position: { x: 142, y: 265 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
       { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
       
-      // Signatures
+      // Signature Lines
       { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
       { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
       { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
@@ -59,97 +59,96 @@ const baseReportTemplate = {
   ]
 };
 
-// Sales Report Template
+// Sales Report Template - inherits from base template
 const salesReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
       // Sales-specific table headers
-      { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Date' },
-      { name: 'clientHeader', type: 'text', position: { x: 47, y: 102 }, width: 45, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Client' },
-      { name: 'invoiceHeader', type: 'text', position: { x: 97, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Invoice' },
-      { name: 'amountHeader', type: 'text', position: { x: 127, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Amount' },
-      { name: 'statusHeader', type: 'text', position: { x: 162, y: 102 }, width: 33, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Status' },
+      { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'clientHeader', type: 'text', position: { x: 47, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'invoiceHeader', type: 'text', position: { x: 102, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'amountHeader', type: 'text', position: { x: 137, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'statusHeader', type: 'text', position: { x: 182, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
 
-// Expense Report Template
+// Expense Report Template - inherits from base template
 const expenseReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
       // Expense-specific table headers
-      { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Date' },
-      { name: 'categoryHeader', type: 'text', position: { x: 47, y: 102 }, width: 45, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Category' },
-      { name: 'descriptionHeader', type: 'text', position: { x: 97, y: 102 }, width: 45, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Description' },
-      { name: 'amountHeader', type: 'text', position: { x: 147, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Amount' },
-      { name: 'typeHeader', type: 'text', position: { x: 182, y: 102 }, width: 13, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Type' },
+      { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'categoryHeader', type: 'text', position: { x: 47, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'descriptionHeader', type: 'text', position: { x: 92, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'amountHeader', type: 'text', position: { x: 147, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'typeHeader', type: 'text', position: { x: 192, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
 
-// Inventory Report Template
+// Inventory Report Template - inherits from base template
 const inventoryReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
       // Inventory-specific table headers
-      { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 45, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Item' },
-      { name: 'categoryHeader', type: 'text', position: { x: 67, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Category' },
-      { name: 'quantityHeader', type: 'text', position: { x: 107, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Qty' },
-      { name: 'unitPriceHeader', type: 'text', position: { x: 137, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Unit Price' },
-      { name: 'valueHeader', type: 'text', position: { x: 172, y: 102 }, width: 23, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Value' },
+      { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'categoryHeader', type: 'text', position: { x: 62, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'quantityHeader', type: 'text', position: { x: 102, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'unitPriceHeader', type: 'text', position: { x: 132, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'valueHeader', type: 'text', position: { x: 172, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
 
-// Client Report Template
+// Client Report Template - inherits from base template
 const clientReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
       // Client-specific table headers
-      { name: 'clientHeader', type: 'text', position: { x: 17, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Client' },
-      { name: 'salesHeader', type: 'text', position: { x: 72, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Sales' },
-      { name: 'paymentsHeader', type: 'text', position: { x: 112, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Payments' },
-      { name: 'balanceHeader', type: 'text', position: { x: 152, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Balance' },
-      { name: 'statusHeader', type: 'text', position: { x: 192, y: 102 }, width: 3, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Status' },
+      { name: 'clientHeader', type: 'text', position: { x: 17, y: 102 }, width: 45, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'salesHeader', type: 'text', position: { x: 67, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'paymentsHeader', type: 'text', position: { x: 107, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'balanceHeader', type: 'text', position: { x: 147, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'statusHeader', type: 'text', position: { x: 187, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
 
-// Financial Report Template
+// Financial Report Template - inherits from base template
 const financialReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
       // Financial-specific table headers
-      { name: 'metricHeader', type: 'text', position: { x: 17, y: 102 }, width: 80, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Metric' },
-      { name: 'currentPeriodHeader', type: 'text', position: { x: 102, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Current' },
-      { name: 'previousPeriodHeader', type: 'text', position: { x: 147, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Previous' },
-      { name: 'changeHeader', type: 'text', position: { x: 192, y: 102 }, width: 3, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Change' },
+      { name: 'metricHeader', type: 'text', position: { x: 17, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'currentPeriodHeader', type: 'text', position: { x: 72, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'previousPeriodHeader', type: 'text', position: { x: 117, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'changeHeader', type: 'text', position: { x: 162, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
 
-// Custom Report Template
+// Custom Report Template - inherits from base template
 const customReportTemplate = {
   ...baseReportTemplate,
   schemas: [
     [
       ...baseReportTemplate.schemas[0],
-      // Custom report table headers (flexible)
-      { name: 'column1Header', type: 'text', position: { x: 17, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Column 1' },
-      { name: 'column2Header', type: 'text', position: { x: 62, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Column 2' },
-      { name: 'column3Header', type: 'text', position: { x: 107, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Column 3' },
-      { name: 'column4Header', type: 'text', position: { x: 152, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Column 4' },
-      { name: 'column5Header', type: 'text', position: { x: 197, y: 102 }, width: 8, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center', content: 'Col 5' },
+      // Custom report table headers (generic)
+      { name: 'column1Header', type: 'text', position: { x: 17, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'column2Header', type: 'text', position: { x: 62, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'column3Header', type: 'text', position: { x: 107, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      { name: 'column4Header', type: 'text', position: { x: 152, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
     ]
   ]
 };
@@ -329,372 +328,333 @@ const formatPercentage = (value: number): string => {
   return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 };
 
-// Generate Sales Report PDF
+// Simple test function to verify PDF generation works
+const generateTestPDF = async () => {
+  const template = {
+    basePdf: {
+      width: 210,
+      height: 297,
+      padding: [0, 0, 0, 0] as [number, number, number, number],
+    },
+    schemas: [
+      [
+        { name: 'testText', type: 'text', position: { x: 100, y: 150 }, width: 100, height: 20, fontSize: 16, fontColor: '#000000', fontName: 'Helvetica-Bold', alignment: 'center' },
+      ]
+    ]
+  };
+
+  const inputs = [{ testText: 'TEST PDF WORKS!' }];
+
+  return { template, inputs };
+};
+
+// Generate Sales Report PDF - Professional styling
 const generateSalesReportPDF = async (data: SalesReportData) => {
   const mergedData = { ...defaultReportValues, ...data };
   
-  // Transform items to table row format
-  const tableRows = mergedData.items.map((item, idx) => [
-    item.date,
-    item.client,
-    item.invoice,
-    formatCurrency(item.amount),
-    item.status
-  ]);
-
-  // Calculate dynamic content
-  const totalRows = tableRows.length;
-  const rowsPerPage = 20; // Adjust based on content
-  const pages = Math.ceil(totalRows / rowsPerPage);
-
-  // Generate schema for each page
-  const allSchemas = [];
-  
-  for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
-    const pageSchemas = [...salesReportTemplate.schemas[0]];
-    const startRow = pageIdx * rowsPerPage;
-    const endRow = Math.min(startRow + rowsPerPage, totalRows);
-    const pageRows = tableRows.slice(startRow, endRow);
-
-    // Add page-specific content
-    if (pageIdx === 0) {
-      // First page - add all header elements
-      pageSchemas.push(
-        { name: 'companyLogo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38, content: mergedData.companyLogo || '' },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', content: mergedData.companyName },
-        { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left', content: mergedData.companyLocation },
-        { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left', content: mergedData.companyPhone },
-        { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left', content: mergedData.companyEmail },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', content: mergedData.reportTitle },
-        { name: 'reportDate', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportDate },
-        { name: 'reportPeriod', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportPeriod },
-        { name: 'reportType', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportType },
-        { name: 'reportGenerated', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportGenerated },
-        { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: mergedData.reportNumber }
-      );
-    }
-
-    // Add table rows
-    pageRows.forEach((row, rowIdx) => {
-      const y = 110 + (rowIdx * 8);
-      pageSchemas.push(
-        { name: `date${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[0] },
-        { name: `client${pageIdx}_${rowIdx}`, type: 'text', position: { x: 47, y }, width: 45, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[1] },
-        { name: `invoice${pageIdx}_${rowIdx}`, type: 'text', position: { x: 97, y }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[2] },
-        { name: `amount${pageIdx}_${rowIdx}`, type: 'text', position: { x: 127, y }, width: 30, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[3] },
-        { name: `status${pageIdx}_${rowIdx}`, type: 'text', position: { x: 162, y }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[4] }
-      );
+  // Fetch watermark image as base64 (same as quotation)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-
-    // Add footer elements on last page
-    if (pageIdx === pages - 1) {
-      pageSchemas.push(
-        { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.summary },
-        { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: formatCurrency(mergedData.totalSales) },
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.preparedBy },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.approvedBy }
-      );
-    }
-
-    allSchemas.push(pageSchemas);
   }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-  return {
-    template: {
-      basePdf: salesReportTemplate.basePdf,
-      schemas: allSchemas
-    },
-    inputs: [{}] // Single input object for all pages
-  };
+  // Create inputs with actual data
+  const inputs = [{
+    // Company Info
+    logo: companyLogoBase64,
+    companyName: mergedData.companyName,
+    companyLocation: mergedData.companyLocation,
+    companyPhone: mergedData.companyPhone,
+    companyEmail: mergedData.companyEmail,
+    
+    // Report Header
+    reportTitle: mergedData.reportTitle,
+    reportDateLabel: 'Date:',
+    reportDateValue: mergedData.reportDate,
+    reportPeriodLabel: 'Period:',
+    reportPeriodValue: mergedData.reportPeriod,
+    reportTypeLabel: 'Type:',
+    reportTypeValue: mergedData.reportType,
+    reportNumberLabel: 'Report No:',
+    reportNumberValue: mergedData.reportNumber,
+    reportNumberFull: `Report No: ${mergedData.reportNumber}`,
+    
+    // Table Headers
+    dateHeader: 'Date',
+    clientHeader: 'Client',
+    invoiceHeader: 'Invoice',
+    amountHeader: 'Amount',
+    statusHeader: 'Status',
+    
+    // Footer
+    summaryTitle: 'Summary:',
+    summaryContent: mergedData.summary,
+    totalLabel: 'Total:',
+    totalValue: formatCurrency(mergedData.totalSales),
+    preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
+    approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Watermark
+    watermarkLogo: watermarkLogoBase64,
+  }];
+
+  return { template: salesReportTemplate, inputs };
 };
 
-// Generate Expense Report PDF
+// Generate Expense Report PDF - Professional styling
 const generateExpenseReportPDF = async (data: ExpenseReportData) => {
   const mergedData = { ...defaultReportValues, ...data };
   
-  // Transform items to table row format
-  const tableRows = mergedData.items.map((item, idx) => [
-    item.date,
-    item.category,
-    item.description,
-    formatCurrency(item.amount),
-    item.type
-  ]);
-
-  // Similar structure to sales report but with expense-specific columns
-  const totalRows = tableRows.length;
-  const rowsPerPage = 20;
-  const pages = Math.ceil(totalRows / rowsPerPage);
-
-  const allSchemas = [];
-  
-  for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
-    const pageSchemas = [...expenseReportTemplate.schemas[0]];
-    const startRow = pageIdx * rowsPerPage;
-    const endRow = Math.min(startRow + rowsPerPage, totalRows);
-    const pageRows = tableRows.slice(startRow, endRow);
-
-    // Add page-specific content similar to sales report
-    if (pageIdx === 0) {
-      // First page header elements
-      pageSchemas.push(
-        { name: 'companyLogo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38, content: mergedData.companyLogo || '' },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', content: mergedData.companyName },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', content: mergedData.reportTitle },
-        { name: 'reportDate', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportDate },
-        { name: 'reportPeriod', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportPeriod },
-        { name: 'reportType', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportType },
-        { name: 'reportGenerated', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportGenerated },
-        { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: mergedData.reportNumber }
-      );
-    }
-
-    // Add table rows
-    pageRows.forEach((row, rowIdx) => {
-      const y = 110 + (rowIdx * 8);
-      pageSchemas.push(
-        { name: `date${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[0] },
-        { name: `category${pageIdx}_${rowIdx}`, type: 'text', position: { x: 47, y }, width: 45, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[1] },
-        { name: `description${pageIdx}_${rowIdx}`, type: 'text', position: { x: 97, y }, width: 45, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[2] },
-        { name: `amount${pageIdx}_${rowIdx}`, type: 'text', position: { x: 147, y }, width: 30, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[3] },
-        { name: `type${pageIdx}_${rowIdx}`, type: 'text', position: { x: 182, y }, width: 13, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[4] }
-      );
+  // Fetch watermark image as base64 (same as quotation)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-
-    // Add footer elements on last page
-    if (pageIdx === pages - 1) {
-      pageSchemas.push(
-        { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.summary },
-        { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: formatCurrency(mergedData.totalExpenses) },
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.preparedBy },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.approvedBy }
-      );
-    }
-
-    allSchemas.push(pageSchemas);
   }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-  return {
-    template: {
-      basePdf: expenseReportTemplate.basePdf,
-      schemas: allSchemas
-    },
-    inputs: [{}]
-  };
+  // Create inputs with actual data
+  const inputs = [{
+    // Company Info
+    logo: companyLogoBase64,
+    companyName: mergedData.companyName,
+    companyLocation: mergedData.companyLocation,
+    companyPhone: mergedData.companyPhone,
+    companyEmail: mergedData.companyEmail,
+    
+    // Report Header
+    reportTitle: mergedData.reportTitle,
+    reportDateLabel: 'Date:',
+    reportDateValue: mergedData.reportDate,
+    reportPeriodLabel: 'Period:',
+    reportPeriodValue: mergedData.reportPeriod,
+    reportTypeLabel: 'Type:',
+    reportTypeValue: mergedData.reportType,
+    reportNumberLabel: 'Report No:',
+    reportNumberValue: mergedData.reportNumber,
+    reportNumberFull: `Report No: ${mergedData.reportNumber}`,
+    
+    // Table Headers
+    dateHeader: 'Date',
+    categoryHeader: 'Category',
+    descriptionHeader: 'Description',
+    amountHeader: 'Amount',
+    typeHeader: 'Type',
+    
+    // Footer
+    summaryTitle: 'Summary:',
+    summaryContent: mergedData.summary,
+    totalLabel: 'Total:',
+    totalValue: formatCurrency(mergedData.totalExpenses),
+    preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
+    approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Watermark
+    watermarkLogo: watermarkLogoBase64,
+  }];
+
+  return { template: expenseReportTemplate, inputs };
 };
 
-// Generate Financial Report PDF
-const generateFinancialReportPDF = async (data: FinancialReportData) => {
-  const mergedData = { ...defaultReportValues, ...data };
-  
-  // Transform items to table row format
-  const tableRows = mergedData.items.map((item, idx) => [
-    item.metric,
-    formatCurrency(item.currentPeriod),
-    item.previousPeriod ? formatCurrency(item.previousPeriod) : '-',
-    item.change ? formatPercentage(item.change) : '-'
-  ]);
-
-  const totalRows = tableRows.length;
-  const rowsPerPage = 20;
-  const pages = Math.ceil(totalRows / rowsPerPage);
-
-  const allSchemas = [];
-  
-  for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
-    const pageSchemas = [...financialReportTemplate.schemas[0]];
-    const startRow = pageIdx * rowsPerPage;
-    const endRow = Math.min(startRow + rowsPerPage, totalRows);
-    const pageRows = tableRows.slice(startRow, endRow);
-
-    if (pageIdx === 0) {
-      pageSchemas.push(
-        { name: 'companyLogo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38, content: mergedData.companyLogo || '' },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', content: mergedData.companyName },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', content: mergedData.reportTitle },
-        { name: 'reportDate', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportDate },
-        { name: 'reportPeriod', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportPeriod },
-        { name: 'reportType', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportType },
-        { name: 'reportGenerated', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportGenerated },
-        { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: mergedData.reportNumber }
-      );
-    }
-
-    // Add table rows
-    pageRows.forEach((row, rowIdx) => {
-      const y = 110 + (rowIdx * 8);
-      pageSchemas.push(
-        { name: `metric${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 80, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[0] },
-        { name: `current${pageIdx}_${rowIdx}`, type: 'text', position: { x: 102, y }, width: 40, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[1] },
-        { name: `previous${pageIdx}_${rowIdx}`, type: 'text', position: { x: 147, y }, width: 40, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[2] },
-        { name: `change${pageIdx}_${rowIdx}`, type: 'text', position: { x: 192, y }, width: 3, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[3] }
-      );
-    });
-
-    // Add footer elements on last page
-    if (pageIdx === pages - 1) {
-      pageSchemas.push(
-        { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.summary },
-        { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: formatCurrency(mergedData.netIncome) },
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.preparedBy },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.approvedBy }
-      );
-    }
-
-    allSchemas.push(pageSchemas);
-  }
-
-  return {
-    template: {
-      basePdf: financialReportTemplate.basePdf,
-      schemas: allSchemas
-    },
-    inputs: [{}]
-  };
-};
-
-// Generate Inventory Report PDF
+// Generate Inventory Report PDF - Professional styling
 const generateInventoryReportPDF = async (data: InventoryReportData) => {
   const mergedData = { ...defaultReportValues, ...data };
   
-  // Transform items to table row format
-  const tableRows = mergedData.items.map((item, idx) => [
-    item.item,
-    item.category,
-    item.quantity.toString(),
-    formatCurrency(item.unitPrice),
-    formatCurrency(item.value)
-  ]);
-
-  const totalRows = tableRows.length;
-  const rowsPerPage = 20;
-  const pages = Math.ceil(totalRows / rowsPerPage);
-
-  const allSchemas = [];
-  
-  for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
-    const pageSchemas = [...inventoryReportTemplate.schemas[0]];
-    const startRow = pageIdx * rowsPerPage;
-    const endRow = Math.min(startRow + rowsPerPage, totalRows);
-    const pageRows = tableRows.slice(startRow, endRow);
-
-    if (pageIdx === 0) {
-      pageSchemas.push(
-        { name: 'companyLogo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38, content: mergedData.companyLogo || '' },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', content: mergedData.companyName },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', content: mergedData.reportTitle },
-        { name: 'reportDate', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportDate },
-        { name: 'reportPeriod', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportPeriod },
-        { name: 'reportType', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportType },
-        { name: 'reportGenerated', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportGenerated },
-        { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: mergedData.reportNumber }
-      );
-    }
-
-    // Add table rows
-    pageRows.forEach((row, rowIdx) => {
-      const y = 110 + (rowIdx * 8);
-      pageSchemas.push(
-        { name: `item${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 45, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[0] },
-        { name: `category${pageIdx}_${rowIdx}`, type: 'text', position: { x: 67, y }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[1] },
-        { name: `quantity${pageIdx}_${rowIdx}`, type: 'text', position: { x: 107, y }, width: 25, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[2] },
-        { name: `unitPrice${pageIdx}_${rowIdx}`, type: 'text', position: { x: 137, y }, width: 30, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[3] },
-        { name: `value${pageIdx}_${rowIdx}`, type: 'text', position: { x: 172, y }, width: 23, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[4] }
-      );
+  // Fetch watermark image as base64 (same as quotation)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-
-    // Add footer elements on last page
-    if (pageIdx === pages - 1) {
-      pageSchemas.push(
-        { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.summary },
-        { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: formatCurrency(mergedData.totalValue) },
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.preparedBy },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.approvedBy }
-      );
-    }
-
-    allSchemas.push(pageSchemas);
   }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-  return {
-    template: {
-      basePdf: inventoryReportTemplate.basePdf,
-      schemas: allSchemas
-    },
-    inputs: [{}]
-  };
+  // Create inputs with actual data
+  const inputs = [{
+    // Company Info
+    logo: companyLogoBase64,
+    companyName: mergedData.companyName,
+    companyLocation: mergedData.companyLocation,
+    companyPhone: mergedData.companyPhone,
+    companyEmail: mergedData.companyEmail,
+    
+    // Report Header
+    reportTitle: mergedData.reportTitle,
+    reportDateLabel: 'Date:',
+    reportDateValue: mergedData.reportDate,
+    reportPeriodLabel: 'Period:',
+    reportPeriodValue: mergedData.reportPeriod,
+    reportTypeLabel: 'Type:',
+    reportTypeValue: mergedData.reportType,
+    reportNumberLabel: 'Report No:',
+    reportNumberValue: mergedData.reportNumber,
+    reportNumberFull: `Report No: ${mergedData.reportNumber}`,
+    
+    // Table Headers
+    itemHeader: 'Item',
+    categoryHeader: 'Category',
+    quantityHeader: 'Quantity',
+    unitPriceHeader: 'Unit Price',
+    valueHeader: 'Value',
+    
+    // Footer
+    summaryTitle: 'Summary:',
+    summaryContent: mergedData.summary,
+    totalLabel: 'Total:',
+    totalValue: formatCurrency(mergedData.totalValue),
+    preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
+    approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Watermark
+    watermarkLogo: watermarkLogoBase64,
+  }];
+
+  return { template: inventoryReportTemplate, inputs };
 };
 
-// Generate Client Report PDF
+// Generate Client Report PDF - Professional styling
 const generateClientReportPDF = async (data: ClientReportData) => {
   const mergedData = { ...defaultReportValues, ...data };
   
-  // Transform items to table row format
-  const tableRows = mergedData.items.map((item, idx) => [
-    item.client,
-    formatCurrency(item.sales),
-    formatCurrency(item.payments),
-    formatCurrency(item.balance),
-    item.status
-  ]);
-
-  const totalRows = tableRows.length;
-  const rowsPerPage = 20;
-  const pages = Math.ceil(totalRows / rowsPerPage);
-
-  const allSchemas = [];
-  
-  for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
-    const pageSchemas = [...clientReportTemplate.schemas[0]];
-    const startRow = pageIdx * rowsPerPage;
-    const endRow = Math.min(startRow + rowsPerPage, totalRows);
-    const pageRows = tableRows.slice(startRow, endRow);
-
-    if (pageIdx === 0) {
-      pageSchemas.push(
-        { name: 'companyLogo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38, content: mergedData.companyLogo || '' },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', content: mergedData.companyName },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', content: mergedData.reportTitle },
-        { name: 'reportDate', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportDate },
-        { name: 'reportPeriod', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportPeriod },
-        { name: 'reportType', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportType },
-        { name: 'reportGenerated', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.reportGenerated },
-        { name: 'reportNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: mergedData.reportNumber }
-      );
-    }
-
-    // Add table rows
-    pageRows.forEach((row, rowIdx) => {
-      const y = 110 + (rowIdx * 8);
-      pageSchemas.push(
-        { name: `client${pageIdx}_${rowIdx}`, type: 'text', position: { x: 17, y }, width: 50, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: row[0] },
-        { name: `sales${pageIdx}_${rowIdx}`, type: 'text', position: { x: 72, y }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[1] },
-        { name: `payments${pageIdx}_${rowIdx}`, type: 'text', position: { x: 112, y }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[2] },
-        { name: `balance${pageIdx}_${rowIdx}`, type: 'text', position: { x: 152, y }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: row[3] },
-        { name: `status${pageIdx}_${rowIdx}`, type: 'text', position: { x: 192, y }, width: 3, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'center', content: row[4] }
-      );
+  // Fetch watermark image as base64 (same as quotation)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-
-    // Add footer elements on last page
-    if (pageIdx === pages - 1) {
-      pageSchemas.push(
-        { name: 'summaryContent', type: 'text', position: { x: 15, y: 250 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.summary },
-        { name: 'totalValue', type: 'text', position: { x: 165, y: 265 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right', content: formatCurrency(mergedData.totalBalance) },
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.preparedBy },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left', content: mergedData.approvedBy }
-      );
-    }
-
-    allSchemas.push(pageSchemas);
   }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-  return {
-    template: {
-      basePdf: clientReportTemplate.basePdf,
-      schemas: allSchemas
-    },
-    inputs: [{}]
-  };
+  // Create inputs with actual data
+  const inputs = [{
+    // Company Info
+    logo: companyLogoBase64,
+    companyName: mergedData.companyName,
+    companyLocation: mergedData.companyLocation,
+    companyPhone: mergedData.companyPhone,
+    companyEmail: mergedData.companyEmail,
+    
+    // Report Header
+    reportTitle: mergedData.reportTitle,
+    reportDateLabel: 'Date:',
+    reportDateValue: mergedData.reportDate,
+    reportPeriodLabel: 'Period:',
+    reportPeriodValue: mergedData.reportPeriod,
+    reportTypeLabel: 'Type:',
+    reportTypeValue: mergedData.reportType,
+    reportNumberLabel: 'Report No:',
+    reportNumberValue: mergedData.reportNumber,
+    reportNumberFull: `Report No: ${mergedData.reportNumber}`,
+    
+    // Table Headers
+    clientHeader: 'Client',
+    salesHeader: 'Sales',
+    paymentsHeader: 'Payments',
+    balanceHeader: 'Balance',
+    statusHeader: 'Status',
+    
+    // Footer
+    summaryTitle: 'Summary:',
+    summaryContent: mergedData.summary,
+    totalLabel: 'Total:',
+    totalValue: formatCurrency(mergedData.totalBalance),
+    preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
+    approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Watermark
+    watermarkLogo: watermarkLogoBase64,
+  }];
+
+  return { template: clientReportTemplate, inputs };
+};
+
+// Generate Financial Report PDF - Professional styling
+const generateFinancialReportPDF = async (data: FinancialReportData) => {
+  const mergedData = { ...defaultReportValues, ...data };
+  
+  // Fetch watermark image as base64 (same as quotation)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Create inputs with actual data
+  const inputs = [{
+    // Company Info
+    logo: companyLogoBase64,
+    companyName: mergedData.companyName,
+    companyLocation: mergedData.companyLocation,
+    companyPhone: mergedData.companyPhone,
+    companyEmail: mergedData.companyEmail,
+    
+    // Report Header
+    reportTitle: mergedData.reportTitle,
+    reportDateLabel: 'Date:',
+    reportDateValue: mergedData.reportDate,
+    reportPeriodLabel: 'Period:',
+    reportPeriodValue: mergedData.reportPeriod,
+    reportTypeLabel: 'Type:',
+    reportTypeValue: mergedData.reportType,
+    reportNumberLabel: 'Report No:',
+    reportNumberValue: mergedData.reportNumber,
+    reportNumberFull: `Report No: ${mergedData.reportNumber}`,
+    
+    // Table Headers
+    metricHeader: 'Metric',
+    currentPeriodHeader: 'Current',
+    previousPeriodHeader: 'Previous',
+    changeHeader: 'Change',
+    
+    // Footer
+    summaryTitle: 'Summary:',
+    summaryContent: mergedData.summary,
+    totalLabel: 'Total:',
+    totalValue: formatCurrency(mergedData.netIncome),
+    preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
+    approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Watermark
+    watermarkLogo: watermarkLogoBase64,
+  }];
+
+  return { template: financialReportTemplate, inputs };
 };
 
 // Export all templates and functions
@@ -706,6 +666,7 @@ export {
   financialReportTemplate,
   customReportTemplate,
   defaultReportValues,
+  generateTestPDF,
   generateSalesReportPDF,
   generateExpenseReportPDF,
   generateInventoryReportPDF,

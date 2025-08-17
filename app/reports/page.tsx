@@ -105,14 +105,14 @@ export default function ReportsPage() {
               color: 'white'
             }}>
               <FileText size={28} />
-            </div>
+              </div>
             <div>
               <h1 className="h2 mb-1 fw-bold text-dark">Reports & Analytics</h1>
               <p className="text-muted mb-0">Generate comprehensive reports and insights for your business</p>
             </div>
           </div>
-        </div>
-      </div>
+              </div>
+          </div>
 
       {/* Report Cards Grid */}
       <div className="row g-4">
@@ -167,10 +167,10 @@ export default function ReportsPage() {
                     Generate Report
                   </button>
                 </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            ))}
       </div>
 
       {/* Quick Actions Section */}

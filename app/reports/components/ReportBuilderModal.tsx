@@ -11,6 +11,7 @@ import {
   generateInventoryReportPDF,
   generateClientReportPDF,
   generateFinancialReportPDF,
+  generateTestPDF,
   type SalesReportData,
   type ExpenseReportData,
   type InventoryReportData,
@@ -172,6 +173,35 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
     }
   }, [type])
 
+  const testPDFGeneration = async () => {
+    try {
+      console.log('Testing PDF generation...')
+      const { template, inputs } = await generateTestPDF()
+      console.log('Template:', template)
+      console.log('Inputs:', inputs)
+      
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      console.log('PDF generated successfully:', pdf)
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'test.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      console.log('Test PDF downloaded successfully')
+    } catch (error) {
+      console.error('Test PDF generation failed:', error)
+    }
+  }
+
   const runAndExport = async () => {
     const { start, end } = computeDateRange(datePreset)
     let rows: any[] = []
@@ -329,19 +359,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           };
           
           const { template, inputs } = await generateSalesReportPDF(salesData);
-          const { generate } = await import('@pdfme/generator');
-          const pdf = await generate({ template, inputs });
-          
-          // Download PDF
-          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${filenameBase}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          try {
+            const { generate } = await import('@pdfme/generator');
+            const { text, rectangle, line, image } = await import('@pdfme/schemas');
+            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+            
+            // Download PDF
+            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filenameBase}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (pdfError) {
+            console.error('PDF generation failed, falling back to HTML:', pdfError);
+            // Fallback to HTML
+            const table = `
+              <table class="table table-sm table-striped">
+                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+              </table>`
+            printTableHtml(`${reportTitles[type]}`, table)
+          }
           
         } else if (type === 'expenses') {
           const expenseData: ExpenseReportData = {
@@ -369,19 +411,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           };
           
           const { template, inputs } = await generateExpenseReportPDF(expenseData);
-          const { generate } = await import('@pdfme/generator');
-          const pdf = await generate({ template, inputs });
-          
-          // Download PDF
-          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${filenameBase}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          try {
+            const { generate } = await import('@pdfme/generator');
+            const { text, rectangle, line, image } = await import('@pdfme/schemas');
+            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+            
+            // Download PDF
+            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filenameBase}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (pdfError) {
+            console.error('PDF generation failed, falling back to HTML:', pdfError);
+            // Fallback to HTML
+            const table = `
+              <table class="table table-sm table-striped">
+                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+              </table>`
+            printTableHtml(`${reportTitles[type]}`, table)
+          }
           
         } else if (type === 'financial') {
           const financialData: FinancialReportData = {
@@ -408,19 +462,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           };
           
           const { template, inputs } = await generateFinancialReportPDF(financialData);
-          const { generate } = await import('@pdfme/generator');
-          const pdf = await generate({ template, inputs });
-          
-          // Download PDF
-          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${filenameBase}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          try {
+            const { generate } = await import('@pdfme/generator');
+            const { text, rectangle, line, image } = await import('@pdfme/schemas');
+            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+            
+            // Download PDF
+            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filenameBase}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (pdfError) {
+            console.error('PDF generation failed, falling back to HTML:', pdfError);
+            // Fallback to HTML
+            const table = `
+              <table class="table table-sm table-striped">
+                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+              </table>`
+            printTableHtml('Report', table)
+          }
           
         } else if (type === 'inventory') {
           const inventoryData: InventoryReportData = {
@@ -448,19 +514,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           };
           
           const { template, inputs } = await generateInventoryReportPDF(inventoryData);
-          const { generate } = await import('@pdfme/generator');
-          const pdf = await generate({ template, inputs });
-          
-          // Download PDF
-          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${filenameBase}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          try {
+            const { generate } = await import('@pdfme/generator');
+            const { text, rectangle, line, image } = await import('@pdfme/schemas');
+            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+            
+            // Download PDF
+            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filenameBase}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (pdfError) {
+            console.error('PDF generation failed, falling back to HTML:', pdfError);
+            // Fallback to HTML
+            const table = `
+              <table class="table table-sm table-striped">
+                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+              </table>`
+            printTableHtml('Report', table)
+          }
           
         } else if (type === 'clients') {
           const clientData: ClientReportData = {
@@ -488,19 +566,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           };
           
           const { template, inputs } = await generateClientReportPDF(clientData);
-          const { generate } = await import('@pdfme/generator');
-          const pdf = await generate({ template, inputs });
-          
-          // Download PDF
-          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${filenameBase}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          try {
+            const { generate } = await import('@pdfme/generator');
+            const { text, rectangle, line, image } = await import('@pdfme/schemas');
+            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+            
+            // Download PDF
+            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filenameBase}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (pdfError) {
+            console.error('PDF generation failed, falling back to HTML:', pdfError);
+            // Fallback to HTML
+            const table = `
+              <table class="table table-sm table-striped">
+                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+              </table>`
+            printTableHtml('Report', table)
+          }
           
         } else {
           // For custom reports, use HTML fallback
@@ -514,12 +604,12 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       } catch (error) {
         console.error('Error generating PDF:', error);
         // Fallback to HTML for all report types
-        const table = `
-          <table class="table table-sm table-striped">
-            <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
-            <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>`
-        printTableHtml('Report', table)
+      const table = `
+        <table class="table table-sm table-striped">
+          <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+          <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>`
+      printTableHtml('Report', table)
       }
     } else {
       exportToCSV(filenameBase, columns, rows)
@@ -579,19 +669,19 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                   onChange={e=>setDatePreset(e.target.value as DateRangeKey)}
                   style={{ borderRadius: '16px', height: '45px' }}
                 >
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="week">Current Week</option>
-                  <option value="lastWeek">Last Week</option>
-                  <option value="month">Current Month</option>
-                  <option value="lastMonth">Last Month</option>
-                  <option value="quarter">Current Quarter</option>
-                  <option value="year">Current Year</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">Current Week</option>
+            <option value="lastWeek">Last Week</option>
+            <option value="month">Current Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="quarter">Current Quarter</option>
+            <option value="year">Current Year</option>
                   <option value="custom">Custom Range</option>
-                </select>
-              </div>
+          </select>
+        </div>
               
-              {datePreset === 'custom' && (
+        {datePreset === 'custom' && (
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold text-dark">Start Date</label>
@@ -612,14 +702,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setEndDate(e.target.value)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     />
-                  </div>
-                </div>
-              )}
+          </div>
+          </div>
+        )}
 
               {/* Dynamic form content based on report type */}
-              {type === 'sales' && (
-                <>
-                  <div className="mb-4">
+      {type === 'sales' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Group By</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -627,14 +717,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setSalesGroupBy(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="day">Day</option>
-                      <option value="week">Week</option>
-                      <option value="month">Month</option>
-                      <option value="client">Client</option>
-                      <option value="product">Product/Service</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="client">Client</option>
+              <option value="product">Product/Service</option>
+            </select>
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Include</label>
                     <div className="form-check">
                       <input 
@@ -656,13 +746,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       />
                       <label htmlFor="inc-inv" className="form-check-label text-dark">Invoiced Sales</label>
                     </div>
-                  </div>
-                </>
-              )}
+          </div>
+        </>
+      )}
 
-              {type === 'expenses' && (
-                <>
-                  <div className="mb-4">
+      {type === 'expenses' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Group By</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -670,14 +760,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setExpensesGroupBy(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="day">Day</option>
-                      <option value="week">Week</option>
-                      <option value="month">Month</option>
-                      <option value="category">Category</option>
-                      <option value="department">Department</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="category">Category</option>
+              <option value="department">Department</option>
+            </select>
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Include</label>
                     <div className="form-check">
                       <input 
@@ -699,13 +789,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       />
                       <label htmlFor="inc-coe" className="form-check-label text-dark">Company Expenses</label>
                     </div>
-                  </div>
-                </>
-              )}
+          </div>
+        </>
+      )}
 
-              {type === 'inventory' && (
-                <>
-                  <div className="mb-4">
+      {type === 'inventory' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Report Type</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -713,13 +803,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setInventoryReportType(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="current">Current Inventory Levels</option>
-                      <option value="movement">Inventory Movement</option>
-                      <option value="value">Inventory Valuation</option>
-                      <option value="lowStock">Low Stock Items</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
+              <option value="current">Current Inventory Levels</option>
+              <option value="movement">Inventory Movement</option>
+              <option value="value">Inventory Valuation</option>
+              <option value="lowStock">Low Stock Items</option>
+            </select>
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Group By</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -727,16 +817,16 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setInventoryGroupBy(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="category">Category</option>
-                      <option value="item">Individual Items</option>
-                    </select>
-                  </div>
-                </>
-              )}
+              <option value="category">Category</option>
+              <option value="item">Individual Items</option>
+            </select>
+          </div>
+        </>
+      )}
 
-              {type === 'clients' && (
-                <>
-                  <div className="mb-4">
+      {type === 'clients' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Report Type</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -744,13 +834,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setClientReportType(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="activity">Client Activity</option>
-                      <option value="sales">Sales by Client</option>
-                      <option value="balance">Outstanding Balances</option>
-                      <option value="newClients">New Clients</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
+              <option value="activity">Client Activity</option>
+              <option value="sales">Sales by Client</option>
+              <option value="balance">Outstanding Balances</option>
+              <option value="newClients">New Clients</option>
+            </select>
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Client</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -758,16 +848,16 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setClientSelection(e.target.value === 'all'? 'all' : Number(e.target.value))}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="all">All Clients</option>
-                      {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                </>
-              )}
+              <option value="all">All Clients</option>
+              {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </>
+      )}
 
-              {type === 'financial' && (
-                <>
-                  <div className="mb-4">
+      {type === 'financial' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Report Type</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -775,13 +865,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setFinancialReportType(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="summary">Financial Summary</option>
-                      <option value="profitLoss">Profit & Loss Statement</option>
-                      <option value="balanceSheet">Balance Sheet</option>
-                      <option value="cashFlow">Cash Flow Statement</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
+              <option value="summary">Financial Summary</option>
+              <option value="profitLoss">Profit & Loss Statement</option>
+              <option value="balanceSheet">Balance Sheet</option>
+              <option value="cashFlow">Cash Flow Statement</option>
+            </select>
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Comparison</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -789,17 +879,17 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setComparisonPeriod(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="none">None</option>
-                      <option value="previousPeriod">Previous Period</option>
-                      <option value="previousYear">Same Period Last Year</option>
-                    </select>
-                  </div>
-                </>
-              )}
+              <option value="none">None</option>
+              <option value="previousPeriod">Previous Period</option>
+              <option value="previousYear">Same Period Last Year</option>
+            </select>
+          </div>
+        </>
+      )}
 
-              {type === 'custom' && (
-                <>
-                  <div className="mb-4">
+      {type === 'custom' && (
+        <>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Include Data From</label>
                     <div className="form-check">
                       <input 
@@ -841,8 +931,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       />
                       <label htmlFor="inc-inv-data" className="form-check-label text-dark">Inventory</label>
                     </div>
-                  </div>
-                  <div className="mb-4">
+          </div>
+          <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Group By</label>
                     <select 
                       className="form-select border-0 shadow-sm" 
@@ -850,20 +940,20 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       onChange={e=>setCustomGroupBy(e.target.value as any)}
                       style={{ borderRadius: '16px', height: '45px' }}
                     >
-                      <option value="none">No Grouping</option>
-                      <option value="day">Day</option>
-                      <option value="week">Week</option>
-                      <option value="month">Month</option>
-                      <option value="client">Client</option>
-                      <option value="category">Category</option>
-                    </select>
-                  </div>
-                </>
-              )}
+              <option value="none">No Grouping</option>
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="client">Client</option>
+              <option value="category">Category</option>
+            </select>
+          </div>
+        </>
+      )}
 
-              {/* Format + Generate */}
-              <div className="row g-3 align-items-end">
-                <div className="col-md-4">
+      {/* Format + Generate */}
+      <div className="row g-3 align-items-end">
+        <div className="col-md-4">
                   <label className="form-label fw-semibold text-dark">Format</label>
                   <select 
                     className="form-select border-0 shadow-sm" 
@@ -871,31 +961,31 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                     onChange={e=>setFormat(e.target.value as any)}
                     style={{ borderRadius: '16px', height: '45px' }}
                   >
-                    <option value="pdf">PDF (print)</option>
-                    <option value="excel">Excel (CSV)</option>
-                    <option value="csv">CSV</option>
-                  </select>
-                </div>
-                <div className="col-md-8 d-flex justify-content-end gap-3">
+            <option value="pdf">PDF (print)</option>
+            <option value="excel">Excel (CSV)</option>
+            <option value="csv">CSV</option>
+          </select>
+        </div>
+        <div className="col-md-8 d-flex justify-content-end gap-3">
                   <button 
                     type="button" 
                     className="btn btn-outline-secondary border-0 shadow-sm" 
                     onClick={() => window.print()}
                     style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
                   >
-                    <Printer size={16} className="me-2"/>
-                    Preview
-                  </button>
+            <Printer size={16} className="me-2"/>
+            Preview
+          </button>
                   <button 
                     type="submit" 
                     className={`btn ${buttonVariants[type]} border-0 shadow-sm`}
                     style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
                   >
-                    <Download size={16} className="me-2"/>
-                    Generate Report
-                  </button>
-                </div>
-              </div>
+            <Download size={16} className="me-2"/>
+            Generate Report
+          </button>
+        </div>
+      </div>
             </form>
           </div>
           
@@ -911,6 +1001,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
             >
               Close
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-info border-0 shadow-sm" 
+              onClick={testPDFGeneration}
+              style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
+            >
+              Test PDF
             </button>
           </div>
         </div>
