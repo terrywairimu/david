@@ -1,0 +1,148 @@
+/* Reports Page Custom Styling */
+
+/* Modal Overlay */
+.modal.show.d-block {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 1055 !important;
+}
+
+/* Modal Content */
+.modal-content {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 24px !important;
+  border: none !important;
+  overflow: hidden !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Modal Header */
+.modal-header {
+  border-bottom: none !important;
+  border-radius: 24px 24px 0 0 !important;
+  padding: 1.5rem 2rem !important;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 2rem !important;
+}
+
+/* Modal Footer */
+.modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 1rem 2rem !important;
+}
+
+/* Form Controls */
+.form-select,
+.form-control {
+  border: none !important;
+  border-radius: 16px !important;
+  height: 45px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.form-select:focus,
+.form-control:focus {
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 12px !important;
+  height: 45px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Report Cards */
+.report-card {
+  transition: all 0.3s ease !important;
+}
+
+.report-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Icon Boxes */
+.icon-box {
+  transition: all 0.3s ease !important;
+}
+
+.icon-box:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Form Labels */
+.form-label {
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Checkboxes */
+.form-check-input {
+  border-radius: 6px !important;
+  border: 2px solid #e2e8f0 !important;
+}
+
+.form-check-input:checked {
+  background-color: #6366f1 !important;
+  border-color: #6366f1 !important;
+}
+
+.form-check-label {
+  color: #1e293b !important;
+  font-weight: 500 !important;
+}
+
+/* Quick Actions Buttons */
+.quick-action-btn {
+  transition: all 0.3s ease !important;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modal-dialog {
+    margin: 1rem !important;
+  }
+  
+  .modal-body {
+    padding: 1.5rem !important;
+  }
+  
+  .col-lg-4 {
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Glassmorphism effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
