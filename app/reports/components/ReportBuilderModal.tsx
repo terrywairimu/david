@@ -5,6 +5,18 @@ import "../reports.css"
 import { supabase } from "@/lib/supabase-client"
 import { Calendar, Download, Printer, X, BarChart3, TrendingUp, Users, Package, Wallet, Settings } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { 
+  generateSalesReportPDF, 
+  generateExpenseReportPDF, 
+  generateInventoryReportPDF,
+  generateClientReportPDF,
+  generateFinancialReportPDF,
+  type SalesReportData,
+  type ExpenseReportData,
+  type InventoryReportData,
+  type ClientReportData,
+  type FinancialReportData
+} from "@/lib/report-pdf-templates"
 import { getNairobiDayBoundaries, getNairobiWeekBoundaries, getNairobiMonthBoundaries } from "@/lib/timezone"
 
 type ReportType = 'sales' | 'expenses' | 'inventory' | 'clients' | 'financial' | 'custom'
@@ -53,6 +65,14 @@ const reportTitles: Record<ReportType, string> = {
   financial: 'Financial Summary',
   custom: 'Custom Report',
 }
+
+// Currency formatting function
+const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
 
 function computeDateRange(selection: DateRangeKey): { start: Date, end: Date } {
   // Use Nairobi timezone for all date calculations
@@ -279,13 +299,228 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
     // Export/Print
     const filenameBase = `${type}_report_${new Date().toISOString().slice(0,10)}`
+    
     if (format === 'pdf') {
-      const table = `
-        <table class="table table-sm table-striped">
-          <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
-          <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>`
-      printTableHtml('Report', table)
+      try {
+        // Generate PDF based on report type
+        if (type === 'sales') {
+          const salesData: SalesReportData = {
+            companyName: "CABINET MASTER STYLES & FINISHES",
+            companyLocation: "Location: Ruiru Eastern By-Pass",
+            companyPhone: "Tel: +254729554475",
+            companyEmail: "Email: cabinetmasterstyles@gmail.com",
+            reportTitle: "Sales Report",
+            reportDate: new Date().toLocaleDateString(),
+            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+            reportType: salesGroupBy,
+            reportGenerated: new Date().toLocaleDateString(),
+            reportNumber: `SR-${Date.now()}`,
+            items: rows.map((r: any) => ({
+              date: r.date || new Date().toLocaleDateString(),
+              client: r.client || 'N/A',
+              invoice: r.invoice || 'N/A',
+              amount: parseFloat(r.total || r.amount || '0'),
+              status: r.status || 'Active'
+            })),
+            summary: `Sales report generated for ${salesGroupBy} grouping. Total sales: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.total || r.amount || '0'), 0))}`,
+            totalSales: rows.reduce((sum: number, r: any) => sum + parseFloat(r.total || r.amount || '0'), 0),
+            preparedBy: "System",
+            approvedBy: "Management"
+          };
+          
+          const { template, inputs } = await generateSalesReportPDF(salesData);
+          const { generate } = await import('@pdfme/generator');
+          const pdf = await generate({ template, inputs });
+          
+          // Download PDF
+          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+        } else if (type === 'expenses') {
+          const expenseData: ExpenseReportData = {
+            companyName: "CABINET MASTER STYLES & FINISHES",
+            companyLocation: "Location: Ruiru Eastern By-Pass",
+            companyPhone: "Tel: +254729554475",
+            companyEmail: "Email: cabinetmasterstyles@gmail.com",
+            reportTitle: "Expense Report",
+            reportDate: new Date().toLocaleDateString(),
+            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+            reportType: expensesGroupBy,
+            reportGenerated: new Date().toLocaleDateString(),
+            reportNumber: `ER-${Date.now()}`,
+            items: rows.map((r: any) => ({
+              date: r.date || new Date().toLocaleDateString(),
+              category: r.category || 'N/A',
+              description: r.description || 'N/A',
+              amount: parseFloat(r.total || r.amount || '0'),
+              type: r.type || 'Company'
+            })),
+            summary: `Expense report generated for ${expensesGroupBy} grouping. Total expenses: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.total || r.amount || '0'), 0))}`,
+            totalExpenses: rows.reduce((sum: number, r: any) => sum + parseFloat(r.total || r.amount || '0'), 0),
+            preparedBy: "System",
+            approvedBy: "Management"
+          };
+          
+          const { template, inputs } = await generateExpenseReportPDF(expenseData);
+          const { generate } = await import('@pdfme/generator');
+          const pdf = await generate({ template, inputs });
+          
+          // Download PDF
+          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+        } else if (type === 'financial') {
+          const financialData: FinancialReportData = {
+            companyName: "CABINET MASTER STYLES & FINISHES",
+            companyLocation: "Location: Ruiru Eastern By-Pass",
+            companyPhone: "Tel: +254729554475",
+            companyEmail: "Email: cabinetmasterstyles@gmail.com",
+            reportTitle: "Financial Summary Report",
+            reportDate: new Date().toLocaleDateString(),
+            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+            reportType: 'Financial Summary',
+            reportGenerated: new Date().toLocaleDateString(),
+            reportNumber: `FR-${Date.now()}`,
+            items: rows.map((r: any) => ({
+              metric: r.metric || 'N/A',
+              currentPeriod: parseFloat(r.amount || '0'),
+              previousPeriod: undefined,
+              change: undefined
+            })),
+            summary: `Financial summary report generated. Net income: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0))}`,
+            netIncome: rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0),
+            preparedBy: "System",
+            approvedBy: "Management"
+          };
+          
+          const { template, inputs } = await generateFinancialReportPDF(financialData);
+          const { generate } = await import('@pdfme/generator');
+          const pdf = await generate({ template, inputs });
+          
+          // Download PDF
+          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+        } else if (type === 'inventory') {
+          const inventoryData: InventoryReportData = {
+            companyName: "CABINET MASTER STYLES & FINISHES",
+            companyLocation: "Location: Ruiru Eastern By-Pass",
+            companyPhone: "Tel: +254729554475",
+            companyEmail: "Email: cabinetmasterstyles@gmail.com",
+            reportTitle: "Inventory Report",
+            reportDate: new Date().toLocaleDateString(),
+            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+            reportType: inventoryReportType,
+            reportGenerated: new Date().toLocaleDateString(),
+            reportNumber: `IR-${Date.now()}`,
+            items: rows.map((r: any) => ({
+              item: r.item || r.group || 'N/A',
+              category: r.category || 'N/A',
+              quantity: parseFloat(r.qty || '0'),
+              unitPrice: parseFloat(r.unit_price || '0'),
+              value: parseFloat(r.value || '0')
+            })),
+            summary: `Inventory report generated for ${inventoryReportType}. Total value: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.value || '0'), 0))}`,
+            totalValue: rows.reduce((sum: number, r: any) => sum + parseFloat(r.value || '0'), 0),
+            preparedBy: "System",
+            approvedBy: "Management"
+          };
+          
+          const { template, inputs } = await generateInventoryReportPDF(inventoryData);
+          const { generate } = await import('@pdfme/generator');
+          const pdf = await generate({ template, inputs });
+          
+          // Download PDF
+          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+        } else if (type === 'clients') {
+          const clientData: ClientReportData = {
+            companyName: "CABINET MASTER STYLES & FINISHES",
+            companyLocation: "Location: Ruiru Eastern By-Pass",
+            companyPhone: "Tel: +254729554475",
+            companyEmail: "Email: cabinetmasterstyles@gmail.com",
+            reportTitle: "Client Report",
+            reportDate: new Date().toLocaleDateString(),
+            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+            reportType: 'Client Summary',
+            reportGenerated: new Date().toLocaleDateString(),
+            reportNumber: `CR-${Date.now()}`,
+            items: rows.map((r: any) => ({
+              client: r.client || 'N/A',
+              sales: parseFloat(r.sales || '0'),
+              payments: parseFloat(r.payments || '0'),
+              balance: parseFloat(r.balance || '0'),
+              status: r.status || 'Active'
+            })),
+            summary: `Client report generated. Total balance: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.balance || '0'), 0))}`,
+            totalBalance: rows.reduce((sum: number, r: any) => sum + parseFloat(r.balance || '0'), 0),
+            preparedBy: "System",
+            approvedBy: "Management"
+          };
+          
+          const { template, inputs } = await generateClientReportPDF(clientData);
+          const { generate } = await import('@pdfme/generator');
+          const pdf = await generate({ template, inputs });
+          
+          // Download PDF
+          const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+        } else {
+          // For custom reports, use HTML fallback
+          const table = `
+            <table class="table table-sm table-striped">
+              <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+              <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table>`
+          printTableHtml(`${reportTitles[type]}`, table)
+        }
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        // Fallback to HTML for all report types
+        const table = `
+          <table class="table table-sm table-striped">
+            <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>`
+        printTableHtml('Report', table)
+      }
     } else {
       exportToCSV(filenameBase, columns, rows)
     }
