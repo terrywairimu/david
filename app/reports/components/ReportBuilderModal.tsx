@@ -18,6 +18,17 @@ import {
   type ClientReportData,
   type FinancialReportData
 } from "@/lib/report-pdf-templates"
+import { 
+  financialCalculator,
+  type ProfitLossData,
+  type BalanceSheetData,
+  type CashFlowData
+} from "@/lib/financial-reports"
+import { 
+  generateProfitLossPDF as generateProfitLossPDFTemplate,
+  generateBalanceSheetPDF as generateBalanceSheetPDFTemplate,
+  generateCashFlowPDF as generateCashFlowPDFTemplate
+} from "@/lib/financial-pdf-templates"
 import { getNairobiDayBoundaries, getNairobiWeekBoundaries, getNairobiMonthBoundaries } from "@/lib/timezone"
 
 type ReportType = 'sales' | 'expenses' | 'inventory' | 'clients' | 'financial' | 'custom'
@@ -438,41 +449,89 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           }
           
         } else if (type === 'financial') {
-          const financialData: FinancialReportData = {
-            companyName: "CABINET MASTER STYLES & FINISHES",
-            companyLocation: "Location: Ruiru Eastern By-Pass",
-            companyPhone: "Tel: +254729554475",
-            companyEmail: "Email: cabinetmasterstyles@gmail.com",
-            reportTitle: "Financial Summary Report",
-            reportDate: new Date().toLocaleDateString(),
-            reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
-            reportType: 'Financial Summary',
-            reportGenerated: new Date().toLocaleDateString(),
-            reportNumber: `FR-${Date.now()}`,
-            items: rows.map((r: any) => ({
-              metric: r.metric || 'N/A',
-              currentPeriod: parseFloat(r.amount || '0'),
-              previousPeriod: undefined,
-              change: undefined
-            })),
-            summary: `Financial summary report generated. Net income: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0))}`,
-            netIncome: rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0),
-            preparedBy: "System",
-            approvedBy: "Management"
-          };
-          
-          const { template, inputs } = await generateFinancialReportPDF(financialData);
           try {
+            let pdfData: any;
+            let template: any;
+            let inputs: any;
+            
+            switch (financialReportType) {
+              case 'profitLoss':
+                // Generate Profit & Loss Statement
+                const profitLossData = await financialCalculator.calculateProfitLoss(
+                  start.toISOString().split('T')[0],
+                  end.toISOString().split('T')[0]
+                );
+                const { template: plTemplate, inputs: plInputs } = await generateProfitLossPDFTemplate(profitLossData);
+                template = plTemplate;
+                inputs = plInputs;
+                break;
+                
+              case 'balanceSheet':
+                // Generate Balance Sheet
+                const balanceSheetData = await financialCalculator.calculateBalanceSheet(
+                  end.toISOString().split('T')[0]
+                );
+                const { template: bsTemplate, inputs: bsInputs } = await generateBalanceSheetPDFTemplate(balanceSheetData);
+                template = bsTemplate;
+                inputs = bsInputs;
+                break;
+                
+              case 'cashFlow':
+                // Generate Cash Flow Statement
+                const cashFlowData = await financialCalculator.calculateCashFlow(
+                  start.toISOString().split('T')[0],
+                  end.toISOString().split('T')[0]
+                );
+                const { template: cfTemplate, inputs: cfInputs } = await generateCashFlowPDFTemplate(cashFlowData);
+                template = cfTemplate;
+                inputs = cfInputs;
+                break;
+                
+              default:
+                // Generate Financial Summary (legacy)
+                const financialData: FinancialReportData = {
+                  companyName: "CABINET MASTER STYLES & FINISHES",
+                  companyLocation: "Location: Ruiru Eastern By-Pass",
+                  companyPhone: "Tel: +254729554475",
+                  companyEmail: "Email: cabinetmasterstyles@gmail.com",
+                  reportTitle: "Financial Summary Report",
+                  reportDate: new Date().toLocaleDateString(),
+                  reportPeriod: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
+                  reportType: 'Financial Summary',
+                  reportGenerated: new Date().toLocaleDateString(),
+                  reportNumber: `FR-${Date.now()}`,
+                  items: rows.map((r: any) => ({
+                    metric: r.metric || 'N/A',
+                    currentPeriod: parseFloat(r.amount || '0'),
+                    previousPeriod: undefined,
+                    change: undefined
+                  })),
+                  summary: `Financial summary report generated. Net income: ${formatCurrency(rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0))}`,
+                  netIncome: rows.reduce((sum: number, r: any) => sum + parseFloat(r.amount || '0'), 0),
+                  preparedBy: "System",
+                  approvedBy: "Management"
+                };
+                
+                const { template: fsTemplate, inputs: fsInputs } = await generateFinancialReportPDF(financialData);
+                template = fsTemplate;
+                inputs = fsInputs;
+                break;
+            }
+            
             const { generate } = await import('@pdfme/generator');
             const { text, rectangle, line, image } = await import('@pdfme/schemas');
             const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
             
             // Download PDF
+            const reportTypeName = financialReportType === 'profitLoss' ? 'profit-loss' : 
+                                  financialReportType === 'balanceSheet' ? 'balance-sheet' : 
+                                  financialReportType === 'cashFlow' ? 'cash-flow' : 'financial-summary';
+            
             const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${filenameBase}.pdf`;
+            link.download = `${reportTypeName}-${start.toISOString().split('T')[0]}-${end.toISOString().split('T')[0]}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -485,7 +544,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
                 <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
               </table>`
-            printTableHtml('Report', table)
+            printTableHtml('Financial Report', table)
           }
           
         } else if (type === 'inventory') {
