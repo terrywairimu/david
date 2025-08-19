@@ -160,49 +160,110 @@ export class FinancialCalculator {
   // Calculate Profit & Loss Statement
   async calculateProfitLoss(startDate: string, endDate: string): Promise<ProfitLossData> {
     try {
-      // Get sales data
-      const { data: salesData } = await this.supabase
-        .from('quotations')
-        .select('total_amount, status, date_created')
+      // Get sales data from sales_orders table (actual sales, not quotations)
+      const { data: salesData, error: salesError } = await this.supabase
+        .from('sales_orders')
+        .select('total_amount, grand_total, date_created, status')
         .gte('date_created', startDate)
-        .lte('date_created', endDate)
-        .eq('status', 'converted_to_sales_order');
+        .lte('date_created', endDate);
       
-      const totalSales = salesData?.reduce((sum: number, item: any) => 
-        sum + (parseFloat(item.total_amount) || 0), 0) || 0;
+      if (salesError) {
+        console.error('Sales query error:', salesError);
+      }
+      
+      // Calculate total sales - use grand_total if available, otherwise total_amount
+      const totalSales = salesData?.reduce((sum: number, item: any) => {
+        const amount = parseFloat(item.grand_total) || parseFloat(item.total_amount) || 0;
+        return sum + amount;
+      }, 0) || 0;
+      
+      console.log('Sales Data Debug:', {
+        salesDataCount: salesData?.length || 0,
+        totalSales,
+        startDate,
+        endDate,
+        sampleSales: salesData?.slice(0, 3),
+        salesError: salesError?.message
+      });
       
       // Get expense data by category
-      const { data: expenseData } = await this.supabase
+      const { data: expenseData, error: expenseError } = await this.supabase
         .from('expenses')
         .select('category, amount, date_created')
         .gte('date_created', startDate)
         .lte('date_created', endDate);
       
+      if (expenseError) {
+        console.error('Expense query error:', expenseError);
+      }
+      
       const expensesByCategory = this.categorizeExpenses(expenseData);
       
+      console.log('Expense Data Debug:', {
+        expenseDataCount: expenseData?.length || 0,
+        expensesByCategory,
+        startDate,
+        endDate,
+        expenseError: expenseError?.message
+      });
+      
       // Get inventory data
-      const { data: inventoryData } = await this.supabase
+      const { data: inventoryData, error: inventoryError } = await this.supabase
         .from('stock_items')
-        .select('quantity, unit_cost');
+        .select('quantity, unit_price, name');
+      
+      if (inventoryError) {
+        console.error('Inventory query error:', inventoryError);
+      }
       
       const openingInventory = this.calculateInventoryValue(inventoryData, 'opening');
       const closingInventory = this.calculateInventoryValue(inventoryData, 'closing');
       
+      console.log('Inventory Data Debug:', {
+        inventoryDataCount: inventoryData?.length || 0,
+        openingInventory,
+        closingInventory,
+        sampleInventory: inventoryData?.slice(0, 3),
+        inventoryError: inventoryError?.message
+      });
+      
       // Get purchase data
-      const { data: purchaseData } = await this.supabase
+      const { data: purchaseData, error: purchaseError } = await this.supabase
         .from('purchases')
-        .select('total_amount, date_created')
-        .gte('date_created', startDate)
-        .lte('date_created', endDate);
+        .select('total_amount, purchase_date')
+        .gte('purchase_date', startDate)
+        .lte('purchase_date', endDate);
+      
+      if (purchaseError) {
+        console.error('Purchase query error:', purchaseError);
+      }
       
       const totalPurchases = purchaseData?.reduce((sum: number, item: any) => 
         sum + (parseFloat(item.total_amount) || 0), 0) || 0;
+      
+      console.log('Purchase Data Debug:', {
+        purchaseDataCount: purchaseData?.length || 0,
+        totalPurchases,
+        startDate,
+        endDate,
+        samplePurchases: purchaseData?.slice(0, 3),
+        purchaseError: purchaseError?.message
+      });
       
       // Calculate COGS
       const costOfGoodsSold = openingInventory + totalPurchases - closingInventory;
       
       // Calculate gross profit
       const grossProfit = totalSales - costOfGoodsSold;
+      
+      console.log('Calculated Values Debug:', {
+        totalSales,
+        openingInventory,
+        totalPurchases,
+        closingInventory,
+        costOfGoodsSold,
+        grossProfit
+      });
       
       // Calculate operating expenses
       const totalOperatingExpenses = Object.values(expensesByCategory).reduce((sum: number, amount: number) => sum + amount, 0);
@@ -467,11 +528,29 @@ export class FinancialCalculator {
   private calculateInventoryValue(inventoryData: any[], type: 'opening' | 'closing' | 'current'): number {
     if (!inventoryData) return 0;
     
-    return inventoryData.reduce((total: number, item: any) => {
+    console.log('Inventory Calculation Debug:', {
+      type,
+      inventoryDataCount: inventoryData.length,
+      sampleItems: inventoryData.slice(0, 3)
+    });
+    
+    const totalValue = inventoryData.reduce((total: number, item: any) => {
       const quantity = parseInt(item.quantity) || 0;
-      const unitCost = parseFloat(item.unit_cost) || 0;
-      return total + (quantity * unitCost);
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const itemValue = quantity * unitPrice;
+      
+      console.log('Item calculation:', {
+        name: item.name,
+        quantity,
+        unitPrice,
+        itemValue
+      });
+      
+      return total + itemValue;
     }, 0);
+    
+    console.log('Total inventory value:', totalValue);
+    return totalValue;
   }
   
   private calculateOperatingCashFlow(transactions: any[], netIncome: number): number {
@@ -525,3 +604,25 @@ export class FinancialCalculator {
 
 // Export the calculator instance
 export const financialCalculator = new FinancialCalculator();
+
+// Test function for debugging
+export async function testProfitLossCalculation() {
+  try {
+    console.log('Testing Profit & Loss calculation...');
+    
+    // Test with July 2025 where we know there's data
+    const startDate = '2025-07-01';
+    const endDate = '2025-07-31';
+    
+    console.log('Test date range:', startDate, 'to', endDate);
+    
+    const result = await financialCalculator.calculateProfitLoss(startDate, endDate);
+    
+    console.log('Profit & Loss calculation result:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Test failed:', error);
+    throw error;
+  }
+}

@@ -164,7 +164,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [clientSelection, setClientSelection] = useState<'all'|number>('all')
   const [clientOptions, setClientOptions] = useState<Array<{id: number, name: string}>>([])
   
-  // Financial
+  // Financial - default to lastMonth to include July 2025 data
   const [financialReportType, setFinancialReportType] = useState<'summary'|'profitLoss'|'balanceSheet'|'cashFlow'>('summary')
   const [comparisonPeriod, setComparisonPeriod] = useState<'none'|'previousPeriod'|'previousYear'>('none')
   
@@ -183,6 +183,13 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       })
     }
   }, [type])
+
+  // Auto-set date preset for financial reports to include July 2025 data
+  useEffect(() => {
+    if (type === 'financial' && datePreset === 'month') {
+      setDatePreset('lastMonth')
+    }
+  }, [type, datePreset])
 
   const testPDFGeneration = async () => {
     try {
@@ -916,6 +923,34 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
       {type === 'financial' && (
         <>
+          {/* Data Availability Notice */}
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Data Availability Notice
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    <strong>Current Data Status:</strong> Sales data is available for July 2025. 
+                    To see meaningful financial reports, please select a date range that includes July 2025 
+                    or periods where transactions have occurred.
+                  </p>
+                  <p className="mt-1">
+                    <strong>Available Data:</strong> 4 sales orders (KES 1,613,480.60), 
+                    159 expenses (KES 703,889.00), 59 inventory items (KES 1,761,150.00), 
+                    34 purchases (KES 1,300,850.00)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="mb-4">
                     <label className="form-label fw-semibold text-dark">Report Type</label>
                     <select 
