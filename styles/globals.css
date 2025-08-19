@@ -1,3 +1,5 @@
+@import './export-dropdown.css';
+
 @media (max-width: 768px) {
   .quotation-modal .quotation-item-row.worktop-row,
   .quotation-modal .quotation-item-row.worktop-labor-row {

@@ -1,11 +1,13 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Plus, Search, Download, Edit, Trash2, TrendingUp, TrendingDown, Package, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
-import { SectionHeader } from "@/components/ui/section-header"
+import { Package, Plus, Edit, Trash2, Search, Download, Eye } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import SearchFilterRow from "@/components/ui/search-filter-row"
+import { exportStockReport } from "@/lib/workflow-utils"
 import { StockItem } from "@/lib/types"
+import { SectionHeader } from "@/components/ui/section-header"
 
 const StockPage = () => {
   const [stockItems, setStockItems] = useState<StockItem[]>([])
@@ -125,41 +127,43 @@ const StockPage = () => {
     return `ITM${currentYear}${currentMonth}${nextNumber.toString().padStart(3, '0')}`
   }
 
-  const filteredItems = stockItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    
-    const matchesCategory = !categoryFilter || item.category === categoryFilter
-    
-    let matchesDate = true
-    if (dateFilter === "specific" && specificDate) {
-      const itemDate = new Date(item.date_added || "").toDateString()
-      const filterDate = new Date(specificDate).toDateString()
-      matchesDate = itemDate === filterDate
-    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
-      const itemDate = new Date(item.date_added || "")
-      const startDate = new Date(periodStartDate)
-      const endDate = new Date(periodEndDate)
-      matchesDate = itemDate >= startDate && itemDate <= endDate
-    }
-    
-    let matchesFilter = true
-    switch (activeFilter) {
-      case "inStock":
-        matchesFilter = item.quantity > item.reorder_level
-        break
-      case "lowStock":
-        matchesFilter = item.quantity <= item.reorder_level && item.quantity > 0
-        break
-      case "outOfStock":
-        matchesFilter = item.quantity === 0
-        break
-      default:
-        matchesFilter = true
-    }
-    
-    return matchesSearch && matchesCategory && matchesDate && matchesFilter
-  })
+  const getFilteredItems = () => {
+    return stockItems.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      
+      const matchesCategory = !categoryFilter || item.category === categoryFilter
+      
+      let matchesDate = true
+      if (dateFilter === "specific" && specificDate) {
+        const itemDate = new Date(item.date_added || "").toDateString()
+        const filterDate = new Date(specificDate).toDateString()
+        matchesDate = itemDate === filterDate
+      } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
+        const itemDate = new Date(item.date_added || "")
+        const startDate = new Date(periodStartDate)
+        const endDate = new Date(periodEndDate)
+        matchesDate = itemDate >= startDate && itemDate <= endDate
+      }
+      
+      let matchesFilter = true
+      switch (activeFilter) {
+        case "inStock":
+          matchesFilter = item.quantity > item.reorder_level
+          break
+        case "lowStock":
+          matchesFilter = item.quantity <= item.reorder_level && item.quantity > 0
+          break
+        case "outOfStock":
+          matchesFilter = item.quantity === 0
+          break
+        default:
+          matchesFilter = true
+      }
+      
+      return matchesSearch && matchesCategory && matchesDate && matchesFilter
+    })
+  }
 
   const stockCounts = {
     totalItems: stockItems.length,
@@ -383,8 +387,14 @@ const StockPage = () => {
     }
   }
 
+  // Export function
+  const exportStock = (format: 'pdf' | 'csv') => {
+    const filteredItems = getFilteredItems()
+    exportStockReport(filteredItems, format)
+  }
+
   const exportToCSV = () => {
-    const csvData = filteredItems.map(item => ({
+    const csvData = getFilteredItems().map(item => ({
       "Item Code": item.id,
       "Product": item.name,
       "Category": item.category || "N/A",
@@ -421,10 +431,11 @@ const StockPage = () => {
 
   return (
     <div id="stockSection">
+      {/* Main Header Card */}
       <div className="card">
         <SectionHeader 
           title="Stock Management" 
-          icon={<Package size={24} />}
+          icon={<Package size={20} />}
         >
           <button
             className="btn btn-add"
@@ -434,313 +445,144 @@ const StockPage = () => {
             Add New Item
           </button>
         </SectionHeader>
-
+        
         <div className="card-body p-0">
-            {/* Stock Summary Cards */}
-            <div className="row mb-4">
-              <div className="col-md-3 mb-3">
-                <div
-                  className={`stock-summary-card total-items ${
-                    activeFilter === "all" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveFilter("all")}
-                >
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="text-white mb-1">Total Items</h6>
-                        <h2 className="mb-0 text-white">{stockCounts.totalItems}</h2>
-                      </div>
-                      <div className="icon-box">
-                        <i className="fas fa-boxes"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <SearchFilterRow
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search stock..."
+            firstFilter={{
+              value: categoryFilter,
+              onChange: setCategoryFilter,
+              options: [
+                { value: "", label: "All Categories" },
+                { value: "electronics", label: "Electronics" },
+                { value: "office", label: "Office Supplies" },
+                { value: "furniture", label: "Furniture" },
+                { value: "tools", label: "Tools & Equipment" },
+                { value: "consumables", label: "Consumables" },
+                { value: "other", label: "Other" }
+              ],
+              placeholder: "All Categories"
+            }}
+            dateFilter={{
+              value: dateFilter,
+              onChange: setDateFilter,
+              onSpecificDateChange: setSpecificDate,
+              onPeriodStartChange: setPeriodStartDate,
+              onPeriodEndChange: setPeriodEndDate,
+              specificDate,
+              periodStartDate,
+              periodEndDate
+            }}
+            onExport={exportStock}
+            exportLabel="Export Stock"
+          />
 
-              <div className="col-md-3 mb-3">
-                <div
-                  className={`stock-summary-card in-stock ${
-                    activeFilter === "inStock" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveFilter("inStock")}
-                >
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="text-white mb-1">In Stock</h6>
-                        <h2 className="mb-0 text-white">{stockCounts.inStock}</h2>
-                      </div>
-                      <div className="icon-box">
-                        <i className="fas fa-check-circle"></i>
-                      </div>
+          {/* Stock Summary Cards */}
+          <div className="row mb-4">
+            <div className="col-md-3 mb-3">
+              <div
+                className={`stock-summary-card total-items ${
+                  activeFilter === "all" ? "active" : ""
+                }`}
+                onClick={() => setActiveFilter("all")}
+              >
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="text-white mb-1">Total Items</h6>
+                      <h2 className="mb-0 text-white">{stockCounts.totalItems}</h2>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-md-3 mb-3">
-                <div
-                  className={`stock-summary-card low-stock ${
-                    activeFilter === "lowStock" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveFilter("lowStock")}
-                >
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="text-white mb-1">Low Stock</h6>
-                        <h2 className="mb-0 text-white">{stockCounts.lowStock}</h2>
-                      </div>
-                      <div className="icon-box">
-                        <i className="fas fa-exclamation-triangle"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-md-3 mb-3">
-                <div
-                  className={`stock-summary-card out-of-stock ${
-                    activeFilter === "outOfStock" ? "active" : ""
-                  }`}
-                  onClick={() => setActiveFilter("outOfStock")}
-                >
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="text-white mb-1">Out of Stock</h6>
-                        <h2 className="mb-0 text-white">{stockCounts.outOfStock}</h2>
-                      </div>
-                      <div className="icon-box">
-                        <i className="fas fa-times-circle"></i>
-                      </div>
+                    <div className="icon-box">
+                      <i className="fas fa-boxes"></i>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            {/* Search and Filter Controls */}
-            <div className="stock-search-filter mb-4">
-              {/* Desktop Layout */}
-              <div className="d-none d-md-block">
-                <div className="row">
-                  <div className="col-md-4">
-                    <div className="input-group shadow-sm">
-                      <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                        <Search size={16} className="text-muted" />
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control border-0"
-                        placeholder="Search stock..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-                      />
+
+            <div className="col-md-3 mb-3">
+              <div
+                className={`stock-summary-card in-stock ${
+                  activeFilter === "inStock" ? "active" : ""
+                }`}
+                onClick={() => setActiveFilter("inStock")}
+              >
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="text-white mb-1">In Stock</h6>
+                      <h2 className="mb-0 text-white">{stockCounts.inStock}</h2>
+                    </div>
+                    <div className="icon-box">
+                      <i className="fas fa-check-circle"></i>
                     </div>
                   </div>
-
-                  <div className="col-md-3">
-                    <select
-                      className="form-select border-0 shadow-sm"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <option value="">All Categories</option>
-                      <option value="electronics">Electronics</option>
-                      <option value="office">Office Supplies</option>
-                      <option value="furniture">Furniture</option>
-                      <option value="tools">Tools & Equipment</option>
-                      <option value="consumables">Consumables</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-3">
-                    <select
-                      className="form-select border-0 shadow-sm"
-                      value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <option value="">All Dates</option>
-                      <option value="today">Today</option>
-                      <option value="week">This Week</option>
-                      <option value="month">This Month</option>
-                      <option value="year">This Year</option>
-                      <option value="specific">Specific Date</option>
-                      <option value="period">Specific Period</option>
-                    </select>
-
-                    {dateFilter === "specific" && (
-                      <input
-                        type="date"
-                        className="form-control border-0 shadow-sm mt-2"
-                        value={specificDate}
-                        onChange={(e) => setSpecificDate(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                      />
-                    )}
-
-                    {dateFilter === "period" && (
-                      <div className="d-flex align-items-center justify-content-between mt-2">
-                        <input
-                          type="date"
-                          className="form-control border-0 shadow-sm"
-                          value={periodStartDate}
-                          onChange={(e) => setPeriodStartDate(e.target.value)}
-                          style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                        />
-                        <div className="mx-1 text-center" style={{ width: "20px", flexShrink: "0" }}>
-                          <div className="small text-muted mb-1">to</div>
-                          <i className="fas fa-arrow-right"></i>
-                        </div>
-                        <input
-                          type="date"
-                          className="form-control border-0 shadow-sm"
-                          value={periodEndDate}
-                          onChange={(e) => setPeriodEndDate(e.target.value)}
-                          style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="col-md-2">
-                    <button
-                      className="btn w-100 shadow-sm export-btn"
-                      onClick={exportToCSV}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <Download size={16} className="me-2" />
-                      Export
-                    </button>
-                  </div>
                 </div>
-              </div>
-
-              {/* Mobile Layout */}
-              <div className="d-block d-md-none">
-                {/* Search Input - Full Row */}
-                <div className="mb-3">
-                  <div className="input-group shadow-sm">
-                    <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                      <Search size={16} className="text-muted" />
-                    </span>
-                    <input
-                      type="text"
-                      className="form-control border-0"
-                      placeholder="Search stock..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-                    />
-                  </div>
-                </div>
-
-                {/* Filters and Export Button - Shared Row */}
-                <div className="d-flex gap-2">
-                  <div className="flex-fill">
-                    <select
-                      className="form-select border-0 shadow-sm w-100"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <option value="">All Categories</option>
-                      <option value="electronics">Electronics</option>
-                      <option value="office">Office Supplies</option>
-                      <option value="furniture">Furniture</option>
-                      <option value="tools">Tools & Equipment</option>
-                      <option value="consumables">Consumables</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="flex-fill">
-                    <select
-                      className="form-select border-0 shadow-sm w-100"
-                      value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <option value="">All Dates</option>
-                      <option value="today">Today</option>
-                      <option value="week">This Week</option>
-                      <option value="month">This Month</option>
-                      <option value="year">This Year</option>
-                      <option value="specific">Specific Date</option>
-                      <option value="period">Specific Period</option>
-                    </select>
-                  </div>
-                  <div className="flex-fill">
-                    <button
-                      className="btn w-100 shadow-sm export-btn"
-                      onClick={exportToCSV}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    >
-                      <Download size={16} className="me-2" />
-                      Export
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mobile Date Inputs */}
-                {dateFilter === "specific" && (
-                  <div className="mt-2">
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm w-100"
-                      value={specificDate}
-                      onChange={(e) => setSpecificDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                  </div>
-                )}
-
-                {dateFilter === "period" && (
-                  <div className="mt-2">
-                    <div className="d-flex gap-2">
-                      <input
-                        type="date"
-                        className="form-control border-0 shadow-sm flex-fill"
-                        value={periodStartDate}
-                        onChange={(e) => setPeriodStartDate(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                      />
-                      <span className="d-flex align-items-center text-muted">to</span>
-                      <input
-                        type="date"
-                        className="form-control border-0 shadow-sm flex-fill"
-                        value={periodEndDate}
-                        onChange={(e) => setPeriodEndDate(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-            {/* Stock Table */}
-            <div className="card table-section">
-              <div className="w-full overflow-x-auto">
-                <table className="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Item Code</th>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th>Quantity</th>
-                      <th>Unit Price</th>
-                      <th>Total Value</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+
+            <div className="col-md-3 mb-3">
+              <div
+                className={`stock-summary-card low-stock ${
+                  activeFilter === "lowStock" ? "active" : ""
+                }`}
+                onClick={() => setActiveFilter("lowStock")}
+              >
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="text-white mb-1">Low Stock</h6>
+                      <h2 className="mb-0 text-white">{stockCounts.lowStock}</h2>
+                    </div>
+                    <div className="icon-box">
+                      <i className="fas fa-exclamation-triangle"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-md-3 mb-3">
+              <div
+                className={`stock-summary-card out-of-stock ${
+                  activeFilter === "outOfStock" ? "active" : ""
+                }`}
+                onClick={() => setActiveFilter("outOfStock")}
+              >
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="text-white mb-1">Out of Stock</h6>
+                      <h2 className="mb-0 text-white">{stockCounts.outOfStock}</h2>
+                    </div>
+                    <div className="icon-box">
+                      <i className="fas fa-times-circle"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stock Table */}
+          <div className="card table-section">
+            <div className="w-full overflow-x-auto">
+              <table className="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Item Code</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Value</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
                       <td colSpan={8} className="px-6 py-4 text-center">
@@ -749,14 +591,14 @@ const StockPage = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredItems.length === 0 ? (
+                  ) : getFilteredItems().length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center text-muted">
                         No stock items found.
                       </td>
                     </tr>
                   ) : (
-                    filteredItems.map((item) => (
+                    getFilteredItems().map((item) => (
                       <tr key={item.id}>
                         <td>
                           {item.id}

@@ -1,0 +1,83 @@
+/* Export Dropdown Styles */
+.export-dropdown {
+  position: relative;
+}
+
+.export-dropdown .dropdown-menu {
+  animation: fadeInDown 0.2s ease-out;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: white;
+  min-width: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.export-dropdown .dropdown-item {
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-dropdown .dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.export-dropdown .dropdown-item:active {
+  background-color: #e9ecef;
+}
+
+.export-dropdown .dropdown-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Animation for dropdown */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chevron rotation animation */
+.export-dropdown .transition-transform {
+  transition: transform 0.2s ease;
+}
+
+.export-dropdown .rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Export button hover effects */
+.export-dropdown .export-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.export-dropdown .export-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .export-dropdown .dropdown-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    z-index: 1050;
+  }
+}

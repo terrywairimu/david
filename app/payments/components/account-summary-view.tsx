@@ -5,7 +5,7 @@ import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Bu
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import { exportPayments } from "@/lib/workflow-utils"
+import { exportPaymentsReport } from "@/lib/workflow-utils"
 import { getCurrentNairobiTime } from "@/lib/timezone"
 
 interface AccountSummaryViewProps {
@@ -1274,6 +1274,26 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }))
   }
 
+  // Export function for SearchFilterRow
+  const exportTransactions = (format: 'pdf' | 'csv') => {
+    const filteredData = getFilteredTransactions()
+    if (format === 'csv') {
+      handleExport() // Use existing CSV export
+    } else {
+      // For PDF, we'll use a simplified payments export since this is account transactions
+      const paymentsData = filteredData.map(transaction => ({
+        payment_number: transaction.transaction_number,
+        client: { name: transaction.client_name || 'System' },
+        date_created: transaction.transaction_date,
+        paid_to: transaction.account_type,
+        description: transaction.description,
+        amount: transaction.amount,
+        account_credited: transaction.account_type
+      }))
+      exportPaymentsReport(paymentsData, format)
+    }
+  }
+
   const handleExport = async () => {
     try {
       const filteredData = getFilteredTransactions()
@@ -1573,237 +1593,38 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         ))}
       </div>
 
-      {/* Enhanced Search and Filter Row */}
-      <div className="card mb-3">
-        <div className="card-body">
-          <div className="account-summary-search-filter">
-            {/* Desktop Layout */}
-            <div className="d-none d-md-block">
-              <div className="row g-3 align-items-center">
-                {/* Search Input */}
-                <div className="col-lg-3 col-md-6 col-12">
-                  <div className="input-group shadow-sm">
-                    <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                      <i className="fas fa-search text-muted"></i>
-                    </span>
-                    <input
-                      type="text"
-                      className="form-control border-start-0 border-end-0"
-                      placeholder="Search transactions..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{ borderRadius: "0", height: "45px" }}
-                    />
-                  </div>
-                </div>
-
-                {/* Client Filter */}
-                <div className="col-lg-2 col-md-6 col-12">
-                  <select
-                    className="form-select border-0 shadow-sm"
-                    value={clientFilter}
-                    onChange={(e) => setClientFilter(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px" }}
-                  >
-                    <option value="">All Clients</option>
-                    {clientOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Date Filter */}
-                <div className="col-lg-3 col-md-6 col-12">
-                  <select
-                    className="form-select border-0 shadow-sm"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px" }}
-                  >
-                    <option value="">All Dates</option>
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="year">This Year</option>
-                    <option value="specific">Specific Date</option>
-                    <option value="period">Specific Period</option>
-                  </select>
-                  
-                  {/* Specific Date Input */}
-                  {dateFilter === "specific" && (
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm mt-2"
-                      value={specificDate}
-                      onChange={(e) => setSpecificDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                  )}
-                  
-                  {/* Period Date Inputs */}
-                  {dateFilter === "period" && (
-                    <div className="d-flex align-items-center justify-content-between mt-2">
-                      <input
-                        type="date"
-                        className="form-control border-0 shadow-sm"
-                        value={periodStartDate}
-                        onChange={(e) => setPeriodStartDate(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                      />
-                      <span className="mx-2">to</span>
-                      <input
-                        type="date"
-                        className="form-control border-0 shadow-sm"
-                        value={periodEndDate}
-                        onChange={(e) => setPeriodEndDate(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)", minWidth: "0" }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Export Button */}
-                <div className="col-lg-2 col-md-6 col-12">
-                  <button
-                    className="btn w-100 shadow-sm export-btn"
-                    onClick={handleExport}
-                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-                  >
-                    <Download size={16} className="me-2" />
-                    Export
-                  </button>
-                </div>
-
-                {/* Transfer Button */}
-                <div className="col-lg-2 col-md-6 col-12">
-                  <button
-                    className="btn w-100 shadow-sm transfer-btn"
-                    onClick={() => setShowTransferModal(true)}
-                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease", backgroundColor: "#10b981", borderColor: "#10b981", color: "white" }}
-                  >
-                    <CreditCard size={16} className="me-2" />
-                    Transfer
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Layout */}
-            <div className="d-block d-md-none">
-              {/* Search Input - Full Row */}
-              <div className="mb-3">
-                <div className="input-group shadow-sm">
-                  <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                    <i className="fas fa-search text-muted"></i>
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0 border-end-0"
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: "0", height: "45px" }}
-                  />
-                </div>
-              </div>
-
-              {/* Filters and Export Button - Shared Row */}
-              <div className="d-flex gap-2">
-                <div className="flex-fill">
-                  <select
-                    className="form-select border-0 shadow-sm w-100"
-                    value={clientFilter}
-                    onChange={(e) => setClientFilter(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px" }}
-                  >
-                    <option value="">All Clients</option>
-                    {clientOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-fill">
-                  <select
-                    className="form-select border-0 shadow-sm w-100"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px" }}
-                  >
-                    <option value="">All Dates</option>
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="year">This Year</option>
-                    <option value="specific">Specific Date</option>
-                    <option value="period">Specific Period</option>
-                  </select>
-                </div>
-                <div className="flex-fill">
-                  <button
-                    className="btn w-100 shadow-sm export-btn"
-                    onClick={handleExport}
-                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-                  >
-                    <Download size={16} className="me-2" />
-                    Export
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile Date Inputs */}
-              {dateFilter === "specific" && (
-                <div className="mt-2">
-                  <input
-                    type="date"
-                    className="form-control border-0 shadow-sm w-100"
-                    value={specificDate}
-                    onChange={(e) => setSpecificDate(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px" }}
-                  />
-                </div>
-              )}
-              
-              {dateFilter === "period" && (
-                <div className="mt-2">
-                  <div className="d-flex gap-2">
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm flex-fill"
-                      value={periodStartDate}
-                      onChange={(e) => setPeriodStartDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                    <span className="d-flex align-items-center">to</span>
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm flex-fill"
-                      value={periodEndDate}
-                      onChange={(e) => setPeriodEndDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px" }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Transfer Button - Mobile */}
-              <div className="mt-3">
-                <button
-                  className="btn w-100 shadow-sm transfer-btn"
-                  onClick={() => setShowTransferModal(true)}
-                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease", backgroundColor: "#10b981", borderColor: "#10b981", color: "white" }}
-                >
-                  <CreditCard size={16} className="me-2" />
-                  Transfer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Enhanced Search and Filter Row with Transfer Button */}
+      <SearchFilterRow
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search transactions..."
+        firstFilter={{
+          value: clientFilter,
+          onChange: setClientFilter,
+          options: [
+            { value: "", label: "All Clients" },
+            ...clientOptions
+          ],
+          placeholder: "All Clients"
+        }}
+        dateFilter={{
+          value: dateFilter,
+          onChange: setDateFilter,
+          onSpecificDateChange: setSpecificDate,
+          onPeriodStartChange: setPeriodStartDate,
+          onPeriodEndChange: setPeriodEndDate,
+          specificDate,
+          periodStartDate,
+          periodEndDate
+        }}
+        onExport={exportTransactions}
+        exportLabel="Export Transactions"
+        compactLayout={true}
+        transferButton={{
+          onClick: () => setShowTransferModal(true),
+          label: "Transfer"
+        }}
+      />
 
       {/* Account Transactions Table */}
       <div className="card">

@@ -77,176 +77,196 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 }
 
 // Export functions
-export const exportQuotations = async (quotations: any[]) => {
+export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
-    // Dynamic import for jsPDF and autoTable plugin
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "QUOTATIONS REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Quotations",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `QR-${Date.now()}`,
+        items: quotations.map(quotation => ({
+          date: new Date(quotation.date_created).toLocaleDateString(),
+          client: quotation.client?.name || 'Unknown',
+          invoice: quotation.quotation_number,
+          amount: quotation.grand_total || 0,
+          status: quotation.status || 'Active'
+        })),
+        summary: `Total Quotations: ${quotations.length}`,
+        totalSales: quotations.reduce((sum, q) => sum + (q.grand_total || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateSalesReportPDF(reportData)
+      toast.success('Quotations exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Quotation #', 'Date', 'Client', 'Total Amount', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...quotations.map(quotation => [
+          quotation.quotation_number,
+          new Date(quotation.date_created).toLocaleDateString(),
+          quotation.client?.name || 'Unknown',
+          quotation.grand_total?.toFixed(2) || '0.00',
+          quotation.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `quotations_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Quotations exported to CSV successfully!')
     }
-    
-    // Add title
-    doc.setFontSize(20)
-    doc.text('Quotations Report', 105, 20, { align: 'center' })
-    
-    // Add date
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    // Add summary section
-    doc.setFontSize(14)
-    doc.text('Quotation Summary', 20, 45)
-
-    // Add quotations table
-    const headers = [['Quotation #', 'Date', 'Client', 'Total Amount', 'Status']]
-    const data = quotations.map(quotation => [
-      quotation.quotation_number,
-      new Date(quotation.date_created).toLocaleDateString(),
-      quotation.client?.name || 'Unknown',
-      `KES ${quotation.grand_total?.toFixed(2) || '0.00'}`,
-      quotation.status
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    // Add total at the bottom
-    const total = quotations.reduce((sum, quotation) => {
-      return sum + (quotation.grand_total || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Quotations Value: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('quotations_report.pdf')
-    toast.success('Quotations report exported successfully!')
   } catch (error) {
     console.error('Export error:', error)
-    toast.error('Failed to export quotations report')
+    toast.error('Failed to export quotations')
   }
 }
 
-export const exportSalesOrders = async (salesOrders: any[]) => {
+export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "SALES ORDERS REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Sales Orders",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `SO-${Date.now()}`,
+        items: salesOrders.map(order => ({
+          date: new Date(order.date_created).toLocaleDateString(),
+          client: order.client?.name || 'Unknown',
+          invoice: order.order_number,
+          amount: order.grand_total || 0,
+          status: order.status || 'Active'
+        })),
+        summary: `Total Sales Orders: ${salesOrders.length}`,
+        totalSales: salesOrders.reduce((sum, order) => sum + (order.grand_total || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateSalesReportPDF(reportData)
+      toast.success('Sales orders exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Order #', 'Date', 'Client', 'Total Amount', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...salesOrders.map(order => [
+          order.order_number,
+          new Date(order.date_created).toLocaleDateString(),
+          order.client?.name || 'Unknown',
+          order.grand_total?.toFixed(2) || '0.00',
+          order.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `sales_orders_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Sales orders exported to CSV successfully!')
     }
-    
-    doc.setFontSize(20)
-    doc.text('Sales Orders Report', 105, 20, { align: 'center' })
-    
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    doc.setFontSize(14)
-    doc.text('Sales Orders Summary', 20, 45)
-
-    const headers = [['Order #', 'Date', 'Client', 'Total Amount', 'Status']]
-    const data = salesOrders.map(order => [
-      order.order_number,
-      new Date(order.date_created).toLocaleDateString(),
-      order.client?.name || 'Unknown',
-      `KES ${order.grand_total?.toFixed(2) || '0.00'}`,
-      order.status
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    const total = salesOrders.reduce((sum, order) => {
-      return sum + (order.grand_total || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Sales Orders Value: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('sales_orders_report.pdf')
-    toast.success('Sales orders report exported successfully!')
   } catch (error) {
     console.error('Export error:', error)
-    toast.error('Failed to export sales orders report')
+    toast.error('Failed to export sales orders')
   }
 }
 
-export const exportInvoices = async (invoices: any[]) => {
+export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "INVOICES REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Invoices",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `INV-${Date.now()}`,
+        items: invoices.map(invoice => ({
+          date: new Date(invoice.date_created).toLocaleDateString(),
+          client: invoice.client?.name || 'Unknown',
+          invoice: invoice.invoice_number,
+          amount: invoice.grand_total || 0,
+          status: invoice.status || 'Active'
+        })),
+        summary: `Total Invoices: ${invoices.length}`,
+        totalSales: invoices.reduce((sum, invoice) => sum + (invoice.grand_total || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateSalesReportPDF(reportData)
+      toast.success('Invoices exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Invoice #', 'Date', 'Client', 'Total Amount', 'Paid Amount', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...invoices.map(invoice => [
+          invoice.invoice_number,
+          new Date(invoice.date_created).toLocaleDateString(),
+          invoice.client?.name || 'Unknown',
+          invoice.grand_total?.toFixed(2) || '0.00',
+          invoice.paid_amount?.toFixed(2) || '0.00',
+          invoice.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `invoices_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Invoices exported to CSV successfully!')
     }
-    
-    doc.setFontSize(20)
-    doc.text('Invoices Report', 105, 20, { align: 'center' })
-    
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    doc.setFontSize(14)
-    doc.text('Invoices Summary', 20, 45)
-
-    const headers = [['Invoice #', 'Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status']]
-    const data = invoices.map(invoice => [
-      invoice.invoice_number,
-      new Date(invoice.date_created).toLocaleDateString(),
-      invoice.client?.name || 'Unknown',
-      `KES ${invoice.grand_total?.toFixed(2) || '0.00'}`,
-      `KES ${invoice.paid_amount?.toFixed(2) || '0.00'}`,
-      `KES ${invoice.balance_amount?.toFixed(2) || '0.00'}`,
-      invoice.status
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    const total = invoices.reduce((sum, invoice) => {
-      return sum + (invoice.grand_total || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Invoices Value: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('invoices_report.pdf')
-    toast.success('Invoices report exported successfully!')
   } catch (error) {
     console.error('Export error:', error)
-    toast.error('Failed to export invoices report')
+    toast.error('Failed to export invoices')
   }
 }
 
@@ -487,6 +507,138 @@ export const exportCompanyExpenses = async (expenses: any[]) => {
   } catch (error) {
     console.error('Export error:', error)
     toast.error('Failed to export company expenses report')
+  }
+}
+
+export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv' = 'pdf') => {
+  try {
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateInventoryReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "STOCK INVENTORY REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Stock Inventory",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `STK-${Date.now()}`,
+        items: stockItems.map(item => ({
+          item: item.name,
+          category: item.category || 'N/A',
+          quantity: item.quantity,
+          unitPrice: item.unit_price || 0,
+          value: (item.quantity * (item.unit_price || 0))
+        })),
+        summary: `Total Stock Items: ${stockItems.length}`,
+        totalValue: stockItems.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateInventoryReportPDF(reportData)
+      toast.success('Stock report exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...stockItems.map(item => [
+          item.id,
+          item.name,
+          item.category || 'N/A',
+          item.quantity,
+          (item.unit_price || 0).toFixed(2),
+          (item.quantity * (item.unit_price || 0)).toFixed(2),
+          item.quantity === 0 ? 'Out of Stock' : 
+          item.quantity <= (item.reorder_level || 0) ? 'Low Stock' : 'In Stock'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `stock_inventory_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Stock report exported to CSV successfully!')
+    }
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export stock report')
+  }
+}
+
+export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'csv' = 'pdf') => {
+  try {
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateExpenseReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "PURCHASES REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Purchases",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `PUR-${Date.now()}`,
+        items: purchases.map(purchase => ({
+          date: new Date(purchase.date_created).toLocaleDateString(),
+          category: purchase.category || 'N/A',
+          description: purchase.description || 'N/A',
+          amount: purchase.total_amount || 0,
+          type: purchase.supplier_name || 'N/A'
+        })),
+        summary: `Total Purchases: ${purchases.length}`,
+        totalExpenses: purchases.reduce((sum, p) => sum + (p.total_amount || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateExpenseReportPDF(reportData)
+      toast.success('Purchases report exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Purchase #', 'Date', 'Supplier', 'Description', 'Total Amount', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...purchases.map(purchase => [
+          purchase.purchase_number || 'N/A',
+          new Date(purchase.date_created).toLocaleDateString(),
+          purchase.supplier_name || 'N/A',
+          purchase.description || 'N/A',
+          (purchase.total_amount || 0).toFixed(2),
+          purchase.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `purchases_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Purchases report exported to CSV successfully!')
+    }
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export purchases report')
   }
 }
 
@@ -1631,5 +1783,144 @@ export const createPurchaseWithTransaction = async (purchaseData: any) => {
   } catch (error) {
     console.error('Error creating purchase with transaction:', error)
     return { success: false, error: (error as Error).message }
+  }
+} 
+
+export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv' = 'pdf') => {
+  try {
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateFinancialReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "PAYMENTS REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Payments",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `PAY-${Date.now()}`,
+        items: [
+          {
+            metric: "Total Payments",
+            currentPeriod: payments.length,
+            previousPeriod: 0,
+            change: 0
+          },
+          {
+            metric: "Total Amount",
+            currentPeriod: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+            previousPeriod: 0,
+            change: 0
+          }
+        ],
+        summary: `Total Payments: ${payments.length}`,
+        netIncome: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateFinancialReportPDF(reportData)
+      toast.success('Payments report exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited']
+      const csvContent = [
+        headers.join(','),
+        ...payments.map(payment => [
+          payment.payment_number || 'N/A',
+          payment.client?.name || 'Unknown',
+          new Date(payment.date_created).toLocaleDateString(),
+          payment.paid_to || '-',
+          payment.description || '-',
+          (payment.amount || 0).toFixed(2),
+          payment.account_credited || '-'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `payments_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Payments report exported to CSV successfully!')
+    }
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error('Failed to export payments report')
+  }
+} 
+
+export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv' = 'pdf', expenseType: 'client' | 'company' = 'company') => {
+  try {
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateExpenseReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: `${expenseType.toUpperCase()} EXPENSES REPORT`,
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: `${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} Expenses`,
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `${expenseType.toUpperCase().charAt(0)}-${Date.now()}`,
+        items: expenses.map(expense => ({
+          date: new Date(expense.date_created).toLocaleDateString(),
+          category: expense.category || 'N/A',
+          description: expense.description || 'N/A',
+          amount: expense.amount || 0,
+          type: expense.expense_type || 'N/A'
+        })),
+        summary: `Total ${expenseType} Expenses: ${expenses.length}`,
+        totalExpenses: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateExpenseReportPDF(reportData)
+      toast.success(`${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} expenses exported successfully!`)
+    } else {
+      // CSV export
+      const headers = ['Expense #', 'Date', 'Category', 'Description', 'Amount', 'Type', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...expenses.map(expense => [
+          expense.expense_number || 'N/A',
+          new Date(expense.date_created).toLocaleDateString(),
+          expense.category || 'N/A',
+          expense.description || 'N/A',
+          (expense.amount || 0).toFixed(2),
+          expense.expense_type || 'N/A',
+          expense.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `${expenseType}_expenses_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success(`${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} expenses exported to CSV successfully!`)
+    }
+  } catch (error) {
+    console.error('Export error:', error)
+    toast.error(`Failed to export ${expenseType} expenses`)
   }
 } 

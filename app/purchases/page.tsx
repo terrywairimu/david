@@ -8,6 +8,8 @@ import { toast } from "sonner"
 import PurchaseModal from "@/components/ui/purchase-modal"
 import ClientPurchaseModal from "@/components/ui/client-purchase-modal"
 import { RegisteredEntity } from "@/lib/types"
+import SearchFilterRow from "@/components/ui/search-filter-row"
+import { exportPurchasesReport } from "@/lib/workflow-utils"
 
 interface Purchase {
   id: number
@@ -666,7 +668,13 @@ const PurchasesPage = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  const exportPurchases = () => {
+  // Export function
+  const exportPurchases = (format: 'pdf' | 'csv') => {
+    const filteredPurchases = getFilteredPurchases()
+    exportPurchasesReport(filteredPurchases, format)
+  }
+
+  const exportPurchasesOld = () => {
     const csvContent = [
       ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Payment Method', 'Total Amount', 'Status'],
       ...filteredPurchases.map(purchase => [
@@ -743,197 +751,32 @@ const PurchasesPage = () => {
         </div>
 
       {/* Search and Filter Controls */}
-      <div className="purchases-search-filter mb-4">
-        {/* Desktop Layout */}
-        <div className="d-none d-md-block">
-          <div className="row">
-            <div className="col-md-4">
-              <div className="input-group shadow-sm">
-                <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                  <Search size={16} className="text-muted" />
-                </span>
-                <input
-                  type="text"
-                  className="form-control border-0"
-                  placeholder="Search purchases..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-                />
-              </div>
-            </div>
-            <div className="col-md-3">
-              <select
-                className="form-select border-0 shadow-sm"
-                value={supplierFilter}
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Suppliers</option>
-                {suppliers.map(supplier => (
-                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3">
-              <select
-                className="form-select border-0 shadow-sm"
-                value={dateFilter}
-                onChange={(e) => handleDateFilterChange(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Dates</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-                <option value="specific">Specific Date</option>
-                <option value="period">Specific Period</option>
-              </select>
-              {dateFilter === "specific" && (
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm mt-2"
-                  value={specificDate}
-                  onChange={(e) => setSpecificDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-              )}
-              {dateFilter === "period" && (
-                <div className="mt-2">
-                  <div className="d-flex align-items-center justify-content-between">
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm"
-                      value={periodStartDate}
-                      onChange={(e) => setPeriodStartDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)" }}
-                    />
-                    <div className="mx-1 text-center" style={{ width: "20px" }}>
-                      <div className="small text-muted mb-1">to</div>
-                      <i className="fas fa-arrow-right"></i>
-                    </div>
-                    <input
-                      type="date"
-                      className="form-control border-0 shadow-sm"
-                      value={periodEndDate}
-                      onChange={(e) => setPeriodEndDate(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px", width: "calc(50% - 10px)" }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="col-md-2">
-              <button
-                className="btn w-100 shadow-sm export-btn"
-                onClick={exportPurchases}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <Download size={16} className="me-2" />
-                Export
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Layout */}
-        <div className="d-block d-md-none">
-          {/* Search Input - Full Row */}
-          <div className="mb-3">
-            <div className="input-group shadow-sm">
-              <span className="input-group-text border-0 bg-white" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                <Search size={16} className="text-muted" />
-              </span>
-              <input
-                type="text"
-                className="form-control border-0"
-                placeholder="Search purchases..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-              />
-            </div>
-          </div>
-
-          {/* Filters and Export Button - Shared Row */}
-          <div className="d-flex gap-2">
-            <div className="flex-fill">
-              <select
-                className="form-select border-0 shadow-sm w-100"
-                value={supplierFilter}
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Suppliers</option>
-                {suppliers.map(supplier => (
-                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-fill">
-              <select
-                className="form-select border-0 shadow-sm w-100"
-                value={dateFilter}
-                onChange={(e) => handleDateFilterChange(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <option value="">All Dates</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-                <option value="specific">Specific Date</option>
-                <option value="period">Specific Period</option>
-              </select>
-            </div>
-            <div className="flex-fill">
-              <button
-                className="btn w-100 shadow-sm export-btn"
-                onClick={exportPurchases}
-                style={{ borderRadius: "16px", height: "45px" }}
-              >
-                <Download size={16} className="me-2" />
-                Export
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Date Inputs */}
-          {dateFilter === "specific" && (
-            <div className="mt-2">
-              <input
-                type="date"
-                className="form-control border-0 shadow-sm w-100"
-                value={specificDate}
-                onChange={(e) => setSpecificDate(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              />
-            </div>
-          )}
-          {dateFilter === "period" && (
-            <div className="mt-2">
-              <div className="d-flex gap-2">
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm flex-fill"
-                  value={periodStartDate}
-                  onChange={(e) => setPeriodStartDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-                <span className="d-flex align-items-center text-muted">to</span>
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm flex-fill"
-                  value={periodEndDate}
-                  onChange={(e) => setPeriodEndDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <SearchFilterRow
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search purchases..."
+        firstFilter={{
+          value: supplierFilter,
+          onChange: setSupplierFilter,
+          options: [
+            { value: "", label: "All Suppliers" },
+            ...suppliers.map(supplier => ({ value: supplier.id.toString(), label: supplier.name }))
+          ],
+          placeholder: "All Suppliers"
+        }}
+        dateFilter={{
+          value: dateFilter,
+          onChange: handleDateFilterChange,
+          onSpecificDateChange: setSpecificDate,
+          onPeriodStartChange: setPeriodStartDate,
+          onPeriodEndChange: setPeriodEndDate,
+          specificDate,
+          periodStartDate,
+          periodEndDate
+        }}
+        onExport={exportPurchases}
+        exportLabel="Export Purchases"
+      />
 
       {/* Purchases Table */}
       <div className="card table-section">

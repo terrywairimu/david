@@ -13,6 +13,7 @@ import {
   downloadDocument,
   exportQuotations as exportQuotationsReport
 } from "@/lib/workflow-utils"
+import SearchFilterRow from "@/components/ui/search-filter-row"
 
 interface Quotation {
   id: number
@@ -1168,8 +1169,9 @@ const QuotationsView = () => {
   };
 
   // Export function
-  const exportQuotations = () => {
-    exportQuotationsReport(quotations)
+  const exportQuotations = (format: 'pdf' | 'csv') => {
+    const filteredQuotations = getFilteredQuotations()
+    exportQuotationsReport(filteredQuotations, format)
   }
 
   // Parse terms and conditions from database
@@ -1190,97 +1192,29 @@ const QuotationsView = () => {
         </div>
 
         {/* Search and Filter Row */}
-        <div className="row mb-3">
-          <div className="col-md-3">
-            <div className="input-group">
-              <span className="input-group-text bg-white border-end-0">
-                <i className="fas fa-search"></i>
-              </span>
-              <input
-                type="text"
-                className="form-control border-start-0"
-                placeholder="Search quotations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ borderRadius: "0 16px 16px 0", height: "45px" }}
-              />
-            </div>
-          </div>
-          
-          <div className="col-md-3">
-            <select
-              className="form-select border-0 shadow-sm"
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              {clients.map((client) => (
-                <option key={client.value} value={client.value}>
-                  {client.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="col-md-3">
-            <select
-              className="form-select border-0 shadow-sm"
-              value={dateFilter}
-              onChange={(e) => handleDateFilterChange(e.target.value)}
-              style={{ borderRadius: "16px", height: "45px" }}
-            >
-              <option value="">All Dates</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="specific">Specific Date</option>
-              <option value="period">Specific Period</option>
-            </select>
-            
-            {dateFilter === "specific" && (
-              <input
-                type="date"
-                className="form-control border-0 shadow-sm mt-2"
-                value={specificDate}
-                onChange={(e) => setSpecificDate(e.target.value)}
-                style={{ borderRadius: "16px", height: "45px" }}
-              />
-            )}
-            
-            {dateFilter === "period" && (
-              <div className="d-flex gap-2 mt-2">
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  placeholder="Start Date"
-                  value={periodStartDate}
-                  onChange={(e) => setPeriodStartDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-                <input
-                  type="date"
-                  className="form-control border-0 shadow-sm"
-                  placeholder="End Date"
-                  value={periodEndDate}
-                  onChange={(e) => setPeriodEndDate(e.target.value)}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                />
-              </div>
-            )}
-          </div>
-          
-          <div className="col-md-3">
-            <button
-              className="btn w-100 shadow-sm export-btn"
-              onClick={exportQuotations}
-              style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-            >
-              <Download size={16} className="me-2" />
-              Export
-            </button>
-          </div>
-        </div>
+        <SearchFilterRow
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search quotations..."
+          firstFilter={{
+            value: clientFilter,
+            onChange: setClientFilter,
+            options: clients,
+            placeholder: "All Clients"
+          }}
+          dateFilter={{
+            value: dateFilter,
+            onChange: handleDateFilterChange,
+            onSpecificDateChange: setSpecificDate,
+            onPeriodStartChange: setPeriodStartDate,
+            onPeriodEndChange: setPeriodEndDate,
+            specificDate,
+            periodStartDate,
+            periodEndDate
+          }}
+          onExport={exportQuotations}
+          exportLabel="Export Quotations"
+        />
 
             {/* Quotations Table */}
         <div className="card table-section">

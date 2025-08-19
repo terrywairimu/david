@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import { exportCompanyExpenses } from "@/lib/workflow-utils"
+import { exportExpensesReport } from "@/lib/workflow-utils"
 import ExpenseModal from "@/components/ui/expense-modal"
 
 interface CompanyExpensesViewProps {
@@ -228,8 +228,9 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
     }
   }
 
-  const handleExport = () => {
-    exportCompanyExpenses(getFilteredExpenses())
+  const handleExport = (format: 'pdf' | 'csv') => {
+    const filteredExpenses = getFilteredExpenses()
+    exportExpensesReport(filteredExpenses, format, 'company')
   }
 
   const handleSaveExpense = (expense: any) => {
