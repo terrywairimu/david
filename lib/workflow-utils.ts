@@ -108,7 +108,24 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
         approvedBy: "System"
       }
       
-      await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateSalesReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `quotations_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Quotations exported successfully!')
     } else {
       // CSV export
@@ -172,7 +189,24 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
         approvedBy: "System"
       }
       
-      await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateSalesReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `sales_orders_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Sales orders exported successfully!')
     } else {
       // CSV export
@@ -236,7 +270,24 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
         approvedBy: "System"
       }
       
-      await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateSalesReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoices_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Invoices exported successfully!')
     } else {
       // CSV export
@@ -301,7 +352,24 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
         approvedBy: "System"
       }
       
-      await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateSalesReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `cash_sales_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Cash sales report exported successfully!')
     } else {
       // CSV export
@@ -1647,7 +1715,24 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
         approvedBy: "System"
       }
       
-      await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateSalesReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `payments_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Payments report exported successfully!')
     } else {
       // CSV export
@@ -1713,7 +1798,24 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
         approvedBy: "System"
       }
       
-      await generateExpenseReportPDF(reportData)
+      const { template, inputs } = await generateExpenseReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${expenseType}_expenses_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success(`${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} expenses exported successfully!`)
     } else {
       // CSV export
