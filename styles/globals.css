@@ -1294,7 +1294,7 @@ input[type="text"]:focus, input[type="tel"]:focus, select:focus {
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.95) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
     backdrop-filter: blur(10px) !important;
     border-radius: 24px !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -2463,45 +2463,3 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Transfer Modal Specific Styles */
-.transfer-modal .modal-content {
-    background: rgba(255, 255, 255, 0.98) !important;
-}
-
-.transfer-modal .modal-header {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.transfer-modal .modal-footer {
-    border-top: 1px solid rgba(16, 185, 129, 0.1);
-}
-
-.transfer-modal .modal-body {
-    padding: 2rem;
-}
-
-.transfer-modal .form-label {
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
-}
-
-.transfer-modal .form-select,
-.transfer-modal .form-control {
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-}
-
-.transfer-modal .form-select:focus,
-.transfer-modal .form-control:focus {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.transfer-modal .input-group-text {
-    background-color: #f9fafb;
-    border-color: #e5e7eb;
-    color: #6b7280;
-    font-weight: 500;
-}

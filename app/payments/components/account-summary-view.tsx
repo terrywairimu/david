@@ -1902,7 +1902,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       {/* Transfer Modal */}
       {showTransferModal && (
-        <div className="modal fade show d-block transfer-modal" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header">
