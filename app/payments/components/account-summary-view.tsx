@@ -58,6 +58,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const [activeAccountFilter, setActiveAccountFilter] = useState<string>("")
   const [lastClickTime, setLastClickTime] = useState<number>(0)
   
+  // Transfer modal state
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [transferFromAccount, setTransferFromAccount] = useState("")
+  const [transferToAccount, setTransferToAccount] = useState("")
+  const [transferAmount, setTransferAmount] = useState("")
+  const [transferDescription, setTransferDescription] = useState("")
+  const [isTransferring, setIsTransferring] = useState(false)
+  
   // Add refs to prevent duplicate operations
   const syncInProgress = useRef(false)
   const lastSyncTime = useRef<number>(0)
@@ -851,7 +859,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               let accountType = 'cash' // default
               if (purchase.payment_method) {
                 const method = purchase.payment_method.toLowerCase()
-                if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+                if (method === 'cash' || method === 'cooperative bank' || method === 'credit' || method === 'cheque') {
                   accountType = method
                 }
               }
@@ -978,7 +986,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           let accountType = 'cash' // default
           if (purchase.payment_method) {
             const method = purchase.payment_method.toLowerCase()
-            if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+            if (method === 'cash' || method === 'cooperative bank' || method === 'credit' || method === 'cheque') {
               accountType = method
             }
           }
@@ -1266,38 +1274,178 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }))
   }
 
-  const handleExport = () => {
-    const filteredTransactions = getFilteredTransactions()
-    
-    // Create CSV content
-    const headers = ['Transaction #', 'Account', 'Date', 'Description', 'Amount', 'Status', 'Money In', 'Money Out', 'Balance']
-    const csvContent = [
-      headers.join(','),
-      ...filteredTransactions.map(transaction => [
-        transaction.transaction_number,
-        getAccountTitle(transaction.account_type),
-        new Date(transaction.transaction_date).toLocaleDateString(),
-        `"${transaction.description}"`,
-        transaction.amount.toFixed(2),
-        transaction.transaction_type === 'in' ? 'In' : 'Out',
-        transaction.money_in.toFixed(2),
-        transaction.money_out.toFixed(2),
-        transaction.balance_after.toFixed(2)
-      ].join(','))
-    ].join('\n')
+  const handleExport = async () => {
+    try {
+      const filteredData = getFilteredTransactions()
+      
+      // Create CSV content for account transactions
+      const headers = ['Transaction #', 'Account', 'Date', 'Description', 'Amount', 'Status', 'Money In', 'Money Out', 'Balance']
+      const csvContent = [
+        headers.join(','),
+        ...filteredData.map(transaction => [
+          transaction.transaction_number,
+          getAccountTitle(transaction.account_type),
+          new Date(transaction.transaction_date).toLocaleDateString(),
+          `"${transaction.description}"`,
+          transaction.amount.toFixed(2),
+          transaction.transaction_type === 'in' ? 'In' : 'Out',
+          transaction.money_in.toFixed(2),
+          transaction.money_out.toFixed(2),
+          transaction.balance_after.toFixed(2)
+        ].join(','))
+      ].join('\n')
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `account_transactions_${new Date().toISOString().split('T')[0]}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
-    
-    toast.success('Transactions exported successfully')
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `account_transactions_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Transactions exported successfully')
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error('Export failed')
+    }
+  }
+
+  // Handle transfer between accounts
+  const handleTransfer = async () => {
+    if (!transferFromAccount || !transferToAccount || !transferAmount || parseFloat(transferAmount) <= 0) {
+      toast.error('Please fill in all fields with valid values')
+      return
+    }
+
+    if (transferFromAccount === transferToAccount) {
+      toast.error('Cannot transfer to the same account')
+      return
+    }
+
+    try {
+      setIsTransferring(true)
+      const amount = parseFloat(transferAmount)
+      const description = transferDescription || `Transfer from ${transferFromAccount} to ${transferToAccount}`
+
+      // Generate unique transaction numbers for both transactions
+      const fromTransactionNumber = await generateUniqueTransactionNumber()
+      const toTransactionNumber = await generateUniqueTransactionNumber()
+
+      // Get current balances
+      const fromAccountBalance = accountBalances.find(acc => acc.account_type === transferFromAccount)
+      const toAccountBalance = accountBalances.find(acc => acc.account_type === transferToAccount)
+
+      if (!fromAccountBalance || !toAccountBalance) {
+        toast.error('Account not found')
+        return
+      }
+
+      if (fromAccountBalance.current_balance < amount) {
+        toast.error(`Insufficient funds in ${transferFromAccount} account`)
+        return
+      }
+
+      // Create transfer out transaction
+      const fromTransaction = {
+        transaction_number: fromTransactionNumber,
+        account_type: transferFromAccount,
+        transaction_type: 'out',
+        amount: amount,
+        description: description,
+        reference_type: 'transfer',
+        reference_id: 0, // Will be set after insertion
+        transaction_date: new Date().toISOString(),
+        balance_after: fromAccountBalance.current_balance - amount
+      }
+
+      // Create transfer in transaction
+      const toTransaction = {
+        transaction_number: toTransactionNumber,
+        account_type: transferToAccount,
+        transaction_type: 'in',
+        amount: amount,
+        description: description,
+        reference_type: 'transfer',
+        reference_id: 0, // Will be set after insertion
+        transaction_date: new Date().toISOString(),
+        balance_after: toAccountBalance.current_balance + amount
+      }
+
+      // Insert both transactions
+      const { data: fromResult, error: fromError } = await supabase
+        .from('account_transactions')
+        .insert([fromTransaction])
+        .select()
+
+      if (fromError) {
+        console.error('Error creating from transaction:', fromError)
+        toast.error('Transfer failed: Error creating from transaction')
+        return
+      }
+
+      const { data: toResult, error: toError } = await supabase
+        .from('account_transactions')
+        .insert([toTransaction])
+        .select()
+
+      if (toError) {
+        console.error('Error creating to transaction:', toError)
+        toast.error('Transfer failed: Error creating to transaction')
+        return
+      }
+
+      // Update reference_id to link the transactions
+      const fromId = fromResult[0].id
+      const toId = toResult[0].id
+
+      await supabase
+        .from('account_transactions')
+        .update({ reference_id: toId })
+        .eq('id', fromId)
+
+      await supabase
+        .from('account_transactions')
+        .update({ reference_id: fromId })
+        .eq('id', toId)
+
+      // Update account balances
+      await supabase
+        .from('account_balances')
+        .update({ 
+          current_balance: fromAccountBalance.current_balance - amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('account_type', transferFromAccount)
+
+      await supabase
+        .from('account_balances')
+        .update({ 
+          current_balance: toAccountBalance.current_balance + amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('account_type', transferToAccount)
+
+      toast.success(`Successfully transferred KES ${amount.toFixed(2)} from ${transferFromAccount} to ${transferToAccount}`)
+      
+      // Reset form and close modal
+      setTransferFromAccount("")
+      setTransferToAccount("")
+      setTransferAmount("")
+      setTransferDescription("")
+      setShowTransferModal(false)
+      
+      // Reload account data to show updated balances
+      await loadAccountData()
+      
+    } catch (error) {
+      console.error('Transfer failed:', error)
+      toast.error('Transfer failed: An unexpected error occurred')
+    } finally {
+      setIsTransferring(false)
+    }
   }
 
   const getAccountIcon = (accountType: string) => {
@@ -1527,6 +1675,18 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                     Export
                   </button>
                 </div>
+
+                {/* Transfer Button */}
+                <div className="col-lg-2 col-md-6 col-12">
+                  <button
+                    className="btn w-100 shadow-sm transfer-btn"
+                    onClick={() => setShowTransferModal(true)}
+                    style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease", backgroundColor: "#10b981", borderColor: "#10b981", color: "white" }}
+                  >
+                    <CreditCard size={16} className="me-2" />
+                    Transfer
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1617,7 +1777,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       onChange={(e) => setPeriodStartDate(e.target.value)}
                       style={{ borderRadius: "16px", height: "45px" }}
                     />
-                    <span className="d-flex align-items-center text-muted">to</span>
+                    <span className="d-flex align-items-center">to</span>
                     <input
                       type="date"
                       className="form-control border-0 shadow-sm flex-fill"
@@ -1628,6 +1788,18 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   </div>
                 </div>
               )}
+
+              {/* Transfer Button - Mobile */}
+              <div className="mt-3">
+                <button
+                  className="btn w-100 shadow-sm transfer-btn"
+                  onClick={() => setShowTransferModal(true)}
+                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease", backgroundColor: "#10b981", borderColor: "#10b981", color: "white" }}
+                >
+                  <CreditCard size={16} className="me-2" />
+                  Transfer
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1727,6 +1899,155 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           </div>
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      {showTransferModal && (
+        <div className="modal fade show d-block transfer-modal" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Transfer Between Accounts</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowTransferModal(false)}
+                  disabled={isTransferring}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  {/* Left Half - Transfer From */}
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-dark">Transfer From</label>
+                      <select
+                        className="form-select border-0 shadow-sm"
+                        value={transferFromAccount}
+                        onChange={(e) => setTransferFromAccount(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px" }}
+                        disabled={isTransferring}
+                      >
+                        <option value="">Select Account</option>
+                        {accountBalances.map((account) => (
+                          <option key={account.account_type} value={account.account_type}>
+                            {getAccountTitle(account.account_type)} - KES {account.current_balance.toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right Half - Transfer To */}
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-dark">Transfer To</label>
+                      <select
+                        className="form-select border-0 shadow-sm"
+                        value={transferToAccount}
+                        onChange={(e) => setTransferToAccount(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px" }}
+                        disabled={isTransferring}
+                      >
+                        <option value="">Select Account</option>
+                        {accountBalances.map((account) => (
+                          <option key={account.account_type} value={account.account_type}>
+                            {getAccountTitle(account.account_type)} - KES {account.current_balance.toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Full Width - Amount and Description */}
+                <div className="row">
+                  <div className="col-12">
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-dark">Amount to Transfer</label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
+                          KES
+                        </span>
+                        <input
+                          type="number"
+                          className="form-control border-start-0 border-end-0"
+                          placeholder="0.00"
+                          value={transferAmount}
+                          onChange={(e) => setTransferAmount(e.target.value)}
+                          style={{ borderRadius: "0", height: "45px" }}
+                          min="0.01"
+                          step="0.01"
+                          disabled={isTransferring}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-12">
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-dark">Description (Optional)</label>
+                      <input
+                        type="text"
+                        className="form-control border-0 shadow-sm"
+                        placeholder="Enter transfer description..."
+                        value={transferDescription}
+                        onChange={(e) => setTransferDescription(e.target.value)}
+                        style={{ borderRadius: "16px", height: "45px" }}
+                        disabled={isTransferring}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transfer Preview */}
+                {transferFromAccount && transferToAccount && transferAmount && parseFloat(transferAmount) > 0 && (
+                  <div className="alert alert-info">
+                    <div className="d-flex align-items-center">
+                      <i className="fas fa-info-circle me-2"></i>
+                      <div>
+                        <strong>Transfer Preview:</strong><br />
+                        From: <span className="badge bg-danger">{getAccountTitle(transferFromAccount)}</span><br />
+                        To: <span className="badge bg-success">{getAccountTitle(transferToAccount)}</span><br />
+                        Amount: <span className="badge bg-primary">KES {parseFloat(transferAmount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowTransferModal(false)}
+                  disabled={isTransferring}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={handleTransfer}
+                  disabled={!transferFromAccount || !transferToAccount || !transferAmount || parseFloat(transferAmount) <= 0 || isTransferring}
+                >
+                  {isTransferring ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-exchange-alt me-2"></i>
+                      Transfer Funds
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
