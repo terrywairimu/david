@@ -1902,11 +1902,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       {/* Transfer Modal */}
       {showTransferModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Transfer Between Accounts</h5>
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold">Transfer Between Accounts</h5>
                 <button
                   type="button"
                   className="btn-close"
@@ -1914,114 +1914,116 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   disabled={isTransferring}
                 ></button>
               </div>
-              <div className="modal-body">
-                <div className="row">
-                  {/* Left Half - Transfer From */}
+              <div className="modal-body pt-2">
+                <div className="row mb-4">
                   <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Transfer From</label>
-                      <select
-                        className="form-select border-0 shadow-sm"
-                        value={transferFromAccount}
-                        onChange={(e) => setTransferFromAccount(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                        disabled={isTransferring}
-                      >
-                        <option value="">Select Account</option>
-                        {accountBalances.map((account) => (
-                          <option key={account.account_type} value={account.account_type}>
-                            {getAccountTitle(account.account_type)} - KES {account.current_balance.toFixed(2)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <label className="form-label">Transfer From</label>
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={transferFromAccount}
+                      onChange={(e) => setTransferFromAccount(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                      required
+                      disabled={isTransferring}
+                    >
+                      <option value="">Select Account</option>
+                      {accountBalances.map((account) => (
+                        <option key={account.account_type} value={account.account_type}>
+                          {account.account_type} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-
-                  {/* Right Half - Transfer To */}
                   <div className="col-md-6">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Transfer To</label>
-                      <select
-                        className="form-select border-0 shadow-sm"
-                        value={transferToAccount}
-                        onChange={(e) => setTransferToAccount(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                        disabled={isTransferring}
-                      >
-                        <option value="">Select Account</option>
-                        {accountBalances.map((account) => (
-                          <option key={account.account_type} value={account.account_type}>
-                            {getAccountTitle(account.account_type)} - KES {account.current_balance.toFixed(2)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <label className="form-label">Transfer To</label>
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={transferToAccount}
+                      onChange={(e) => setTransferToAccount(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                      required
+                      disabled={isTransferring}
+                    >
+                      <option value="">Select Account</option>
+                      {accountBalances.map((account) => (
+                        <option key={account.account_type} value={account.account_type}>
+                          {account.account_type} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="form-label">Amount</label>
+                  <div className="input-group shadow-sm">
+                    <span 
+                      className="input-group-text border-0"
+                      style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
+                    >
+                      KES
+                    </span>
+                    <input
+                      type="number"
+                      className="form-control border-0"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      value={transferAmount}
+                      onChange={(e) => setTransferAmount(e.target.value)}
+                      style={{ borderRadius: "0 16px 16px 0", height: "45px", color: "#000000" }}
+                      required
+                      disabled={isTransferring}
+                    />
                   </div>
                 </div>
 
-                {/* Full Width - Amount and Description */}
-                <div className="row">
-                  <div className="col-12">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Amount to Transfer</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-white border-end-0" style={{ borderRadius: "16px 0 0 16px", height: "45px" }}>
-                          KES
-                        </span>
-                        <input
-                          type="number"
-                          className="form-control border-start-0 border-end-0"
-                          placeholder="0.00"
-                          value={transferAmount}
-                          onChange={(e) => setTransferAmount(e.target.value)}
-                          style={{ borderRadius: "0", height: "45px" }}
-                          min="0.01"
-                          step="0.01"
-                          disabled={isTransferring}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="col-12">
-                    <div className="mb-3">
-                      <label className="form-label fw-semibold text-dark">Description (Optional)</label>
-                      <input
-                        type="text"
-                        className="form-control border-0 shadow-sm"
-                        placeholder="Enter transfer description..."
-                        value={transferDescription}
-                        onChange={(e) => setTransferDescription(e.target.value)}
-                        style={{ borderRadius: "16px", height: "45px" }}
-                        disabled={isTransferring}
-                      />
-                    </div>
-                  </div>
+                <div className="mb-4">
+                  <label className="form-label">Description (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-control border-0 shadow-sm"
+                    placeholder="Enter transfer description"
+                    value={transferDescription}
+                    onChange={(e) => setTransferDescription(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                    disabled={isTransferring}
+                  />
                 </div>
 
                 {/* Transfer Preview */}
                 {transferFromAccount && transferToAccount && transferAmount && parseFloat(transferAmount) > 0 && (
-                  <div className="alert alert-info">
-                    <div className="d-flex align-items-center">
-                      <i className="fas fa-info-circle me-2"></i>
-                      <div>
-                        <strong>Transfer Preview:</strong><br />
-                        From: <span className="badge bg-danger">{getAccountTitle(transferFromAccount)}</span><br />
-                        To: <span className="badge bg-success">{getAccountTitle(transferToAccount)}</span><br />
-                        Amount: <span className="badge bg-primary">KES {parseFloat(transferAmount).toFixed(2)}</span>
+                  <div className="alert alert-info border-0 shadow-sm" style={{ borderRadius: "16px" }}>
+                    <div className="row">
+                      <div className="col-md-6">
+                        <strong>From:</strong> {transferFromAccount}
+                        <br />
+                        <small className="text-muted">
+                          Current Balance: KES {accountBalances.find(a => a.account_type === transferFromAccount)?.current_balance?.toFixed(2) || '0.00'}
+                        </small>
                       </div>
+                      <div className="col-md-6">
+                        <strong>To:</strong> {transferToAccount}
+                        <br />
+                        <small className="text-muted">
+                          Current Balance: KES {accountBalances.find(a => a.account_type === transferToAccount)?.current_balance?.toFixed(2) || '0.00'}
+                        </small>
+                      </div>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="text-center">
+                      <strong>Transfer Amount: KES {parseFloat(transferAmount).toFixed(2)}</strong>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer border-0">
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setShowTransferModal(false)}
                   disabled={isTransferring}
+                  style={{ borderRadius: "12px", height: "45px" }}
                 >
                   Cancel
                 </button>
@@ -2030,6 +2032,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   className="btn btn-success"
                   onClick={handleTransfer}
                   disabled={!transferFromAccount || !transferToAccount || !transferAmount || parseFloat(transferAmount) <= 0 || isTransferring}
+                  style={{ borderRadius: "12px", height: "45px" }}
                 >
                   {isTransferring ? (
                     <>
