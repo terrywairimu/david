@@ -2475,3 +2475,33 @@ input:checked + .toggle-slider:before {
 .transfer-modal .modal-footer {
     border-top: 1px solid rgba(16, 185, 129, 0.1);
 }
+
+.transfer-modal .modal-body {
+    padding: 2rem;
+}
+
+.transfer-modal .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.transfer-modal .form-select,
+.transfer-modal .form-control {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.transfer-modal .form-select:focus,
+.transfer-modal .form-control:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.transfer-modal .input-group-text {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #6b7280;
+    font-weight: 500;
+}

@@ -476,14 +476,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
               let accountType = 'cash' // default
               if (payment.account_credited) {
-                const credited = payment.account_credited.toLowerCase()
-                if (credited === 'cash') {
+                const credited = payment.account_credited
+                if (credited === 'Cash') {
                   accountType = 'cash'
-                } else if (credited === 'cooperative bank') {
+                } else if (credited === 'Cooperative Bank') {
                   accountType = 'cooperative_bank'
-                } else if (credited === 'credit') {
+                } else if (credited === 'Credit') {
                   accountType = 'credit'
-                } else if (credited === 'cheque') {
+                } else if (credited === 'Cheque') {
                   accountType = 'cheque'
                 }
               } else if (payment.payment_method) {
@@ -571,14 +571,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
           let accountType = 'cash' // default
           if (payment.account_credited) {
-            const credited = payment.account_credited.toLowerCase()
-            if (credited === 'cash') {
+            const credited = payment.account_credited
+            if (credited === 'Cash') {
               accountType = 'cash'
-            } else if (credited === 'cooperative bank') {
+            } else if (credited === 'Cooperative Bank') {
               accountType = 'cooperative_bank'
-            } else if (credited === 'credit') {
+            } else if (credited === 'Credit') {
               accountType = 'credit'
-            } else if (credited === 'cheque') {
+            } else if (credited === 'Cheque') {
               accountType = 'cheque'
             }
           } else if (payment.payment_method) {
@@ -653,14 +653,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               // Map account_debited to proper account_type
               let accountType = 'cash' // default
               if (expense.account_debited) {
-                const debited = expense.account_debited.toLowerCase()
-                if (debited === 'cash') {
+                const debited = expense.account_debited
+                if (debited === 'Cash') {
                   accountType = 'cash'
-                } else if (debited === 'cooperative bank') {
+                } else if (debited === 'Cooperative Bank') {
                   accountType = 'cooperative_bank'
-                } else if (debited === 'credit') {
+                } else if (debited === 'Credit') {
                   accountType = 'credit'
-                } else if (debited === 'cheque') {
+                } else if (debited === 'Cheque') {
                   accountType = 'cheque'
                 }
               }
@@ -763,14 +763,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           // Map account_debited to proper account_type
           let accountType = 'cash' // default
           if (expense.account_debited) {
-            const debited = expense.account_debited.toLowerCase()
-            if (debited === 'cash') {
+            const debited = expense.account_debited
+            if (debited === 'Cash') {
               accountType = 'cash'
-            } else if (debited === 'cooperative bank') {
+            } else if (debited === 'Cooperative Bank') {
               accountType = 'cooperative_bank'
-            } else if (debited === 'credit') {
+            } else if (debited === 'Credit') {
               accountType = 'credit'
-            } else if (debited === 'cheque') {
+            } else if (debited === 'Cheque') {
               accountType = 'cheque'
             }
           }
@@ -859,7 +859,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               let accountType = 'cash' // default
               if (purchase.payment_method) {
                 const method = purchase.payment_method.toLowerCase()
-                if (method === 'cash' || method === 'cooperative bank' || method === 'credit' || method === 'cheque') {
+                if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
                   accountType = method
                 }
               }
@@ -986,7 +986,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           let accountType = 'cash' // default
           if (purchase.payment_method) {
             const method = purchase.payment_method.toLowerCase()
-            if (method === 'cash' || method === 'cooperative bank' || method === 'credit' || method === 'cheque') {
+            if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
               accountType = method
             }
           }
