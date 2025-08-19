@@ -10,6 +10,7 @@ import {
   downloadDocument,
   exportCashSales as exportCashSalesReport
 } from "@/lib/workflow-utils"
+import ExportDropdown from "@/components/ui/export-dropdown"
 import { CashSale } from "@/lib/types"
 
 const CashSalesView: React.FC = () => {
@@ -320,8 +321,8 @@ const CashSalesView: React.FC = () => {
   }
 
   // Export function
-  const exportCashSales = () => {
-    exportCashSalesReport(cashSales)
+  const exportCashSales = (format: 'pdf' | 'csv') => {
+    exportCashSalesReport(cashSales, format)
   }
 
   const handleDelete = async (cashSale: CashSale) => {
@@ -445,14 +446,11 @@ const CashSalesView: React.FC = () => {
               </div>
               
               <div className="col-md-3">
-                <button 
-                  className="btn w-100 shadow-sm export-btn" 
-                  onClick={exportCashSales}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                >
-                  <i className="fas fa-download me-2"></i>
-                  Export
-                </button>
+                <ExportDropdown
+                  onExport={exportCashSales}
+                  exportLabel="Export"
+                  className="w-100"
+                />
               </div>
             </div>
           </div>
@@ -509,14 +507,11 @@ const CashSalesView: React.FC = () => {
                 </select>
               </div>
               <div className="flex-fill">
-                <button 
-                  className="btn w-100 shadow-sm export-btn" 
-                  onClick={exportCashSales}
-                  style={{ borderRadius: "16px", height: "45px" }}
-                >
-                  <i className="fas fa-download me-2"></i>
-                  Export
-                </button>
+                <ExportDropdown
+                  onExport={exportCashSales}
+                  exportLabel="Export"
+                  className="w-100"
+                />
               </div>
             </div>
 

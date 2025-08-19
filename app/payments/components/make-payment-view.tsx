@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, Eye, Download, CreditCard } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import { exportPayments } from "@/lib/workflow-utils"
+import { exportPaymentsReport } from "@/lib/workflow-utils"
 import PaymentModal from "@/components/ui/payment-modal"
 
 interface MakePaymentViewProps {
@@ -142,8 +142,48 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
     }
   }
 
-  const handleExport = () => {
-    exportPayments(getFilteredPayments())
+  const handleExport = (format: 'pdf' | 'csv') => {
+    exportPaymentsReport(getFilteredPayments(), format)
+  }
+
+  const handleExportSinglePayment = (payment: Payment) => {
+    // For single payment export, we'll create a simple receipt
+    // This could be enhanced to use a proper receipt template
+    const receiptData = {
+      payment_number: payment.payment_number,
+      client_name: payment.client?.name || 'Unknown',
+      date: new Date(payment.date_created).toLocaleDateString(),
+      amount: payment.amount,
+      description: payment.description || '',
+      paid_to: payment.paid_to || '',
+      account_credited: payment.account_credited || ''
+    }
+    
+    // Create a simple text receipt for now
+    const receiptText = `
+Payment Receipt
+================
+Payment #: ${receiptData.payment_number}
+Client: ${receiptData.client_name}
+Date: ${receiptData.date}
+Amount: KES ${receiptData.amount.toFixed(2)}
+Description: ${receiptData.description}
+Paid To: ${receiptData.paid_to}
+Account: ${receiptData.account_credited}
+    `.trim()
+    
+    // Create and download text file
+    const blob = new Blob([receiptText], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `payment_${receiptData.payment_number}_receipt.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    toast.success('Payment receipt downloaded successfully!')
   }
 
   const handleSavePayment = (payment: any) => {
@@ -258,8 +298,8 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
                         </button>
                         <button
                           className="btn btn-sm action-btn"
-                          onClick={() => handleExport()}
-                          title="Download"
+                          onClick={() => handleExportSinglePayment(payment)}
+                          title="Download Receipt"
                         >
                           <Download size={14} />
                         </button>

@@ -270,245 +270,75 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
   }
 }
 
-export const exportCashSales = async (cashSales: any[]) => {
+export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
+    if (format === 'pdf') {
+      // Use the proper PDF template from report-pdf-templates.ts
+      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      
+      // Prepare data for the PDF template
+      const reportData = {
+        companyName: "CABINET MASTER STYLES & FINISHES",
+        companyLocation: "Location: Ruiru Eastern By-Pass",
+        companyPhone: "Tel: +254729554475",
+        companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        reportTitle: "CASH SALES REPORT",
+        reportDate: new Date().toLocaleDateString(),
+        reportPeriod: "All Time",
+        reportType: "Cash Sales",
+        reportGenerated: new Date().toLocaleString(),
+        reportNumber: `CS-${Date.now()}`,
+        items: cashSales.map(sale => ({
+          date: new Date(sale.date_created).toLocaleDateString(),
+          client: sale.client?.name || 'Unknown',
+          invoice: sale.sale_number,
+          amount: sale.grand_total || 0,
+          status: sale.status || 'Active'
+        })),
+        summary: `Total Cash Sales: ${cashSales.length}`,
+        totalSales: cashSales.reduce((sum, sale) => sum + (sale.grand_total || 0), 0),
+        preparedBy: "System",
+        approvedBy: "System"
+      }
+      
+      await generateSalesReportPDF(reportData)
+      toast.success('Cash sales report exported successfully!')
+    } else {
+      // CSV export
+      const headers = ['Receipt #', 'Date', 'Client', 'Total Amount', 'Status']
+      const csvContent = [
+        headers.join(','),
+        ...cashSales.map(sale => [
+          sale.sale_number,
+          new Date(sale.date_created).toLocaleDateString(),
+          sale.client?.name || 'Unknown',
+          (sale.grand_total || 0).toFixed(2),
+          sale.status || 'Active'
+        ].join(','))
+      ].join('\n')
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `cash_sales_${Date.now()}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Cash sales report exported to CSV successfully!')
     }
-    
-    doc.setFontSize(20)
-    doc.text('Cash Sales Report', 105, 20, { align: 'center' })
-    
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    doc.setFontSize(14)
-    doc.text('Cash Sales Summary', 20, 45)
-
-    const headers = [['Receipt #', 'Date', 'Client', 'Total Amount', 'Status']]
-    const data = cashSales.map(sale => [
-      sale.sale_number,
-      new Date(sale.date_created).toLocaleDateString(),
-      sale.client?.name || 'Unknown',
-      `KES ${sale.grand_total?.toFixed(2) || '0.00'}`,
-      sale.status
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    const total = cashSales.reduce((sum, sale) => {
-      return sum + (sale.grand_total || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Cash Sales Value: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('cash_sales_report.pdf')
-    toast.success('Cash sales report exported successfully!')
   } catch (error) {
     console.error('Export error:', error)
     toast.error('Failed to export cash sales report')
   }
 }
 
-export const exportPayments = async (payments: any[]) => {
-  try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
-    }
-    
-    // Add title
-    doc.setFontSize(20)
-    doc.text('Payments Report', 105, 20, { align: 'center' })
-    
-    // Add date
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
+// Removed broken exportPayments function - use exportPaymentsReport instead
 
-    // Add summary section
-    doc.setFontSize(14)
-    doc.text('Payment Summary', 20, 45)
+// Removed broken exportClientExpenses function - use exportExpensesReport instead
 
-    // Add payments table
-    const headers = [['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited']]
-    const data = payments.map(payment => [
-      payment.payment_number || 'N/A',
-      payment.client?.name || 'Unknown',
-      new Date(payment.date_created).toLocaleDateString(),
-      payment.paid_to || '-',
-      payment.description || '-',
-      `KES ${payment.amount?.toFixed(2) || '0.00'}`,
-      payment.account_credited || '-'
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    // Add total at the bottom
-    const total = payments.reduce((sum, payment) => {
-      return sum + (payment.amount || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Payments: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('payments_report.pdf')
-    toast.success('Payments report exported successfully!')
-  } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export payments report')
-  }
-}
-
-export const exportClientExpenses = async (expenses: any[]) => {
-  try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
-    }
-    
-    // Add title
-    doc.setFontSize(20)
-    doc.text('Client Expenses Report', 105, 20, { align: 'center' })
-    
-    // Add date
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    // Add summary section
-    doc.setFontSize(14)
-    doc.text('Client Expenses Summary', 20, 45)
-
-    // Add expenses table
-    const headers = [['Expense #', 'Date', 'Client', 'Category', 'Description', 'Amount', 'Account Debited']]
-    const data = expenses.map(expense => [
-      expense.expense_number || 'N/A',
-      new Date(expense.date_created).toLocaleDateString(),
-      expense.client?.name || 'Unknown',
-      expense.category || '-',
-      expense.description || '-',
-      `KES ${expense.amount?.toFixed(2) || '0.00'}`,
-      expense.account_debited || '-'
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    // Add total at the bottom
-    const total = expenses.reduce((sum, expense) => {
-      return sum + (expense.amount || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Client Expenses: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('client_expenses_report.pdf')
-    toast.success('Client expenses report exported successfully!')
-  } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export client expenses report')
-  }
-}
-
-export const exportCompanyExpenses = async (expenses: any[]) => {
-  try {
-    const { jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    
-    const doc = new jsPDF()
-    
-    // Ensure autoTable is available
-    if (!doc.autoTable) {
-      throw new Error('AutoTable plugin not loaded properly')
-    }
-    
-    // Add title
-    doc.setFontSize(20)
-    doc.text('Company Expenses Report', 105, 20, { align: 'center' })
-    
-    // Add date
-    doc.setFontSize(12)
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' })
-
-    // Add summary section
-    doc.setFontSize(14)
-    doc.text('Company Expenses Summary', 20, 45)
-
-    // Add expenses table
-    const headers = [['Expense #', 'Date', 'Category', 'Description', 'Amount', 'Account Debited']]
-    const data = expenses.map(expense => [
-      expense.expense_number || 'N/A',
-      new Date(expense.date_created).toLocaleDateString(),
-      expense.category || '-',
-      expense.description || '-',
-      `KES ${expense.amount?.toFixed(2) || '0.00'}`,
-      expense.account_debited || '-'
-    ])
-
-    doc.autoTable({
-      startY: 55,
-      head: headers,
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [59, 130, 246] },
-      margin: { left: 15, right: 15 },
-    })
-
-    // Add total at the bottom
-    const total = expenses.reduce((sum, expense) => {
-      return sum + (expense.amount || 0)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
-    doc.text(`Total Company Expenses: KES ${total.toFixed(2)}`, 20, finalY)
-
-    doc.save('company_expenses_report.pdf')
-    toast.success('Company expenses report exported successfully!')
-  } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export company expenses report')
-  }
-}
+// Removed broken exportCompanyExpenses function - use exportExpensesReport instead
 
 export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
@@ -1790,7 +1620,7 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
   try {
     if (format === 'pdf') {
       // Use the proper PDF template from report-pdf-templates.ts
-      const { generateFinancialReportPDF } = await import('./report-pdf-templates')
+      const { generateSalesReportPDF } = await import('./report-pdf-templates')
       
       // Prepare data for the PDF template
       const reportData = {
@@ -1804,27 +1634,20 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
         reportType: "Payments",
         reportGenerated: new Date().toLocaleString(),
         reportNumber: `PAY-${Date.now()}`,
-        items: [
-          {
-            metric: "Total Payments",
-            currentPeriod: payments.length,
-            previousPeriod: 0,
-            change: 0
-          },
-          {
-            metric: "Total Amount",
-            currentPeriod: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
-            previousPeriod: 0,
-            change: 0
-          }
-        ],
+        items: payments.map(payment => ({
+          date: new Date(payment.date_created).toLocaleDateString(),
+          client: payment.client?.name || 'Unknown',
+          invoice: payment.payment_number || 'N/A',
+          amount: payment.amount || 0,
+          status: 'Completed'
+        })),
         summary: `Total Payments: ${payments.length}`,
-        netIncome: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+        totalSales: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
         preparedBy: "System",
         approvedBy: "System"
       }
       
-      await generateFinancialReportPDF(reportData)
+      await generateSalesReportPDF(reportData)
       toast.success('Payments report exported successfully!')
     } else {
       // CSV export
