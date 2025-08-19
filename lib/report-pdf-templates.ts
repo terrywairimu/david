@@ -1224,7 +1224,7 @@ const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMa
 const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
 const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
 
-// Custom table headers for each section view
+// Custom table headers for each section view (exact headers from table views, excluding Actions)
 const customTableHeaders = {
   expenses: {
     company: ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited'],
@@ -1232,7 +1232,10 @@ const customTableHeaders = {
   },
   payments: ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'],
   stock: ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'],
-  sales: ['Date', 'Client', 'Invoice', 'Amount', 'Status'],
+  quotations: ['Quotation #', 'Date', 'Client', 'Total Amount', 'Status'],
+  salesOrders: ['Order #', 'Date', 'Client', 'Total Amount', 'Status'],
+  invoices: ['Invoice #', 'Date', 'Due Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status'],
+  cashSales: ['Receipt #', 'Date', 'Client', 'Total Amount'],
   purchases: ['Date', 'Supplier', 'Reference', 'Amount', 'Status'],
   clients: ['Client Name', 'Email', 'Phone', 'Address', 'Total Sales', 'Status']
 };
@@ -1241,7 +1244,7 @@ const customTableHeaders = {
 const generateDynamicTemplateWithPagination = (
   rowCount: number, 
   tableHeaders: string[], 
-  templateType: 'expenses' | 'payments' | 'stock' | 'sales' | 'purchases' | 'clients'
+  templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients'
 ) => {
   // Paginate rows
   const pages: Array<Array<number>> = [];
@@ -1410,25 +1413,57 @@ const generateDynamicTemplateWithPagination = (
   };
 };
 
-// Calculate header positions based on number of columns
+// Calculate header positions with auto-width based on content needs
 const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
   const positions: Array<{x: number, y: number, width: number}> = [];
   const totalWidth = 180; // Available width for table
-  const columnCount = headers.length;
-  const columnWidth = totalWidth / columnCount;
+  const leftMargin = 15;
+  
+  // Define column width preferences based on content type
+  const columnWidths: { [key: string]: number } = {
+    // Narrow columns (IDs, dates, status)
+    'Quotation #': 25, 'Order #': 25, 'Invoice #': 25, 'Receipt #': 25, 'Expense #': 25, 'Payment #': 25, 'Item Code': 25,
+    'Date': 25, 'Due Date': 25,
+    'Status': 20,
+    'Quantity': 20,
+    'Unit Price': 25, 'Total Value': 25, 'Amount': 25, 'Total Amount': 25, 'Paid Amount': 25, 'Balance': 25,
+    
+    // Medium columns (names, categories)
+    'Client': 35, 'Client Name': 35,
+    'Category': 25,
+    'Department': 30,
+    'Supplier': 30,
+    'Product': 35,
+    
+    // Wide columns (descriptions, addresses)
+    'Description': 40,
+    'Address': 40,
+    'Phone': 25,
+    'Email': 35,
+    
+    // Default width for unspecified columns
+    'default': 30
+  };
+  
+  let currentX = leftMargin;
   
   headers.forEach((header, index) => {
+    // Get width for this header, or use default
+    const width = columnWidths[header] || columnWidths['default'];
+    
     positions.push({
-      x: 15 + (index * columnWidth),
+      x: currentX,
       y: tableHeaderY + 2,
-      width: columnWidth - 2 // Small gap between columns
+      width: width
     });
+    
+    currentX += width + 2; // Add 2mm gap between columns
   });
   
   return positions;
 };
 
-// Generate data fields based on template type
+// Generate data fields based on template type with proper column alignment
 const generateDataFields = (templateType: string, rowIdx: number, yPosition: number) => {
   const fields: any[] = [];
   
@@ -1437,12 +1472,12 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
       // Expense fields: Expense #, Date, Department/Client, Category, Description, Amount, Account Debited
       fields.push(
         { name: `expenseNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `date_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `department_${rowIdx}`, type: 'text', position: { x: 67, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `category_${rowIdx}`, type: 'text', position: { x: 97, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `description_${rowIdx}`, type: 'text', position: { x: 122, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `amount_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: `accountDebited_${rowIdx}`, type: 'text', position: { x: 182, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `department_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `category_${rowIdx}`, type: 'text', position: { x: 103, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `description_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `amount_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `accountDebited_${rowIdx}`, type: 'text', position: { x: 199, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
       );
       break;
       
@@ -1450,12 +1485,12 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
       // Payment fields: Payment #, Client, Date, Paid To, Description, Amount, Account Credited
       fields.push(
         { name: `paymentNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `client_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `date_${rowIdx}`, type: 'text', position: { x: 72, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: 97, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `description_${rowIdx}`, type: 'text', position: { x: 127, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `amount_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: `accountCredited_${rowIdx}`, type: 'text', position: { x: 182, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 81, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: 108, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `description_${rowIdx}`, type: 'text', position: { x: 140, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `amount_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `accountCredited_${rowIdx}`, type: 'text', position: { x: 199, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
       );
       break;
       
@@ -1463,12 +1498,58 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
       // Stock fields: Item Code, Product, Category, Quantity, Unit Price, Total Value, Status
       fields.push(
         { name: `itemCode_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `product_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `category_${rowIdx}`, type: 'text', position: { x: 77, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `quantity_${rowIdx}`, type: 'text', position: { x: 102, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
-        { name: `unitPrice_${rowIdx}`, type: 'text', position: { x: 122, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: `totalValue_${rowIdx}`, type: 'text', position: { x: 147, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: `status_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 23, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+        { name: `product_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `category_${rowIdx}`, type: 'text', position: { x: 81, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `quantity_${rowIdx}`, type: 'text', position: { x: 108, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
+        { name: `unitPrice_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `totalValue_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `status_${rowIdx}`, type: 'text', position: { x: 184, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+      );
+      break;
+      
+    case 'quotations':
+      // Quotation fields: Quotation #, Date, Client, Total Amount, Status
+      fields.push(
+        { name: `quotationNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 108, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `status_${rowIdx}`, type: 'text', position: { x: 135, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+      );
+      break;
+      
+    case 'salesOrders':
+      // Sales Order fields: Order #, Date, Client, Total Amount, Status
+      fields.push(
+        { name: `orderNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 108, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `status_${rowIdx}`, type: 'text', position: { x: 135, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+      );
+      break;
+      
+    case 'invoices':
+      // Invoice fields: Invoice #, Date, Due Date, Client, Total Amount, Paid Amount, Balance, Status
+      fields.push(
+        { name: `invoiceNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `dueDate_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 98, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 135, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `paidAmount_${rowIdx}`, type: 'text', position: { x: 162, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `balance_${rowIdx}`, type: 'text', position: { x: 189, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `status_${rowIdx}`, type: 'text', position: { x: 216, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+      );
+      break;
+      
+    case 'cashSales':
+      // Cash Sale fields: Receipt #, Date, Client, Total Amount
+      fields.push(
+        { name: `receiptNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 108, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
       );
       break;
       
