@@ -1286,7 +1286,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section

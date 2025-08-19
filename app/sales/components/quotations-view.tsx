@@ -694,8 +694,8 @@ const QuotationsView = () => {
           sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
@@ -853,8 +853,8 @@ const QuotationsView = () => {
           sectionTotal3 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
@@ -1070,8 +1070,8 @@ const QuotationsView = () => {
           sectionTotal5 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section

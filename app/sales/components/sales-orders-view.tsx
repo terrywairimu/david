@@ -416,8 +416,8 @@ const SalesOrdersView = () => {
           sectionPrintTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
@@ -502,7 +502,7 @@ const SalesOrdersView = () => {
         }
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           // Check if labour charge items already exist in this category
           const hasExistingLabourCharge = itemsInCategory.some(item => 
             item.description && item.description.toLowerCase().includes('labour charge')
@@ -715,7 +715,7 @@ const SalesOrdersView = () => {
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
@@ -800,7 +800,7 @@ const SalesOrdersView = () => {
         }
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           // Check if labour charge items already exist in this category
           const hasExistingLabourCharge = itemsInCategory.some(item => 
             item.description && item.description.toLowerCase().includes('labour charge')
