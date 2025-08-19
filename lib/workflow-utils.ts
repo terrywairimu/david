@@ -439,7 +439,24 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
         approvedBy: "System"
       }
       
-      await generateInventoryReportPDF(reportData)
+      const { template, inputs } = await generateInventoryReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `stock_inventory_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Stock report exported successfully!')
     } else {
       // CSV export
@@ -506,7 +523,24 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         approvedBy: "System"
       }
       
-      await generateExpenseReportPDF(reportData)
+      const { template, inputs } = await generateExpenseReportPDF(reportData)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `purchases_report_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
       toast.success('Purchases report exported successfully!')
     } else {
       // CSV export

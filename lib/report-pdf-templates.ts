@@ -487,24 +487,14 @@ const generateSalesReportPDF = async (data: SalesReportData) => {
     amountHeader: 'Amount',
     statusHeader: 'Status',
     
-    // Sample Data Rows (will be populated with actual data)
-    date1: '2024-01-15',
-    client1: 'John Doe',
-    invoice1: 'INV-001',
-    amount1: 'KES 25,000',
-    status1: 'Paid',
-    
-    date2: '2024-01-16',
-    client2: 'Jane Smith',
-    invoice2: 'INV-002',
-    amount2: 'KES 18,500',
-    status2: 'Pending',
-    
-    date3: '2024-01-17',
-    client3: 'Bob Johnson',
-    invoice3: 'INV-003',
-    amount3: 'KES 32,750',
-    status3: 'Paid',
+    // Real Data Rows (populated with actual data from items array)
+    ...mergedData.items.map((item, index) => ({
+      [`date${index + 1}`]: item.date,
+      [`client${index + 1}`]: item.client,
+      [`invoice${index + 1}`]: item.invoice,
+      [`amount${index + 1}`]: formatCurrency(item.amount),
+      [`status${index + 1}`]: item.status
+    })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
     // Footer
     summaryTitle: 'Summary:',
@@ -568,24 +558,14 @@ const generateExpenseReportPDF = async (data: ExpenseReportData) => {
     amountHeader: 'Amount',
     typeHeader: 'Type',
     
-    // Sample Data Rows (will be populated with actual data)
-    date1: '2024-01-15',
-    category1: 'Office',
-    description1: 'Stationery supplies',
-    amount1: 'KES 5,000',
-    type1: 'Expense',
-    
-    date2: '2024-01-16',
-    category2: 'Transport',
-    description2: 'Fuel for delivery',
-    amount2: 'KES 8,500',
-    type2: 'Expense',
-    
-    date3: '2024-01-17',
-    category3: 'Utilities',
-    description3: 'Electricity bill',
-    amount3: 'KES 12,000',
-    type3: 'Expense',
+    // Real Data Rows (populated with actual data from items array)
+    ...mergedData.items.map((item, index) => ({
+      [`date${index + 1}`]: item.date,
+      [`category${index + 1}`]: item.category,
+      [`description${index + 1}`]: item.description,
+      [`amount${index + 1}`]: formatCurrency(item.amount),
+      [`type${index + 1}`]: item.type
+    })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
     // Footer
     summaryTitle: 'Summary:',
@@ -649,24 +629,14 @@ const generateInventoryReportPDF = async (data: InventoryReportData) => {
     unitPriceHeader: 'Unit Price',
     valueHeader: 'Value',
     
-    // Sample Data Rows (will be populated with actual data)
-    item1: 'Kitchen Cabinet',
-    category1: 'Cabinets',
-    quantity1: '5',
-    unitPrice1: 'KES 15,000',
-    value1: 'KES 75,000',
-    
-    item2: 'Worktop',
-    category2: 'Surfaces',
-    quantity2: '3',
-    unitPrice2: 'KES 8,500',
-    value2: 'KES 25,500',
-    
-    item3: 'Drawer Handles',
-    category3: 'Accessories',
-    quantity3: '20',
-    unitPrice3: 'KES 500',
-    value3: 'KES 10,000',
+    // Real Data Rows (populated with actual data from items array)
+    ...mergedData.items.map((item, index) => ({
+      [`item${index + 1}`]: item.item,
+      [`category${index + 1}`]: item.category,
+      [`quantity${index + 1}`]: item.quantity?.toString() || '0',
+      [`unitPrice${index + 1}`]: formatCurrency(item.unitPrice),
+      [`value${index + 1}`]: formatCurrency(item.value)
+    })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
     // Footer
     summaryTitle: 'Summary:',
@@ -730,24 +700,14 @@ const generateClientReportPDF = async (data: ClientReportData) => {
     balanceHeader: 'Balance',
     statusHeader: 'Status',
     
-    // Sample Data Rows (will be populated with actual data)
-    client1: 'John Doe',
-    sales1: 'KES 45,000',
-    payments1: 'KES 30,000',
-    balance1: 'KES 15,000',
-    status1: 'Active',
-    
-    client2: 'Jane Smith',
-    sales2: 'KES 28,500',
-    payments2: 'KES 28,500',
-    balance2: 'KES 0',
-    status2: 'Paid',
-    
-    client3: 'Bob Johnson',
-    sales3: 'KES 67,250',
-    payments3: 'KES 45,000',
-    balance3: 'KES 22,250',
-    status3: 'Outstanding',
+    // Real Data Rows (populated with actual data from items array)
+    ...mergedData.items.map((item, index) => ({
+      [`client${index + 1}`]: item.client,
+      [`sales${index + 1}`]: formatCurrency(item.sales),
+      [`payments${index + 1}`]: formatCurrency(item.payments),
+      [`balance${index + 1}`]: formatCurrency(item.balance),
+      [`status${index + 1}`]: item.status
+    })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
     // Footer
     summaryTitle: 'Summary:',
@@ -810,21 +770,13 @@ const generateFinancialReportPDF = async (data: FinancialReportData) => {
     previousPeriodHeader: 'Previous',
     changeHeader: 'Change',
     
-    // Sample Data Rows (will be populated with actual data)
-    metric1: 'Total Sales',
-    currentPeriod1: 'KES 450,000',
-    previousPeriod1: 'KES 380,000',
-    change1: '+18.4%',
-    
-    metric2: 'Total Expenses',
-    currentPeriod2: 'KES 280,000',
-    previousPeriod2: 'KES 250,000',
-    change2: '+12.0%',
-    
-    metric3: 'Net Income',
-    currentPeriod3: 'KES 170,000',
-    previousPeriod3: 'KES 130,000',
-    change3: '+30.8%',
+    // Real Data Rows (populated with actual data from items array)
+    ...mergedData.items.map((item, index) => ({
+      [`metric${index + 1}`]: item.metric,
+      [`currentPeriod${index + 1}`]: formatCurrency(item.currentPeriod),
+      [`previousPeriod${index + 1}`]: item.previousPeriod ? formatCurrency(item.previousPeriod) : 'N/A',
+      [`change${index + 1}`]: item.change || 'N/A'
+    })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
     // Footer
     summaryTitle: 'Summary:',
