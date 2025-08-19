@@ -227,24 +227,60 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
     if (type === 'sales') {
       console.info('[ReportBuilderModal] running sales query', { salesGroupBy, includeCashSales, includeInvoices })
-      const { data } = await supabase.from('invoices').select('grand_total, date_created, client_id, registered_entities(name)').gte('date_created', start.toISOString()).lte('date_created', end.toISOString())
+      
+      // Query sales_orders table (actual sales data) instead of invoices (which is empty)
+      const { data, error: salesError } = await supabase
+        .from('sales_orders')
+        .select('total_amount, grand_total, date_created, client_id, registered_entities(name)')
+        .gte('date_created', start.toISOString())
+        .lte('date_created', end.toISOString())
+      
+      if (salesError) {
+        console.error('Sales query error:', salesError)
+      }
+      
+      console.log('Sales data retrieved:', { 
+        count: data?.length || 0, 
+        sample: data?.slice(0, 3),
+        dateRange: { start: start.toISOString(), end: end.toISOString() }
+      })
+      
       if (salesGroupBy === 'client') {
         const byClient = new Map<string, number>()
         ;(data||[]).forEach((i: any) => {
           const k = i.registered_entities?.name || 'unknown'
-          byClient.set(k, (byClient.get(k)||0) + Number(i.grand_total||0))
+          // Use grand_total if available, otherwise total_amount
+          const amount = parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0
+          byClient.set(k, (byClient.get(k)||0) + amount)
         })
         rows = Array.from(byClient.entries()).map(([client, total]) => ({ client, total: total.toFixed(2) }))
         columns = [{key:'client',label:'Client'}, {key:'total',label:'Total Sales',align:'right'}]
       } else {
-        rows = (data||[]).map((i: any) => ({ date: new Date(i.date_created).toLocaleDateString(), client: i.registered_entities?.name, amount: i.grand_total }))
+        rows = (data||[]).map((i: any) => ({ 
+          date: new Date(i.date_created).toLocaleDateString(), 
+          client: i.registered_entities?.name, 
+          amount: parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0 
+        }))
         columns = [{key:'date',label:'Date'}, {key:'client',label:'Client'}, {key:'amount',label:'Amount',align:'right'}]
       }
+      
+      console.log('Sales report rows generated:', { rowsCount: rows.length, sampleRows: rows.slice(0, 3) })
     }
 
     if (type === 'expenses') {
       console.info('[ReportBuilderModal] running expenses query', { expensesGroupBy, includeClientExpenses, includeCompanyExpenses })
-      const { data } = await supabase.from('expenses').select('amount, date_created, category').gte('date_created', start.toISOString()).lte('date_created', end.toISOString())
+      const { data, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount, date_created, category')
+        .gte('date_created', start.toISOString())
+        .lte('date_created', end.toISOString())
+      
+      if (expenseError) {
+        console.error('Expense query error:', expenseError)
+      }
+      
+      console.log('Expense data retrieved:', { count: data?.length || 0, sample: data?.slice(0, 3) })
+      
       if (expensesGroupBy === 'category') {
         const byCategory = new Map<string, number>()
         ;(data||[]).forEach((e: any) => {
@@ -262,7 +298,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
     if (type === 'inventory') {
       console.info('[ReportBuilderModal] running inventory query', { inventoryReportType, inventoryGroupBy })
       if (inventoryReportType === 'current' || inventoryReportType === 'value' || inventoryReportType === 'lowStock') {
-        const { data } = await supabase.from('stock_items').select('name, category, quantity, reorder_level, unit_price')
+        const { data, error: inventoryError } = await supabase.from('stock_items').select('name, category, quantity, reorder_level, unit_price')
+        
+        if (inventoryError) {
+          console.error('Inventory query error:', inventoryError)
+        }
+        
+        console.log('Inventory data retrieved:', { count: data?.length || 0, sample: data?.slice(0, 3) })
+        
         if (inventoryReportType === 'lowStock') {
           rows = (data||[]).filter(d => (d.quantity||0) <= (d.reorder_level||0)).map(d => ({ item: d.name, category: d.category, qty: d.quantity, reorder: d.reorder_level, unit_price: d.unit_price, value: Number(d.unit_price||0) * Number(d.quantity||0) }))
           columns = [ {key:'item',label:'Item'}, {key:'category',label:'Category'}, {key:'qty',label:'Qty',align:'right'}, {key:'reorder',label:'Reorder',align:'right'}, {key:'unit_price',label:'Unit Price',align:'right'}, {key:'value',label:'Value',align:'right'} ]
@@ -285,11 +328,18 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         }
       } else {
         // movement
-        const { data } = await supabase.from('stock_movements').select('created_at, item_id, quantity, type, stock_items(name, category)')
+        const { data, error: movementError } = await supabase.from('stock_movements').select('date_created, stock_item_id, quantity, movement_type, stock_items(name, category)')
+        
+        if (movementError) {
+          console.error('Stock movement query error:', movementError)
+        }
+        
+        console.log('Stock movement data retrieved:', { count: data?.length || 0, sample: data?.slice(0, 3) })
+        
         const map = new Map<string, number>()
         ;(data||[]).forEach((m: any) => {
           const k = inventoryGroupBy === 'category' ? (m.stock_items?.category || 'other') : (m.stock_items?.name || 'unknown')
-          const qty = Number(m.quantity || 0) * (m.type === 'out' ? -1 : 1)
+          const qty = Number(m.quantity || 0) * (m.movement_type === 'out' ? -1 : 1)
           map.set(k, (map.get(k)||0) + qty)
         })
         rows = Array.from(map.entries()).map(([group, qty]) => ({ group, qty }))
@@ -299,14 +349,30 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
     if (type === 'clients') {
       console.info('[ReportBuilderModal] running clients query')
-      const [{ data: invoices }, { data: payments }, { data: clients }] = await Promise.all([
-        supabase.from('invoices').select('client_id, grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+      const [{ data: salesData, error: salesError }, { data: payments, error: paymentsError }, { data: clients, error: clientsError }] = await Promise.all([
+        supabase.from('sales_orders').select('client_id, total_amount, grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
         supabase.from('payments').select('client_id, amount').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
         supabase.from('registered_entities').select('id, name').eq('type','client')
       ])
+      
+      if (salesError) console.error('Sales query error:', salesError)
+      if (paymentsError) console.error('Payments query error:', paymentsError)
+      if (clientsError) console.error('Clients query error:', clientsError)
+      
+      console.log('Clients report data:', {
+        salesCount: salesData?.length || 0,
+        paymentsCount: payments?.length || 0,
+        clientsCount: clients?.length || 0,
+        sampleSales: salesData?.slice(0, 3),
+        samplePayments: payments?.slice(0, 3)
+      })
+      
       const byClient = new Map<number, {name:string, sales:number, payments:number}>()
       ;(clients||[]).forEach((c: any) => byClient.set(c.id, { name: c.name, sales:0, payments:0 }))
-      ;(invoices||[]).forEach((i: any) => { const r = byClient.get(i.client_id); if (r) r.sales += Number(i.grand_total||0) })
+      ;(salesData||[]).forEach((i: any) => { 
+        const r = byClient.get(i.client_id); 
+        if (r) r.sales += (parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0) 
+      })
       ;(payments||[]).forEach((p: any) => { const r = byClient.get(p.client_id); if (r) r.payments += Number(p.amount||0) })
       const list = Array.from(byClient.entries()).map(([id, v]) => ({ client: v.name, sales: v.sales, payments: v.payments, balance: v.sales - v.payments }))
       rows = clientSelection === 'all' ? list : list.filter((r: any) => byClient.get(clientSelection as number)?.name === r.client)
@@ -315,13 +381,27 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
     if (type === 'financial') {
       console.info('[ReportBuilderModal] running financial query')
-      const [{ data: inv }, { data: exp }] = await Promise.all([
-        supabase.from('invoices').select('grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+      const [{ data: salesData, error: salesError }, { data: exp, error: expensesError }] = await Promise.all([
+        supabase.from('sales_orders').select('total_amount, grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
         supabase.from('expenses').select('amount').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
       ])
-      const sales = (inv||[]).reduce((s: any,i: any)=>s+Number(i.grand_total||0),0)
+      
+      if (salesError) console.error('Sales query error:', salesError)
+      if (expensesError) console.error('Expenses query error:', expensesError)
+      
+      console.log('Financial summary data:', {
+        salesCount: salesData?.length || 0,
+        expensesCount: exp?.length || 0,
+        sampleSales: salesData?.slice(0, 3),
+        sampleExpenses: exp?.slice(0, 3)
+      })
+      
+      const sales = (salesData||[]).reduce((s: any,i: any)=>s+(parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0),0)
       const expenses = (exp||[]).reduce((s: any,i: any)=>s+Number(i.amount||0),0)
       const net = sales - expenses
+      
+      console.log('Financial summary calculations:', { sales, expenses, net })
+      
       rows = [ { metric: 'Sales', amount: sales.toFixed(2) }, { metric: 'Expenses', amount: (-expenses).toFixed(2) }, { metric: 'Net', amount: net.toFixed(2) } ]
       columns = [{key:'metric',label:'Metric'},{key:'amount',label:'Amount',align:'right'}]
     }
@@ -331,16 +411,32 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       // very simple combined totals demo
       const tasks: Promise<any>[] = []
       if (includeClients) tasks.push(Promise.resolve(supabase.from('registered_entities').select('id').eq('type','client')))
-      if (includeSales) tasks.push(Promise.resolve(supabase.from('invoices').select('grand_total')))
+      if (includeSales) tasks.push(Promise.resolve(supabase.from('sales_orders').select('total_amount, grand_total')))
       if (includeExpensesData) tasks.push(Promise.resolve(supabase.from('expenses').select('amount')))
       if (includeInventoryData) tasks.push(Promise.resolve(supabase.from('stock_items').select('unit_price, quantity')))
       const results = await Promise.all(tasks)
+      
+      console.log('Custom report data:', {
+        includeClients,
+        includeSales,
+        includeExpensesData,
+        includeInventoryData,
+        resultsCount: results.length,
+        sampleResults: results.map(r => r.data?.slice(0, 2))
+      })
+      
       const summary: Record<string, number> = {}
       let idx = 0
       if (includeClients) { summary.clients = (results[idx++].data||[]).length }
-      if (includeSales) { summary.sales = (results[idx++].data||[]).reduce((s: any,i: any)=>s+Number(i.grand_total||0),0) }
+      if (includeSales) { 
+        summary.sales = (results[idx++].data||[]).reduce((s: any,i: any)=>
+          s+(parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0),0) 
+      }
       if (includeExpensesData) { summary.expenses = (results[idx++].data||[]).reduce((s: any,i: any)=>s+Number(i.amount||0),0) }
       if (includeInventoryData) { summary.stockValue = (results[idx++].data||[]).reduce((s: any,i: any)=>s+Number(i.unit_price||0)*Number(i.quantity||0),0) }
+      
+      console.log('Custom report summary:', summary)
+      
       rows = Object.entries(summary).map(([k,v]) => ({ metric: k, value: v.toFixed(2) }))
       columns = [{key:'metric',label:'Metric'},{key:'value',label:'Value',align:'right'}]
     }
