@@ -1,6 +1,17 @@
 import { supabase } from "./supabase-client"
 import { toast } from "sonner"
 
+// Pagination constants for PDF exports (matching quotation PDF layout)
+const pageHeight = 297; // mm
+const topMargin = 20; // mm
+const headerHeight = 60; // mm - header block (first page only)
+const tableHeaderHeight = 10; // mm
+const bottomMargin = 15; // mm
+const rowHeight = 8; // mm
+const firstPageReservedSpace = 16; // mm - reserve space for better spacing
+const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace;
+const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
+
 // Number generation functions
 export const generatePaymentNumber = async () => {
   try {
@@ -80,40 +91,40 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      // Use the proper quotation PDF template from pdf-template.ts
+      const { generateQuotationPDF } = await import('./pdf-template')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Prepare data for the quotation PDF template
+      const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        reportTitle: "QUOTATIONS REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Quotations",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `QR-${Date.now()}`,
+        quotationNumber: `QR-${Date.now()}`,
+        date: new Date().toLocaleDateString(),
+        clientNames: "Quotations Report",
+        siteLocation: "All Quotations",
+        mobileNo: "",
+        deliveryNoteNo: "",
         items: quotations.map(quotation => ({
-          date: new Date(quotation.date_created).toLocaleDateString(),
-          client: quotation.client?.name || 'Unknown',
-          invoice: quotation.quotation_number,
-          amount: quotation.grand_total || 0,
-          status: quotation.status || 'Active'
+          description: `Quotation ${quotation.quotation_number}`,
+          quantity: 1,
+          unit: "pc",
+          unitPrice: quotation.grand_total || 0,
+          total: quotation.grand_total || 0
         })),
-        summary: `Total Quotations: ${quotations.length}`,
-        totalSales: quotations.reduce((sum, q) => sum + (q.grand_total || 0), 0),
+        total: quotations.reduce((sum, q) => sum + (q.grand_total || 0), 0),
+        terms: [`Total Quotations: ${quotations.length}`],
         preparedBy: "System",
         approvedBy: "System"
       }
       
-      const { template, inputs } = await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateQuotationPDF(quotationData)
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -161,40 +172,40 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
 export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      // Use the quotation PDF template from pdf-template.ts for consistent styling
+      const { generateQuotationPDF } = await import('./pdf-template')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Prepare data for the quotation PDF template
+      const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        reportTitle: "SALES ORDERS REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Sales Orders",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `SO-${Date.now()}`,
+        quotationNumber: `SO-${Date.now()}`,
+        date: new Date().toLocaleDateString(),
+        clientNames: "Sales Orders Report",
+        siteLocation: "All Sales Orders",
+        mobileNo: "",
+        deliveryNoteNo: "",
         items: salesOrders.map(order => ({
-          date: new Date(order.date_created).toLocaleDateString(),
-          client: order.client?.name || 'Unknown',
-          invoice: order.order_number,
-          amount: order.grand_total || 0,
-          status: order.status || 'Active'
+          description: `Sales Order ${order.order_number}`,
+          quantity: 1,
+          unit: "pc",
+          unitPrice: order.grand_total || 0,
+          total: order.grand_total || 0
         })),
-        summary: `Total Sales Orders: ${salesOrders.length}`,
-        totalSales: salesOrders.reduce((sum, order) => sum + (order.grand_total || 0), 0),
+        total: salesOrders.reduce((sum, order) => sum + (order.grand_total || 0), 0),
+        terms: [`Total Sales Orders: ${salesOrders.length}`],
         preparedBy: "System",
         approvedBy: "System"
       }
       
-      const { template, inputs } = await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateQuotationPDF(quotationData)
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -242,40 +253,40 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
 export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      // Use the quotation PDF template from pdf-template.ts for consistent styling
+      const { generateQuotationPDF } = await import('./pdf-template')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Prepare data for the quotation PDF template
+      const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        reportTitle: "INVOICES REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Invoices",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `INV-${Date.now()}`,
+        quotationNumber: `INV-${Date.now()}`,
+        date: new Date().toLocaleDateString(),
+        clientNames: "Invoices Report",
+        siteLocation: "All Invoices",
+        mobileNo: "",
+        deliveryNoteNo: "",
         items: invoices.map(invoice => ({
-          date: new Date(invoice.date_created).toLocaleDateString(),
-          client: invoice.client?.name || 'Unknown',
-          invoice: invoice.invoice_number,
-          amount: invoice.grand_total || 0,
-          status: invoice.status || 'Active'
+          description: `Invoice ${invoice.invoice_number}`,
+          quantity: 1,
+          unit: "pc",
+          unitPrice: invoice.grand_total || 0,
+          total: invoice.grand_total || 0
         })),
-        summary: `Total Invoices: ${invoices.length}`,
-        totalSales: invoices.reduce((sum, invoice) => sum + (invoice.grand_total || 0), 0),
+        total: invoices.reduce((sum, invoice) => sum + (invoice.grand_total || 0), 0),
+        terms: [`Total Invoices: ${invoices.length}`],
         preparedBy: "System",
         approvedBy: "System"
       }
       
-      const { template, inputs } = await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateQuotationPDF(quotationData)
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -324,40 +335,40 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
 export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      // Use the quotation PDF template from pdf-template.ts for consistent styling
+      const { generateQuotationPDF } = await import('./pdf-template')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Prepare data for the quotation PDF template
+      const quotationData = {
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        reportTitle: "CASH SALES REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Cash Sales",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `CS-${Date.now()}`,
+        quotationNumber: `CS-${Date.now()}`,
+        date: new Date().toLocaleDateString(),
+        clientNames: "Cash Sales Report",
+        siteLocation: "All Cash Sales",
+        mobileNo: "",
+        deliveryNoteNo: "",
         items: cashSales.map(sale => ({
-          date: new Date(sale.date_created).toLocaleDateString(),
-          client: sale.client?.name || 'Unknown',
-          invoice: sale.sale_number,
-          amount: sale.grand_total || 0,
-          status: sale.status || 'Active'
+          description: `Cash Sale ${sale.sale_number}`,
+          quantity: 1,
+          unit: "pc",
+          unitPrice: sale.grand_total || 0,
+          total: sale.grand_total || 0
         })),
-        summary: `Total Cash Sales: ${cashSales.length}`,
-        totalSales: cashSales.reduce((sum, sale) => sum + (sale.grand_total || 0), 0),
+        total: cashSales.reduce((sum, sale) => sum + (sale.grand_total || 0), 0),
+        terms: [`Total Cash Sales: ${cashSales.length}`],
         preparedBy: "System",
         approvedBy: "System"
       }
       
-      const { template, inputs } = await generateSalesReportPDF(reportData)
+      const { template, inputs } = await generateQuotationPDF(quotationData)
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -411,40 +422,77 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
 export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateInventoryReportPDF } = await import('./report-pdf-templates')
+      // Use the new dynamic template system with pagination support
+      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Get custom table headers for stock
+      const customTableHeaders = ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'];
+      
+      // Generate dynamic template with pagination
+      const template = generateDynamicTemplateWithPagination(stockItems.length, customTableHeaders, 'stock');
+      
+      // Fetch watermark image as base64
+      async function fetchImageAsBase64(url: string): Promise<string> {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      
+      const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+      const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+      // Create inputs with actual data
+      const inputs = [{
+        // Company Info
+        logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        
+        // Report Header
         reportTitle: "STOCK INVENTORY REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Stock Inventory",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `STK-${Date.now()}`,
-        items: stockItems.map(item => ({
-          item: item.name,
-          category: item.category || 'N/A',
-          quantity: item.quantity,
-          unitPrice: item.unit_price || 0,
-          value: (item.quantity * (item.unit_price || 0))
-        })),
-        summary: `Total Stock Items: ${stockItems.length}`,
-        totalValue: stockItems.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0),
-        preparedBy: "System",
-        approvedBy: "System"
-      }
-      
-      const { template, inputs } = await generateInventoryReportPDF(reportData)
+        reportDateLabel: 'Date:',
+        reportDateValue: new Date().toLocaleDateString(),
+        reportPeriodLabel: 'Period:',
+        reportPeriodValue: "All Time",
+        reportTypeLabel: 'Type:',
+        reportTypeValue: "Stock Inventory",
+        
+        // Real Data Rows (populated with actual data from stockItems array)
+        ...stockItems.map((item, index) => ({
+          [`itemCode_${index}`]: item.id,
+          [`product_${index}`]: item.name,
+          [`category_${index}`]: item.category || 'N/A',
+          [`quantity_${index}`]: `${item.quantity} ${item.unit || ''}`,
+          [`unitPrice_${index}`]: `KES ${item.unit_price?.toFixed(2) || '0.00'}`,
+          [`totalValue_${index}`]: `KES ${(item.quantity * (item.unit_price || 0)).toFixed(2)}`,
+          [`status_${index}`]: item.quantity > 0 ? 'In Stock' : 'Out of Stock'
+        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+        
+        // Footer
+        summaryTitle: 'Summary:',
+        summaryContent: `Total Stock Items: ${stockItems.length}`,
+        totalLabel: 'Total:',
+        totalValue: `KES ${stockItems.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0).toFixed(2)}`,
+        preparedByLabel: `Prepared by: System`,
+        approvedByLabel: `Approved by: System`,
+        
+        // Watermark - map to all pages
+        ...Array.from({ length: Math.ceil(stockItems.length / firstPageRows) + 1 }, (_, i) => ({
+          [`watermarkLogo_${i}`]: watermarkLogoBase64
+        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+      }];
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -528,7 +576,7 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -1721,40 +1769,77 @@ export const createPurchaseWithTransaction = async (purchaseData: any) => {
 export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateSalesReportPDF } = await import('./report-pdf-templates')
+      // Use the new dynamic template system with pagination support
+      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Get custom table headers for payments
+      const customTableHeaders = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'];
+      
+      // Generate dynamic template with pagination
+      const template = generateDynamicTemplateWithPagination(payments.length, customTableHeaders, 'payments');
+      
+      // Fetch watermark image as base64
+      async function fetchImageAsBase64(url: string): Promise<string> {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      
+      const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+      const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+      // Create inputs with actual data
+      const inputs = [{
+        // Company Info
+        logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        
+        // Report Header
         reportTitle: "PAYMENTS REPORT",
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: "Payments",
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `PAY-${Date.now()}`,
-        items: payments.map(payment => ({
-          date: new Date(payment.date_created).toLocaleDateString(),
-          client: payment.client?.name || 'Unknown',
-          invoice: payment.payment_number || 'N/A',
-          amount: payment.amount || 0,
-          status: 'Completed'
-        })),
-        summary: `Total Payments: ${payments.length}`,
-        totalSales: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
-        preparedBy: "System",
-        approvedBy: "System"
-      }
-      
-      const { template, inputs } = await generateSalesReportPDF(reportData)
+        reportDateLabel: 'Date:',
+        reportDateValue: new Date().toLocaleDateString(),
+        reportPeriodLabel: 'Period:',
+        reportPeriodValue: "All Time",
+        reportTypeLabel: 'Type:',
+        reportTypeValue: "Payments",
+        
+        // Real Data Rows (populated with actual data from payments array)
+        ...payments.map((payment, index) => ({
+          [`paymentNumber_${index}`]: payment.payment_number,
+          [`client_${index}`]: payment.client?.name || 'Unknown',
+          [`date_${index}`]: new Date(payment.date_created).toLocaleDateString(),
+          [`paidTo_${index}`]: payment.paid_to || '-',
+          [`description_${index}`]: payment.description || '-',
+          [`amount_${index}`]: `KES ${payment.amount?.toFixed(2) || '0.00'}`,
+          [`accountCredited_${index}`]: payment.account_credited || '-'
+        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+        
+        // Footer
+        summaryTitle: 'Summary:',
+        summaryContent: `Total Payments: ${payments.length}`,
+        totalLabel: 'Total:',
+        totalValue: `KES ${payments.reduce((sum, payment) => sum + (payment.amount || 0), 0).toFixed(2)}`,
+        preparedByLabel: `Prepared by: System`,
+        approvedByLabel: `Approved by: System`,
+        
+        // Watermark - map to all pages
+        ...Array.from({ length: Math.ceil(payments.length / firstPageRows) + 1 }, (_, i) => ({
+          [`watermarkLogo_${i}`]: watermarkLogoBase64
+        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+      }];
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -1804,40 +1889,93 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
 export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv' = 'pdf', expenseType: 'client' | 'company' = 'company') => {
   try {
     if (format === 'pdf') {
-      // Use the proper PDF template from report-pdf-templates.ts
-      const { generateExpenseReportPDF } = await import('./report-pdf-templates')
+      // Use the new dynamic template system with pagination support
+      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
       
-      // Prepare data for the PDF template
-      const reportData = {
+      // Get custom table headers based on expense type
+      const customTableHeaders = expenseType === 'company' 
+        ? ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited']
+        : ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited'];
+      
+      // Generate dynamic template with pagination
+      const template = generateDynamicTemplateWithPagination(expenses.length, customTableHeaders, 'expenses');
+      
+      // Fetch watermark image as base64
+      async function fetchImageAsBase64(url: string): Promise<string> {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      
+      const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+      const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+      // Create inputs with actual data
+      const inputs = [{
+        // Company Info
+        logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
+        
+        // Report Header
         reportTitle: `${expenseType.toUpperCase()} EXPENSES REPORT`,
-        reportDate: new Date().toLocaleDateString(),
-        reportPeriod: "All Time",
-        reportType: `${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} Expenses`,
-        reportGenerated: new Date().toLocaleString(),
-        reportNumber: `${expenseType.toUpperCase().charAt(0)}-${Date.now()}`,
-        items: expenses.map(expense => ({
-          date: new Date(expense.date_created).toLocaleDateString(),
-          category: expense.category || 'N/A',
-          description: expense.description || 'N/A',
-          amount: expense.amount || 0,
-          type: expense.expense_type || 'N/A'
-        })),
-        summary: `Total ${expenseType} Expenses: ${expenses.length}`,
-        totalExpenses: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
-        preparedBy: "System",
-        approvedBy: "System"
-      }
-      
-      const { template, inputs } = await generateExpenseReportPDF(reportData)
+        reportDateLabel: 'Date:',
+        reportDateValue: new Date().toLocaleDateString(),
+        reportPeriodLabel: 'Period:',
+        reportPeriodValue: "All Time",
+        reportTypeLabel: 'Type:',
+        reportTypeValue: `${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} Expenses`,
+        
+        // Real Data Rows (populated with actual data from expenses array)
+        ...expenses.map((expense, index) => {
+          if (expenseType === 'company') {
+            return {
+              [`expenseNumber_${index}`]: expense.expense_number,
+              [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
+              [`department_${index}`]: expense.department || '-',
+              [`category_${index}`]: expense.category || '-',
+              [`description_${index}`]: expense.description || '-',
+              [`amount_${index}`]: `KES ${expense.amount?.toFixed(2) || '0.00'}`,
+              [`accountDebited_${index}`]: expense.account_debited || '-'
+            };
+          } else {
+            return {
+              [`expenseNumber_${index}`]: expense.expense_number,
+              [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
+              [`department_${index}`]: expense.client?.name || 'Unknown',
+              [`category_${index}`]: expense.category || '-',
+              [`description_${index}`]: expense.description || '-',
+              [`amount_${index}`]: `KES ${expense.amount?.toFixed(2) || '0.00'}`,
+              [`accountDebited_${index}`]: expense.account_debited || '-'
+            };
+          }
+        }).reduce((acc, item) => ({ ...acc, ...item }), {}),
+        
+        // Footer
+        summaryTitle: 'Summary:',
+        summaryContent: `Total ${expenseType} Expenses: ${expenses.length}`,
+        totalLabel: 'Total:',
+        totalValue: `KES ${expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0).toFixed(2)}`,
+        preparedByLabel: `Prepared by: System`,
+        approvedByLabel: `Approved by: System`,
+        
+        // Watermark - map to all pages
+        ...Array.from({ length: Math.ceil(expenses.length / firstPageRows) + 1 }, (_, i) => ({
+          [`watermarkLogo_${i}`]: watermarkLogoBase64
+        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+      }];
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })

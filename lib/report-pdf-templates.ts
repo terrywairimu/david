@@ -440,6 +440,81 @@ const generateTestPDF = async () => {
   return { template, inputs };
 };
 
+// Generate dynamic sales template based on number of rows - Professional quotation-style design
+const generateDynamicSalesTemplate = (rowCount: number) => {
+  const baseSchema = [
+    // Company header section - matching quotation template
+    { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+    { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+    { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Report header - matching quotation template styling
+    { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+    { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+    
+    // Report info section - matching quotation template styling
+    { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+    { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Table header - matching quotation template styling
+    { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
+    { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'clientHeader', type: 'text', position: { x: 47, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'invoiceHeader', type: 'text', position: { x: 102, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'amountHeader', type: 'text', position: { x: 137, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'statusHeader', type: 'text', position: { x: 182, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+  ];
+
+  // Dynamically generate data rows - matching quotation template positioning
+  const dataRows = [];
+  for (let i = 0; i < rowCount; i++) {
+    const yPosition = 112 + (i * 8); // Start at y=112 (after table header), each row 8 units apart (matching quotation)
+    
+    // Data fields (no alternating colors - clean professional look like quotation)
+    dataRows.push(
+      { name: `date${i + 1}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `client${i + 1}`, type: 'text', position: { x: 47, y: yPosition }, width: 50, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `invoice${i + 1}`, type: 'text', position: { x: 102, y: yPosition }, width: 30, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `amount${i + 1}`, type: 'text', position: { x: 137, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `status${i + 1}`, type: 'text', position: { x: 182, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+    );
+  }
+
+  // Footer section - matching quotation template styling
+  const footerY = 112 + (rowCount * 8) + 20;
+  const footerSchema = [
+    // Summary section - matching quotation template
+    { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Totals box - matching quotation template
+    { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+    { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+    
+    // Signature section - matching quotation template
+    { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    
+    // Watermark - matching quotation template
+    { name: 'watermarkLogo', type: 'image', position: { x: 60, y: footerY + 45 }, width: 100, height: 100, opacity: 0.2 }
+  ];
+
+  return {
+    basePdf: { width: 210, height: Math.max(297, footerY + 80), padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas: [[...baseSchema, ...dataRows, ...footerSchema]]
+  };
+};
+
 // Generate Sales Report PDF - Professional styling
 const generateSalesReportPDF = async (data: SalesReportData) => {
   const mergedData = { ...defaultReportValues, ...data };
@@ -458,6 +533,9 @@ const generateSalesReportPDF = async (data: SalesReportData) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Dynamically generate template based on number of data rows
+  const dynamicTemplate = generateDynamicSalesTemplate(mergedData.items.length);
 
   // Create inputs with actual data
   const inputs = [{
@@ -504,11 +582,91 @@ const generateSalesReportPDF = async (data: SalesReportData) => {
     preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
     approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
     
+    // Footer styling elements
+    totalsBox: '',
+    preparedByLine: '',
+    approvedByLine: '',
+    
     // Watermark
     watermarkLogo: watermarkLogoBase64,
   }];
 
-  return { template: salesReportTemplate, inputs };
+  return { template: dynamicTemplate, inputs };
+};
+
+// Generate dynamic expense template based on number of rows - Professional quotation-style design
+const generateDynamicExpenseTemplate = (rowCount: number) => {
+  const baseSchema = [
+    // Company header section - matching quotation template
+    { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+    { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+    { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Report header - matching quotation template styling
+    { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+    { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+    
+    // Report info section - matching quotation template styling
+    { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+    { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Table header - matching quotation template styling
+    { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
+    { name: 'dateHeader', type: 'text', position: { x: 17, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'categoryHeader', type: 'text', position: { x: 47, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'descriptionHeader', type: 'text', position: { x: 92, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'amountHeader', type: 'text', position: { x: 147, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'typeHeader', type: 'text', position: { x: 192, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+  ];
+
+  // Dynamically generate data rows - matching quotation template positioning
+  const dataRows = [];
+  for (let i = 0; i < rowCount; i++) {
+    const yPosition = 112 + (i * 8); // Start at y=112 (after table header), each row 8 units apart (matching quotation)
+    
+    // Data fields (no alternating colors - clean professional look like quotation)
+    dataRows.push(
+      { name: `date${i + 1}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `category${i + 1}`, type: 'text', position: { x: 47, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `description${i + 1}`, type: 'text', position: { x: 92, y: yPosition }, width: 50, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `amount${i + 1}`, type: 'text', position: { x: 147, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `type${i + 1}`, type: 'text', position: { x: 192, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+    );
+  }
+
+  // Footer section - matching quotation template styling
+  const footerY = 112 + (rowCount * 8) + 20;
+  const footerSchema = [
+    // Summary section - matching quotation template
+    { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Totals box - matching quotation template
+    { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+    { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+    
+    // Signature section - matching quotation template
+    { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    
+    // Watermark - matching quotation template
+    { name: 'watermarkLogo', type: 'image', position: { x: 60, y: footerY + 45 }, width: 100, height: 100, opacity: 0.2 }
+  ];
+
+  return {
+    basePdf: { width: 210, height: Math.max(297, footerY + 80), padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas: [[...baseSchema, ...dataRows, ...footerSchema]]
+  };
 };
 
 // Generate Expense Report PDF - Professional styling
@@ -529,6 +687,9 @@ const generateExpenseReportPDF = async (data: ExpenseReportData) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Dynamically generate template based on number of data rows
+  const dynamicTemplate = generateDynamicExpenseTemplate(mergedData.items.length);
 
   // Create inputs with actual data
   const inputs = [{
@@ -575,11 +736,91 @@ const generateExpenseReportPDF = async (data: ExpenseReportData) => {
     preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
     approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
     
+    // Footer styling elements
+    totalsBox: '',
+    preparedByLine: '',
+    approvedByLine: '',
+    
     // Watermark
     watermarkLogo: watermarkLogoBase64,
   }];
 
-  return { template: expenseReportTemplate, inputs };
+  return { template: dynamicTemplate, inputs };
+};
+
+// Generate dynamic inventory template based on number of rows - Professional quotation-style design
+const generateDynamicInventoryTemplate = (rowCount: number) => {
+  const baseSchema = [
+    // Company header section - matching quotation template
+    { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+    { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+    { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Report header - matching quotation template styling
+    { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+    { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+    
+    // Report info section - matching quotation template styling
+    { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+    { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Table header - matching quotation template styling
+    { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
+    { name: 'itemHeader', type: 'text', position: { x: 17, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'categoryHeader', type: 'text', position: { x: 62, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'quantityHeader', type: 'text', position: { x: 102, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'unitPriceHeader', type: 'text', position: { x: 132, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'valueHeader', type: 'text', position: { x: 172, y: 102 }, width: 35, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+  ];
+
+  // Dynamically generate data rows - matching quotation template positioning
+  const dataRows = [];
+  for (let i = 0; i < rowCount; i++) {
+    const yPosition = 112 + (i * 8); // Start at y=112 (after table header), each row 8 units apart (matching quotation)
+    
+    // Data fields (no alternating colors - clean professional look like quotation)
+    dataRows.push(
+      { name: `item${i + 1}`, type: 'text', position: { x: 17, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `category${i + 1}`, type: 'text', position: { x: 62, y: yPosition }, width: 35, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `quantity${i + 1}`, type: 'text', position: { x: 102, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
+      { name: `unitPrice${i + 1}`, type: 'text', position: { x: 132, y: yPosition }, width: 35, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `value${i + 1}`, type: 'text', position: { x: 172, y: yPosition }, width: 35, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
+    );
+  }
+
+  // Footer section - matching quotation template styling
+  const footerY = 112 + (rowCount * 8) + 20;
+  const footerSchema = [
+    // Summary section - matching quotation template
+    { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Totals box - matching quotation template
+    { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+    { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+    
+    // Signature section - matching quotation template
+    { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    
+    // Watermark - matching quotation template
+    { name: 'watermarkLogo', type: 'image', position: { x: 60, y: footerY + 45 }, width: 100, height: 100, opacity: 0.2 }
+  ];
+
+  return {
+    basePdf: { width: 210, height: Math.max(297, footerY + 80), padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas: [[...baseSchema, ...dataRows, ...footerSchema]]
+  };
 };
 
 // Generate Inventory Report PDF - Professional styling
@@ -600,6 +841,9 @@ const generateInventoryReportPDF = async (data: InventoryReportData) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Dynamically generate template based on number of data rows
+  const dynamicTemplate = generateDynamicInventoryTemplate(mergedData.items.length);
 
   // Create inputs with actual data
   const inputs = [{
@@ -641,16 +885,96 @@ const generateInventoryReportPDF = async (data: InventoryReportData) => {
     // Footer
     summaryTitle: 'Summary:',
     summaryContent: mergedData.summary,
-    totalLabel: 'Total:',
+    totalLabel: 'Total Value:',
     totalValue: formatCurrency(mergedData.totalValue),
     preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
     approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
+    
+    // Footer styling elements
+    totalsBox: '',
+    preparedByLine: '',
+    approvedByLine: '',
     
     // Watermark
     watermarkLogo: watermarkLogoBase64,
   }];
 
-  return { template: inventoryReportTemplate, inputs };
+  return { template: dynamicTemplate, inputs };
+};
+
+// Generate dynamic client template based on number of rows - Professional quotation-style design
+const generateDynamicClientTemplate = (rowCount: number) => {
+  const baseSchema = [
+    // Company header section - matching quotation template
+    { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+    { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+    { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Report header - matching quotation template styling
+    { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+    { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+    
+    // Report info section - matching quotation template styling
+    { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+    { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Table header - matching quotation template styling
+    { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
+    { name: 'clientHeader', type: 'text', position: { x: 17, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'salesHeader', type: 'text', position: { x: 72, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'paymentsHeader', type: 'text', position: { x: 117, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'balanceHeader', type: 'text', position: { x: 162, y: 102 }, width: 40, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'statusHeader', type: 'text', position: { x: 207, y: 102 }, width: 25, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+  ];
+
+  // Dynamically generate data rows - matching quotation template positioning
+  const dataRows = [];
+  for (let i = 0; i < rowCount; i++) {
+    const yPosition = 112 + (i * 8); // Start at y=112 (after table header), each row 8 units apart (matching quotation)
+    
+    // Data fields (no alternating colors - clean professional look like quotation)
+    dataRows.push(
+      { name: `client${i + 1}`, type: 'text', position: { x: 17, y: yPosition }, width: 50, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `sales${i + 1}`, type: 'text', position: { x: 72, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+      { name: `payments${i + 1}`, type: 'text', position: { x: 117, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+      { name: `balance${i + 1}`, type: 'text', position: { x: 162, y: yPosition }, width: 40, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `status${i + 1}`, type: 'text', position: { x: 207, y: yPosition }, width: 25, height: 6, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+    );
+  }
+
+  // Footer section - matching quotation template styling
+  const footerY = 112 + (rowCount * 8) + 20;
+  const footerSchema = [
+    // Summary section - matching quotation template
+    { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Totals box - matching quotation template
+    { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+    { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+    
+    // Signature section - matching quotation template
+    { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    
+    // Watermark - matching quotation template
+    { name: 'watermarkLogo', type: 'image', position: { x: 60, y: footerY + 45 }, width: 100, height: 100, opacity: 0.2 }
+  ];
+
+  return {
+    basePdf: { width: 210, height: Math.max(297, footerY + 50), padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas: [[...baseSchema, ...dataRows, ...footerSchema]]
+  };
 };
 
 // Generate Client Report PDF - Professional styling
@@ -671,6 +995,9 @@ const generateClientReportPDF = async (data: ClientReportData) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Dynamically generate template based on number of data rows
+  const dynamicTemplate = generateDynamicClientTemplate(mergedData.items.length);
 
   // Create inputs with actual data
   const inputs = [{
@@ -717,11 +1044,87 @@ const generateClientReportPDF = async (data: ClientReportData) => {
     preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
     approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
     
+    // Footer styling elements
+    totalsBox: '',
+    preparedByLine: '',
+    approvedByLine: '',
+    
     // Watermark
     watermarkLogo: watermarkLogoBase64,
   }];
 
-  return { template: clientReportTemplate, inputs };
+  return { template: dynamicTemplate, inputs };
+};
+
+// Generate dynamic financial template based on number of rows - Professional quotation-style design
+const generateDynamicFinancialTemplate = (rowCount: number) => {
+  const baseSchema = [
+    // Company header section - matching quotation template
+    { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+    { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+    { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Report header section - matching quotation template styling
+    { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+    { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+    
+    // Report info section - matching quotation template styling
+    { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+    { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Table headers - matching quotation template styling
+    { name: 'tableHeaderBg', type: 'rectangle', position: { x: 15, y: 99 }, width: 180, height: 10, color: '#E5E5E5', radius: 3 },
+    { name: 'metricHeader', type: 'text', position: { x: 17, y: 102 }, width: 60, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'currentPeriodHeader', type: 'text', position: { x: 82, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'previousPeriodHeader', type: 'text', position: { x: 137, y: 102 }, width: 50, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+    { name: 'changeHeader', type: 'text', position: { x: 192, y: 102 }, width: 30, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'center' },
+  ];
+
+  // Dynamically generate data rows - matching quotation template styling
+  const dataRows = [];
+  for (let i = 0; i < rowCount; i++) {
+    const yPosition = 112 + (i * 8); // Start at y=112 (after table header), each row 8 units apart (matching quotation)
+    dataRows.push(
+      { name: `metric${i + 1}`, type: 'text', position: { x: 17, y: yPosition }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: `currentPeriod${i + 1}`, type: 'text', position: { x: 82, y: yPosition }, width: 50, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `previousPeriod${i + 1}`, type: 'text', position: { x: 137, y: yPosition }, width: 50, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+      { name: `change${i + 1}`, type: 'text', position: { x: 192, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+    );
+  }
+
+  // Footer section - matching quotation template styling
+  const footerY = 112 + (rowCount * 8) + 20;
+  const footerSchema = [
+    // Summary section - matching quotation template
+    { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    
+    // Totals box - matching quotation template
+    { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+    { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+    
+    // Signature section - matching quotation template
+    { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+    
+    // Watermark - matching quotation template
+    { name: 'watermarkLogo', type: 'image', position: { x: 60, y: footerY + 45 }, width: 100, height: 100, opacity: 0.2 }
+  ];
+
+  return {
+    basePdf: { width: 210, height: Math.max(297, footerY + 50), padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas: [[...baseSchema, ...dataRows, ...footerSchema]]
+  };
 };
 
 // Generate Financial Report PDF - Professional styling
@@ -742,6 +1145,9 @@ const generateFinancialReportPDF = async (data: FinancialReportData) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
+  // Dynamically generate template based on number of data rows
+  const dynamicTemplate = generateDynamicFinancialTemplate(mergedData.items.length);
 
   // Create inputs with actual data
   const inputs = [{
@@ -778,11 +1184,14 @@ const generateFinancialReportPDF = async (data: FinancialReportData) => {
       [`change${index + 1}`]: item.change || 'N/A'
     })).reduce((acc, item) => ({ ...acc, ...item }), {}),
     
-    // Footer
+    // Footer - matching quotation template structure
     summaryTitle: 'Summary:',
     summaryContent: mergedData.summary,
+    totalsBox: '', // Background rectangle for totals
     totalLabel: 'Total:',
     totalValue: formatCurrency(mergedData.netIncome),
+    preparedByLine: '', // Line for signature
+    approvedByLine: '', // Line for signature
     preparedByLabel: `Prepared by: ${mergedData.preparedBy}`,
     approvedByLabel: `Approved by: ${mergedData.approvedBy}`,
     
@@ -790,7 +1199,290 @@ const generateFinancialReportPDF = async (data: FinancialReportData) => {
     watermarkLogo: watermarkLogoBase64,
   }];
 
-  return { template: financialReportTemplate, inputs };
+  return { template: dynamicTemplate, inputs };
+};
+
+// ============================================================================
+// NEW DYNAMIC TEMPLATE SYSTEM WITH PAGINATION SUPPORT
+// ============================================================================
+
+// Layout constants (in mm) - matching quotation PDF
+const pageHeight = 297;
+const pageWidth = 210;
+const topMargin = 20;
+const bottomMargin = 15;
+const headerHeight = 60; // header block (first page only)
+const tableHeaderHeight = 10;
+const baseFooterHeight = 40; // base footer block (last page only)
+const rowHeight = 8;
+const firstPageTableStartY = 101; // adjusted so rows fit on first page
+
+// Calculate rows per page
+const firstPageReservedSpace = 16; // Reserve 16mm for better spacing
+const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace;
+const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
+const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
+const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
+
+// Custom table headers for each section view
+const customTableHeaders = {
+  expenses: {
+    company: ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited'],
+    client: ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited']
+  },
+  payments: ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'],
+  stock: ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'],
+  sales: ['Date', 'Client', 'Invoice', 'Amount', 'Status'],
+  purchases: ['Date', 'Supplier', 'Reference', 'Amount', 'Status'],
+  clients: ['Client Name', 'Email', 'Phone', 'Address', 'Total Sales', 'Status']
+};
+
+// Generate dynamic template with pagination support
+const generateDynamicTemplateWithPagination = (
+  rowCount: number, 
+  tableHeaders: string[], 
+  templateType: 'expenses' | 'payments' | 'stock' | 'sales' | 'purchases' | 'clients'
+) => {
+  // Paginate rows
+  const pages: Array<Array<number>> = [];
+  let rowIndex = 0;
+  
+  // First page
+  const firstPageActualRows = Math.min(firstPageRows, rowCount);
+  pages.push(Array.from({length: firstPageActualRows}, (_, i) => i));
+  rowIndex += firstPageActualRows;
+  
+  // Subsequent pages
+  while (rowIndex < rowCount) {
+    const remainingRows = rowCount - rowIndex;
+    const rowsForThisPage = Math.min(otherPageRows, remainingRows);
+    if (rowsForThisPage > 0) {
+      pages.push(Array.from({length: rowsForThisPage}, (_, i) => rowIndex + i));
+    }
+    rowIndex += rowsForThisPage;
+  }
+
+  // Build schemas for all pages
+  const schemas: any[][] = [];
+  
+  pages.forEach((pageRows, pageIdx) => {
+    const pageSchema: any[] = [];
+    
+    // Add watermark logo to every page as background
+    pageSchema.push({
+      name: `watermarkLogo_${pageIdx}`,
+      type: 'image',
+      position: { x: 60, y: 110 },
+      width: 100,
+      height: 100,
+      opacity: 0.2
+    });
+
+    // Header (first page only)
+    if (pageIdx === 0) {
+      // Company header section - matching quotation template
+      pageSchema.push(
+        { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+        { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Report header section - matching quotation template styling
+        { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+        
+        // Report info section - responsive width calculation
+        { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+        { name: 'reportDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'reportDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'reportPeriodLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'reportPeriodValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'reportTypeLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'reportTypeValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+    }
+
+    // Table header (every page) - positioned correctly for each page
+    const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
+    pageSchema.push(
+      { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: 10, color: '#E5E5E5', radius: 3 }
+    );
+
+    // Add custom table headers based on template type
+    const headerPositions = calculateHeaderPositions(tableHeaders, tableHeaderY);
+    tableHeaders.forEach((header, headerIdx) => {
+      pageSchema.push({
+        name: `header_${pageIdx}_${headerIdx}`,
+        type: 'text',
+        position: headerPositions[headerIdx],
+        width: headerPositions[headerIdx].width,
+        height: 5,
+        fontSize: 11,
+        fontColor: '#000',
+        fontName: 'Helvetica-Bold',
+        alignment: headerIdx === 0 ? 'left' : (headerIdx === tableHeaders.length - 2 ? 'right' : 'center'),
+        content: header
+      });
+    });
+
+    // Data rows for this page
+    pageRows.forEach((rowIdx, localIdx) => {
+      const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowHeight);
+      
+      // Generate data row fields based on template type
+      const dataFields = generateDataFields(templateType, rowIdx, yPosition);
+      pageSchema.push(...dataFields);
+    });
+
+    // Footer (only on the last table page)
+    if (pageIdx === pages.length - 1) {
+      const lastRowY = tableHeaderY + tableHeaderHeight + (pageRows.length * rowHeight);
+      const footerStartY = lastRowY + 10; // 10mm spacing after last row
+      const availableSpace = pageHeight - bottomMargin - footerStartY;
+      
+      // Check if footer fits on current page
+      if (availableSpace >= baseFooterHeight) {
+        // Footer fits on current page
+        const footerY = footerStartY;
+        
+        // Add footer elements
+        pageSchema.push(
+          // Summary section
+          { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+          { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          
+          // Responsive totals box
+          { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+          { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+          { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+          
+          // Signature section
+          { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+          { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' }
+        );
+      } else {
+        // Footer doesn't fit - create separate footer page
+        const footerPageSchema: any[] = [];
+        
+        // Add watermark to footer page
+        footerPageSchema.push({
+          name: 'watermarkLogo_footer',
+          type: 'image',
+          position: { x: 60, y: 110 },
+          width: 100,
+          height: 100,
+          opacity: 0.2
+        });
+
+        // Add footer elements to separate page
+        const footerY = topMargin + 10;
+        footerPageSchema.push(
+          // Summary section
+          { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+          { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          
+          // Responsive totals box
+          { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+          { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+          { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+          
+          // Signature section
+          { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 35 }, width: 60, height: 0, color: '#000' },
+          { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 35 }, width: 60, height: 0, color: '#000' }
+        );
+
+        // Add footer page to schemas
+        schemas.push(footerPageSchema);
+      }
+    }
+
+    schemas.push(pageSchema);
+  });
+
+  return {
+    basePdf: { width: pageWidth, height: pageHeight, padding: [0, 0, 0, 0] as [number, number, number, number] },
+    schemas
+  };
+};
+
+// Calculate header positions based on number of columns
+const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
+  const positions: Array<{x: number, y: number, width: number}> = [];
+  const totalWidth = 180; // Available width for table
+  const columnCount = headers.length;
+  const columnWidth = totalWidth / columnCount;
+  
+  headers.forEach((header, index) => {
+    positions.push({
+      x: 15 + (index * columnWidth),
+      y: tableHeaderY + 2,
+      width: columnWidth - 2 // Small gap between columns
+    });
+  });
+  
+  return positions;
+};
+
+// Generate data fields based on template type
+const generateDataFields = (templateType: string, rowIdx: number, yPosition: number) => {
+  const fields: any[] = [];
+  
+  switch (templateType) {
+    case 'expenses':
+      // Expense fields: Expense #, Date, Department/Client, Category, Description, Amount, Account Debited
+      fields.push(
+        { name: `expenseNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `department_${rowIdx}`, type: 'text', position: { x: 67, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `category_${rowIdx}`, type: 'text', position: { x: 97, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `description_${rowIdx}`, type: 'text', position: { x: 122, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `amount_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `accountDebited_${rowIdx}`, type: 'text', position: { x: 182, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+      break;
+      
+    case 'payments':
+      // Payment fields: Payment #, Client, Date, Paid To, Description, Amount, Account Credited
+      fields.push(
+        { name: `paymentNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 72, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: 97, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `description_${rowIdx}`, type: 'text', position: { x: 127, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `amount_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `accountCredited_${rowIdx}`, type: 'text', position: { x: 182, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+      break;
+      
+    case 'stock':
+      // Stock fields: Item Code, Product, Category, Quantity, Unit Price, Total Value, Status
+      fields.push(
+        { name: `itemCode_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `product_${rowIdx}`, type: 'text', position: { x: 42, y: yPosition }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `category_${rowIdx}`, type: 'text', position: { x: 77, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `quantity_${rowIdx}`, type: 'text', position: { x: 102, y: yPosition }, width: 20, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
+        { name: `unitPrice_${rowIdx}`, type: 'text', position: { x: 122, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `totalValue_${rowIdx}`, type: 'text', position: { x: 147, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: `status_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 23, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' }
+      );
+      break;
+      
+    default:
+      // Default fields for other types
+      fields.push(
+        { name: `field1_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `field2_${rowIdx}`, type: 'text', position: { x: 57, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `field3_${rowIdx}`, type: 'text', position: { x: 97, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `field4_${rowIdx}`, type: 'text', position: { x: 137, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+  }
+  
+  return fields;
 };
 
 // Export all templates and functions
@@ -807,5 +1499,8 @@ export {
   generateExpenseReportPDF,
   generateInventoryReportPDF,
   generateClientReportPDF,
-  generateFinancialReportPDF
+  generateFinancialReportPDF,
+  generateDynamicTemplateWithPagination,
+  calculateHeaderPositions,
+  generateDataFields
 };
