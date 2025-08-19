@@ -135,11 +135,11 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
         
         // Real Data Rows (populated with actual data from quotations array)
         ...quotations.map((quotation, index) => ({
-          [`quotationNumber_${index}`]: quotation.quotation_number,
+          [`quotationNumber_${index}`]: String(quotation.quotation_number || 'N/A'),
           [`date_${index}`]: new Date(quotation.date_created).toLocaleDateString(),
-          [`client_${index}`]: quotation.client?.name || 'Unknown',
-          [`totalAmount_${index}`]: `KES ${quotation.grand_total?.toFixed(2) || '0.00'}`,
-          [`status_${index}`]: quotation.status || 'Active'
+          [`client_${index}`]: String(quotation.client?.name || 'Unknown'),
+          [`totalAmount_${index}`]: `KES ${(quotation.grand_total || 0).toFixed(2)}`,
+          [`status_${index}`]: String(quotation.status || 'Active')
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -251,11 +251,11 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
         
         // Real Data Rows (populated with actual data from salesOrders array)
         ...salesOrders.map((order, index) => ({
-          [`orderNumber_${index}`]: order.order_number,
+          [`orderNumber_${index}`]: String(order.order_number || 'N/A'),
           [`date_${index}`]: new Date(order.date_created).toLocaleDateString(),
-          [`client_${index}`]: order.client?.name || 'Unknown',
-          [`totalAmount_${index}`]: `KES ${order.grand_total?.toFixed(2) || '0.00'}`,
-          [`status_${index}`]: order.status || 'Active'
+          [`client_${index}`]: String(order.client?.name || 'Unknown'),
+          [`totalAmount_${index}`]: `KES ${(order.grand_total || 0).toFixed(2)}`,
+          [`status_${index}`]: String(order.status || 'Active')
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -367,14 +367,14 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
         
         // Real Data Rows (populated with actual data from invoices array)
         ...invoices.map((invoice, index) => ({
-          [`invoiceNumber_${index}`]: invoice.invoice_number,
+          [`invoiceNumber_${index}`]: String(invoice.invoice_number || 'N/A'),
           [`date_${index}`]: new Date(invoice.date_created).toLocaleDateString(),
           [`dueDate_${index}`]: new Date(invoice.due_date).toLocaleDateString(),
-          [`client_${index}`]: invoice.client?.name || 'Unknown',
-          [`totalAmount_${index}`]: `KES ${invoice.grand_total?.toFixed(2) || '0.00'}`,
-          [`paidAmount_${index}`]: `KES ${invoice.paid_amount?.toFixed(2) || '0.00'}`,
-          [`balance_${index}`]: `KES ${invoice.balance_amount?.toFixed(2) || '0.00'}`,
-          [`status_${index}`]: invoice.status || 'Active'
+          [`client_${index}`]: String(invoice.client?.name || 'Unknown'),
+          [`totalAmount_${index}`]: `KES ${(invoice.grand_total || 0).toFixed(2)}`,
+          [`paidAmount_${index}`]: `KES ${(invoice.paid_amount || 0).toFixed(2)}`,
+          [`balance_${index}`]: `KES ${(invoice.balance_amount || 0).toFixed(2)}`,
+          [`status_${index}`]: String(invoice.status || 'Active')
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -487,10 +487,10 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
         
         // Real Data Rows (populated with actual data from cashSales array)
         ...cashSales.map((sale, index) => ({
-          [`receiptNumber_${index}`]: sale.sale_number,
+          [`receiptNumber_${index}`]: String(sale.sale_number || 'N/A'),
           [`date_${index}`]: new Date(sale.date_created).toLocaleDateString(),
-          [`client_${index}`]: sale.client?.name || 'Unknown',
-          [`totalAmount_${index}`]: `KES ${sale.grand_total?.toFixed(2) || '0.00'}`
+          [`client_${index}`]: String(sale.client?.name || 'Unknown'),
+          [`totalAmount_${index}`]: `KES ${(sale.grand_total || 0).toFixed(2)}`
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -608,13 +608,13 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
         
         // Real Data Rows (populated with actual data from stockItems array)
         ...stockItems.map((item, index) => ({
-          [`itemCode_${index}`]: item.id,
-          [`product_${index}`]: item.name,
-          [`category_${index}`]: item.category || 'N/A',
-          [`quantity_${index}`]: `${item.quantity} ${item.unit || ''}`,
-          [`unitPrice_${index}`]: `KES ${item.unit_price?.toFixed(2) || '0.00'}`,
-          [`totalValue_${index}`]: `KES ${(item.quantity * (item.unit_price || 0)).toFixed(2)}`,
-          [`status_${index}`]: item.quantity > 0 ? 'In Stock' : 'Out of Stock'
+          [`itemCode_${index}`]: String(item.id || 'N/A'),
+          [`product_${index}`]: String(item.name || 'N/A'),
+          [`category_${index}`]: String(item.category || 'N/A'),
+          [`quantity_${index}`]: `${String(item.quantity || 0)} ${String(item.unit || '')}`.trim(),
+          [`unitPrice_${index}`]: `KES ${(item.unit_price || 0).toFixed(2)}`,
+          [`totalValue_${index}`]: `KES ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}`,
+          [`status_${index}`]: (item.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock'
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -730,10 +730,10 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         // Real Data Rows (populated with actual data from purchases array)
         ...purchases.map((purchase, index) => ({
           [`date_${index}`]: new Date(purchase.date_created).toLocaleDateString(),
-          [`supplier_${index}`]: purchase.supplier_name || 'Unknown',
-          [`reference_${index}`]: purchase.purchase_number || 'N/A',
-          [`amount_${index}`]: `KES ${purchase.total_amount?.toFixed(2) || '0.00'}`,
-          [`status_${index}`]: purchase.status || 'Active'
+          [`supplier_${index}`]: String(purchase.supplier_name || 'Unknown'),
+          [`reference_${index}`]: String(purchase.purchase_number || 'N/A'),
+          [`amount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`,
+          [`status_${index}`]: String(purchase.status || 'Active')
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -1990,13 +1990,13 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
         
         // Real Data Rows (populated with actual data from payments array)
         ...payments.map((payment, index) => ({
-          [`paymentNumber_${index}`]: payment.payment_number,
-          [`client_${index}`]: payment.client?.name || 'Unknown',
+          [`paymentNumber_${index}`]: String(payment.payment_number || 'N/A'),
+          [`client_${index}`]: String(payment.client?.name || 'Unknown'),
           [`date_${index}`]: new Date(payment.date_created).toLocaleDateString(),
-          [`paidTo_${index}`]: payment.paid_to || '-',
-          [`description_${index}`]: payment.description || '-',
-          [`amount_${index}`]: `KES ${payment.amount?.toFixed(2) || '0.00'}`,
-          [`accountCredited_${index}`]: payment.account_credited || '-'
+          [`paidTo_${index}`]: String(payment.paid_to || '-'),
+          [`description_${index}`]: String(payment.description || '-'),
+          [`amount_${index}`]: `KES ${(payment.amount || 0).toFixed(2)}`,
+          [`accountCredited_${index}`]: String(payment.account_credited || '-')
         })).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
@@ -2114,23 +2114,23 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
         ...expenses.map((expense, index) => {
           if (expenseType === 'company') {
             return {
-              [`expenseNumber_${index}`]: expense.expense_number,
+              [`expenseNumber_${index}`]: String(expense.expense_number || 'N/A'),
               [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
-              [`department_${index}`]: expense.department || '-',
-              [`category_${index}`]: expense.category || '-',
-              [`description_${index}`]: expense.description || '-',
-              [`amount_${index}`]: `KES ${expense.amount?.toFixed(2) || '0.00'}`,
-              [`accountDebited_${index}`]: expense.account_debited || '-'
+              [`department_${index}`]: String(expense.department || '-'),
+              [`category_${index}`]: String(expense.category || '-'),
+              [`description_${index}`]: String(expense.description || '-'),
+              [`amount_${index}`]: `KES ${(expense.amount || 0).toFixed(2)}`,
+              [`accountDebited_${index}`]: String(expense.account_debited || '-')
             };
           } else {
             return {
-              [`expenseNumber_${index}`]: expense.expense_number,
+              [`expenseNumber_${index}`]: String(expense.expense_number || 'N/A'),
               [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
-              [`department_${index}`]: expense.client?.name || 'Unknown',
-              [`category_${index}`]: expense.category || '-',
-              [`description_${index}`]: expense.description || '-',
-              [`amount_${index}`]: `KES ${expense.amount?.toFixed(2) || '0.00'}`,
-              [`accountDebited_${index}`]: expense.account_debited || '-'
+              [`department_${index}`]: String(expense.client?.name || 'Unknown'),
+              [`category_${index}`]: String(expense.category || '-'),
+              [`description_${index}`]: String(expense.description || '-'),
+              [`amount_${index}`]: `KES ${(expense.amount || 0).toFixed(2)}`,
+              [`accountDebited_${index}`]: String(expense.account_debited || '-')
             };
           }
         }).reduce((acc, item) => ({ ...acc, ...item }), {}),
