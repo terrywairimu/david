@@ -38,30 +38,29 @@ export default function ConfirmDialog({
 
   return (
     <>
-      <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
+      <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">{title}</h5>
+          <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+            <div className="modal-header border-0 pb-0">
+              <h5 className="modal-title fw-bold">{title}</h5>
               <button type="button" className="btn-close" onClick={onCancel}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body pt-2">
               <p className="mb-0">{message}</p>
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            <div className="modal-footer border-0">
+              <button type="button" className="btn btn-secondary" onClick={onCancel} style={{ borderRadius: "12px", height: "45px" }}>
                 {cancelText}
               </button>
-              <button type="button" className={`btn ${getVariantClass()}`} onClick={onConfirm}>
+              <button type="button" className={`btn ${getVariantClass()}`} onClick={onConfirm} style={{ borderRadius: "12px", height: "45px" }}>
                 {confirmText}
               </button>
             </div>
           </div>
         </div>
       </div>
-      <div className="modal-backdrop fade show" onClick={onCancel}></div>
     </>
   )
 } 

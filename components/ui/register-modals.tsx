@@ -167,22 +167,23 @@ export default function RegisterModals({
     <>
       {/* New Client Modal */}
       {showClientModal && (
-        <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
+        <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
           <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add New Client</h5>
+            <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold">Add New Client</h5>
                 <button type="button" className="btn-close" onClick={onCloseClientModal}></button>
               </div>
-              <div className="modal-body">
+              <div className="modal-body pt-2">
                 <form onSubmit={(e) => { e.preventDefault(); saveClient(); }}>
                   <div className="mb-3">
                     <label className="form-label">Client Name</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={clientForm.name}
                       onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -190,9 +191,10 @@ export default function RegisterModals({
                     <label className="form-label">Phone Number</label>
                     <input
                       type="tel"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={clientForm.phone}
                       onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -200,29 +202,31 @@ export default function RegisterModals({
                     <label className="form-label">PIN Number</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       placeholder="Optional"
                       value={clientForm.pin}
                       onChange={(e) => setClientForm({ ...clientForm, pin: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                     />
                   </div>
                   <div className="mb-3">
                     <label className="form-label">Location</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={clientForm.location}
                       onChange={(e) => setClientForm({ ...clientForm, location: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
                 </form>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onCloseClientModal}>
+              <div className="modal-footer border-0">
+                <button type="button" className="btn btn-secondary" onClick={onCloseClientModal} style={{ borderRadius: "12px", height: "45px" }}>
                   Close
                 </button>
-                <button type="button" className="btn btn-add" onClick={saveClient} disabled={loading}>
+                <button type="button" className="btn btn-add" onClick={saveClient} disabled={loading} style={{ borderRadius: "12px", height: "45px" }}>
                   {loading ? "Saving..." : "Save Client"}
                 </button>
               </div>
@@ -233,22 +237,23 @@ export default function RegisterModals({
 
       {/* New Supplier Modal */}
       {showSupplierModal && (
-        <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
+        <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
           <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add New Supplier</h5>
+            <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold">Add New Supplier</h5>
                 <button type="button" className="btn-close" onClick={onCloseSupplierModal}></button>
               </div>
-              <div className="modal-body">
+              <div className="modal-body pt-2">
                 <form onSubmit={(e) => { e.preventDefault(); saveSupplier(); }}>
                   <div className="mb-3">
                     <label className="form-label">Supplier Name</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={supplierForm.name}
                       onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -256,9 +261,10 @@ export default function RegisterModals({
                     <label className="form-label">Phone Number</label>
                     <input
                       type="tel"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={supplierForm.phone}
                       onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -266,19 +272,20 @@ export default function RegisterModals({
                     <label className="form-label">Location</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={supplierForm.location}
                       onChange={(e) => setSupplierForm({ ...supplierForm, location: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
                 </form>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onCloseSupplierModal}>
+              <div className="modal-footer border-0">
+                <button type="button" className="btn btn-secondary" onClick={onCloseSupplierModal} style={{ borderRadius: "12px", height: "45px" }}>
                   Close
                 </button>
-                <button type="button" className="btn btn-add" onClick={saveSupplier} disabled={loading}>
+                <button type="button" className="btn btn-add" onClick={saveSupplier} disabled={loading} style={{ borderRadius: "12px", height: "45px" }}>
                   {loading ? "Saving..." : "Save Supplier"}
                 </button>
               </div>
@@ -289,22 +296,23 @@ export default function RegisterModals({
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
+        <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
           <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Edit Details</h5>
+            <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-bold">Edit Details</h5>
                 <button type="button" className="btn-close" onClick={onCloseEditModal}></button>
               </div>
-              <div className="modal-body">
+              <div className="modal-body pt-2">
                 <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }}>
                   <div className="mb-3">
                     <label className="form-label">Name</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -312,9 +320,10 @@ export default function RegisterModals({
                     <label className="form-label">Phone Number</label>
                     <input
                       type="tel"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
@@ -323,10 +332,11 @@ export default function RegisterModals({
                       <label className="form-label">PIN Number</label>
                       <input
                         type="text"
-                        className="form-control"
+                        className="form-control border-0 shadow-sm"
                         placeholder="Optional"
                         value={editForm.pin}
                         onChange={(e) => setEditForm({ ...editForm, pin: e.target.value })}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       />
                     </div>
                   )}
@@ -334,34 +344,26 @@ export default function RegisterModals({
                     <label className="form-label">Location</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control border-0 shadow-sm"
                       value={editForm.location}
                       onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
                     />
                   </div>
                 </form>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onCloseEditModal}>
+              <div className="modal-footer border-0">
+                <button type="button" className="btn btn-secondary" onClick={onCloseEditModal} style={{ borderRadius: "12px", height: "45px" }}>
                   Close
                 </button>
-                <button type="button" className="btn btn-add" onClick={saveEdit} disabled={loading}>
+                <button type="button" className="btn btn-add" onClick={saveEdit} disabled={loading} style={{ borderRadius: "12px", height: "45px" }}>
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Modal backdrop */}
-      {(showClientModal || showSupplierModal || showEditModal) && (
-        <div className="modal-backdrop fade show" onClick={
-          showClientModal ? onCloseClientModal : 
-          showSupplierModal ? onCloseSupplierModal : 
-          onCloseEditModal
-        }></div>
       )}
     </>
   )

@@ -253,11 +253,11 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
   const isReadOnly = mode === "view"
 
   return (
-    <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
+    <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
       <div className="modal-dialog modal-xl">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
+        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">
               {mode === "view" ? "View" : mode === "edit" ? "Edit" : "New"} Cash Sale
             </h5>
             <button
@@ -268,7 +268,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <div className="modal-body">
+          <div className="modal-body pt-2">
             <form className="a4-document">
               {/* Company Header */}
               <div className="document-header">
@@ -743,7 +743,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
               />
             </form>
           </div>
-          <div className="modal-footer">
+          <div className="modal-footer border-0 pt-0">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Close
             </button>

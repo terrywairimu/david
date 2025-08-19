@@ -530,7 +530,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
   return (
     <>
-      <div className="modal fade show" style={{ display: "block", zIndex: 1055 }} tabIndex={-1}>
+      <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
       <div className="modal-dialog modal-lg">
           <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
           <div className="modal-header border-0 pb-0">
