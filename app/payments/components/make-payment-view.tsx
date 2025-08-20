@@ -6,6 +6,7 @@ import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/l
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
+import { generatePaymentReceiptTemplate } from "@/lib/report-pdf-templates"
 import PaymentModal from "@/components/ui/payment-modal"
 
 interface MakePaymentViewProps {
@@ -146,44 +147,32 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
     exportPaymentsReport(getFilteredPayments(), format)
   }
 
-  const handleExportSinglePayment = (payment: Payment) => {
-    // For single payment export, we'll create a simple receipt
-    // This could be enhanced to use a proper receipt template
-    const receiptData = {
-      payment_number: payment.payment_number,
-      client_name: payment.client?.name || 'Unknown',
-      date: new Date(payment.date_created).toLocaleDateString(),
-      amount: payment.amount,
-      description: payment.description || '',
-      paid_to: payment.paid_to || '',
-      account_credited: payment.account_credited || ''
+  const handleExportSinglePayment = async (payment: Payment) => {
+    try {
+      // Generate the professional receipt template
+      const { template, inputs } = generatePaymentReceiptTemplate(payment)
+      
+      // Generate and download the PDF
+      const { generate } = await import('@pdfme/generator')
+      const { text, rectangle, line } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line } as any })
+      
+      // Download PDF
+      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `payment_${payment.payment_number}_receipt.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast.success('Payment receipt downloaded successfully!')
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error('Failed to export payment receipt')
     }
-    
-    // Create a simple text receipt for now
-    const receiptText = `
-Payment Receipt
-================
-Payment #: ${receiptData.payment_number}
-Client: ${receiptData.client_name}
-Date: ${receiptData.date}
-Amount: KES ${receiptData.amount.toFixed(2)}
-Description: ${receiptData.description}
-Paid To: ${receiptData.paid_to}
-Account: ${receiptData.account_credited}
-    `.trim()
-    
-    // Create and download text file
-    const blob = new Blob([receiptText], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `payment_${receiptData.payment_number}_receipt.txt`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    
-    toast.success('Payment receipt downloaded successfully!')
   }
 
   const handleSavePayment = (payment: any) => {

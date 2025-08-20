@@ -671,7 +671,7 @@ const PurchasesPage = () => {
   // Export function
   const exportPurchases = (format: 'pdf' | 'csv') => {
     const filteredPurchases = getFilteredPurchases()
-    exportPurchasesReport(filteredPurchases, format)
+    exportPurchasesReport(filteredPurchases, format, currentView)
   }
 
   const exportPurchasesOld = () => {

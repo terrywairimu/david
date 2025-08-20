@@ -1236,7 +1236,10 @@ const customTableHeaders = {
   salesOrders: ['Order #', 'Date', 'Client', 'Total Amount', 'Status'],
   invoices: ['Invoice #', 'Date', 'Due Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status'],
   cashSales: ['Receipt #', 'Date', 'Client', 'Total Amount'],
-  purchases: ['Date', 'Supplier', 'Reference', 'Amount', 'Status'],
+  purchases: {
+    client: ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount'],
+    general: ['Order Number', 'Date', 'Supplier', 'Items', 'Total Amount']
+  },
   clients: ['Client Name', 'Email', 'Phone', 'Address', 'Total Sales', 'Status']
 };
 
@@ -1423,6 +1426,7 @@ const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
   const columnWidths: { [key: string]: number } = {
     // Narrow columns (IDs, dates, status)
     'Quotation #': 25, 'Order #': 25, 'Invoice #': 25, 'Receipt #': 25, 'Expense #': 25, 'Payment #': 25, 'Item Code': 25,
+    'Order Number': 25,
     'Date': 25, 'Due Date': 25,
     'Status': 20,
     'Quantity': 20,
@@ -1434,6 +1438,8 @@ const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
     'Department': 30,
     'Supplier': 30,
     'Product': 35,
+    'Paid To': 25,
+    'Items': 25,
     
     // Wide columns (descriptions, addresses)
     'Description': 40,
@@ -1553,6 +1559,22 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
       );
       break;
       
+    case 'purchases':
+      // Purchase fields: Order Number, Date, Supplier, Client, Paid To, Items, Total Amount
+      // Note: Client purchases will use all fields, general purchases will skip client and paidTo
+      // The template will generate all fields, but data will only be provided for the columns that exist
+      // Field positions are calculated dynamically based on header positions
+      fields.push(
+        { name: `orderNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `supplier_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: 103, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `items_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 184, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
+      );
+      break;
+      
     default:
       // Default fields for other types
       fields.push(
@@ -1564,6 +1586,220 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
   }
   
   return fields;
+};
+
+// Function to convert numbers to words
+const convertNumberToWords = (num: number): string => {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  
+  if (num === 0) return 'Zero';
+  
+  const convertLessThanOneThousand = (n: number): string => {
+    if (n === 0) return '';
+    
+    if (n < 10) return ones[n];
+    if (n < 20) return teens[n - 10];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+    
+    return '';
+  };
+  
+  const convert = (n: number): string => {
+    if (n === 0) return 'Zero';
+    
+    const billions = Math.floor(n / 1000000000);
+    const millions = Math.floor((n % 1000000000) / 1000000);
+    const thousands = Math.floor((n % 1000000) / 1000);
+    const remainder = n % 1000;
+    
+    let result = '';
+    
+    if (billions > 0) {
+      result += convertLessThanOneThousand(billions) + ' Billion';
+      if (millions > 0 || thousands > 0 || remainder > 0) result += ', ';
+    }
+    
+    if (millions > 0) {
+      result += convertLessThanOneThousand(millions) + ' Million';
+      if (thousands > 0 || remainder > 0) result += ', ';
+    }
+    
+    if (thousands > 0) {
+      result += convertLessThanOneThousand(thousands) + ' Thousand';
+      if (remainder > 0) result += ' ';
+    }
+    
+    if (remainder > 0) {
+      result += convertLessThanOneThousand(remainder);
+    }
+    
+    return result;
+  };
+  
+  // Handle decimal part
+  const wholePart = Math.floor(num);
+  const decimalPart = Math.round((num - wholePart) * 100);
+  
+  let result = convert(wholePart);
+  
+  if (decimalPart > 0) {
+    result += ' and ' + convert(decimalPart) + ' Cents';
+  }
+  
+  return result;
+};
+
+// Professional Payment Receipt Template
+export const generatePaymentReceiptTemplate = (payment: any) => {
+  const template = {
+    basePdf: {
+      width: 210,
+      height: 297,
+      padding: [0, 0, 0, 0] as [number, number, number, number],
+    },
+    schemas: [
+      [
+        // Company Header (text-based, no logo)
+        { name: 'companyName', type: 'text', position: { x: 15, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+        { name: 'companyLocation', type: 'text', position: { x: 15, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyPhone', type: 'text', position: { x: 15, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyEmail', type: 'text', position: { x: 15, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Receipt Header Background and Title
+        { name: 'receiptHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
+        { name: 'receiptTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+        
+        // Receipt Number (right aligned)
+        { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        
+        // Receipt Info Box
+        { name: 'receiptInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+        { name: 'receiptDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'receiptDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receiptTimeLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'receiptTimeValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receiptMethodLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'receiptMethodValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receiptStatusLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'receiptStatusValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Client Information Section
+        { name: 'clientSectionTitle', type: 'text', position: { x: 15, y: 105 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientSectionBg', type: 'rectangle', position: { x: 15, y: 113 }, width: 180, height: 32, color: '#F8F9FA', radius: 4 },
+        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 116 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 116 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 122 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 122 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 128 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 128 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 134 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 134 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Payment Details Section
+        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 157 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 165 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
+        
+        // Payment Details Grid
+        { name: 'paidToLabel', type: 'text', position: { x: 18, y: 168 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paidToValue', type: 'text', position: { x: 47, y: 168 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'accountLabel', type: 'text', position: { x: 18, y: 174 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'accountValue', type: 'text', position: { x: 47, y: 174 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'referenceLabel', type: 'text', position: { x: 18, y: 180 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'referenceValue', type: 'text', position: { x: 47, y: 180 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'descriptionLabel', type: 'text', position: { x: 18, y: 186 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'descriptionValue', type: 'text', position: { x: 47, y: 186 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Amount Section
+        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 212 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 220 }, width: 180, height: 20, color: '#E5E5E5', radius: 4 },
+        { name: 'amountLabel', type: 'text', position: { x: 18, y: 223 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountValue', type: 'text', position: { x: 47, y: 223 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 229 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 229 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+
+        
+        // Footer Elements
+        { name: 'thankYouMessage', type: 'text', position: { x: 15, y: 245 }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
+        { name: 'footerNote', type: 'text', position: { x: 15, y: 255 }, width: 180, height: 15, fontSize: 8, fontColor: '#666', fontName: 'Helvetica', alignment: 'center' },
+        
+        // Signature Lines
+        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
+        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'approvedByLine', type: 'line', position: { x: 145, y: 283 }, width: 60, height: 0, color: '#000' },
+      ]
+    ]
+  };
+
+  // Prepare the data inputs for the template
+  const inputs = [
+    {
+      // Company Information
+      companyName: 'CLEAN DAVID SYSTEM',
+      companyLocation: 'Nairobi, Kenya',
+      companyPhone: '+254 700 000 000',
+      companyEmail: 'info@cleandavidsystem.com',
+      
+      // Receipt Header
+      receiptTitle: 'PAYMENT RECEIPT',
+      receiptNumber: `Receipt #: ${payment.payment_number}`,
+      
+      // Receipt Info
+      receiptDateLabel: 'Date:',
+      receiptDateValue: new Date(payment.date_created).toLocaleDateString(),
+      receiptTimeLabel: 'Time:',
+      receiptTimeValue: new Date(payment.date_created).toLocaleTimeString(),
+      receiptMethodLabel: 'Method:',
+      receiptMethodValue: payment.payment_method || 'N/A',
+      receiptStatusLabel: 'Status:',
+      receiptStatusValue: payment.status || 'Completed',
+      
+      // Client Information
+      clientSectionTitle: 'CLIENT INFORMATION',
+      clientDateLabel: 'Date:',
+      clientDateValue: new Date(payment.date_created).toLocaleDateString(),
+      clientNameLabel: 'Name:',
+      clientNameValue: payment.client?.name || 'N/A',
+      clientPhoneLabel: 'Phone:',
+      clientPhoneValue: payment.client?.phone || 'N/A',
+      clientLocationLabel: 'Location:',
+      clientLocationValue: payment.client?.location || 'N/A',
+      
+      // Payment Details
+      paymentSectionTitle: 'PAYMENT DETAILS',
+      paidToLabel: 'Paid To:',
+      paidToValue: payment.paid_to || 'N/A',
+      accountLabel: 'Account:',
+      accountValue: payment.account_credited || 'N/A',
+      referenceLabel: 'Reference:',
+      referenceValue: payment.reference || 'N/A',
+      descriptionLabel: 'Description:',
+      descriptionValue: payment.description || 'Payment received',
+      
+      // Amount Information
+      amountSectionTitle: 'AMOUNT',
+      amountLabel: 'Amount:',
+      amountValue: `KES ${payment.amount.toFixed(2)}`,
+      amountInWordsLabel: 'In Words:',
+      amountInWordsValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only',
+      
+      // Footer
+      thankYouMessage: 'Thank you for your payment!',
+      footerNote: 'This receipt serves as proof of payment. Please keep it for your records.\nFor any queries, please contact our support team.',
+      
+      // Signatures
+      preparedByLabel: 'Prepared by:',
+      preparedByLine: '',
+      approvedByLabel: 'Approved by:',
+      approvedByLine: ''
+    }
+  ];
+
+  return { template, inputs };
 };
 
 // Export all templates and functions
@@ -1585,3 +1821,5 @@ export {
   calculateHeaderPositions,
   generateDataFields
 };
+
+

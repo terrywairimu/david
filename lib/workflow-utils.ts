@@ -682,14 +682,16 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
   }
 }
 
-export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'csv' = 'pdf') => {
+export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'csv' = 'pdf', purchaseType: 'client' | 'general' = 'general') => {
   try {
     if (format === 'pdf') {
       // Use the new dynamic template system with pagination support
       const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
       
-      // Get custom table headers for purchases
-      const customTableHeaders = ['Date', 'Supplier', 'Reference', 'Amount', 'Status'];
+      // Get custom table headers based on purchase type
+      const customTableHeaders = purchaseType === 'client' 
+        ? ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount']
+        : ['Order Number', 'Date', 'Supplier', 'Items', 'Total Amount'];
       
       // Generate dynamic template with pagination
       const template = generateDynamicTemplateWithPagination(purchases.length, customTableHeaders, 'purchases');
@@ -728,13 +730,29 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         reportTypeValue: "Purchases",
         
         // Real Data Rows (populated with actual data from purchases array)
-        ...purchases.map((purchase, index) => ({
-          [`date_${index}`]: new Date(purchase.date_created).toLocaleDateString(),
-          [`supplier_${index}`]: String(purchase.supplier_name || 'Unknown'),
-          [`reference_${index}`]: String(purchase.purchase_number || 'N/A'),
-          [`amount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`,
-          [`status_${index}`]: String(purchase.status || 'Active')
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
+        ...purchases.map((purchase, index) => {
+          if (purchaseType === 'client') {
+            return {
+              [`orderNumber_${index}`]: String(purchase.purchase_order_number || 'N/A'),
+              [`date_${index}`]: purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
+              [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
+              [`client_${index}`]: String(purchase.client?.name || 'N/A'),
+              [`paidTo_${index}`]: String(purchase.paid_to || 'N/A'),
+              [`items_${index}`]: String(purchase.items?.length || 0),
+              [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
+            };
+          } else {
+            return {
+              [`orderNumber_${index}`]: String(purchase.purchase_order_number || 'N/A'),
+              [`date_${index}`]: purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
+              [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
+              [`client_${index}`]: '', // Empty for general purchases
+              [`paidTo_${index}`]: '', // Empty for general purchases
+              [`items_${index}`]: String(purchase.items?.length || 0),
+              [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
+            };
+          }
+        }).reduce((acc, item) => ({ ...acc, ...item }), {}),
         
         // Footer
         summaryTitle: 'Summary:',
@@ -760,42 +778,58 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `purchases_report_${Date.now()}.pdf`
+      link.download = `${purchaseType}_purchases_report_${Date.now()}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
       
-      toast.success('Purchases report exported successfully!')
+      toast.success(`${purchaseType.charAt(0).toUpperCase() + purchaseType.slice(1)} purchases exported successfully!`)
     } else {
       // CSV export
-      const headers = ['Purchase #', 'Date', 'Supplier', 'Description', 'Total Amount', 'Status']
+      const headers = purchaseType === 'client' 
+        ? ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount']
+        : ['Order Number', 'Date', 'Supplier', 'Items', 'Total Amount'];
+      
       const csvContent = [
         headers.join(','),
-        ...purchases.map(purchase => [
-          purchase.purchase_number || 'N/A',
-          new Date(purchase.date_created).toLocaleDateString(),
-          purchase.supplier_name || 'N/A',
-          purchase.description || 'N/A',
-          (purchase.total_amount || 0).toFixed(2),
-          purchase.status || 'Active'
-        ].join(','))
+        ...purchases.map(purchase => {
+          if (purchaseType === 'client') {
+            return [
+              purchase.purchase_order_number || 'N/A',
+              purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
+              purchase.supplier?.name || 'N/A',
+              purchase.client?.name || 'N/A',
+              purchase.paid_to || 'N/A',
+              purchase.items?.length || 0,
+              (purchase.total_amount || 0).toFixed(2)
+            ].join(',');
+          } else {
+            return [
+              purchase.purchase_order_number || 'N/A',
+              purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
+              purchase.supplier?.name || 'N/A',
+              purchase.items?.length || 0,
+              (purchase.total_amount || 0).toFixed(2)
+            ].join(',');
+          }
+        })
       ].join('\n')
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)
-      link.setAttribute('download', `purchases_${Date.now()}.csv`)
+      link.setAttribute('download', `${purchaseType}_purchases_${Date.now()}.csv`)
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      toast.success('Purchases report exported to CSV successfully!')
+      toast.success(`${purchaseType.charAt(0).toUpperCase() + purchaseType.slice(1)} purchases exported to CSV successfully!`)
     }
   } catch (error) {
     console.error('Export error:', error)
-    toast.error('Failed to export purchases report')
+    toast.error(`Failed to export ${purchaseType} purchases`)
   }
 }
 
