@@ -1828,6 +1828,39 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
     return (fieldCount * rowHeight) + padding;
   };
   
+  // Calculate dynamic width for client info box based on longest content
+  const calculateClientInfoBoxWidth = () => {
+    const labelWidth = 35; // Width of labels (CLIENT NAME:, SITE LOCATION:, etc.)
+    const labelSpacing = 3; // Space between label and value
+    const rightPadding = 2; // 2px right padding for tight hugging with small buffer
+    
+    // Get the longest value length from client data
+    const clientName = payment.client?.name || 'N/A';
+    const clientLocation = payment.client?.location || 'N/A';
+    const clientPhone = payment.client?.phone || 'N/A';
+    const clientDate = new Date(payment.date_created).toLocaleDateString();
+    
+    // Calculate text width (approximate: 1 character ≈ 1.3 pixels for font size 9)
+    const charWidth = 1.3;
+    
+    // Find the longest value among all 4 client info fields
+    const maxValueLength = Math.max(
+      clientName.length,
+      clientLocation.length,
+      clientPhone.length,
+      clientDate.length
+    );
+    
+    // Calculate the exact width needed for the longest value
+    const maxValueWidth = maxValueLength * charWidth;
+    
+    // Calculate total width: labels + spacing + longest value + no padding
+    const totalWidth = labelWidth + labelSpacing + maxValueWidth + rightPadding;
+    
+    // Return the exact calculated width (no minimum constraint for true responsiveness)
+    return totalWidth;
+  };
+  
   // Calculate heights for current content
   // To make these truly dynamic, you can:
   // 1. Pass field counts as parameters to this function
@@ -1854,11 +1887,12 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   const paymentMethod = payment.payment_method || 'Cash';
   const activePaymentFields = getPaymentDetailFields(paymentMethod);
   
-  // Calculate heights based on real data
+  // Calculate heights and widths based on real data
   const paymentSummaryHeight = hasMultiplePayments ? calculatePaymentSummaryHeight(paymentHistory.payments.length) : 0;
   const clientDetailsHeight = calculateClientDetailsHeight(4); // 4 fields: Date, Name, Phone, Location
   const paymentDetailsHeight = calculatePaymentDetailsHeight(activePaymentFields.length); // Dynamic based on payment method
   const amountSectionHeight = calculateAmountSectionHeight(2); // 2 fields: Amount, In Words
+  const clientInfoBoxWidth = calculateClientInfoBoxWidth(); // Dynamic width based on longest client value
   
   // Dynamic positioning system - calculate positions based on previous section heights
   const SECTION_SPACING = 8; // Consistent spacing between sections
@@ -1944,16 +1978,16 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         // Receipt Number (right aligned)
         { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
         
-        // Client Info Box (replaces Receipt Info Box)
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: CLIENT_BOX_START }, width: 62, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
+        // Client Info Box (replaces Receipt Info Box) - Dynamic width based on content
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: CLIENT_BOX_START }, width: clientInfoBoxWidth, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
         { name: 'clientNameLabel', type: 'text', position: { x: 18, y: clientFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientNameValue', type: 'text', position: { x: 57, y: clientFieldsStart }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 45, y: clientFieldsStart }, width: 85, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'clientSiteLocationLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 6 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientSiteLocationValue', type: 'text', position: { x: 57, y: clientFieldsStart + 6 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientSiteLocationValue', type: 'text', position: { x: 45, y: clientFieldsStart + 6 }, width: 85, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'clientMobileLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 12 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientMobileValue', type: 'text', position: { x: 57, y: clientFieldsStart + 12 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientMobileValue', type: 'text', position: { x: 45, y: clientFieldsStart + 12 }, width: 85, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'clientDateLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 18 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientDateValue', type: 'text', position: { x: 57, y: clientFieldsStart + 18 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 45, y: clientFieldsStart + 18 }, width: 85, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
 
         
