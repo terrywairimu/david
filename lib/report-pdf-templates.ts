@@ -1832,7 +1832,7 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   const calculateClientInfoBoxWidth = () => {
     const labelWidth = 35; // Width of labels (CLIENT NAME:, SITE LOCATION:, etc.)
     const labelSpacing = 3; // Space between label and value
-    const rightPadding = 2; // 2px right padding for tight hugging with small buffer
+    const rightPadding = 3; // 3px right padding for tight hugging with small buffer
     
     // Get the longest value length from client data
     const clientName = payment.client?.name || 'N/A';
