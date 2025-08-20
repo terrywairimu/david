@@ -1945,16 +1945,15 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
         
         // Client Info Box (replaces Receipt Info Box)
-        { name: 'clientInfoTitle', type: 'text', position: { x: 15, y: CLIENT_SECTION_START }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: CLIENT_BOX_START }, width: 62, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
-        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: clientFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientDateValue', type: 'text', position: { x: 47, y: clientFieldsStart }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 6 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientNameValue', type: 'text', position: { x: 47, y: clientFieldsStart + 6 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 12 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: clientFieldsStart + 12 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 18 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: clientFieldsStart + 18 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: clientFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 57, y: clientFieldsStart }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientSiteLocationLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 6 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientSiteLocationValue', type: 'text', position: { x: 57, y: clientFieldsStart + 6 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientMobileLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 12 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientMobileValue', type: 'text', position: { x: 57, y: clientFieldsStart + 12 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 18 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 57, y: clientFieldsStart + 18 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
 
         
@@ -2009,15 +2008,14 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       receiptNumber: `Receipt #: ${payment.payment_number}`,
       
       // Client Info (replaces Receipt Info)
-      clientInfoTitle: 'CLIENT DETAILS',
+      clientNameLabel: 'CLIENT NAME:',
+      clientNameValue: payment.client?.name || 'N/A',
+      clientSiteLocationLabel: 'SITE LOCATION:',
+      clientSiteLocationValue: payment.client?.location || 'N/A',
+      clientMobileLabel: 'MOBILE NO:',
+      clientMobileValue: payment.client?.phone || 'N/A',
       clientDateLabel: 'DATE:',
       clientDateValue: new Date(payment.date_created).toLocaleDateString(),
-      clientNameLabel: 'NAME:',
-      clientNameValue: payment.client?.name || 'N/A',
-      clientPhoneLabel: 'PHONE:',
-      clientPhoneValue: payment.client?.phone || 'N/A',
-      clientLocationLabel: 'LOCATION:',
-      clientLocationValue: payment.client?.location || 'N/A',
       
 
       
@@ -2028,9 +2026,26 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       sumOfLabel: 'THE SUM OF:',
       sumOfValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only (KES ' + payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ONLY)',
       beingPaymentOfLabel: 'BEING PAYMENT OF:',
-      beingPaymentOfValue: payment.description || 'Payment received',
+      beingPaymentOfValue: (() => {
+        const description = payment.description || 'Payment received';
+        const quotationNumber = payment.paid_to || 'N/A';
+        
+        // If description contains "DESIGN" (case insensitive), don't add quotation number
+        if (description.toLowerCase().includes('design')) {
+          return description;
+        }
+        
+        // Otherwise, add quotation number
+        return description + ' of Quotation: ' + quotationNumber;
+      })(),
       throughLabel: 'THROUGH:',
-      throughValue: payment.payment_method || 'Cash',
+      throughValue: (() => {
+        const account = payment.account_credited;
+        if (!account) return 'Cash';
+        if (account.toLowerCase().includes('cooperative bank')) return 'Bank Transfer To Cooperative Bank';
+        if (account.toLowerCase().includes('cheque')) return 'Cheque Banked to Cooperative Bank';
+        return account; // Return original value for other cases
+      })(),
       bankDetailsLabel: 'BANK DETAILS:',
       bankDetailsValue: payment.account_credited || 'N/A',
       referenceNoLabel: 'REFERENCE NO:',
