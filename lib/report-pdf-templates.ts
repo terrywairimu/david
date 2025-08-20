@@ -1692,55 +1692,97 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
         
         // Client Info Box (replaces Receipt Info Box)
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
-        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientInfoTitle', type: 'text', position: { x: 15, y: 71 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 79 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 82 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 82 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 88 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 88 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 94 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 94 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 100 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 100 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
 
         
         // Payment Details Section
-        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 105 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 113 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
+        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 113 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 121 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
         
         // Payment Details Grid
-        { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: 116 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receivedFromValue', type: 'text', position: { x: 57, y: 116 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'sumOfLabel', type: 'text', position: { x: 18, y: 122 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'sumOfValue', type: 'text', position: { x: 57, y: 122 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: 128 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: 128 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'throughLabel', type: 'text', position: { x: 18, y: 134 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'throughValue', type: 'text', position: { x: 57, y: 134 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: 140 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: 140 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: 146 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'referenceNoValue', type: 'text', position: { x: 57, y: 146 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: 124 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'receivedFromValue', type: 'text', position: { x: 57, y: 124 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'sumOfLabel', type: 'text', position: { x: 18, y: 130 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'sumOfValue', type: 'text', position: { x: 57, y: 130 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: 136 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: 136 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'throughLabel', type: 'text', position: { x: 18, y: 142 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'throughValue', type: 'text', position: { x: 57, y: 142 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: 148 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: 148 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: 154 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'referenceNoValue', type: 'text', position: { x: 57, y: 154 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
         // Amount Section
-        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 172 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 180 }, width: 180, height: 20, color: '#E5E5E5', radius: 4 },
-        { name: 'amountLabel', type: 'text', position: { x: 18, y: 183 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountValue', type: 'text', position: { x: 47, y: 183 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-
+        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 168 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 176 }, width: 180, height: 25, color: '#E5E5E5', radius: 4 },
+        { name: 'amountLabel', type: 'text', position: { x: 18, y: 179 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountValue', type: 'text', position: { x: 47, y: 179 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 185 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 185 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Payment Summary Section
+        { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: 205 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: 213 }, width: 180, height: 50, color: '#F8F9FA', radius: 4 },
+        
+        // Payment Summary Table Headers
+        { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: 216 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentDateHeader', type: 'text', position: { x: 45, y: 216 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentDescriptionHeader', type: 'text', position: { x: 72, y: 216 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentMethodHeader', type: 'text', position: { x: 109, y: 216 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentAmountHeader', type: 'text', position: { x: 136, y: 216 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        
+        // Payment Summary Table Rows (3 rows for sample data)
+        { name: 'paymentRow1Number', type: 'text', position: { x: 18, y: 223 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow1Date', type: 'text', position: { x: 45, y: 223 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow1Description', type: 'text', position: { x: 72, y: 223 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow1Method', type: 'text', position: { x: 109, y: 223 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow1Amount', type: 'text', position: { x: 136, y: 223 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        { name: 'paymentRow2Number', type: 'text', position: { x: 18, y: 230 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow2Date', type: 'text', position: { x: 45, y: 230 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow2Description', type: 'text', position: { x: 72, y: 230 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow2Method', type: 'text', position: { x: 109, y: 230 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow2Amount', type: 'text', position: { x: 136, y: 230 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        { name: 'paymentRow3Number', type: 'text', position: { x: 18, y: 237 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow3Date', type: 'text', position: { x: 45, y: 237 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow3Description', type: 'text', position: { x: 72, y: 237 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow3Method', type: 'text', position: { x: 109, y: 237 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paymentRow3Amount', type: 'text', position: { x: 136, y: 237 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        
+        // Payment Summary Totals
+        { name: 'totalQuotationLabel', type: 'text', position: { x: 72, y: 244 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'totalQuotationValue', type: 'text', position: { x: 136, y: 244 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'remainingAmountLabel', type: 'text', position: { x: 72, y: 251 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'remainingAmountValue', type: 'text', position: { x: 136, y: 251 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'totalAmountPaidLabel', type: 'text', position: { x: 72, y: 258 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'totalAmountPaidValue', type: 'text', position: { x: 136, y: 258 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
         
         // Watermark Logo (same as working templates)
         { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
         
         // Footer Elements
-        { name: 'thankYouMessage', type: 'text', position: { x: 15, y: 245 }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        { name: 'footerNote', type: 'text', position: { x: 15, y: 255 }, width: 180, height: 15, fontSize: 8, fontColor: '#666', fontName: 'Helvetica', alignment: 'center' },
+        { name: 'thankYouMessage', type: 'text', position: { x: 15, y: 275 }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
+        { name: 'footerNote', type: 'text', position: { x: 15, y: 285 }, width: 180, height: 15, fontSize: 8, fontColor: '#666', fontName: 'Helvetica', alignment: 'center' },
         
-        // Signature Lines
-        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'preparedByLine', type: 'line', position: { x: 35, y: 283 }, width: 60, height: 0, color: '#000' },
-        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: 280 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'approvedByLine', type: 'line', position: { x: 145, y: 283 }, width: 60, height: 0, color: '#000' },
+        // Receipt Completion Section
+        { name: 'receivedByLabel', type: 'text', position: { x: 15, y: 310 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receivedByLine', type: 'line', position: { x: 35, y: 313 }, width: 60, height: 0, color: '#000' },
+        { name: 'receivedDateLabel', type: 'text', position: { x: 85, y: 310 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
+        { name: 'receivedDateLine', type: 'line', position: { x: 105, y: 313 }, width: 60, height: 0, color: '#000' },
+        { name: 'companyStampLabel', type: 'text', position: { x: 155, y: 310 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: 'companyStampLine', type: 'line', position: { x: 175, y: 313 }, width: 60, height: 0, color: '#000' },
       ]
     ]
   };
@@ -1760,23 +1802,24 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       receiptNumber: `Receipt #: ${payment.payment_number}`,
       
       // Client Info (replaces Receipt Info)
-      clientDateLabel: 'Date:',
+      clientInfoTitle: 'CLIENT DETAILS',
+      clientDateLabel: 'DATE:',
       clientDateValue: new Date(payment.date_created).toLocaleDateString(),
-      clientNameLabel: 'Name:',
+      clientNameLabel: 'NAME:',
       clientNameValue: payment.client?.name || 'N/A',
-      clientPhoneLabel: 'Phone:',
+      clientPhoneLabel: 'PHONE:',
       clientPhoneValue: payment.client?.phone || 'N/A',
-      clientLocationLabel: 'Location:',
+      clientLocationLabel: 'LOCATION:',
       clientLocationValue: payment.client?.location || 'N/A',
       
 
       
       // Payment Details
       paymentSectionTitle: 'PAYMENT DETAILS',
-      receivedFromLabel: 'Received from:',
+      receivedFromLabel: 'RECEIVED FROM:',
       receivedFromValue: payment.client?.name || 'N/A',
       sumOfLabel: 'THE SUM OF:',
-      sumOfValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only',
+      sumOfValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only (KES ' + payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ONLY)',
       beingPaymentOfLabel: 'BEING PAYMENT OF:',
       beingPaymentOfValue: payment.description || 'Payment received',
       throughLabel: 'THROUGH:',
@@ -1789,7 +1832,44 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       // Amount Information
       amountSectionTitle: 'AMOUNT',
       amountLabel: 'Amount:',
-      amountValue: `KES ${payment.amount.toFixed(2)}`,
+      amountValue: `KES ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      amountInWordsLabel: 'In Words:',
+      amountInWordsValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only',
+      
+      // Payment Summary
+      paymentSummaryTitle: 'PAYMENT SUMMARY',
+      paymentNumberHeader: 'Payment #',
+      paymentDateHeader: 'Date',
+      paymentDescriptionHeader: 'Description',
+      paymentMethodHeader: 'Paid Through',
+      paymentAmountHeader: 'Amount',
+      
+      // Payment Summary Table Rows (sample data - in real implementation, fetch from database)
+      paymentRow1Number: payment.payment_number,
+      paymentRow1Date: new Date(payment.date_created).toLocaleDateString(),
+      paymentRow1Description: payment.description || 'Payment received',
+      paymentRow1Method: payment.payment_method || 'Cash',
+      paymentRow1Amount: `KES ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      
+      paymentRow2Number: 'PN2508016',
+      paymentRow2Date: '8/17/2025',
+      paymentRow2Description: 'Initial deposit',
+      paymentRow2Method: 'Bank Transfer',
+      paymentRow2Amount: 'KES 50,000.00',
+      
+      paymentRow3Number: 'PN2508015',
+      paymentRow3Date: '8/16/2025',
+      paymentRow3Description: 'First installment',
+      paymentRow3Method: 'Cash',
+      paymentRow3Amount: 'KES 25,000.00',
+      
+      // Payment Summary Totals
+      totalQuotationLabel: 'Total Quotation Amount:',
+      totalQuotationValue: 'KES 225,000.00',
+      remainingAmountLabel: 'Remaining Amount:',
+      remainingAmountValue: 'KES 0.00',
+      totalAmountPaidLabel: 'Total Amount Paid:',
+      totalAmountPaidValue: 'KES 225,000.00',
       
       // Watermark (same as working templates)
       watermarkLogo: watermarkLogoBase64,
@@ -1798,11 +1878,13 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       thankYouMessage: 'Thank you for your payment!',
       footerNote: 'This receipt serves as proof of payment. Please keep it for your records.\nFor any queries, please contact our support team.',
       
-      // Signatures
-      preparedByLabel: 'Prepared by:',
-      preparedByLine: '',
-      approvedByLabel: 'Approved by:',
-      approvedByLine: ''
+      // Receipt Completion
+      receivedByLabel: 'Received by:',
+      receivedByLine: '',
+      receivedDateLabel: 'Date:',
+      receivedDateLine: '',
+      companyStampLabel: 'Company Stamp:',
+      companyStampLine: ''
     }
   ];
 
