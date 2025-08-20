@@ -1,5 +1,6 @@
 // Report PDF Templates - Professional styling matching quotation template
 // Uses the same approach: @pdfme/generator with plugins for text, rectangle, line, image
+import { supabase } from './supabase-client';
 
 // Base report template with professional styling
 const baseReportTemplate = {
@@ -1669,6 +1670,58 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   
+  // Get real payment data for this client and quotation
+  const getClientPaymentHistory = async () => {
+    try {
+      // Get quotation_id from the payment's invoice
+      const quotationId = payment.invoice?.quotation_id;
+      const clientId = payment.client_id;
+      
+      if (!quotationId || !clientId) {
+        return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
+      }
+      
+      // Fetch all payments for this client and quotation
+      const { data: clientPayments } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          invoice!inner(quotation_id)
+        `)
+        .eq('client_id', clientId)
+        .eq('invoice.quotation_id', quotationId)
+        .order('date_created', { ascending: false });
+      
+      if (!clientPayments || clientPayments.length === 0) {
+        return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
+      }
+      
+      // Get quotation total
+      const { data: quotation } = await supabase
+        .from('quotations')
+        .select('total_amount')
+        .eq('id', quotationId)
+        .single();
+      
+      const quotationTotal = quotation?.total_amount || 0;
+      const totalPaid = clientPayments.reduce((sum: number, p: any) => sum + p.amount, 0);
+      const remainingAmount = Math.max(0, quotationTotal - totalPaid);
+      
+      return {
+        payments: clientPayments,
+        quotationTotal,
+        totalPaid,
+        remainingAmount
+      };
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
+    }
+  };
+  
+  const paymentHistory = await getClientPaymentHistory();
+  const hasMultiplePayments = paymentHistory.payments.length > 1;
+  
   // Calculate dynamic heights for all sections
   const calculatePaymentSummaryHeight = (rowCount: number) => {
     const headerHeight = 7; // Space for table headers
@@ -1722,34 +1775,112 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   const paymentMethod = payment.payment_method || 'Cash';
   const activePaymentFields = getPaymentDetailFields(paymentMethod);
   
-  const paymentSummaryHeight = calculatePaymentSummaryHeight(3); // 3 payment rows
+  // Calculate heights based on real data
+  const paymentSummaryHeight = hasMultiplePayments ? calculatePaymentSummaryHeight(paymentHistory.payments.length) : 0;
   const clientDetailsHeight = calculateClientDetailsHeight(4); // 4 fields: Date, Name, Phone, Location
   const paymentDetailsHeight = calculatePaymentDetailsHeight(activePaymentFields.length); // Dynamic based on payment method
   const amountSectionHeight = calculateAmountSectionHeight(2); // 2 fields: Amount, In Words
   
-  // Create payment details schema dynamically
-  const paymentDetailsSchema = [
-    // Base fields (always shown)
-    { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: 111 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-    { name: 'receivedFromValue', type: 'text', position: { x: 57, y: 111 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-    { name: 'sumOfLabel', type: 'text', position: { x: 18, y: 117 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-    { name: 'sumOfValue', type: 'text', position: { x: 57, y: 117 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-    { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: 123 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-    { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: 123 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-    { name: 'throughLabel', type: 'text', position: { x: 18, y: 129 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-    { name: 'throughValue', type: 'text', position: { x: 57, y: 129 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
-  ];
+  // Dynamic positioning system - calculate positions based on previous section heights
+  const SECTION_SPACING = 8; // Consistent spacing between sections
   
-  // Add bank fields only for non-cash payments
-  if (paymentMethod?.toLowerCase() !== 'cash') {
-    paymentDetailsSchema.push(
-      { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: 135 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: 135 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: 141 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'referenceNoValue', type: 'text', position: { x: 57, y: 141 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+  // Base positions (fixed)
+  const CLIENT_SECTION_START = 58;
+  const CLIENT_BOX_START = 66;
+  
+  // Dynamic positions based on previous section heights
+  const paymentSectionStart = CLIENT_BOX_START + clientDetailsHeight + SECTION_SPACING;
+  const paymentBoxStart = paymentSectionStart + 8; // 8px from title to box
+  
+  const amountSectionStart = paymentBoxStart + paymentDetailsHeight + SECTION_SPACING;
+  const amountBoxStart = amountSectionStart + 8; // 8px from title to box
+  
+  // Payment Summary section is conditional
+  const paymentSummaryStart = hasMultiplePayments ? amountBoxStart + amountSectionHeight + SECTION_SPACING : 0;
+  const paymentSummaryBoxStart = hasMultiplePayments ? paymentSummaryStart + 8 : 0; // 8px from title to box
+  
+  // Calculate positions for elements within each section
+  const clientFieldsStart = CLIENT_BOX_START + 3; // 3px padding from box top
+  const paymentFieldsStart = paymentBoxStart + 3; // 3px padding from box top
+  const amountFieldsStart = amountBoxStart + 3; // 3px padding from box top
+  const paymentSummaryFieldsStart = paymentSummaryBoxStart + 3; // 3px padding from box top
+  
+  // Calculate footer positions dynamically
+  const footerStart = hasMultiplePayments 
+    ? paymentSummaryBoxStart + paymentSummaryHeight + SECTION_SPACING
+    : amountBoxStart + amountSectionHeight + SECTION_SPACING;
+  const thankYouY = footerStart;
+  const footerNoteY = thankYouY + 10;
+  const signatureY = footerNoteY + 25;
+  
+  // Create payment details schema dynamically with dynamic positioning
+  const createPaymentDetailsSchema = () => {
+    const baseFields = [
+      { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: paymentFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'receivedFromValue', type: 'text', position: { x: 57, y: paymentFieldsStart }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'sumOfLabel', type: 'text', position: { x: 18, y: paymentFieldsStart + 6 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'sumOfValue', type: 'text', position: { x: 57, y: paymentFieldsStart + 6 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: paymentFieldsStart + 12 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: paymentFieldsStart + 12 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'throughLabel', type: 'text', position: { x: 18, y: paymentFieldsStart + 18 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'throughValue', type: 'text', position: { x: 57, y: paymentFieldsStart + 18 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+    ];
+    
+    // Add bank fields only for non-cash payments
+    if (paymentMethod?.toLowerCase() !== 'cash') {
+      baseFields.push(
+        { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: paymentFieldsStart + 24 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: paymentFieldsStart + 24 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: paymentFieldsStart + 30 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'referenceNoValue', type: 'text', position: { x: 57, y: paymentFieldsStart + 30 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+    }
+    
+    return baseFields;
+  };
+  
+    const paymentDetailsSchema = createPaymentDetailsSchema();
+  
+  // Create payment summary schema dynamically
+  const createPaymentSummarySchema = () => {
+    const schema = [
+      { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: paymentSummaryStart }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: paymentSummaryBoxStart }, width: 180, height: paymentSummaryHeight, color: '#F8F9FA', radius: 4 },
+      
+      // Payment Summary Table Headers
+      { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: paymentSummaryFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentDateHeader', type: 'text', position: { x: 55, y: paymentSummaryFieldsStart }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentDescriptionHeader', type: 'text', position: { x: 85, y: paymentSummaryFieldsStart }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentMethodHeader', type: 'text', position: { x: 147, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentAmountHeader', type: 'text', position: { x: 174, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' }
+    ];
+    
+    // Add dynamic payment rows based on real data
+    paymentHistory.payments.forEach((paymentRow: any, index: number) => {
+      const yPos = paymentSummaryFieldsStart + 7 + (index * 7);
+      schema.push(
+        { name: `paymentRow${index + 1}Number`, type: 'text', position: { x: 18, y: yPos }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Date`, type: 'text', position: { x: 55, y: yPos }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Description`, type: 'text', position: { x: 85, y: yPos }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Method`, type: 'text', position: { x: 147, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Amount`, type: 'text', position: { x: 174, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+    });
+    
+    // Add totals row
+    const totalsY = paymentSummaryFieldsStart + 7 + (paymentHistory.payments.length * 7);
+    schema.push(
+      { name: 'totalQuotationLabel', type: 'text', position: { x: 18, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalQuotationValue', type: 'text', position: { x: 55, y: totalsY }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'remainingAmountLabel', type: 'text', position: { x: 85, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'remainingAmountValue', type: 'text', position: { x: 120, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalAmountPaidLabel', type: 'text', position: { x: 147, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalAmountPaidValue', type: 'text', position: { x: 174, y: totalsY }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
     );
-  }
-
+    
+    return schema;
+  };
+  
   const template = {
     basePdf: {
       width: 210,
@@ -1773,86 +1904,51 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
         
         // Client Info Box (replaces Receipt Info Box)
-        { name: 'clientInfoTitle', type: 'text', position: { x: 15, y: 58 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 66 }, width: 62, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
-        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 69 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 69 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 75 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 75 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 81 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 81 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 87 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 87 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientInfoTitle', type: 'text', position: { x: 15, y: CLIENT_SECTION_START }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: CLIENT_BOX_START }, width: 62, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
+        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: clientFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 47, y: clientFieldsStart }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 6 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 47, y: clientFieldsStart + 6 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 12 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: clientFieldsStart + 12 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: clientFieldsStart + 18 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: clientFieldsStart + 18 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
 
         
         // Payment Details Section
-        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 100 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 108 }, width: 180, height: paymentDetailsHeight, color: '#F8F9FA', radius: 4 },
+        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: paymentSectionStart }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: paymentBoxStart }, width: 180, height: paymentDetailsHeight, color: '#F8F9FA', radius: 4 },
         
         // Payment Details Grid - Dynamic schema based on payment method
         ...paymentDetailsSchema,
         
         // Amount Section
-        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 155 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 163 }, width: 180, height: amountSectionHeight, color: '#E5E5E5', radius: 4 },
-        { name: 'amountLabel', type: 'text', position: { x: 18, y: 166 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountValue', type: 'text', position: { x: 47, y: 166 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 170 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 170 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: amountSectionStart }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: amountBoxStart }, width: 180, height: amountSectionHeight, color: '#E5E5E5', radius: 4 },
+        { name: 'amountLabel', type: 'text', position: { x: 18, y: amountFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountValue', type: 'text', position: { x: 47, y: amountFieldsStart }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: amountFieldsStart + 4 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: amountFieldsStart + 4 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
-        // Payment Summary Section
-        { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: 188 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: 196 }, width: 180, height: paymentSummaryHeight, color: '#F8F9FA', radius: 4 },
+        // Payment Summary Section - Only shown when there are multiple payments
+        ...(hasMultiplePayments ? createPaymentSummarySchema() : []),
         
-        // Payment Summary Table Headers
-        { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: 199 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentDateHeader', type: 'text', position: { x: 55, y: 199 }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentDescriptionHeader', type: 'text', position: { x: 85, y: 199 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentMethodHeader', type: 'text', position: { x: 147, y: 199 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentAmountHeader', type: 'text', position: { x: 174, y: 199 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        
-        // Payment Summary Table Rows (3 rows for sample data)
-        { name: 'paymentRow1Number', type: 'text', position: { x: 18, y: 206 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow1Date', type: 'text', position: { x: 55, y: 206 }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow1Description', type: 'text', position: { x: 85, y: 206 }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow1Method', type: 'text', position: { x: 147, y: 206 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow1Amount', type: 'text', position: { x: 174, y: 206 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        
-        { name: 'paymentRow2Number', type: 'text', position: { x: 18, y: 213 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow2Date', type: 'text', position: { x: 55, y: 213 }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow2Description', type: 'text', position: { x: 85, y: 213 }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow2Method', type: 'text', position: { x: 147, y: 213 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow2Amount', type: 'text', position: { x: 174, y: 213 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        
-        { name: 'paymentRow3Number', type: 'text', position: { x: 18, y: 220 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow3Date', type: 'text', position: { x: 55, y: 220 }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow3Description', type: 'text', position: { x: 85, y: 220 }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow3Method', type: 'text', position: { x: 147, y: 220 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'paymentRow3Amount', type: 'text', position: { x: 174, y: 220 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        
-        // Payment Summary Totals
-        { name: 'totalQuotationLabel', type: 'text', position: { x: 18, y: 227 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'totalQuotationValue', type: 'text', position: { x: 55, y: 227 }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'remainingAmountLabel', type: 'text', position: { x: 85, y: 227 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'remainingAmountValue', type: 'text', position: { x: 120, y: 227 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'totalAmountPaidLabel', type: 'text', position: { x: 147, y: 227 }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'totalAmountPaidValue', type: 'text', position: { x: 174, y: 227 }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        
-        // Watermark Logo (same as working templates)
-        { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
+        // Watermark Logo (positioned dynamically between Payment Details and Amount sections)
+        { name: 'watermarkLogo', type: 'image', position: { x: 60, y: paymentBoxStart + 20 }, width: 100, height: 100, opacity: 0.2 },
         
         // Footer Elements
-        { name: 'thankYouMessage', type: 'text', position: { x: 15, y: 258 }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        { name: 'footerNote', type: 'text', position: { x: 15, y: 268 }, width: 180, height: 15, fontSize: 8, fontColor: '#666', fontName: 'Helvetica', alignment: 'center' },
+        { name: 'thankYouMessage', type: 'text', position: { x: 15, y: thankYouY }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
+        { name: 'footerNote', type: 'text', position: { x: 15, y: footerNoteY }, width: 180, height: 15, fontSize: 8, fontColor: '#666', fontName: 'Helvetica', alignment: 'center' },
         
         // Receipt Completion Section
-        { name: 'receivedByLabel', type: 'text', position: { x: 15, y: 293 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'receivedByLine', type: 'line', position: { x: 35, y: 296 }, width: 60, height: 0, color: '#000' },
-        { name: 'receivedDateLabel', type: 'text', position: { x: 85, y: 293 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
-        { name: 'receivedDateLine', type: 'line', position: { x: 105, y: 296 }, width: 60, height: 0, color: '#000' },
-        { name: 'companyStampLabel', type: 'text', position: { x: 155, y: 293 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: 'companyStampLine', type: 'line', position: { x: 175, y: 296 }, width: 60, height: 0, color: '#000' },
+        { name: 'receivedByLabel', type: 'text', position: { x: 15, y: signatureY }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'receivedByLine', type: 'line', position: { x: 35, y: signatureY + 3 }, width: 60, height: 0, color: '#000' },
+        { name: 'receivedDateLabel', type: 'text', position: { x: 85, y: signatureY }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'center' },
+        { name: 'receivedDateLine', type: 'line', position: { x: 105, y: signatureY + 3 }, width: 60, height: 0, color: '#000' },
+        { name: 'companyStampLabel', type: 'text', position: { x: 155, y: signatureY }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+        { name: 'companyStampLine', type: 'line', position: { x: 175, y: signatureY + 3 }, width: 60, height: 0, color: '#000' },
       ]
     ]
   };
@@ -1906,40 +2002,34 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       amountInWordsLabel: 'In Words:',
       amountInWordsValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only',
       
-      // Payment Summary
-      paymentSummaryTitle: 'PAYMENT SUMMARY',
-      paymentNumberHeader: 'Payment #',
-      paymentDateHeader: 'Date',
-      paymentDescriptionHeader: 'Description',
-      paymentMethodHeader: 'Paid Through',
-      paymentAmountHeader: 'Amount',
+      // Payment Summary - Only shown when there are multiple payments
+      ...(hasMultiplePayments ? {
+        paymentSummaryTitle: 'PAYMENT SUMMARY',
+        paymentNumberHeader: 'Payment #',
+        paymentDateHeader: 'Date',
+        paymentDescriptionHeader: 'Description',
+        paymentMethodHeader: 'Paid Through',
+        paymentAmountHeader: 'Amount'
+      } : {}),
       
-      // Payment Summary Table Rows (sample data - in real implementation, fetch from database)
-      paymentRow1Number: payment.payment_number,
-      paymentRow1Date: new Date(payment.date_created).toLocaleDateString(),
-      paymentRow1Description: payment.description || 'Payment received',
-      paymentRow1Method: payment.payment_method || 'Cash',
-      paymentRow1Amount: `KES ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      // Payment Summary Table Rows - Dynamic based on real data
+      ...(hasMultiplePayments ? paymentHistory.payments.flatMap((paymentRow: any, index: number) => ({
+        [`paymentRow${index + 1}Number`]: paymentRow.payment_number,
+        [`paymentRow${index + 1}Date`]: new Date(paymentRow.date_created).toLocaleDateString(),
+        [`paymentRow${index + 1}Description`]: paymentRow.description || 'Payment received',
+        [`paymentRow${index + 1}Method`]: paymentRow.payment_method || 'Cash',
+        [`paymentRow${index + 1}Amount`]: `KES ${paymentRow.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      })) : []),
       
-      paymentRow2Number: 'PN2508016',
-      paymentRow2Date: '8/17/2025',
-      paymentRow2Description: 'Initial deposit',
-      paymentRow2Method: 'Bank Transfer',
-      paymentRow2Amount: 'KES 50,000.00',
-      
-      paymentRow3Number: 'PN2508015',
-      paymentRow3Date: '8/16/2025',
-      paymentRow3Description: 'First installment',
-      paymentRow3Method: 'Cash',
-      paymentRow3Amount: 'KES 25,000.00',
-      
-      // Payment Summary Totals
-      totalQuotationLabel: 'Total Quotation Amount:',
-      totalQuotationValue: 'KES 225,000.00',
-      remainingAmountLabel: 'Remaining Amount:',
-      remainingAmountValue: 'KES 0.00',
-      totalAmountPaidLabel: 'Total Amount Paid:',
-      totalAmountPaidValue: 'KES 225,000.00',
+      // Payment Summary Totals - Only shown when there are multiple payments
+      ...(hasMultiplePayments ? {
+        totalQuotationLabel: 'Total Quotation Amount:',
+        totalQuotationValue: `KES ${paymentHistory.quotationTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        remainingAmountLabel: 'Remaining Amount:',
+        remainingAmountValue: `KES ${paymentHistory.remainingAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        totalAmountPaidLabel: 'Total Amount Paid:',
+        totalAmountPaidValue: `KES ${paymentHistory.totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      } : {}),
       
       // Watermark (same as working templates)
       watermarkLogo: watermarkLogoBase64,
