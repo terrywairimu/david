@@ -1673,39 +1673,90 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   // Get real payment data for this client and quotation
   const getClientPaymentHistory = async () => {
     try {
-      // Get quotation_id from the payment's invoice
-      const quotationId = payment.invoice?.quotation_id;
-      const clientId = payment.client_id;
+      // Try to get quotation_id from different possible sources
+      let quotationId = null;
+      let clientId = payment.client_id;
+      
+      // First, try to get quotation_id from the payment's invoice
+      if (payment.invoice?.quotation_id) {
+        quotationId = payment.invoice.quotation_id;
+      }
+      // If no invoice, try to get from the payment description or reference
+      else if (payment.description && payment.description.includes('QT')) {
+        // Extract quotation number from description (e.g., "LABOUR DEPOSIT QT2507009")
+        const qtMatch = payment.description.match(/QT\d+/);
+        if (qtMatch) {
+          // We need to find the quotation by number, not ID
+          const { data: quotation } = await supabase
+            .from('quotations')
+            .select('id, total_amount, quotation_number')
+            .eq('quotation_number', qtMatch[0])
+            .single();
+          
+          if (quotation) {
+            quotationId = quotation.id;
+            console.log('Found quotation from description:', { number: qtMatch[0], id: quotation.id, total: quotation.total_amount });
+          }
+        }
+      }
+      // If still no quotation_id, try to get from the payment reference
+      else if (payment.reference && payment.reference.includes('QT')) {
+        const qtMatch = payment.reference.match(/QT\d+/);
+        if (qtMatch) {
+          const { data: quotation } = await supabase
+            .from('quotations')
+            .select('id, total_amount, quotation_number')
+            .eq('quotation_number', qtMatch[0])
+            .single();
+          
+          if (quotation) {
+            quotationId = quotation.id;
+            console.log('Found quotation from reference:', { number: qtMatch[0], id: quotation.id, total: quotation.total_amount });
+          }
+        }
+      }
       
       if (!quotationId || !clientId) {
+        console.log('No quotation ID or client ID found:', { quotationId, clientId, payment });
         return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
       }
       
       // Fetch all payments for this client and quotation
-      const { data: clientPayments } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          invoice!inner(quotation_id)
-        `)
-        .eq('client_id', clientId)
-        .eq('invoice.quotation_id', quotationId)
-        .order('date_created', { ascending: false });
-      
-      if (!clientPayments || clientPayments.length === 0) {
-        return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
-      }
-      
-      // Get quotation total
+      // First, get the quotation to find all related payments
       const { data: quotation } = await supabase
         .from('quotations')
-        .select('total_amount')
+        .select('id, total_amount, quotation_number')
         .eq('id', quotationId)
         .single();
       
-      const quotationTotal = quotation?.total_amount || 0;
+      if (!quotation) {
+        console.log('Quotation not found:', quotationId);
+        return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
+      }
+      
+      // Now fetch all payments for this client that reference this quotation
+      // We'll need to check multiple possible ways payments might reference the quotation
+      const { data: clientPayments } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('client_id', clientId)
+        .or(`description.ilike.%${quotation.quotation_number}%,reference.ilike.%${quotation.quotation_number}%`)
+        .order('date_created', { ascending: false });
+      
+      if (!clientPayments || clientPayments.length === 0) {
+        console.log('No client payments found for quotation:', quotation.quotation_number);
+        return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
+      }
+      
+      console.log('Found payments:', clientPayments.length, 'for quotation:', quotation.quotation_number);
+      console.log('Quotation details:', { id: quotation.id, number: quotation.quotation_number, total: quotation.total_amount });
+      
+      // Get the actual quotation total from the quotations table
+      const quotationTotal = quotation.total_amount || 0;
       const totalPaid = clientPayments.reduce((sum: number, p: any) => sum + p.amount, 0);
       const remainingAmount = Math.max(0, quotationTotal - totalPaid);
+      
+      console.log('Payment calculations:', { quotationTotal, totalPaid, remainingAmount });
       
       return {
         payments: clientPayments,
@@ -1721,6 +1772,22 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   
   const paymentHistory = await getClientPaymentHistory();
   const hasMultiplePayments = paymentHistory.payments.length > 1;
+  
+  // Debug logging
+  console.log('Payment History Debug:', {
+    paymentsCount: paymentHistory.payments.length,
+    hasMultiplePayments,
+    payments: paymentHistory.payments.map(p => ({
+      id: p.id,
+      payment_number: p.payment_number,
+      description: p.description,
+      amount: p.amount,
+      date: p.date_created
+    })),
+    quotationTotal: paymentHistory.quotationTotal,
+    totalPaid: paymentHistory.totalPaid,
+    remainingAmount: paymentHistory.remainingAmount
+  });
   
   // Calculate dynamic heights for all sections
   const calculatePaymentSummaryHeight = (rowCount: number) => {
