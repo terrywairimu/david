@@ -1653,7 +1653,22 @@ const convertNumberToWords = (num: number): string => {
 };
 
 // Professional Payment Receipt Template
-export const generatePaymentReceiptTemplate = (payment: any) => {
+export const generatePaymentReceiptTemplate = async (payment: any) => {
+  // Fetch watermark image as base64 (same as working templates)
+  async function fetchImageAsBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+
   const template = {
     basePdf: {
       width: 210,
@@ -1662,11 +1677,12 @@ export const generatePaymentReceiptTemplate = (payment: any) => {
     },
     schemas: [
       [
-        // Company Header (text-based, no logo)
-        { name: 'companyName', type: 'text', position: { x: 15, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
-        { name: 'companyLocation', type: 'text', position: { x: 15, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'companyPhone', type: 'text', position: { x: 15, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'companyEmail', type: 'text', position: { x: 15, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        // Company Logo and Header (same as working templates)
+        { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
+        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+        { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         
         // Receipt Header Background and Title
         { name: 'receiptHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
@@ -1720,7 +1736,8 @@ export const generatePaymentReceiptTemplate = (payment: any) => {
         { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 229 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 229 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
-
+        // Watermark Logo (same as working templates)
+        { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
         
         // Footer Elements
         { name: 'thankYouMessage', type: 'text', position: { x: 15, y: 245 }, width: 180, height: 8, fontSize: 10, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
@@ -1739,10 +1756,11 @@ export const generatePaymentReceiptTemplate = (payment: any) => {
   const inputs = [
     {
       // Company Information
-      companyName: 'CLEAN DAVID SYSTEM',
-      companyLocation: 'Nairobi, Kenya',
-      companyPhone: '+254 700 000 000',
-      companyEmail: 'info@cleandavidsystem.com',
+      logo: companyLogoBase64,
+      companyName: 'CABINET MASTER STYLES & FINISHES',
+      companyLocation: 'Location: Ruiru Eastern By-Pass',
+      companyPhone: 'Tel: +254729554475',
+      companyEmail: 'Email: cabinetmasterstyles@gmail.com',
       
       // Receipt Header
       receiptTitle: 'PAYMENT RECEIPT',
@@ -1786,6 +1804,9 @@ export const generatePaymentReceiptTemplate = (payment: any) => {
       amountValue: `KES ${payment.amount.toFixed(2)}`,
       amountInWordsLabel: 'In Words:',
       amountInWordsValue: convertNumberToWords(payment.amount) + ' Kenya Shillings Only',
+      
+      // Watermark (same as working templates)
+      watermarkLogo: watermarkLogoBase64,
       
       // Footer
       thankYouMessage: 'Thank you for your payment!',

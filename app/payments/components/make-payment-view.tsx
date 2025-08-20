@@ -150,12 +150,12 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
   const handleExportSinglePayment = async (payment: Payment) => {
     try {
       // Generate the professional receipt template
-      const { template, inputs } = generatePaymentReceiptTemplate(payment)
+      const { template, inputs } = await generatePaymentReceiptTemplate(payment)
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
-      const { text, rectangle, line } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line } as any })
+      const { text, rectangle, line, image } = await import('@pdfme/schemas')
+      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
