@@ -1668,6 +1668,87 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   
   const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
   const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
+  
+  // Calculate dynamic heights for all sections
+  const calculatePaymentSummaryHeight = (rowCount: number) => {
+    const headerHeight = 7; // Space for table headers
+    const rowHeight = 7; // Height per data row
+    const totalsHeight = 7; // Space for totals row
+    const padding = 4; // Top and bottom padding
+    return headerHeight + (rowCount * rowHeight) + totalsHeight + padding;
+  };
+  
+  const calculateClientDetailsHeight = (fieldCount: number) => {
+    const rowHeight = 6; // Height per field row
+    const padding = 4; // Top and bottom padding
+    return (fieldCount * rowHeight) + padding;
+  };
+  
+  const calculatePaymentDetailsHeight = (fieldCount: number) => {
+    const rowHeight = 6; // Height per field row
+    const padding = 3; // Reduced padding to hug content tightly
+    return (fieldCount * rowHeight) + padding;
+  };
+  
+  const calculateAmountSectionHeight = (fieldCount: number) => {
+    const rowHeight = 5; // Height per field row (more precise)
+    const padding = 3; // Minimal padding to eliminate gap
+    return (fieldCount * rowHeight) + padding;
+  };
+  
+  // Calculate heights for current content
+  // To make these truly dynamic, you can:
+  // 1. Pass field counts as parameters to this function
+  // 2. Fetch actual data from database
+  // 3. Calculate heights based on actual field counts
+  
+  // Determine which payment detail fields to show based on payment method
+  const getPaymentDetailFields = (paymentMethod: string) => {
+    const baseFields = ['receivedFrom', 'sumOf', 'beingPaymentOf', 'through'];
+    const bankFields = ['bankDetails', 'referenceNo'];
+    
+    // For cash payments, exclude bank-related fields
+    if (paymentMethod?.toLowerCase() === 'cash') {
+      return baseFields;
+    }
+    
+    // For other methods, include all fields
+    return [...baseFields, ...bankFields];
+  };
+  
+  // CURRENT BEHAVIOR: Background height adjusts dynamically based on field count
+  // FUTURE ENHANCEMENT: Schema elements can be generated conditionally for true dynamic behavior
+  
+  const paymentMethod = payment.payment_method || 'Cash';
+  const activePaymentFields = getPaymentDetailFields(paymentMethod);
+  
+  const paymentSummaryHeight = calculatePaymentSummaryHeight(3); // 3 payment rows
+  const clientDetailsHeight = calculateClientDetailsHeight(4); // 4 fields: Date, Name, Phone, Location
+  const paymentDetailsHeight = calculatePaymentDetailsHeight(activePaymentFields.length); // Dynamic based on payment method
+  const amountSectionHeight = calculateAmountSectionHeight(2); // 2 fields: Amount, In Words
+  
+  // Create payment details schema dynamically
+  const paymentDetailsSchema = [
+    // Base fields (always shown)
+    { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: 111 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'receivedFromValue', type: 'text', position: { x: 57, y: 111 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'sumOfLabel', type: 'text', position: { x: 18, y: 117 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'sumOfValue', type: 'text', position: { x: 57, y: 117 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: 123 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: 123 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+    { name: 'throughLabel', type: 'text', position: { x: 18, y: 129 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+    { name: 'throughValue', type: 'text', position: { x: 57, y: 129 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+  ];
+  
+  // Add bank fields only for non-cash payments
+  if (paymentMethod?.toLowerCase() !== 'cash') {
+    paymentDetailsSchema.push(
+      { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: 135 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: 135 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: 141 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'referenceNoValue', type: 'text', position: { x: 57, y: 141 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+    );
+  }
 
   const template = {
     basePdf: {
@@ -1693,7 +1774,7 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         
         // Client Info Box (replaces Receipt Info Box)
         { name: 'clientInfoTitle', type: 'text', position: { x: 15, y: 58 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 66 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 66 }, width: 62, height: clientDetailsHeight, color: '#E5E5E5', radius: 4 },
         { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 69 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'clientDateValue', type: 'text', position: { x: 47, y: 69 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 75 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
@@ -1707,33 +1788,22 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         
         // Payment Details Section
         { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 100 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 108 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
+        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 108 }, width: 180, height: paymentDetailsHeight, color: '#F8F9FA', radius: 4 },
         
-        // Payment Details Grid
-        { name: 'receivedFromLabel', type: 'text', position: { x: 18, y: 111 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receivedFromValue', type: 'text', position: { x: 57, y: 111 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'sumOfLabel', type: 'text', position: { x: 18, y: 117 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'sumOfValue', type: 'text', position: { x: 57, y: 117 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'beingPaymentOfLabel', type: 'text', position: { x: 18, y: 123 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'beingPaymentOfValue', type: 'text', position: { x: 57, y: 123 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'throughLabel', type: 'text', position: { x: 18, y: 129 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'throughValue', type: 'text', position: { x: 57, y: 129 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'bankDetailsLabel', type: 'text', position: { x: 18, y: 135 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'bankDetailsValue', type: 'text', position: { x: 57, y: 135 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'referenceNoLabel', type: 'text', position: { x: 18, y: 141 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'referenceNoValue', type: 'text', position: { x: 57, y: 141 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        // Payment Details Grid - Dynamic schema based on payment method
+        ...paymentDetailsSchema,
         
         // Amount Section
         { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 155 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 163 }, width: 180, height: 20, color: '#E5E5E5', radius: 4 },
+        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 163 }, width: 180, height: amountSectionHeight, color: '#E5E5E5', radius: 4 },
         { name: 'amountLabel', type: 'text', position: { x: 18, y: 166 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'amountValue', type: 'text', position: { x: 47, y: 166 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 172 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 172 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 170 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 170 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
         // Payment Summary Section
         { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: 188 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: 196 }, width: 180, height: 50, color: '#F8F9FA', radius: 4 },
+        { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: 196 }, width: 180, height: paymentSummaryHeight, color: '#F8F9FA', radius: 4 },
         
         // Payment Summary Table Headers
         { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: 199 }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
