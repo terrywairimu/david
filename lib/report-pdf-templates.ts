@@ -1691,50 +1691,40 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
         // Receipt Number (right aligned)
         { name: 'receiptNumber', type: 'text', position: { x: 13, y: 67 }, width: 180, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
         
-        // Receipt Info Box
-        { name: 'receiptInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
-        { name: 'receiptDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receiptDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'receiptTimeLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receiptTimeValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'receiptMethodLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receiptMethodValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'receiptStatusLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'receiptStatusValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        // Client Info Box (replaces Receipt Info Box)
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
+        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 67 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 67 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 73 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 73 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 79 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 85 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 85 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
-        // Client Information Section
-        { name: 'clientSectionTitle', type: 'text', position: { x: 15, y: 105 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientSectionBg', type: 'rectangle', position: { x: 15, y: 113 }, width: 180, height: 32, color: '#F8F9FA', radius: 4 },
-        { name: 'clientDateLabel', type: 'text', position: { x: 18, y: 116 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientDateValue', type: 'text', position: { x: 47, y: 116 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientNameLabel', type: 'text', position: { x: 18, y: 122 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientNameValue', type: 'text', position: { x: 47, y: 122 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientPhoneLabel', type: 'text', position: { x: 18, y: 128 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientPhoneValue', type: 'text', position: { x: 47, y: 128 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'clientLocationLabel', type: 'text', position: { x: 18, y: 134 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientLocationValue', type: 'text', position: { x: 47, y: 134 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+
         
         // Payment Details Section
-        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 157 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 165 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
+        { name: 'paymentSectionTitle', type: 'text', position: { x: 15, y: 105 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paymentSectionBg', type: 'rectangle', position: { x: 15, y: 113 }, width: 180, height: 35, color: '#F8F9FA', radius: 4 },
         
         // Payment Details Grid
-        { name: 'paidToLabel', type: 'text', position: { x: 18, y: 168 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'paidToValue', type: 'text', position: { x: 47, y: 168 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'accountLabel', type: 'text', position: { x: 18, y: 174 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'accountValue', type: 'text', position: { x: 47, y: 174 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'referenceLabel', type: 'text', position: { x: 18, y: 180 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'referenceValue', type: 'text', position: { x: 47, y: 180 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'descriptionLabel', type: 'text', position: { x: 18, y: 186 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'descriptionValue', type: 'text', position: { x: 47, y: 186 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'paidToLabel', type: 'text', position: { x: 18, y: 116 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'paidToValue', type: 'text', position: { x: 47, y: 116 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'accountLabel', type: 'text', position: { x: 18, y: 122 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'accountValue', type: 'text', position: { x: 47, y: 122 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'referenceLabel', type: 'text', position: { x: 18, y: 128 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'referenceValue', type: 'text', position: { x: 47, y: 128 }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'descriptionLabel', type: 'text', position: { x: 18, y: 134 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'descriptionValue', type: 'text', position: { x: 47, y: 134 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
         // Amount Section
-        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 212 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 220 }, width: 180, height: 20, color: '#E5E5E5', radius: 4 },
-        { name: 'amountLabel', type: 'text', position: { x: 18, y: 223 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountValue', type: 'text', position: { x: 47, y: 223 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 229 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 229 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'amountSectionTitle', type: 'text', position: { x: 15, y: 160 }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountSectionBg', type: 'rectangle', position: { x: 15, y: 168 }, width: 180, height: 20, color: '#E5E5E5', radius: 4 },
+        { name: 'amountLabel', type: 'text', position: { x: 18, y: 171 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountValue', type: 'text', position: { x: 47, y: 171 }, width: 60, height: 5, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsLabel', type: 'text', position: { x: 18, y: 177 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'amountInWordsValue', type: 'text', position: { x: 47, y: 177 }, width: 120, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
         
         // Watermark Logo (same as working templates)
         { name: 'watermarkLogo', type: 'image', position: { x: 60, y: 110 }, width: 100, height: 100, opacity: 0.2 },
@@ -1766,18 +1756,7 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       receiptTitle: 'PAYMENT RECEIPT',
       receiptNumber: `Receipt #: ${payment.payment_number}`,
       
-      // Receipt Info
-      receiptDateLabel: 'Date:',
-      receiptDateValue: new Date(payment.date_created).toLocaleDateString(),
-      receiptTimeLabel: 'Time:',
-      receiptTimeValue: new Date(payment.date_created).toLocaleTimeString(),
-      receiptMethodLabel: 'Method:',
-      receiptMethodValue: payment.payment_method || 'N/A',
-      receiptStatusLabel: 'Status:',
-      receiptStatusValue: payment.status || 'Completed',
-      
-      // Client Information
-      clientSectionTitle: 'CLIENT INFORMATION',
+      // Client Info (replaces Receipt Info)
       clientDateLabel: 'Date:',
       clientDateValue: new Date(payment.date_created).toLocaleDateString(),
       clientNameLabel: 'Name:',
@@ -1786,6 +1765,8 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       clientPhoneValue: payment.client?.phone || 'N/A',
       clientLocationLabel: 'Location:',
       clientLocationValue: payment.client?.location || 'N/A',
+      
+
       
       // Payment Details
       paymentSectionTitle: 'PAYMENT DETAILS',
