@@ -1673,86 +1673,58 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   // Get real payment data for this client and quotation
   const getClientPaymentHistory = async () => {
     try {
-      // Try to get quotation_id from different possible sources
-      let quotationId = null;
+      let quotationNumber = null;
       let clientId = payment.client_id;
       
-      // First, try to get quotation_id from the payment's invoice
-      if (payment.invoice?.quotation_id) {
-        quotationId = payment.invoice.quotation_id;
-      }
-      // If no invoice, try to get from the payment description or reference
-      else if (payment.description && payment.description.includes('QT')) {
-        // Extract quotation number from description (e.g., "LABOUR DEPOSIT QT2507009")
-        const qtMatch = payment.description.match(/QT\d+/);
-        if (qtMatch) {
-          // We need to find the quotation by number, not ID
-          const { data: quotation } = await supabase
-            .from('quotations')
-            .select('id, total_amount, quotation_number')
-            .eq('quotation_number', qtMatch[0])
-            .single();
-          
-          if (quotation) {
-            quotationId = quotation.id;
-            console.log('Found quotation from description:', { number: qtMatch[0], id: quotation.id, total: quotation.total_amount });
-          }
-        }
-      }
-      // If still no quotation_id, try to get from the payment reference
-      else if (payment.reference && payment.reference.includes('QT')) {
-        const qtMatch = payment.reference.match(/QT\d+/);
-        if (qtMatch) {
-          const { data: quotation } = await supabase
-            .from('quotations')
-            .select('id, total_amount, quotation_number')
-            .eq('quotation_number', qtMatch[0])
-            .single();
-          
-          if (quotation) {
-            quotationId = quotation.id;
-            console.log('Found quotation from reference:', { number: qtMatch[0], id: quotation.id, total: quotation.total_amount });
-          }
-        }
+      // Get quotation number from the paid_to field (this contains QT2507009)
+      if (payment.paid_to && payment.paid_to.includes('QT')) {
+        quotationNumber = payment.paid_to;
+        console.log('Found quotation number from paid_to:', quotationNumber);
       }
       
-      if (!quotationId || !clientId) {
-        console.log('No quotation ID or client ID found:', { quotationId, clientId, payment });
+      if (!quotationNumber || !clientId) {
+        console.log('No quotation number or client ID found:', { quotationNumber, clientId, payment });
         return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
       }
       
-      // Fetch all payments for this client and quotation
-      // First, get the quotation to find all related payments
+      // Get quotation details by quotation number
+      // Use grand_total instead of total_amount for the correct quotation total
       const { data: quotation } = await supabase
         .from('quotations')
-        .select('id, total_amount, quotation_number')
-        .eq('id', quotationId)
+        .select('id, grand_total, quotation_number')
+        .eq('quotation_number', quotationNumber)
         .single();
       
       if (!quotation) {
-        console.log('Quotation not found:', quotationId);
+        console.log('Quotation not found for number:', quotationNumber);
         return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
       }
       
-      // Now fetch all payments for this client that reference this quotation
-      // We'll need to check multiple possible ways payments might reference the quotation
+      console.log('Found quotation:', { id: quotation.id, number: quotation.quotation_number, total: quotation.grand_total });
+      
+      // Get all payments with the same paid_to value (same quotation number)
       const { data: clientPayments } = await supabase
         .from('payments')
         .select('*')
-        .eq('client_id', clientId)
-        .or(`description.ilike.%${quotation.quotation_number}%,reference.ilike.%${quotation.quotation_number}%`)
-        .order('date_created', { ascending: false });
+        .eq('paid_to', quotationNumber)
+        .order('date_created', { ascending: false }); // Latest to earliest
       
       if (!clientPayments || clientPayments.length === 0) {
-        console.log('No client payments found for quotation:', quotation.quotation_number);
+        console.log('No payments found for quotation:', quotationNumber);
         return { payments: [], quotationTotal: 0, totalPaid: 0, remainingAmount: 0 };
       }
       
-      console.log('Found payments:', clientPayments.length, 'for quotation:', quotation.quotation_number);
-      console.log('Quotation details:', { id: quotation.id, number: quotation.quotation_number, total: quotation.total_amount });
+      console.log('Found payments for quotation:', clientPayments.length);
+      console.log('Payments:', clientPayments.map(p => ({ 
+        payment_number: p.payment_number, 
+        description: p.description, 
+        amount: p.amount, 
+        date: p.date_created,
+        paid_to: p.paid_to
+      })));
       
-      // Get the actual quotation total from the quotations table
-      const quotationTotal = quotation.total_amount || 0;
+      // Calculate totals
+      const quotationTotal = quotation.grand_total || 0;
       const totalPaid = clientPayments.reduce((sum: number, p: any) => sum + p.amount, 0);
       const remainingAmount = Math.max(0, quotationTotal - totalPaid);
       
@@ -1788,6 +1760,46 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
     totalPaid: paymentHistory.totalPaid,
     remainingAmount: paymentHistory.remainingAmount
   });
+  
+  // Create payment summary schema dynamically - now paymentHistory is available
+  const createPaymentSummarySchema = () => {
+    const schema = [
+      { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: paymentSummaryStart }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: paymentSummaryBoxStart }, width: 180, height: paymentSummaryHeight, color: '#F8F9FA', radius: 4 },
+      
+      // Payment Summary Table Headers
+      { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: paymentSummaryFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentDateHeader', type: 'text', position: { x: 55, y: paymentSummaryFieldsStart }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentDescriptionHeader', type: 'text', position: { x: 85, y: paymentSummaryFieldsStart }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentMethodHeader', type: 'text', position: { x: 147, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+      { name: 'paymentAmountHeader', type: 'text', position: { x: 174, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' }
+    ];
+    
+    // Add dynamic payment rows based on real data
+    paymentHistory.payments.forEach((paymentRow: any, index: number) => {
+      const yPos = paymentSummaryFieldsStart + 7 + (index * 7);
+      schema.push(
+        { name: `paymentRow${index + 1}Number`, type: 'text', position: { x: 18, y: yPos }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Date`, type: 'text', position: { x: 55, y: yPos }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Description`, type: 'text', position: { x: 85, y: yPos }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Method`, type: 'text', position: { x: 147, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paymentRow${index + 1}Amount`, type: 'text', position: { x: 174, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+      );
+    });
+    
+    // Add totals row
+    const totalsY = paymentSummaryFieldsStart + 7 + (paymentHistory.payments.length * 7);
+    schema.push(
+      { name: 'totalQuotationLabel', type: 'text', position: { x: 18, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalQuotationValue', type: 'text', position: { x: 55, y: totalsY }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'remainingAmountLabel', type: 'text', position: { x: 85, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'remainingAmountValue', type: 'text', position: { x: 120, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalAmountPaidLabel', type: 'text', position: { x: 147, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+      { name: 'totalAmountPaidValue', type: 'text', position: { x: 174, y: totalsY }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+    );
+    
+    return schema;
+  };
   
   // Calculate dynamic heights for all sections
   const calculatePaymentSummaryHeight = (rowCount: number) => {
@@ -1908,45 +1920,7 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
   
     const paymentDetailsSchema = createPaymentDetailsSchema();
   
-  // Create payment summary schema dynamically
-  const createPaymentSummarySchema = () => {
-    const schema = [
-      { name: 'paymentSummaryTitle', type: 'text', position: { x: 15, y: paymentSummaryStart }, width: 60, height: 8, fontSize: 12, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'paymentSummaryBg', type: 'rectangle', position: { x: 15, y: paymentSummaryBoxStart }, width: 180, height: paymentSummaryHeight, color: '#F8F9FA', radius: 4 },
-      
-      // Payment Summary Table Headers
-      { name: 'paymentNumberHeader', type: 'text', position: { x: 18, y: paymentSummaryFieldsStart }, width: 35, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'paymentDateHeader', type: 'text', position: { x: 55, y: paymentSummaryFieldsStart }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'paymentDescriptionHeader', type: 'text', position: { x: 85, y: paymentSummaryFieldsStart }, width: 60, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'paymentMethodHeader', type: 'text', position: { x: 147, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-      { name: 'paymentAmountHeader', type: 'text', position: { x: 174, y: paymentSummaryFieldsStart }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' }
-    ];
-    
-    // Add dynamic payment rows based on real data
-    paymentHistory.payments.forEach((paymentRow: any, index: number) => {
-      const yPos = paymentSummaryFieldsStart + 7 + (index * 7);
-      schema.push(
-        { name: `paymentRow${index + 1}Number`, type: 'text', position: { x: 18, y: yPos }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paymentRow${index + 1}Date`, type: 'text', position: { x: 55, y: yPos }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paymentRow${index + 1}Description`, type: 'text', position: { x: 85, y: yPos }, width: 60, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paymentRow${index + 1}Method`, type: 'text', position: { x: 147, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paymentRow${index + 1}Amount`, type: 'text', position: { x: 174, y: yPos }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
-      );
-    });
-    
-    // Add totals row
-    const totalsY = paymentSummaryFieldsStart + 7 + (paymentHistory.payments.length * 7);
-    schema.push(
-      { name: 'totalQuotationLabel', type: 'text', position: { x: 18, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalQuotationValue', type: 'text', position: { x: 55, y: totalsY }, width: 28, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'remainingAmountLabel', type: 'text', position: { x: 85, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'remainingAmountValue', type: 'text', position: { x: 120, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalAmountPaidLabel', type: 'text', position: { x: 147, y: totalsY }, width: 35, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-      { name: 'totalAmountPaidValue', type: 'text', position: { x: 174, y: totalsY }, width: 25, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
-    );
-    
-    return schema;
-  };
+  // Payment summary schema will be created dynamically after paymentHistory is available
   
   const template = {
     basePdf: {
@@ -2080,13 +2054,14 @@ export const generatePaymentReceiptTemplate = async (payment: any) => {
       } : {}),
       
       // Payment Summary Table Rows - Dynamic based on real data
-      ...(hasMultiplePayments ? paymentHistory.payments.flatMap((paymentRow: any, index: number) => ({
-        [`paymentRow${index + 1}Number`]: paymentRow.payment_number,
-        [`paymentRow${index + 1}Date`]: new Date(paymentRow.date_created).toLocaleDateString(),
-        [`paymentRow${index + 1}Description`]: paymentRow.description || 'Payment received',
-        [`paymentRow${index + 1}Method`]: paymentRow.payment_method || 'Cash',
-        [`paymentRow${index + 1}Amount`]: `KES ${paymentRow.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      })) : []),
+      ...(hasMultiplePayments ? paymentHistory.payments.reduce((acc: any, paymentRow: any, index: number) => {
+        acc[`paymentRow${index + 1}Number`] = paymentRow.payment_number;
+        acc[`paymentRow${index + 1}Date`] = new Date(paymentRow.date_created).toLocaleDateString();
+        acc[`paymentRow${index + 1}Description`] = paymentRow.description || 'Payment received';
+        acc[`paymentRow${index + 1}Method`] = paymentRow.payment_method || 'Cash';
+        acc[`paymentRow${index + 1}Amount`] = `KES ${paymentRow.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return acc;
+      }, {}) : {}),
       
       // Payment Summary Totals - Only shown when there are multiple payments
       ...(hasMultiplePayments ? {
