@@ -17,15 +17,36 @@ interface RegisteredEntity {
   status: "active" | "inactive"
 }
 
+interface Employee {
+  id: number
+  name: string
+  phone?: string
+  email?: string
+  position?: string
+  department?: string
+  date_added: string
+  status: "active" | "inactive"
+}
+
 interface RegisterTableProps {
   onShowClientModal: () => void
   onShowSupplierModal: () => void
+  onShowEmployeeModal: () => void
   onEditEntity: (entity: RegisteredEntity) => void
+  onEditEmployee: (employee: Employee) => void
   refreshTrigger?: number
 }
 
-const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, refreshTrigger }: RegisterTableProps) => {
+const RegisterTable = ({ 
+  onShowClientModal, 
+  onShowSupplierModal, 
+  onShowEmployeeModal, 
+  onEditEntity, 
+  onEditEmployee, 
+  refreshTrigger 
+}: RegisterTableProps) => {
   const [entities, setEntities] = useState<RegisteredEntity[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState("")
@@ -35,9 +56,11 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
   // Delete confirmation
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null)
+  const [deleteEntityType, setDeleteEntityType] = useState<"entity" | "employee" | null>(null)
 
   useEffect(() => {
     fetchEntities()
+    fetchEmployees()
     
     // Set up real-time subscription for registered entities
     const entitiesSubscription = supabase
@@ -48,13 +71,22 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
       })
       .subscribe()
 
+    // Set up real-time subscription for employees
+    const employeesSubscription = supabase
+      .channel('employees_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, (payload) => {
+        console.log('Employees change detected:', payload)
+        fetchEmployees() // Refresh employees when changes occur
+      })
+      .subscribe()
+
     return () => {
       supabase.removeChannel(entitiesSubscription)
+      supabase.removeChannel(employeesSubscription)
     }
   }, [refreshTrigger])
 
   const fetchEntities = async () => {
-    setLoading(true)
     try {
       const { data, error } = await supabase
         .from("registered_entities")
@@ -72,6 +104,23 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
     } catch (error) {
       console.error("Error fetching entities:", error)
       toast.error("Error fetching entities")
+    }
+  }
+
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("status", "active")
+        .order("date_added", { ascending: false })
+
+      if (error) throw error
+
+      setEmployees(data || [])
+    } catch (error) {
+      console.error("Error fetching employees:", error)
+      toast.error("Error fetching employees")
     } finally {
       setLoading(false)
     }
@@ -81,30 +130,46 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
     onEditEntity(entity)
   }
 
-  const handleDelete = (id: number) => {
+  const handleEditEmployee = (employee: Employee) => {
+    onEditEmployee(employee)
+  }
+
+  const handleDelete = (id: number, type: "entity" | "employee") => {
     setDeleteEntityId(id)
+    setDeleteEntityType(type)
     setShowDeleteDialog(true)
   }
 
   const confirmDelete = async () => {
-    if (!deleteEntityId) return
+    if (!deleteEntityId || !deleteEntityType) return
 
     try {
-      const { error } = await supabase
-        .from("registered_entities")
-        .delete()
-        .eq("id", deleteEntityId)
+      if (deleteEntityType === "entity") {
+        const { error } = await supabase
+          .from("registered_entities")
+          .delete()
+          .eq("id", deleteEntityId)
 
-      if (error) throw error
+        if (error) throw error
+        toast.success("Entity deleted successfully!")
+        fetchEntities()
+      } else {
+        const { error } = await supabase
+          .from("employees")
+          .update({ status: "inactive" })
+          .eq("id", deleteEntityId)
 
-      toast.success("Entity deleted successfully!")
-      fetchEntities()
+        if (error) throw error
+        toast.success("Employee deleted successfully!")
+        fetchEmployees()
+      }
     } catch (error) {
-      console.error("Error deleting entity:", error)
-      toast.error("Error deleting entity")
+      console.error("Error deleting item:", error)
+      toast.error("Error deleting item")
     } finally {
       setShowDeleteDialog(false)
       setDeleteEntityId(null)
+      setDeleteEntityType(null)
     }
   }
 
@@ -112,26 +177,56 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
     return new Date(dateString).toLocaleDateString()
   }
 
-  const filteredEntities = entities.filter(entity => {
-    const matchesSearch = entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entity.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entity.location?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = !typeFilter || entity.type === typeFilter
-    const matchesLocation = !locationFilter || entity.location === locationFilter
-    
-    return matchesSearch && matchesType && matchesLocation
-  })
+  const getFilteredData = () => {
+    const allData = [
+      ...entities.map(entity => ({
+        ...entity,
+        displayType: entity.type,
+        isEmployee: false,
+        email: undefined,
+        position: undefined,
+        department: undefined,
+        pin: entity.pin
+      })),
+      ...employees.map(employee => ({
+        ...employee,
+        displayType: "employee",
+        isEmployee: true,
+        type: "employee" as any,
+        location: employee.department,
+        pin: undefined
+      }))
+    ]
+
+    let filtered = allData.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (item as any).email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (item as any).position?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesType = !typeFilter || item.displayType === typeFilter
+      const matchesLocation = !locationFilter || item.location === locationFilter
+      
+      return matchesSearch && matchesType && matchesLocation
+    })
+
+    return filtered.sort((a, b) => new Date(b.date_added).getTime() - new Date(a.date_added).getTime())
+  }
 
   const exportToCSV = () => {
+    const filteredData = getFilteredData()
     const csvContent = [
-      ["Name", "Type", "Phone", "Location", "PIN Number", "Date Added"],
-      ...filteredEntities.map(entity => [
-        entity.name,
-        entity.type,
-        entity.phone || "",
-        entity.location || "",
-        entity.pin || "",
-        new Date(entity.date_added).toLocaleDateString(),
+      ["Name", "Type", "Phone", "Email", "Position", "Department/Location", "PIN Number", "Date Added"],
+      ...filteredData.map(item => [
+        item.name,
+        item.displayType === "employee" ? "Employee" : item.displayType.charAt(0).toUpperCase() + item.displayType.slice(1),
+        item.phone || "",
+        (item as any).email || "",
+        (item as any).position || "",
+        item.location || "",
+        (item as any).pin || "",
+        new Date(item.date_added).toLocaleDateString(),
       ]),
     ]
       .map((row) => row.join(","))
@@ -156,7 +251,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
         fontWeight: '500',
         fontSize: '0.875rem'
       }
-    } else {
+    } else if (type === 'supplier') {
       return {
         backgroundColor: '#e8f5e9',
         color: '#2e7d32',
@@ -165,8 +260,19 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
         fontWeight: '500',
         fontSize: '0.875rem'
       }
+    } else {
+      return {
+        backgroundColor: '#fff3e0',
+        color: '#f57c00',
+        borderRadius: '50px',
+        padding: '6px 16px',
+        fontWeight: '500',
+        fontSize: '0.875rem'
+      }
     }
   }
+
+  const filteredData = getFilteredData()
 
   return (
     <div>
@@ -200,6 +306,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
                 <option value="">All Types</option>
                 <option value="client">Clients</option>
                 <option value="supplier">Suppliers</option>
+                <option value="employee">Employees</option>
               </select>
             </div>
             <div className="col-md-3">
@@ -209,7 +316,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
                 onChange={(e) => setLocationFilter(e.target.value)}
                 style={{ borderRadius: "16px", height: "45px" }}
               >
-                <option value="">All Locations</option>
+                <option value="">All Locations/Departments</option>
                 {locations.map((location) => (
                   <option key={location} value={location}>
                     {location}
@@ -261,6 +368,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
                 <option value="">All Types</option>
                 <option value="client">Clients</option>
                 <option value="supplier">Suppliers</option>
+                <option value="employee">Employees</option>
               </select>
             </div>
             <div className="flex-fill">
@@ -270,7 +378,7 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
                 onChange={(e) => setLocationFilter(e.target.value)}
                 style={{ borderRadius: "16px", height: "45px" }}
               >
-                <option value="">All Locations</option>
+                <option value="">All Locations/Departments</option>
                 {locations.map((location) => (
                   <option key={location} value={location}>
                     {location}
@@ -301,7 +409,9 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
                 <th>Name</th>
                 <th>Type</th>
                 <th>Phone Number</th>
-                <th>Location</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th>Location/Department</th>
                 <th>PIN Number</th>
                 <th>Date Added</th>
                 <th>Actions</th>
@@ -310,37 +420,47 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center">
+                  <td colSpan={9} className="text-center">
                     <div className="spinner-border" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
                   </td>
                 </tr>
-              ) : filteredEntities.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center">
-                    No entities found
+                  <td colSpan={9} className="text-center">
+                    No items found
                   </td>
                 </tr>
               ) : (
-                filteredEntities.map((entity) => (
-                  <tr key={entity.id}>
-                    <td>{entity.name}</td>
+                filteredData.map((item) => (
+                  <tr key={`${item.isEmployee ? 'emp' : 'ent'}-${item.id}`}>
+                    <td>{item.name}</td>
                     <td>
-                      <span style={getTypeStyle(entity.type)}>
-                        {entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
+                      <span style={getTypeStyle(item.displayType)}>
+                        {item.displayType === "employee" ? "Employee" : item.displayType.charAt(0).toUpperCase() + item.displayType.slice(1)}
                       </span>
                     </td>
-                    <td>{entity.phone || "-"}</td>
-                    <td>{entity.location || "-"}</td>
-                    <td>{entity.type === 'client' && entity.pin ? entity.pin : '-'}</td>
-                    <td>{formatDate(entity.date_added)}</td>
+                    <td>{item.phone || "-"}</td>
+                    <td>{(item as any).email || "-"}</td>
+                    <td>{(item as any).position || "-"}</td>
+                    <td>{item.location || "-"}</td>
+                    <td>{(item as any).pin || "-"}</td>
+                    <td>{formatDate(item.date_added)}</td>
                     <td>
                       <div className="d-flex gap-1">
-                        <button className="action-btn" onClick={() => handleEdit(entity)} title="Edit">
+                        <button 
+                          className="action-btn" 
+                          onClick={() => item.isEmployee ? handleEditEmployee(item as Employee) : handleEdit(item as RegisteredEntity)} 
+                          title="Edit"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="action-btn" onClick={() => handleDelete(entity.id)} title="Delete">
+                        <button 
+                          className="action-btn" 
+                          onClick={() => handleDelete(item.id, item.isEmployee ? "employee" : "entity")} 
+                          title="Delete"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -356,8 +476,8 @@ const RegisterTable = ({ onShowClientModal, onShowSupplierModal, onEditEntity, r
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         show={showDeleteDialog}
-        title="Delete Entity"
-        message="Are you sure you want to delete this entry?"
+        title="Delete Item"
+        message={`Are you sure you want to delete this ${deleteEntityType === "employee" ? "employee" : "entry"}?`}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteDialog(false)}
         confirmText="Delete"
