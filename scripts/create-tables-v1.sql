@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS quotations (
     labour_total DECIMAL(10,2) DEFAULT 0.00,
     total_amount DECIMAL(10,2) DEFAULT 0.00,
     grand_total DECIMAL(10,2) DEFAULT 0.00,
+    discount_amount DECIMAL(10,2) DEFAULT 0.00,
     include_accessories BOOLEAN DEFAULT false,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'converted_to_order')),
     notes TEXT,

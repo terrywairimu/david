@@ -323,6 +323,7 @@ const QuotationsView = () => {
             worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
             vat_amount: quotationData.vat_amount,
             vat_percentage: quotationData.vat_percentage,
+            discount_amount: quotationData.discount_amount,
             section_names: quotationData.section_names
           })
           .select()
@@ -385,6 +386,7 @@ const QuotationsView = () => {
             worktop_labor_unit_price: quotationData.worktop_labor_unit_price,
             vat_amount: quotationData.vat_amount,
             vat_percentage: quotationData.vat_percentage,
+            discount_amount: quotationData.discount_amount,
             section_names: quotationData.section_names
           })
           .eq("id", selectedQuotation?.id)

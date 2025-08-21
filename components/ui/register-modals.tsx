@@ -117,9 +117,9 @@ const RegisterModals = ({
       })
     } else {
       setFormData({
-        name: "",
-        phone: "",
-        pin: "",
+    name: "",
+    phone: "",
+    pin: "",
         location: "",
         email: "",
         position: "",
@@ -189,38 +189,38 @@ const RegisterModals = ({
           onCloseEmployeeModal()
         } else if (showClientModal) {
           // Create new client
-          const { error } = await supabase
-            .from("registered_entities")
-            .insert([{
+      const { error } = await supabase
+        .from("registered_entities")
+        .insert([{
               name: formData.name,
-              type: "client",
+          type: "client",
               phone: formData.phone || null,
               pin: formData.pin || null,
               location: formData.location || null,
               status: "active"
-            }])
+        }])
 
-          if (error) throw error
+      if (error) throw error
 
-          toast.success("Client added successfully!")
-          onCloseClientModal()
+      toast.success("Client added successfully!")
+      onCloseClientModal()
         } else if (showSupplierModal) {
           // Create new supplier
-          const { error } = await supabase
-            .from("registered_entities")
-            .insert([{
+      const { error } = await supabase
+        .from("registered_entities")
+        .insert([{
               name: formData.name,
-              type: "supplier",
+          type: "supplier",
               phone: formData.phone || null,
               pin: formData.pin || null,
               location: formData.location || null,
               status: "active"
-            }])
+        }])
 
-          if (error) throw error
+      if (error) throw error
 
-          toast.success("Supplier added successfully!")
-          onCloseSupplierModal()
+      toast.success("Supplier added successfully!")
+      onCloseSupplierModal()
         }
       }
 
@@ -472,17 +472,17 @@ const RegisterModals = ({
                     />
                   </div>
                   
-                  <div className="mb-3">
+                    <div className="mb-3">
                     <label className="form-label">Email Address</label>
-                    <input
+                      <input
                       type="email"
-                      className="form-control border-0 shadow-sm"
+                        className="form-control border-0 shadow-sm"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       placeholder="employee@company.com"
-                    />
-                  </div>
+                      />
+                    </div>
                   
                   <div className="mb-3">
                     <label className="form-label">Position</label>
@@ -540,6 +540,6 @@ const RegisterModals = ({
       )}
     </>
   )
-}
+} 
 
 export default RegisterModals 

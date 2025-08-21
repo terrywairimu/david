@@ -567,6 +567,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setEditingSection(null)
     setEditingSectionName("")
     setFilteredStockItems({})
+    setDiscountAmount(0)
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
@@ -645,6 +646,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     // Load VAT percentage from database
     if (quotation.vat_percentage) {
       setVatPercentage(quotation.vat_percentage)
+    }
+    
+    // Load discount amount from database
+    if (quotation.discount_amount) {
+      setDiscountAmount(quotation.discount_amount)
     }
     
     // Load items by category
@@ -882,7 +888,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Reverse calculate VAT: if total includes VAT, extract the VAT amount
       const originalAmount = subtotalWithLabour / (1 + (vatPercentageNum / 100));
       const vat = subtotalWithLabour - originalAmount;
-      const grandTotal = subtotalWithLabour; // Grand total remains the same
+      const grandTotal = subtotalWithLabour - discountAmount; // Grand total after discount
       
       // Prepare items data as objects for QuotationData with custom section names
       const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
@@ -1577,7 +1583,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     // Reverse calculate VAT: if total includes VAT, extract the VAT amount
     const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
     const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
-    const saveGrandTotalWithVAT = saveSubtotalWithLabour; // Grand total remains the same
+    const saveGrandTotalWithVAT = saveSubtotalWithLabour - discountAmount; // Grand total after discount
 
     // Convert date input to date-only value for database storage
     // This prevents the "one day less" issue by treating the date as a pure calendar date
@@ -1596,9 +1602,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       labour_percentage: labourPercentage,
       labour_total: totals.labourAmount,
       total_amount: saveOriginalAmount, // Amount before VAT
-      grand_total: saveSubtotalWithLabour, // Total amount including VAT
+      grand_total: saveGrandTotalWithVAT, // Total amount including VAT and discount
       vat_amount: saveVatAmount, // VAT amount
       vat_percentage: saveVatPercentageNum, // VAT percentage
+      discount_amount: discountAmount, // Discount amount
       include_worktop: includeWorktop,
       include_accessories: includeAccessories,
       include_appliances: includeAppliances,
@@ -1618,9 +1625,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       section_names: sectionNames
     }
 
-      // Confirm quotation number if it's a new quotation
-      // Removed localStorage logic, so this block is effectively removed.
-      // The generateQuotationNumber function now handles the number generation.
+    // Confirm quotation number if it's a new quotation
+    // Removed localStorage logic, so this block is effectively removed.
+    // The generateQuotationNumber function now handles the number generation.
 
     await onSave(quotationData)
     onClose()
@@ -1643,6 +1650,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
+
+  // Add discount state
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   // Memoize expensive calculations to prevent performance issues (after all dependencies are declared)
   const totals = useMemo(() => {
@@ -1705,12 +1715,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
   const vatAmount = subtotalWithLabour - originalAmount;
-  const grandTotal = subtotalWithLabour; // Grand total remains the same
+  const grandTotal = subtotalWithLabour - discountAmount; // Grand total after discount
 
   return (
     <>
       <div className="modal fade show d-block quotation-modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div 
+        <div 
         className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
         style={mode === "view" && pdfUrl ? {
           maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
@@ -1811,145 +1821,114 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           ) : (
             <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Client and Quotation Number Section */}
-            <div className="row mb-4">
-              <div className="col-md-8 col-12 mb-1 mb-md-0 client-col">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      <User size={18} className="me-2" />
-                      Client Information
-                    </h6>
-                    <div className="position-relative" ref={clientInputRef}>
-                      <div className="input-group">
-                    <input
-                      type="text"
-                          className="form-control"
-                          placeholder="Search client..."
-                          value={clientSearchTerm}
-                          onChange={(e) => handleClientSearch(e.target.value)}
-                          onFocus={() => setClientDropdownVisible(true)}
-                          style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
-                          readOnly={isReadOnly}
-                    />
-                  </div>
-                      
-                      <PortalDropdown
-                        isVisible={clientDropdownVisible && !isReadOnly}
-                        triggerRef={clientInputRef}
-                        onClose={() => setClientDropdownVisible(false)}
-                      >
-                        <div style={{
-                          marginTop: "5px",
-                          borderRadius: "16px",
-                          boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
-                          background: "#fff",
-                          minWidth: "100%",
-                          padding: "8px 0"
-                        }}>
-                          {filteredClients.map(client => (
-                            <div
-                              key={client.id}
-                              style={{
-                                padding: "12px 20px",
-                                cursor: "pointer",
-                                background: "#fff",
-                                color: "#212529",
-                                transition: "background 0.2s"
-                              }}
-                              onClick={() => handleClientSelect(client)}
-                              onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                              onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                            >
-                              <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
-                              {(client.phone || client.location) && (
-                                <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
-                                  {client.phone}
-                                  {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
-                                  {client.location}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                          {filteredClients.length === 0 && (
-                            <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
-                              No clients found
-                            </div>
-                          )}
+              <div className="row mb-4">
+                <div className="col-md-6 col-12 mb-1 mb-md-0 client-col">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
+                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <User size={18} className="me-2" />
+                        Client Information
+                      </h6>
+                      <div className="position-relative" ref={clientInputRef}>
+                        <div className="input-group">
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Search client..."
+                            value={clientSearchTerm}
+                            onChange={(e) => handleClientSearch(e.target.value)}
+                            onFocus={() => setClientDropdownVisible(true)}
+                            style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
+                            readOnly={isReadOnly}
+                          />
                         </div>
-                      </PortalDropdown>
+                        
+                        <PortalDropdown
+                          isVisible={clientDropdownVisible && !isReadOnly}
+                          triggerRef={clientInputRef}
+                          onClose={() => setClientDropdownVisible(false)}
+                        >
+                          <div style={{
+                            marginTop: "5px",
+                            borderRadius: "16px",
+                            boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+                            background: "#fff",
+                            minWidth: "100%",
+                            padding: "8px 0"
+                          }}>
+                            {filteredClients.map(client => (
+                              <div
+                                key={client.id}
+                                style={{
+                                  padding: "12px 20px",
+                                  cursor: "pointer",
+                                  background: "#fff",
+                                  color: "#212529",
+                                  transition: "background 0.2s"
+                                }}
+                                onClick={() => handleClientSelect(client)}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                              >
+                                <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
+                                {(client.phone || client.location) && (
+                                  <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
+                                    {client.phone}
+                                    {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
+                                    {client.location}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {filteredClients.length === 0 && (
+                              <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
+                                No clients found
+                              </div>
+                            )}
+                          </div>
+                        </PortalDropdown>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-md-3 col-12 mb-1 mb-md-0">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-3">
+                      <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
+                        Quotation Number
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={quotationNumber}
+                        readOnly
+                        style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-md-3 col-12 mb-1 mb-md-0">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-3">
+                      <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
+                        Date
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={quotationDate}
+                          onChange={e => setQuotationDate(e.target.value)}
+                          style={{ borderRadius: "12px", height: "45px", border: "1px solid #e9ecef" }}
+                          readOnly={isReadOnly}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="col-md-4 col-12">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    {isMobile && mode === "create" ? (
-                      <div className="d-flex d-md-block quote-meta-row" style={{ gap: "0.3rem" }}>
-                        <div className="flex-fill quote-field" style={{ minWidth: 0, flex: "1 1 0" }}>
-                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                            Quotation Number
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={quotationNumber}
-                            readOnly
-                            style={{ borderRadius: "12px", width: "100%", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                          />
-                        </div>
-                        <div className="flex-fill quote-field" style={{ minWidth: 0, flex: "1 1 0" }}>
-                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                            Date
-                          </label>
-                          <div className="input-group" style={{ width: "100%" }}>
-                            <input
-                              type="date"
-                              className="form-control"
-                              value={quotationDate}
-                              onChange={e => setQuotationDate(e.target.value)}
-                              style={{ borderRadius: "12px", width: "100%", height: "45px", border: "1px solid #e9ecef" }}
-                              readOnly={isReadOnly}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="mb-3">
-                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                            Quotation Number
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={quotationNumber}
-                            readOnly
-                            style={{ borderRadius: "12px 0 0 12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                          />
-                        </div>
-                        <div>
-                          <label className="form-label small fw-semibold" style={{ color: "#ffffff" }}>
-                            Date
-                          </label>
-                          <div className="input-group">
-                            <input
-                              type="date"
-                              className="form-control"
-                              value={quotationDate}
-                              onChange={e => setQuotationDate(e.target.value)}
-                              style={{ borderRadius: "12px 0 0 12px", height: "45px", border: "1px solid #e9ecef" }}
-                              readOnly={isReadOnly}
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-                </div>
 
             {/* Cabinet Items Section */}
             <div className="mb-4">
@@ -2049,8 +2028,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           />
                         </div>
                         
-                        <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
+                                                                            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                            <input
                             type="number"
                             value={
                               rawQuantityValues[item.id?.toString() || ""] !== undefined
@@ -3868,9 +3847,45 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         </div>
                         <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
                       </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <span style={{ color: "#ffffff" }}>Discount:</span>
+                        <div className="d-flex align-items-center">
+                          <input
+                            type="number"
+                            value={discountAmount === 0 ? "" : discountAmount}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setDiscountAmount(0);
+                            }}
+                            onChange={e => setDiscountAmount(Number(e.target.value) || 0)}
+                            onBlur={e => setDiscountAmount(Number(e.target.value) || 0)}
+                            placeholder="0"
+                            style={{ 
+                              width: "80px",
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              background: "transparent", 
+                              color: "#fff", 
+                              border: "none",
+                              padding: "4px 8px", 
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none",
+                              textAlign: "center",
+                              marginRight: "8px"
+                            }}
+                            min="0"
+                            step="0.01"
+                            readOnly={isReadOnly}
+                          />
+                          <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {(subtotalWithLabour - discountAmount).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -3911,11 +3926,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
                 readOnly={isReadOnly}
               />
-          </div>
+                  </div>
                 </div>
               </div>
             </div>
-            </div>
+          </div>
           )}
 
           {/* Footer */}
@@ -4147,4 +4162,4 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   )
 }
 
-export default QuotationModal 
+export default QuotationModal
