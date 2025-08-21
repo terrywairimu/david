@@ -16,6 +16,15 @@ interface ExpenseItem {
   amount: number
 }
 
+interface Employee {
+  id: number
+  name: string
+  phone?: string
+  email?: string
+  position?: string
+  department?: string
+}
+
 interface ExpenseModalProps {
   expense?: any
   mode: "view" | "edit" | "create"
@@ -43,7 +52,9 @@ const ExpenseModal = ({
     receipt_number: "",
     account_debited: "",
     date_created: new Date().toISOString().split('T')[0],
-    expense_type: expenseType
+    expense_type: expenseType,
+    employee_id: "",
+    expense_category: ""
   })
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
     {
@@ -60,6 +71,7 @@ const ExpenseModal = ({
   const [filteredClients, setFilteredClients] = useState(clients)
   const [selectedQuotation, setSelectedQuotation] = useState("")
   const [clientQuotations, setClientQuotations] = useState<{quotation_number: string, grand_total?: number}[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   
   // Input handling states for quantity and rate
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
@@ -68,9 +80,7 @@ const ExpenseModal = ({
   const [rawRateValues, setRawRateValues] = useState<{[key: number]: string}>({})
 
   const clientCategories = [
-    "Travel", "Meals", "Office Supplies", "Marketing", 
-    "Professional Services", "Equipment", "Utilities", 
-    "Rent", "Insurance", "Maintenance", "Other"
+    "wages", "fare", "transport", "accomodation", "meals", "material facilitation", "others"
   ]
 
   const companyCategories = [
@@ -93,6 +103,26 @@ const ExpenseModal = ({
     { value: "it", label: "IT" }
   ]
 
+  // Fetch employees
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("status", "active")
+        .order("name", { ascending: true })
+
+      if (error) throw error
+      setEmployees(data || [])
+    } catch (error) {
+      console.error("Error fetching employees:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchEmployees()
+  }, [])
+
   useEffect(() => {
     if (expense && mode !== "create") {
       // Convert UTC from database to Nairobi time for display
@@ -109,7 +139,9 @@ const ExpenseModal = ({
         receipt_number: expense.receipt_number || "",
         account_debited: expense.account_debited || "",
         date_created: nairobiDate.toISOString().split('T')[0],
-        expense_type: expense.expense_type || expenseType
+        expense_type: expense.expense_type || expenseType,
+        employee_id: expense.employee_id?.toString() || "",
+        expense_category: expense.expense_category || ""
       })
       setSelectedQuotation(expense.quotation_number || "");
       
@@ -128,6 +160,8 @@ const ExpenseModal = ({
       generateExpenseNumber(expenseType).then(number => {
         setFormData(prev => ({ ...prev, expense_number: number }))
       })
+      // Reset amount for new expenses
+      setFormData(prev => ({ ...prev, amount: 0 }))
     }
   }, [expense, mode, clients, expenseType])
 
@@ -189,8 +223,11 @@ const ExpenseModal = ({
   useEffect(() => {
     // Calculate total amount whenever expense items change
     const total = expenseItems.reduce((sum, item) => sum + item.amount, 0)
-    setFormData(prev => ({ ...prev, amount: total }))
-  }, [expenseItems])
+    // Only auto-update amount if it's not a client expense or if no manual amount is set
+    if (expenseType !== "client" || formData.amount === 0) {
+      setFormData(prev => ({ ...prev, amount: total }))
+    }
+  }, [expenseItems, expenseType, formData.amount])
 
   const handleClientSelect = (client: any) => {
     setClientSearch(client.name)
@@ -264,6 +301,7 @@ const ExpenseModal = ({
       const expenseData = {
         ...formData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
+        employee_id: formData.employee_id ? parseInt(formData.employee_id) : null,
         date_created: dateToSave.toISOString(),
         quotation_number: selectedQuotation || null
       }
@@ -276,27 +314,32 @@ const ExpenseModal = ({
           .insert([expenseData])
           .select(`
             *,
-            client:registered_entities(*)
+            client:registered_entities(*),
+            employee:employees(*)
           `)
           .single()
 
         if (error) throw error
         savedExpense = data
         
-        // Save expense items
-        const itemsToInsert = expenseItems.map(item => ({
-          expense_id: savedExpense!.id,
-          description: item.description,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.amount
-        }))
+        // Save expense items only if they have descriptions
+        const itemsToInsert = expenseItems
+          .filter(item => item.description.trim() !== "")
+          .map(item => ({
+            expense_id: savedExpense!.id,
+            description: item.description,
+            quantity: item.quantity,
+            rate: item.rate,
+            amount: item.amount
+          }))
 
-        const { error: itemsError } = await supabase
-          .from("expense_items")
-          .insert(itemsToInsert)
+        if (itemsToInsert.length > 0) {
+          const { error: itemsError } = await supabase
+            .from("expense_items")
+            .insert(itemsToInsert)
 
-        if (itemsError) throw itemsError
+          if (itemsError) throw itemsError
+        }
         
         toast.success("Expense created successfully")
       } else if (mode === "edit") {
@@ -306,32 +349,37 @@ const ExpenseModal = ({
           .eq("id", expense.id)
           .select(`
             *,
-            client:registered_entities(*)
+            client:registered_entities(*),
+            employee:employees(*)
           `)
           .single()
 
         if (error) throw error
         savedExpense = data
         
-        // Delete existing expense items and insert new ones
+        // Delete existing expense items and insert new ones only if they have descriptions
         await supabase
           .from("expense_items")
           .delete()
           .eq("expense_id", expense.id)
 
-        const itemsToInsert = expenseItems.map(item => ({
-          expense_id: expense.id,
-          description: item.description,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.amount
-        }))
+        const itemsToInsert = expenseItems
+          .filter(item => item.description.trim() !== "")
+          .map(item => ({
+            expense_id: expense.id,
+            description: item.description,
+            quantity: item.quantity,
+            rate: item.rate,
+            amount: item.amount
+          }))
 
-        const { error: itemsError } = await supabase
-          .from("expense_items")
-          .insert(itemsToInsert)
+        if (itemsToInsert.length > 0) {
+          const { error: itemsError } = await supabase
+            .from("expense_items")
+            .insert(itemsToInsert)
 
-        if (itemsError) throw itemsError
+          if (itemsError) throw itemsError
+        }
         
         toast.success("Expense updated successfully")
       }
@@ -346,6 +394,11 @@ const ExpenseModal = ({
     } finally {
       setLoading(false)
     }
+  }
+
+  // Check if employee is required based on category
+  const isEmployeeRequired = (category: string) => {
+    return !["transport", "material facilitation", "others"].includes(category)
   }
 
   return (
@@ -525,9 +578,70 @@ const ExpenseModal = ({
                 </div>
               </div>
 
-              {/* Expense Items Section */}
+              {/* New Inline Row for Category, Employee, and Amount */}
+              {expenseType === "client" && (
+                <div className="mb-4">
+                  <div className="row">
+                    <div className="col-md-4">
+                      <label className="form-label">Category</label>
+                      <select
+                        className="form-select border-0 shadow-sm"
+                        value={formData.expense_category}
+                        onChange={(e) => setFormData(prev => ({ ...prev, expense_category: e.target.value }))}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        required
+                        disabled={mode === "view"}
+                      >
+                        <option value="">Select Category</option>
+                        {clientCategories.map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Employee</label>
+                      <select
+                        className="form-select border-0 shadow-sm"
+                        value={formData.employee_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, employee_id: e.target.value }))}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        required={isEmployeeRequired(formData.expense_category)}
+                        disabled={mode === "view"}
+                      >
+                        <option value="">Select Employee</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Amount</label>
+                      <input
+                        type="number"
+                        className="form-control border-0 shadow-sm"
+                        value={formData.amount}
+                        onChange={(e) => {
+                          const newAmount = parseFloat(e.target.value) || 0
+                          setFormData(prev => ({ ...prev, amount: newAmount }))
+                        }}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        step="0.01"
+                        min="0"
+                        required
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Expense Items Section - Now Optional */}
               <div className="mb-4">
-                <label className="form-label">Expense Items</label>
+                <label className="form-label">Expense Items (Optional)</label>
                 <div id="expenseItemsContainer">
                   {expenseItems.map((item, index) => (
                     <div key={item.id} className="expense-item mb-3">
@@ -540,7 +654,6 @@ const ExpenseModal = ({
                             value={item.description}
                             onChange={(e) => updateExpenseItem(item.id, 'description', e.target.value)}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                            required
                             disabled={mode === "view"}
                           />
                         </div>
@@ -576,7 +689,6 @@ const ExpenseModal = ({
                               });
                             }}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                            required
                             disabled={mode === "view"}
                           />
                         </div>
@@ -613,7 +725,6 @@ const ExpenseModal = ({
                               });
                             }}
                             style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                            required
                             disabled={mode === "view"}
                           />
                         </div>

@@ -1,0 +1,13 @@
+export default function Loading() {
+  return (
+    <div className="card">
+      <div className="card-body">
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "200px" }}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -34,7 +34,8 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
         .from("expenses")
         .select(`
           *,
-          client:registered_entities(*)
+          client:registered_entities(*),
+          employee:employees(*)
         `)
         .eq("expense_type", "client")
         .order("date_created", { ascending: false })
@@ -121,7 +122,9 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
         expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
+        expense.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.expense_category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.employee?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -271,6 +274,8 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
               <th>Expense #</th>
                 <th>Date</th>
               <th>Client</th>
+              <th>Category</th>
+              <th>Employee</th>
               <th>Description</th>
               <th>Amount</th>
                 <th>Account Debited</th>
@@ -280,13 +285,13 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
           <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4">
+                  <td colSpan={9} className="text-center py-4">
                     <div className="text-muted">Loading client expenses...</div>
                   </td>
                 </tr>
               ) : filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4">
+                  <td colSpan={9} className="text-center py-4">
                     <div className="text-muted">
                       {searchTerm || clientFilter || dateFilter
                         ? "No client expenses found matching your criteria"
@@ -300,6 +305,8 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
                   <td className="fw-bold">{expense.expense_number}</td>
                     <td>{new Date(expense.date_created).toLocaleDateString()}</td>
                     <td>{expense.client?.name || "Unknown"}</td>
+                    <td>{expense.expense_category ? expense.expense_category.charAt(0).toUpperCase() + expense.expense_category.slice(1) : "-"}</td>
+                    <td>{expense.employee?.name || "-"}</td>
                     <td>{formatExpenseItems(expense.id)}</td>
                     <td className="fw-bold text-danger">
                       KES {expense.amount.toFixed(2)}

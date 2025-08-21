@@ -4,7 +4,7 @@ import { useState } from "react"
 import RegisterTable from "./components/register-table"
 import RegisterModals from "@/components/ui/register-modals"
 import { SectionHeader } from "@/components/ui/section-header"
-import { UserPlus, Truck } from "lucide-react"
+import { UserPlus, Truck, Users } from "lucide-react"
 
 interface RegisteredEntity {
   id: number
@@ -52,6 +52,10 @@ const RegisterPage = () => {
           <button className="btn btn-add" onClick={handleShowSupplierModal}>
             <Truck className="me-2" size={16} />
             Add New Supplier
+          </button>
+          <button className="btn btn-add" onClick={() => window.location.href = '/employees'}>
+            <Users className="me-2" size={16} />
+            Add New Employee
           </button>
         </SectionHeader>
         
