@@ -149,13 +149,18 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
 
   const handleExportSinglePayment = async (payment: Payment) => {
     try {
-      // Generate the professional receipt template
-      const { template, inputs } = await generatePaymentReceiptTemplate(payment)
+      // Generate the professional receipt template with Inter fonts
+      const { template, inputs, fontOptions } = await generatePaymentReceiptTemplate(payment)
       
-      // Generate and download the PDF
+      // Generate and download the PDF with Inter fonts
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
+      const pdf = await generate({ 
+        template, 
+        inputs, 
+        plugins: { text, rectangle, line, image } as any,
+        options: fontOptions
+      })
       
       // Download PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
@@ -168,7 +173,7 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
       
-      toast.success('Payment receipt downloaded successfully!')
+      toast.success('Payment receipt downloaded successfully with Inter fonts!')
     } catch (error) {
       console.error('Export error:', error)
       toast.error('Failed to export payment receipt')
