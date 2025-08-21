@@ -9,6 +9,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Modern Progress System Styles */
+@import '../styles/modern-progress.css';
+
 :root {
   --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);

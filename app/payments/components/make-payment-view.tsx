@@ -8,6 +8,7 @@ import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
 import { generatePaymentReceiptTemplate } from "@/lib/report-pdf-templates"
 import PaymentModal from "@/components/ui/payment-modal"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface MakePaymentViewProps {
   clients: RegisteredEntity[]
@@ -28,6 +29,9 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
+  
+  // Global Progress Manager
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
 
   useEffect(() => {
     setupClientOptions()
@@ -144,11 +148,25 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
   }
 
   const handleExport = (format: 'pdf' | 'csv') => {
-    exportPaymentsReport(getFilteredPayments(), format)
+    // Start modern progress bar for bulk export
+    startDownload(`payments_report_${new Date().toISOString().split('T')[0]}`, format)
+    
+    try {
+      exportPaymentsReport(getFilteredPayments(), format)
+      // Complete progress after a short delay to simulate processing
+      setTimeout(() => {
+        completeDownload()
+      }, 1500)
+    } catch (error) {
+      setError('Failed to export payments report')
+    }
   }
 
   const handleExportSinglePayment = async (payment: Payment) => {
     try {
+      // Start modern progress bar
+      startDownload(`payment_${payment.payment_number}_receipt`, 'pdf')
+      
       // Generate the professional receipt template with Inter fonts
       const { template, inputs, fontOptions } = await generatePaymentReceiptTemplate(payment)
       
@@ -173,9 +191,12 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
       
+      // Complete progress and show success
+      completeDownload()
       toast.success('Payment receipt downloaded successfully with Inter fonts!')
     } catch (error) {
       console.error('Export error:', error)
+      setError('Failed to export payment receipt')
       toast.error('Failed to export payment receipt')
     }
   }
@@ -321,6 +342,8 @@ const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: Ma
           invoices={invoices}
         />
       )}
+      
+
       </div>
     </div>
   )

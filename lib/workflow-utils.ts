@@ -1,6 +1,58 @@
 import { supabase } from "./supabase-client"
 import { toast } from "sonner"
 
+// Progress tracking for exports
+let globalProgressManager: any = null;
+
+// Function to get the global progress manager
+const getProgressManager = () => {
+  if (globalProgressManager) return globalProgressManager;
+  
+  // Try to get it from the GlobalProgressManager component
+  try {
+    // Use dynamic import to avoid circular dependencies
+    if (typeof window !== 'undefined') {
+      // Try to access the global instance from the window object
+      if ((window as any).__PROGRESS_MANAGER__) {
+        globalProgressManager = (window as any).__PROGRESS_MANAGER__;
+        return globalProgressManager;
+      }
+      
+      // Fallback: try to find the progress manager element
+      const progressManagerElement = document.querySelector('[data-progress-manager]');
+      if (progressManagerElement) {
+        // The progress manager will be set when the component mounts
+        return null;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn('Progress manager not available:', error);
+    return null;
+  }
+};
+
+const startProgress = (fileName: string, fileType: 'pdf' | 'csv') => {
+  const manager = getProgressManager();
+  if (manager) {
+    manager.startDownload(fileName, fileType);
+  }
+};
+
+const completeProgress = () => {
+  const manager = getProgressManager();
+  if (manager) {
+    manager.completeDownload();
+  }
+};
+
+const setProgressError = (message: string) => {
+  const manager = getProgressManager();
+  if (manager) {
+    manager.setError(message);
+  }
+};
+
 // Pagination constants for PDF exports (matching quotation PDF layout)
 const pageHeight = 297; // mm
 const topMargin = 20; // mm
@@ -90,6 +142,9 @@ export const generateExpenseNumber = async (type: 'client' | 'company') => {
 // Export functions
 export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
+    // Start progress tracking
+    startProgress(`quotations_report_${new Date().toISOString().split('T')[0]}`, format);
+    
     if (format === 'pdf') {
       // Use the new dynamic template system with pagination support
       const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
@@ -173,6 +228,8 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
       URL.revokeObjectURL(url)
       
       toast.success('Quotations exported successfully!')
+      // Complete progress tracking
+      completeProgress();
     } else {
       // CSV export
       const headers = ['Quotation #', 'Date', 'Client', 'Total Amount', 'Status']
@@ -197,9 +254,12 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
       link.click()
       document.body.removeChild(link)
       toast.success('Quotations exported to CSV successfully!')
+      // Complete progress tracking
+      completeProgress();
     }
   } catch (error) {
     console.error('Export error:', error)
+    setProgressError('Failed to export quotations')
     toast.error('Failed to export quotations')
   }
 }

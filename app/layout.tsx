@@ -5,6 +5,7 @@ import "bootstrap/dist/css/bootstrap.min.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import Sidebar from "@/components/sidebar"
+import { ProgressProvider } from "@/components/GlobalProgressManager"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,12 +32,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="app-container">
-            <Sidebar />
-            <div className="content">
-              {children}
+          <ProgressProvider>
+            <div className="app-container">
+              <Sidebar />
+              <div className="content">
+                {children}
+              </div>
             </div>
-          </div>
+          </ProgressProvider>
           <Toaster />
         </ThemeProvider>
       </body>
