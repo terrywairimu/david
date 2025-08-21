@@ -3848,8 +3848,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>Discount:</span>
                         <div className="d-flex align-items-center">
+                          <span style={{ color: "#ffffff", marginRight: "8px" }}>Discount:</span>
                           <input
                             type="number"
                             value={discountAmount === 0 ? "" : discountAmount}
@@ -3880,8 +3880,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             step="0.01"
                             readOnly={isReadOnly}
                           />
-                          <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
                         </div>
+                        <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
                       </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
