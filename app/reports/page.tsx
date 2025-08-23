@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import "./reports.css"
+// // import "../styles/reports.css" // Temporarily disabled due to webpack issues
 import { BarChart3, TrendingUp, Users, Package, Wallet, Settings, FileText, Download, Eye } from "lucide-react"
 import ReportBuilderModal from "./components/ReportBuilderModal"
 
@@ -57,12 +57,13 @@ const reportCards: ReportCard[] = [
   {
     type: 'financial',
     title: 'Financial Summary',
-    description: 'Get full financial summaries including profit & loss statements and balance sheets.',
+    description: 'Get full financial summaries including profit & loss statements, balance sheets, and three-column cash book.',
     icon: <Wallet size={24} />,
     buttonVariant: 'btn-warning',
     iconBgColor: 'rgba(245, 158, 11, 0.1)',
     iconColor: '#f59e0b'
   },
+
   {
     type: 'custom',
     title: 'Custom Reports',

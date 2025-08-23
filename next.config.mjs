@@ -9,6 +9,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: ['@pdfme/generator', '@pdfme/schemas', '@pdfme/common'],
+    webpackBuildWorker: false,
+  },
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       // Avoid pulling in Node canvas on client
@@ -25,6 +29,33 @@ const nextConfig = {
     // Ignore optional 'canvas' dependency entirely so webpack does not try to resolve it
     config.plugins = config.plugins || []
     config.plugins.push(new webpack.IgnorePlugin({ resourceRegExp: /^canvas$/ }))
+    
+    // Fix CSS extraction issues in Next.js 15
+    if (!isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks.cacheGroups,
+            styles: {
+              name: 'styles',
+              test: /\.(css|scss)$/,
+              chunks: 'all',
+              enforce: true,
+            },
+            pdfme: {
+              name: 'pdfme',
+              test: /[\\/]node_modules[\\/]@pdfme[\\/]/,
+              chunks: 'all',
+              priority: 10,
+              enforce: true,
+            },
+          },
+        },
+      }
+    }
+    
     return config
   },
 }

@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import "../reports.css"
 import { supabase } from "@/lib/supabase-client"
-import { Calendar, Download, Printer, X, BarChart3, TrendingUp, Users, Package, Wallet, Settings } from "lucide-react"
+import { Calendar, Download, Printer, X, BarChart3, TrendingUp, Users, Package, Wallet, Settings, FileText } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
 import { 
   generateSalesReportPDF, 
@@ -27,8 +26,10 @@ import {
 import { 
   generateProfitLossPDF as generateProfitLossPDFTemplate,
   generateBalanceSheetPDF as generateBalanceSheetPDFTemplate,
-  generateCashFlowPDF as generateCashFlowPDFTemplate
+  generateCashFlowPDF as generateCashFlowPDFTemplate,
+  generateCashBookPDF as generateCashBookPDFTemplate
 } from "@/lib/financial-pdf-templates"
+import { generateComprehensiveCashBookPDF, comprehensiveCashBookTemplate } from "@/lib/comprehensive-cashbook-template"
 import { getNairobiDayBoundaries, getNairobiWeekBoundaries, getNairobiMonthBoundaries } from "@/lib/timezone"
 
 type ReportType = 'sales' | 'expenses' | 'inventory' | 'clients' | 'financial' | 'custom'
@@ -138,8 +139,6 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
     console.info("[ReportBuilderModal] open", { type, isOpen })
   }, [type, isOpen])
 
-  if (!isOpen) return null
-  
   const [datePreset, setDatePreset] = useState<DateRangeKey>('month')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
@@ -165,7 +164,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [clientOptions, setClientOptions] = useState<Array<{id: number, name: string}>>([])
   
   // Financial - default to lastMonth to include July 2025 data
-  const [financialReportType, setFinancialReportType] = useState<'summary'|'profitLoss'|'balanceSheet'|'cashFlow'>('summary')
+  const [financialReportType, setFinancialReportType] = useState<'summary'|'profitLoss'|'balanceSheet'|'cashFlow'|'cashBook'>('summary')
   const [comparisonPeriod, setComparisonPeriod] = useState<'none'|'previousPeriod'|'previousYear'>('none')
   
   // Custom
@@ -190,6 +189,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       setDatePreset('lastMonth')
     }
   }, [type, datePreset])
+
+  if (!isOpen) return null
 
   const testPDFGeneration = async () => {
     try {
@@ -381,30 +382,197 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
     if (type === 'financial') {
       console.info('[ReportBuilderModal] running financial query')
-      const [{ data: salesData, error: salesError }, { data: exp, error: expensesError }] = await Promise.all([
-        supabase.from('sales_orders').select('total_amount, grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
-        supabase.from('expenses').select('amount').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
-      ])
       
-      if (salesError) console.error('Sales query error:', salesError)
-      if (expensesError) console.error('Expenses query error:', expensesError)
-      
-      console.log('Financial summary data:', {
-        salesCount: salesData?.length || 0,
-        expensesCount: exp?.length || 0,
-        sampleSales: salesData?.slice(0, 3),
-        sampleExpenses: exp?.slice(0, 3)
-      })
-      
-      const sales = (salesData||[]).reduce((s: any,i: any)=>s+(parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0),0)
-      const expenses = (exp||[]).reduce((s: any,i: any)=>s+Number(i.amount||0),0)
-      const net = sales - expenses
-      
-      console.log('Financial summary calculations:', { sales, expenses, net })
-      
-      rows = [ { metric: 'Sales', amount: sales.toFixed(2) }, { metric: 'Expenses', amount: (-expenses).toFixed(2) }, { metric: 'Net', amount: net.toFixed(2) } ]
-      columns = [{key:'metric',label:'Metric'},{key:'amount',label:'Amount',align:'right'}]
+      if (financialReportType === 'cashBook') {
+        console.info('[ReportBuilderModal] running cash book query')
+        
+        // Get all cash-related transactions for the date range
+        const [{ data: transactions, error: transactionsError }, { data: quotations, error: quotationsError }] = await Promise.all([
+          supabase.from('account_transactions').select('*').gte('transaction_date', start.toISOString()).lte('transaction_date', end.toISOString()),
+          supabase.from('quotations').select('discount_amount').gte('date_created', start.toISOString()).lte('date_created', end.toISOString())
+        ])
+        
+        if (transactionsError) console.error('Transactions query error:', transactionsError)
+        if (quotationsError) console.error('Quotations query error:', quotationsError)
+        
+        console.log('Cash book data retrieved:', {
+          transactionsCount: transactions?.length || 0,
+          quotationsCount: quotations?.length || 0
+        })
+        
+        // Process transactions to separate receipts and payments
+        const receipts: any[] = [];
+        const payments: any[] = [];
+        
+        // Helper function to extract reference number from description
+        const extractRefNumber = (description: string): string => {
+          if (!description) return '';
+          
+          // Look for exact patterns found in the database:
+          // EN2508773 (2 letters + 7 digits), POCL2508035 (4 letters + 7 digits)
+          const refPatterns = [
+            /^(EN\d{7})$/i,        // EN followed by exactly 7 digits
+            /^(POCL\d{7})$/i,      // POCL followed by exactly 7 digits  
+            /^(PN\d{7})$/i,        // PN followed by exactly 7 digits
+            /^([A-Z]{2,4}\d{7})$/i  // Any 2-4 letter code followed by exactly 7 digits
+          ];
+          
+          for (const pattern of refPatterns) {
+            const match = description.match(pattern);
+            if (match) {
+              return match[1];
+            }
+          }
+          
+          // If no exact pattern found, return the description itself (truncated if too long)
+          return description.length > 15 ? description.substring(0, 15) + '...' : description;
+        };
+
+        ;(transactions || []).forEach((t: any, index: number) => {
+          console.log('Processing transaction:', t);
+          
+          // Extract the actual reference number from description
+          const refNumber = extractRefNumber(t.description);
+          console.log(`Extracted ref number from "${t.description}": "${refNumber}"`);
+          
+          const transaction = {
+            date: new Date(t.transaction_date || t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            particulars: t.description || 'Transaction',
+            ref: refNumber, // Use extracted reference number
+            cash: t.account_type === 'cash' ? Number(t.amount || 0) : 0,
+            bank: t.account_type === 'cooperative_bank' ? Number(t.amount || 0) : 0,
+            discount: 0
+          }
+          
+          if (t.transaction_type === 'in') {
+            receipts.push(transaction);
+            console.log('Added to receipts:', transaction);
+          } else if (t.transaction_type === 'out') {
+            payments.push(transaction);
+            console.log('Added to payments:', transaction);
+          }
+        });
+        
+        // Calculate discount from quotations
+        const discountFromQuotations = (quotations || []).reduce((sum: number, q: any) => sum + Number(q.discount_amount || 0), 0);
+        
+        // Add discount data from quotations if any exists
+        if (discountFromQuotations > 0) {
+          receipts.push({
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            particulars: 'Discount Allowed',
+            ref: 'DIS-001', // Use DIS prefix for discount entries
+            cash: 0,
+            bank: 0,
+            discount: discountFromQuotations
+          });
+        }
+        
+        // If no discount from quotations, add a placeholder entry for demonstration
+        if (discountFromQuotations === 0) {
+          receipts.push({
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            particulars: 'Discount Allowed',
+            ref: 'DIS-001', // Use DIS prefix for discount entries
+            cash: 0,
+            bank: 0,
+            discount: 0
+          });
+        }
+        
+        // Calculate totals
+        const totalCashReceipts = receipts.reduce((sum: number, r: any) => sum + r.cash, 0)
+        const totalBankReceipts = receipts.reduce((sum: number, r: any) => sum + r.bank, 0)
+        const totalDiscountAllowed = receipts.reduce((sum: number, r: any) => sum + r.discount, 0)
+        
+        const totalCashPayments = payments.reduce((sum: number, r: any) => sum + r.cash, 0)
+        const totalBankPayments = payments.reduce((sum: number, r: any) => sum + r.bank, 0)
+        
+        // Add totals to receipts
+        receipts.push({
+          date: '',
+          particulars: 'Total',
+          ref: '',
+          cash: totalCashReceipts,
+          bank: totalBankReceipts,
+          discount: totalDiscountAllowed
+        })
+        
+        // Add totals to payments
+        payments.push({
+          date: '',
+          particulars: 'Total',
+          ref: '',
+          cash: totalCashPayments,
+          bank: totalBankPayments,
+          discount: 0
+        })
+        
+        // Store cash book data in a global variable for PDF generation
+        const watermarkBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder watermark
+        const cashBookData = {
+          companyInfo: {
+            name: 'CABINET MASTER AND STYLES',
+            location: 'Ruiru Eastern By-Pass',
+            tel: '+254729554475',
+            email: 'cabinetmasterstyles@gmail.com',
+          },
+          receipts,
+          payments,
+          watermarkBase64,
+          period: `${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+          reportNo: `CB-${new Date().getTime().toString().slice(-6)}`,
+        };
+        
+        ;(window as any).cashBookData = cashBookData
+        
+        // Set rows to receipts for the table display (will be overridden in PDF generation)
+        rows = receipts
+        
+        columns = [
+          {key:'date',label:'Date'},
+          {key:'particulars',label:'Particulars'},
+          {key:'ref',label:'REF:'},
+          {key:'cash',label:'Cash (KES)',align:'right'},
+          {key:'bank',label:'Cooperative Bank (KES)',align:'right'},
+          {key:'discount',label:'Discount Allowed (KES)',align:'right'}
+        ]
+        
+        console.log('Cash book rows generated:', { 
+          receiptsCount: receipts.length, 
+          paymentsCount: payments.length,
+          totals: (window as any).cashBookData.totals
+        })
+        
+      } else {
+        // Original financial summary logic
+        const [{ data: salesData, error: salesError }, { data: exp, error: expensesError }] = await Promise.all([
+          supabase.from('sales_orders').select('total_amount, grand_total').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+          supabase.from('expenses').select('amount').gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+        ])
+        
+        if (salesError) console.error('Sales query error:', salesError)
+        if (expensesError) console.error('Expenses query error:', expensesError)
+        
+        console.log('Financial summary data:', {
+          salesCount: salesData?.length || 0,
+          expensesCount: exp?.length || 0,
+          sampleSales: salesData?.slice(0, 3),
+          sampleExpenses: exp?.slice(0, 3)
+        })
+        
+        const sales = (salesData||[]).reduce((s: any,i: any)=>s+(parseFloat(i.grand_total) || parseFloat(i.total_amount) || 0),0)
+        const expenses = (exp||[]).reduce((s: any,i: any)=>s+Number(i.amount||0),0)
+        const net = sales - expenses
+        
+        console.log('Financial summary calculations:', { sales, expenses, net })
+        
+        rows = [ { metric: 'Sales', amount: sales.toFixed(2) }, { metric: 'Expenses', amount: (-expenses).toFixed(2) }, { metric: 'Net', amount: net.toFixed(2) } ]
+        columns = [{key:'metric',label:'Metric'},{key:'amount',label:'Amount',align:'right'}]
+      }
     }
+
+
 
     if (type === 'custom') {
       console.info('[ReportBuilderModal] running custom summary')
@@ -551,6 +719,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             printTableHtml(`${reportTitles[type]}`, table)
           }
           
+
+          
         } else if (type === 'financial') {
           try {
             let pdfData: any;
@@ -558,6 +728,30 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             let inputs: any;
             
             switch (financialReportType) {
+              case 'cashBook':
+                // Generate Three Column Cash Book using template system
+                const cashBookData = {
+                  companyInfo: {
+                    name: 'CABINET MASTER AND STYLES',
+                    location: 'Ruiru Eastern By-Pass',
+                    tel: '+254729554475',
+                    email: 'cabinetmasterstyles@gmail.com',
+                  },
+                  receipts: (window as any).cashBookData?.receipts || [],
+                  payments: (window as any).cashBookData?.payments || [],
+                  watermarkBase64: (window as any).cashBookData?.watermarkBase64 || '',
+                  period: (window as any).cashBookData?.period || `${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+                  reportNo: (window as any).cashBookData?.reportNo || `CB-${new Date().getTime().toString().slice(-6)}`,
+                };
+                
+                console.log('Cash book data being sent to comprehensive template:', cashBookData);
+                console.log('Receipts data:', cashBookData.receipts);
+                console.log('Payments data:', cashBookData.payments);
+                
+                template = comprehensiveCashBookTemplate;
+                inputs = await generateComprehensiveCashBookPDF(cashBookData);
+                break;
+                
               case 'profitLoss':
                 // Generate Profit & Loss Statement
                 const profitLossData = await financialCalculator.calculateProfitLoss(
@@ -621,33 +815,117 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 break;
             }
             
-            const { generate } = await import('@pdfme/generator');
-            const { text, rectangle, line, image } = await import('@pdfme/schemas');
-            const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
-            
-            // Download PDF
-            const reportTypeName = financialReportType === 'profitLoss' ? 'profit-loss' : 
-                                  financialReportType === 'balanceSheet' ? 'balance-sheet' : 
-                                  financialReportType === 'cashFlow' ? 'cash-flow' : 'financial-summary';
-            
-            const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${reportTypeName}-${start.toISOString().split('T')[0]}-${end.toISOString().split('T')[0]}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            try {
+              const { generate } = await import('@pdfme/generator');
+              const { text, rectangle, line, image } = await import('@pdfme/schemas');
+              const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
+              
+              // Download PDF
+              const reportTypeName = financialReportType === 'cashBook' ? 'cash-book' :
+                                    financialReportType === 'profitLoss' ? 'profit-loss' : 
+                                    financialReportType === 'balanceSheet' ? 'balance-sheet' : 
+                                    financialReportType === 'cashFlow' ? 'cash-flow' : 'financial-summary';
+              
+              const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${reportTypeName}-${start.toISOString().split('T')[0]}-${end.toISOString().split('T')[0]}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            } catch (pdfmeError) {
+              console.error('PDFme generation failed, falling back to HTML:', pdfmeError);
+              // Fallback to HTML for cash book
+              if (financialReportType === 'cashBook') {
+                const cashBookData = (window as any).cashBookData;
+                if (cashBookData) {
+                  const receiptsTable = `
+                    <table class="table table-sm table-striped">
+                      <thead><tr><th>Date</th><th>Particulars</th><th>REF</th><th>Cash (KES)</th><th>Cooperative Bank (KES)</th><th>Disc. Allowed</th></tr></thead>
+                      <tbody>${cashBookData.receipts.map((r: any) => 
+                        `<tr><td>${r.date}</td><td>${r.particulars}</td><td>${r.ref}</td><td>${r.cash}</td><td>${r.bank}</td><td>${r.discount}</td></tr>`
+                      ).join('')}</tbody>
+                    </table>`;
+                  
+                  const paymentsTable = `
+                    <table class="table table-sm table-striped">
+                      <thead><tr><th>Date</th><th>Particulars</th><th>REF</th><th>Cash (KES)</th><th>Cooperative Bank (KES)</th><th>Disc. Received</th></tr></thead>
+                      <tbody>${cashBookData.payments.map((r: any) => 
+                        `<tr><td>${r.date}</td><td>${r.particulars}</td><td>${r.ref}</td><td>${r.cash}</td><td>${r.bank}</td><td>${r.discount}</td></tr>`
+                      ).join('')}</tbody>
+                    </table>`;
+                  
+                  const combinedTable = `
+                    <div class="row">
+                      <div class="col-md-6">
+                        <h4>Receipts (DR)</h4>${receiptsTable}
+                      </div>
+                      <div class="col-md-6">
+                        <h4>Payments (CR)</h4>${paymentsTable}
+                      </div>
+                    </div>`;
+                  
+                  printTableHtml('Three Column Cash Book', combinedTable);
+                } else {
+                  printTableHtml('Cash Book Report', 'No cash book data available');
+                }
+              } else {
+                // Fallback to HTML for other financial reports
+                const table = `
+                  <table class="table table-sm table-striped">
+                    <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                    <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+                  </table>`;
+                printTableHtml('Financial Report', table);
+              }
+            }
           } catch (pdfError) {
             console.error('PDF generation failed, falling back to HTML:', pdfError);
-            // Fallback to HTML
-            const table = `
-              <table class="table table-sm table-striped">
-                <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
-                <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
-              </table>`
-            printTableHtml('Financial Report', table)
+            // Fallback to HTML for financial reports
+            if (financialReportType === 'cashBook') {
+              const cashBookData = (window as any).cashBookData;
+              if (cashBookData) {
+                const receiptsTable = `
+                  <table class="table table-sm table-striped">
+                    <thead><tr><th>Date</th><th>Particulars</th><th>REF</th><th>Cash (KES)</th><th>Cooperative Bank (KES)</th><th>Disc. Allowed</th></tr></thead>
+                    <tbody>${cashBookData.receipts.map((r: any) => 
+                      `<tr><td>${r.date}</td><td>${r.particulars}</td><td>${r.ref}</td><td>${r.cash}</td><td>${r.bank}</td><td>${r.discount}</td></tr>`
+                    ).join('')}</tbody>
+                  </table>`;
+                
+                const paymentsTable = `
+                  <table class="table table-sm table-striped">
+                    <thead><tr><th>Date</th><th>Particulars</th><th>REF</th><th>Cash (KES)</th><th>Cooperative Bank (KES)</th><th>Disc. Received</th></tr></thead>
+                    <tbody>${cashBookData.payments.map((r: any) => 
+                      `<tr><td>${r.date}</td><td>${r.particulars}</td><td>${r.ref}</td><td>${r.cash}</td><td>${r.bank}</td><td>${r.discount}</td></tr>`
+                    ).join('')}</tbody>
+                  </table>`;
+                
+                const combinedTable = `
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h4>Receipts (DR)</h4>${receiptsTable}
+                    </div>
+                    <div class="col-md-6">
+                      <h4>Payments (CR)</h4>${paymentsTable}
+                    </div>
+                  </div>`;
+                
+                printTableHtml('Three Column Cash Book', combinedTable);
+              } else {
+                printTableHtml('Cash Book Report', 'No cash book data available');
+              }
+            } else {
+              // Fallback to HTML for other financial reports
+              const table = `
+                <table class="table table-sm table-striped">
+                  <thead><tr>${columns.map(c=>`<th class="text-${c.align||'start'}">${c.label}</th>`).join('')}</tr></thead>
+                  <tbody>${rows.map(r=>`<tr>${columns.map(c=>`<td class="text-${c.align||'start'}">${(r as any)[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+                </table>`;
+              printTableHtml('Financial Report', table);
+            }
           }
           
         } else if (type === 'inventory') {
@@ -1059,6 +1337,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <option value="profitLoss">Profit & Loss Statement</option>
               <option value="balanceSheet">Balance Sheet</option>
               <option value="cashFlow">Cash Flow Statement</option>
+              <option value="cashBook">Three Column Cash Book</option>
             </select>
           </div>
           <div className="mb-4">
