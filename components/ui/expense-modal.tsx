@@ -54,7 +54,8 @@ const ExpenseModal = ({
     date_created: new Date().toISOString().split('T')[0],
     expense_type: expenseType,
     employee_id: "",
-    expense_category: ""
+    expense_category: "",
+    main_amount: 0  // Add separate field for main amount input
   })
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
     {
@@ -125,10 +126,7 @@ const ExpenseModal = ({
 
   useEffect(() => {
     if (expense && mode !== "create") {
-      // Convert UTC from database to Nairobi time for display
-      const expenseDate = new Date(expense.date_created)
-      const nairobiDate = utcToNairobi(expenseDate)
-      
+      // Edit mode - populate form with existing expense data
       setFormData({
         expense_number: expense.expense_number || "",
         client_id: expense.client_id?.toString() || "",
@@ -138,10 +136,11 @@ const ExpenseModal = ({
         description: expense.description || "",
         receipt_number: expense.receipt_number || "",
         account_debited: expense.account_debited || "",
-        date_created: nairobiDate.toISOString().split('T')[0],
+        date_created: expense.date_created ? utcToNairobi(new Date(expense.date_created)).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expense_type: expense.expense_type || expenseType,
         employee_id: expense.employee_id?.toString() || "",
-        expense_category: expense.expense_category || ""
+        expense_category: expense.expense_category || "",
+        main_amount: expense.amount || 0 // Initialize main_amount with the expense amount
       })
       setSelectedQuotation(expense.quotation_number || "");
       
@@ -161,7 +160,7 @@ const ExpenseModal = ({
         setFormData(prev => ({ ...prev, expense_number: number }))
       })
       // Reset amount for new expenses
-      setFormData(prev => ({ ...prev, amount: 0 }))
+      setFormData(prev => ({ ...prev, amount: 0, main_amount: 0 }))
     }
   }, [expense, mode, clients, expenseType])
 
@@ -196,7 +195,19 @@ const ExpenseModal = ({
           rate: item.rate,
           amount: item.amount
         })))
+      } else {
+        // No expense items, set empty array
+        setExpenseItems([{
+          id: 1,
+          description: "",
+          quantity: 1,
+          rate: 0,
+          amount: 0
+        }])
       }
+      
+      // Trigger recalculation of total amount after loading items
+      // This will happen automatically due to the useEffect dependency on expenseItems
     } catch (error) {
       console.error('Error loading expense items:', error)
     }
@@ -222,12 +233,18 @@ const ExpenseModal = ({
 
   useEffect(() => {
     // Calculate total amount whenever expense items change
-    const total = expenseItems.reduce((sum, item) => sum + item.amount, 0)
-    // Only auto-update amount if it's not a client expense or if no manual amount is set
-    if (expenseType !== "client" || formData.amount === 0) {
+    const expenseItemsTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0)
+    
+    if (expenseType === "client") {
+      // For client expenses, total = main amount + expense items total
+      const mainAmount = formData.main_amount || 0
+      const total = mainAmount + expenseItemsTotal
       setFormData(prev => ({ ...prev, amount: total }))
+    } else {
+      // For company expenses, only use expense items total
+      setFormData(prev => ({ ...prev, amount: expenseItemsTotal }))
     }
-  }, [expenseItems, expenseType, formData.amount])
+  }, [expenseItems, expenseType, formData.main_amount])
 
   const handleClientSelect = (client: any) => {
     setClientSearch(client.name)
@@ -623,10 +640,10 @@ const ExpenseModal = ({
                       <input
                         type="number"
                         className="form-control border-0 shadow-sm"
-                        value={formData.amount}
+                        value={formData.main_amount}
                         onChange={(e) => {
                           const newAmount = parseFloat(e.target.value) || 0
-                          setFormData(prev => ({ ...prev, amount: newAmount }))
+                          setFormData(prev => ({ ...prev, main_amount: newAmount }))
                         }}
                         style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                         step="0.01"
