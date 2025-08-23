@@ -57,6 +57,7 @@ const ExpenseModal = ({
     expense_category: "",
     main_amount: 0  // Add separate field for main amount input
   })
+  const [expenseNumberGenerated, setExpenseNumberGenerated] = useState(false)
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
     {
       id: 1,
@@ -125,8 +126,34 @@ const ExpenseModal = ({
   }, [])
 
   useEffect(() => {
+    console.log('useEffect triggered - expense:', expense, 'mode:', mode, 'expenseType:', expenseType)
+    
     if (expense && mode !== "create") {
       // Edit mode - populate form with existing expense data
+      
+      // Map old uppercase account values to new lowercase values for backward compatibility
+      let mappedAccountDebited = expense.account_debited || ""
+      if (mappedAccountDebited) {
+        const accountMapping: { [key: string]: string } = {
+          "Cash": "cash",
+          "Cooperative Bank": "cooperative_bank", 
+          "Credit": "credit",
+          "Cheque": "cheque"
+        }
+        mappedAccountDebited = accountMapping[mappedAccountDebited] || mappedAccountDebited
+      }
+      
+      // Map old category field to expense_category for backward compatibility
+      let mappedExpenseCategory = expense.expense_category || expense.category || ""
+      
+      // Debug logging for edit mode
+      console.log('Loading expense for edit:', {
+        original: expense,
+        mappedAccountDebited,
+        mappedExpenseCategory,
+        expenseType
+      })
+      
       setFormData({
         expense_number: expense.expense_number || "",
         client_id: expense.client_id?.toString() || "",
@@ -135,13 +162,14 @@ const ExpenseModal = ({
         amount: expense.amount || 0,
         description: expense.description || "",
         receipt_number: expense.receipt_number || "",
-        account_debited: expense.account_debited || "",
+        account_debited: mappedAccountDebited,
         date_created: expense.date_created ? utcToNairobi(new Date(expense.date_created)).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         expense_type: expense.expense_type || expenseType,
         employee_id: expense.employee_id?.toString() || "",
-        expense_category: expense.expense_category || "",
+        expense_category: mappedExpenseCategory,
         main_amount: expense.amount || 0 // Initialize main_amount with the expense amount
       })
+      setExpenseNumberGenerated(true) // Expense number already exists in edit mode
       setSelectedQuotation(expense.quotation_number || "");
       
       // Load expense items from expense_items table
@@ -158,6 +186,13 @@ const ExpenseModal = ({
       // Generate new expense number for create mode
       generateExpenseNumber(expenseType).then(number => {
         setFormData(prev => ({ ...prev, expense_number: number }))
+        setExpenseNumberGenerated(true)
+      }).catch(error => {
+        console.error('Error generating expense number:', error)
+        // Fallback expense number
+        const fallbackNumber = `EN${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${Date.now().toString().slice(-3)}`
+        setFormData(prev => ({ ...prev, expense_number: fallbackNumber }))
+        setExpenseNumberGenerated(true)
       })
       // Reset amount for new expenses
       setFormData(prev => ({ ...prev, amount: 0, main_amount: 0 }))
@@ -176,6 +211,19 @@ const ExpenseModal = ({
       setClientQuotations([])
     }
   }, [formData.client_id])
+
+  // Debug useEffect to monitor form data changes
+  useEffect(() => {
+    if (mode === "edit") {
+      console.log('Form data updated:', {
+        account_debited: formData.account_debited,
+        expense_category: formData.expense_category,
+        category: formData.category,
+        mode,
+        expenseType
+      })
+    }
+  }, [formData.account_debited, formData.expense_category, formData.category, mode, expenseType])
 
   const loadExpenseItems = async (expenseId: number) => {
     try {
@@ -308,6 +356,20 @@ const ExpenseModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check if expense number has been generated
+    if (mode === "create" && !expenseNumberGenerated) {
+      toast.error("Please wait for expense number to be generated")
+      return
+    }
+    
+    // Check if required fields are filled
+    const requiredCategory = expenseType === "client" ? formData.expense_category : formData.category
+    if (!formData.expense_number || !requiredCategory) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -315,17 +377,41 @@ const ExpenseModal = ({
       // This prevents the "one day less" issue by treating the date as a pure calendar date
       const dateToSave = dateInputToDateOnly(formData.date_created)
       
+      // Remove main_amount field as it doesn't exist in the database
+      const { main_amount, ...formDataWithoutMainAmount } = formData
+      
+      // Map expense_category to category for client expenses
+      const mappedFormData = {
+        ...formDataWithoutMainAmount,
+        category: expenseType === "client" ? formData.expense_category : formData.category
+      }
+      
+      // Ensure category is set for client expenses
+      if (expenseType === "client" && !mappedFormData.category) {
+        throw new Error("Category is required for client expenses")
+      }
+      
       const expenseData = {
-        ...formData,
+        ...mappedFormData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
         employee_id: formData.employee_id ? parseInt(formData.employee_id) : null,
         date_created: dateToSave.toISOString(),
         quotation_number: selectedQuotation || null
       }
+      
+      // Debug logging
+      console.log('Form data being sent:', expenseData)
+      console.log('Required fields check:', {
+        expense_number: expenseData.expense_number,
+        category: expenseData.category,
+        amount: expenseData.amount
+      })
 
       let savedExpense: Expense | null = null
 
       if (mode === "create") {
+        console.log('Attempting to insert expense with data:', expenseData)
+        
         const { data, error } = await supabase
           .from("expenses")
           .insert([expenseData])
@@ -336,7 +422,18 @@ const ExpenseModal = ({
           `)
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Supabase insert error:', error)
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          })
+          throw error
+        }
+        
+        console.log('Expense inserted successfully:', data)
         savedExpense = data
         
         // Save expense items only if they have descriptions
@@ -351,11 +448,18 @@ const ExpenseModal = ({
           }))
 
         if (itemsToInsert.length > 0) {
+          console.log('Attempting to insert expense items:', itemsToInsert)
+          
           const { error: itemsError } = await supabase
             .from("expense_items")
             .insert(itemsToInsert)
 
-          if (itemsError) throw itemsError
+          if (itemsError) {
+            console.error('Supabase expense items insert error:', itemsError)
+            throw itemsError
+          }
+          
+          console.log('Expense items inserted successfully')
         }
         
         toast.success("Expense created successfully")
@@ -391,11 +495,18 @@ const ExpenseModal = ({
           }))
 
         if (itemsToInsert.length > 0) {
+          console.log('Attempting to insert expense items (edit mode):', itemsToInsert)
+          
           const { error: itemsError } = await supabase
             .from("expense_items")
             .insert(itemsToInsert)
 
-          if (itemsError) throw itemsError
+          if (itemsError) {
+            console.error('Supabase expense items insert error (edit mode):', itemsError)
+            throw itemsError
+          }
+          
+          console.log('Expense items inserted successfully (edit mode)')
         }
         
         toast.success("Expense updated successfully")
@@ -577,20 +688,20 @@ const ExpenseModal = ({
                   </div>
                   <div className="col-md-6">
                     <label className="form-label">Account Debited</label>
-                    <select 
-                      className="form-select border-0 shadow-sm"
-                      value={formData.account_debited}
-                      onChange={(e) => setFormData(prev => ({ ...prev, account_debited: e.target.value }))}
-                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                      required
-                      disabled={mode === "view"}
-                    >
-                      <option value="">Select Account</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Cooperative Bank">Cooperative Bank</option>
-                      <option value="Credit">Credit</option>
-                      <option value="Cheque">Cheque</option>
-                    </select>
+                                          <select 
+                        className="form-select border-0 shadow-sm"
+                        value={formData.account_debited}
+                        onChange={(e) => setFormData(prev => ({ ...prev, account_debited: e.target.value }))}
+                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                        required
+                        disabled={mode === "view"}
+                      >
+                        <option value="">Select Account</option>
+                        <option value="cash">Cash</option>
+                        <option value="cooperative_bank">Cooperative Bank</option>
+                        <option value="credit">Credit</option>
+                        <option value="cheque">Cheque</option>
+                      </select>
                   </div>
                 </div>
               </div>
@@ -814,10 +925,10 @@ const ExpenseModal = ({
                 type="submit"
                 className="btn-add"
                 form="expenseForm"
-                disabled={loading}
+                disabled={loading || (mode === "create" && !expenseNumberGenerated)}
                 style={{ borderRadius: "12px", height: "45px" }}
               >
-                {loading ? "Saving..." : "Save Expense"}
+                {loading ? "Saving..." : (mode === "create" && !expenseNumberGenerated) ? "Generating..." : "Save Expense"}
               </button>
             )}
           </div>
