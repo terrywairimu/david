@@ -2,13 +2,31 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Share2, ExternalLink } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
+import { useIsMobile } from "@/hooks/use-mobile"
+import PrintModal from "./print-modal"
+import dynamic from 'next/dynamic'
+
+// Dynamically import MobilePDFViewer to avoid SSR issues
+const MobilePDFViewer = dynamic(() => import('./mobile-pdf-viewer'), { 
+  ssr: false,
+  loading: () => (
+    <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+      <div className="text-center">
+        <div className="spinner-border spinner-border-sm text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2 text-muted">Loading PDF Viewer...</p>
+      </div>
+    </div>
+  )
+})
 
 interface Client {
   id: number
@@ -178,6 +196,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   // Labour percentages
   const [cabinetLabourPercentage, setCabinetLabourPercentage] = useState(15)
+  const [worktopLabourPercentage, setWorktopLabourPercentage] = useState(15)
   const [accessoriesLabourPercentage, setAccessoriesLabourPercentage] = useState(15)
   const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(15)
   const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(15)
@@ -216,11 +235,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   // Refs
   const clientSearchRef = useRef<HTMLDivElement>(null)
-  const itemSearchRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement> }>({})
+  const itemSearchRefs = useRef<Map<string, React.RefObject<HTMLDivElement>>>(new Map())
 
   // PDF states
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  
+  // Mobile detection and print modal state
+  const isMobile = useIsMobile()
+  const [showPrintModal, setShowPrintModal] = useState(false)
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -249,11 +273,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems])
 
   // Get item input ref
-  const getItemInputRef = (itemId: string): React.RefObject<HTMLDivElement | null> => {
-    if (!itemSearchRefs.current[itemId]) {
-      itemSearchRefs.current[itemId] = { current: null }
+  const getItemInputRef = (itemId: string): React.RefObject<HTMLDivElement> => {
+    if (!itemSearchRefs.current.has(itemId)) {
+      itemSearchRefs.current.set(itemId, React.createRef<HTMLDivElement>() as React.RefObject<HTMLDivElement>)
     }
-    return itemSearchRefs.current[itemId]
+    return itemSearchRefs.current.get(itemId)!
   }
 
   // Generate PDF for viewing when modal opens in view mode
@@ -863,9 +887,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         documentTitle: "INVOICE",
         items: items,
         section_names: sectionNames,
-        subtotal: originalAmount,
-        vat: vat,
-        vatPercentage: vatPercentageNum,
         total: subtotalWithLabour,
         terms: termsConditions.split('\n').filter(line => line.trim()),
         preparedBy: "",
@@ -880,6 +901,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       
       // Download the PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -894,6 +916,106 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error("Failed to generate PDF. Please try again.");
+    }
+  }
+
+  // Print modal handlers
+  const handlePrintModalOpen = () => {
+    if (isMobile) {
+      setShowPrintModal(true)
+    } else {
+      // On desktop, directly download
+      generatePDF()
+    }
+  }
+
+  const handlePrintModalClose = () => {
+    setShowPrintModal(false)
+  }
+
+  const handlePrint = async () => {
+    try {
+      // Open a placeholder window synchronously to avoid mobile popup blockers
+      const printWindow = window.open('', '_blank')
+      if (!pdfUrl) {
+        await generatePDFForViewing()
+      }
+      if (printWindow && pdfUrl) {
+        printWindow.location.href = pdfUrl
+        printWindow.onload = () => {
+          try { printWindow.print() } catch {}
+        }
+      }
+      setShowPrintModal(false)
+    } catch (error) {
+      toast.error("Failed to print. Please try again.")
+    }
+  }
+
+  const handleDownload = () => {
+    generatePDF()
+    setShowPrintModal(false)
+  }
+
+  const handleView = () => {
+    // Open a placeholder window synchronously to avoid mobile popup blockers
+    const viewWindow = window.open('', '_blank')
+    if (pdfUrl) {
+      if (viewWindow) viewWindow.location.href = pdfUrl
+    } else {
+      generatePDFForViewing().then(() => {
+        if (viewWindow && pdfUrl) {
+          viewWindow.location.href = pdfUrl
+        }
+      })
+    }
+    setShowPrintModal(false)
+  }
+
+  const handleShare = async () => {
+    try {
+      if (!pdfUrl) {
+        // Generate if missing
+        await generatePDFForViewing()
+      }
+
+      // Prefer Web Share Level 2 with files when supported
+      const canShareFile = typeof navigator !== 'undefined' && 'canShare' in navigator && typeof window !== 'undefined'
+      if (canShareFile && pdfBlob) {
+        const file = new File([pdfBlob], `invoice-${invoiceNumber}.pdf`, { type: 'application/pdf' })
+        // @ts-ignore - canShare exists in supporting browsers
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // @ts-ignore - share with files
+          await navigator.share({
+            title: `Invoice ${invoiceNumber}`,
+            text: `Invoice ${invoiceNumber} from Cabinet Master Styles`,
+            files: [file]
+          })
+          setShowPrintModal(false)
+          return
+        }
+      }
+
+      // Fallback to URL sharing when files not supported
+      if (navigator.share && pdfUrl) {
+        await navigator.share({
+          title: `Invoice ${invoiceNumber}`,
+          text: `Invoice ${invoiceNumber} from Cabinet Master Styles`,
+          url: pdfUrl
+        })
+        setShowPrintModal(false)
+        return
+      }
+
+      // Ultimate fallback: copy link
+      if (pdfUrl) {
+        await navigator.clipboard.writeText(pdfUrl)
+        toast.success('Link copied to clipboard')
+      } else {
+        toast.error('Unable to share on this device/browser')
+      }
+    } catch (error) {
+      toast.error('Failed to share. Please try again.')
     }
   }
 
@@ -936,7 +1058,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         tvunit: tvUnitItems
       };
 
-      Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+      Object.entries(grouped).forEach(([category, itemsInCategory]: [string, any[]]) => {
+        const typedItemsInCategory = itemsInCategory as any[];
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: sectionNames.cabinet,
@@ -963,7 +1086,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
         // Insert items for this section
         let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
+        typedItemsInCategory.forEach((item: any) => {
           const itemRow = {
             itemNumber: itemNumber.toString(),
             quantity: item.quantity?.toString() || "",
@@ -990,8 +1113,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (itemsInCategory.length > 0 && category !== 'worktop') {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        if (typedItemsInCategory.length > 0 && category !== 'worktop') {
+          const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
           let labourPercentage = 30; // Default
@@ -1028,7 +1151,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && worktopLaborQty && worktopLaborUnitPrice) {
@@ -1036,8 +1159,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        if (category !== 'worktop' && category !== 'cabinet' && typedItemsInCategory.length > 0) {
+          const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
           let labourPercentage = 30; // Default
@@ -1097,9 +1220,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         originalQuotationNumber: originalQuotationNumber || "",
         documentTitle: "INVOICE",
         items,
-        subtotal: subtotalWithLabour,
-        vat: vatAmount,
-        vatPercentage: parseFloat(vatPercentage),
         total: grandTotal,
         notes: notes || "",
         terms: parseTermsAndConditions(termsConditions || ""),
@@ -1159,12 +1279,13 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
       // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-      const grouped = invoice.items?.reduce((acc, item) => {
+      const grouped = invoice.items?.reduce((acc: Record<string, any[]>, item: any) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof invoice.items>) || {};
+      }, {} as Record<string, any[]>) || {};
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        const typedItemsInCategory = itemsInCategory as any[];
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: invoice.section_names?.cabinet || "General",
@@ -1191,7 +1312,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
         // Insert items for this section
         let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
+        typedItemsInCategory.forEach((item: any) => {
           const itemRow = {
             itemNumber: itemNumber.toString(),
             quantity: item.quantity?.toString() || "",
@@ -1218,15 +1339,15 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (itemsInCategory.length > 0 && category !== 'worktop') {
+        if (typedItemsInCategory.length > 0 && category !== 'worktop') {
           // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some(item => 
+          const hasExistingLabourCharge = typedItemsInCategory.some((item: any) => 
             item.description && item.description.toLowerCase().includes('labour charge')
           );
           
           // Only calculate labour charge if no labour charge items exist
           if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
             
             // Get the correct labour percentage for this specific section from database
             let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
@@ -1265,7 +1386,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
@@ -1273,8 +1394,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        if (category !== 'worktop' && category !== 'cabinet' && typedItemsInCategory.length > 0) {
+          const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
           let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
@@ -1334,9 +1455,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         originalQuotationNumber: invoice.original_quotation_number || "",
         documentTitle: "INVOICE",
         items,
-        subtotal: invoice.total_amount || 0,
-        vat: invoice.vat_amount || 0,
-        vatPercentage: invoice.vat_percentage || 16,
+
         total: invoice.grand_total || 0,
         notes: invoice.notes || "",
         terms: parseTermsAndConditions(invoice.terms_conditions || ""),
@@ -1410,7 +1529,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
         due_date: dueDateToSave ? dueDateToSave.toISOString() : null,
         client_id: selectedClient.id,
         total_amount: grandTotal,
-        subtotal: subtotalWithLabour,
         vat_percentage: vatPercentageNum,
         vat_amount: vat,
         terms_conditions: termsConditions,
@@ -1473,9 +1591,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-xl">
-        <div className="modal-content">
+    <>
+      <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal-dialog modal-xl">
+          <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">
               {mode === "create" ? "Create Invoice" : mode === "edit" ? "Edit Invoice" : "View Invoice"}
@@ -1491,19 +1610,29 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
             justifyContent: mode === "view" && pdfUrl ? "center" : "flex-start"
           }}>
             {mode === "view" && pdfUrl ? (
-              <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
-                <iframe
-                  src={pdfUrl}
-                  style={{
-                    width: "min(794px, 100%)", // Responsive width
-                    height: "70vh",
-                    border: "none",
-                    borderRadius: "0",
-                    maxWidth: "100%"
-                  }}
-                  title="Invoice PDF"
+              isMobile ? (
+                <MobilePDFViewer
+                  pdfUrl={pdfUrl}
+                  quotationNumber={invoiceNumber}
+                  onDownload={handleDownload}
+                  onPrint={handlePrint}
+                  onShare={handleShare}
                 />
-              </div>
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
+                  <iframe
+                    src={pdfUrl}
+                    style={{
+                      width: "min(794px, 100%)", // Responsive width
+                      height: "70vh",
+                      border: "none",
+                      borderRadius: "0",
+                      maxWidth: "100%"
+                    }}
+                    title="Invoice PDF"
+                  />
+                </div>
+              )
             ) : mode === "view" && pdfLoading ? (
               <div style={{ 
                 display: "flex", 
@@ -2201,7 +2330,50 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                         />
                       </div>
                     </div>
-                    {/* Add other labour percentage fields */}
+                    <div className="row mb-2">
+                      <div className="col-md-6">
+                        <label className="form-label">Appliances Labour %</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={appliancesLabourPercentage}
+                          onChange={(e) => setAppliancesLabourPercentage(parseFloat(e.target.value) || 0)}
+                          readOnly={mode === "view"}
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Wardrobes Labour %</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={wardrobesLabourPercentage}
+                          onChange={(e) => setWardrobesLabourPercentage(parseFloat(e.target.value) || 0)}
+                          readOnly={mode === "view"}
+                        />
+                      </div>
+                    </div>
+                    <div className="row mb-2">
+                      <div className="col-md-6">
+                        <label className="form-label">TV Unit Labour %</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={tvUnitLabourPercentage}
+                          onChange={(e) => setTvUnitLabourPercentage(parseFloat(e.target.value) || 0)}
+                          readOnly={mode === "view"}
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Worktop Labour %</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={worktopLabourPercentage}
+                          onChange={(e) => setWorktopLabourPercentage(parseFloat(e.target.value) || 0)}
+                          readOnly={mode === "view"}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -2355,7 +2527,20 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      
+      {/* Print Modal for Mobile */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={handlePrintModalClose}
+        pdfUrl={pdfUrl}
+        quotationNumber={invoiceNumber}
+        onDownload={handleDownload}
+        onPrint={handlePrint}
+        onView={handleView}
+        onShare={handleShare}
+      />
+    </>
   )
 }
 

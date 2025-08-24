@@ -2,13 +2,31 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Share2, ExternalLink } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
+import { useIsMobile } from "@/hooks/use-mobile"
+import PrintModal from "./print-modal"
+import dynamic from 'next/dynamic'
+
+// Dynamically import MobilePDFViewer to avoid SSR issues
+const MobilePDFViewer = dynamic(() => import('./mobile-pdf-viewer'), { 
+  ssr: false,
+  loading: () => (
+    <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
+      <div className="text-center">
+        <div className="spinner-border spinner-border-sm text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2 text-muted">Loading PDF Viewer...</p>
+      </div>
+    </div>
+  )
+})
 
 interface Client {
   id: number
@@ -175,7 +193,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   
   // PDF viewing state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  
+  // Mobile detection and print modal state
+  const isMobile = useIsMobile()
+  const [showPrintModal, setShowPrintModal] = useState(false)
   
   // Payment tracking state
   const [totalPaid, setTotalPaid] = useState(0)
@@ -1055,9 +1078,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         clientNames: selectedClient?.name || "",
         siteLocation: selectedClient?.location || "",
         mobileNo: selectedClient?.phone || "",
-        date: quotationDate || new Date().toLocaleDateString(),
+        date: orderDate || new Date().toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: quotationNumber,
+        quotationNumber: orderNumber,
         items: items,
         section_names: sectionNames, // Add custom section names
         subtotal: originalAmount, // Amount before VAT
@@ -1078,10 +1101,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       
       // Download the PDF
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `quotation-${quotationNumber}.pdf`;
+      link.download = `sales-order-${orderNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1092,6 +1116,106 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     } catch (error) {
 
       toast.error("Failed to generate PDF. Please try again.");
+    }
+  }
+
+  // Print modal handlers
+  const handlePrintModalOpen = () => {
+    if (isMobile) {
+      setShowPrintModal(true)
+    } else {
+      // On desktop, directly download
+      generatePDF()
+    }
+  }
+
+  const handlePrintModalClose = () => {
+    setShowPrintModal(false)
+  }
+
+  const handlePrint = async () => {
+    try {
+      // Open a placeholder window synchronously to avoid mobile popup blockers
+      const printWindow = window.open('', '_blank')
+      if (!pdfUrl) {
+        await generatePDFForViewing()
+      }
+      if (printWindow && pdfUrl) {
+        printWindow.location.href = pdfUrl
+        printWindow.onload = () => {
+          try { printWindow.print() } catch {}
+        }
+      }
+      setShowPrintModal(false)
+    } catch (error) {
+      toast.error("Failed to print. Please try again.")
+    }
+  }
+
+  const handleDownload = () => {
+    generatePDF()
+    setShowPrintModal(false)
+  }
+
+  const handleView = () => {
+    // Open a placeholder window synchronously to avoid mobile popup blockers
+    const viewWindow = window.open('', '_blank')
+    if (pdfUrl) {
+      if (viewWindow) viewWindow.location.href = pdfUrl
+    } else {
+      generatePDFForViewing().then(() => {
+        if (viewWindow && pdfUrl) {
+          viewWindow.location.href = pdfUrl
+        }
+      })
+    }
+    setShowPrintModal(false)
+  }
+
+  const handleShare = async () => {
+    try {
+      if (!pdfUrl) {
+        // Generate if missing
+        await generatePDFForViewing()
+      }
+
+      // Prefer Web Share Level 2 with files when supported
+      const canShareFile = typeof navigator !== 'undefined' && 'canShare' in navigator && typeof window !== 'undefined'
+      if (canShareFile && pdfBlob) {
+        const file = new File([pdfBlob], `sales-order-${orderNumber}.pdf`, { type: 'application/pdf' })
+        // @ts-ignore - canShare exists in supporting browsers
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // @ts-ignore - share with files
+          await navigator.share({
+                      title: `Sales Order ${orderNumber}`,
+          text: `Sales Order ${orderNumber} from Cabinet Master Styles`,
+            files: [file]
+          })
+          setShowPrintModal(false)
+          return
+        }
+      }
+
+      // Fallback to URL sharing when files not supported
+      if (navigator.share && pdfUrl) {
+        await navigator.share({
+                  title: `Sales Order ${orderNumber}`,
+        text: `Sales Order ${orderNumber} from Cabinet Master Styles`,
+          url: pdfUrl
+        })
+        setShowPrintModal(false)
+        return
+      }
+
+      // Ultimate fallback: copy link
+      if (pdfUrl) {
+        await navigator.clipboard.writeText(pdfUrl)
+        toast.success('Link copied to clipboard')
+      } else {
+        toast.error('Unable to share on this device/browser')
+      }
+    } catch (error) {
+      toast.error('Failed to share. Please try again.')
     }
   }
 
@@ -1112,12 +1236,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
       // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-      const grouped = salesOrder.items?.reduce((acc, item) => {
+      const grouped = salesOrder.items?.reduce((acc: Record<string, any[]>, item: any) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof salesOrder.items>) || {};
+      }, {} as Record<string, any[]>) || {};
 
       Object.entries(grouped).forEach(([category, itemsInCategory]) => {
+        const typedItemsInCategory = itemsInCategory as any[];
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: salesOrder.section_names?.cabinet || "General",
@@ -1144,7 +1269,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
         // Insert items for this section
         let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
+        typedItemsInCategory.forEach((item: any) => {
           const itemRow = {
             itemNumber: itemNumber.toString(),
             quantity: item.quantity?.toString() || "",
@@ -1174,15 +1299,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
 
         // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (itemsInCategory.length > 0 && category !== 'worktop') {
+        if (typedItemsInCategory.length > 0 && category !== 'worktop') {
           // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some(item => 
+          const hasExistingLabourCharge = typedItemsInCategory.some((item: any) => 
             item.description && item.description.toLowerCase().includes('labour charge')
           );
           
           // Only calculate labour charge if no labour charge items exist
           if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+            const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
             
             // Get the correct labour percentage for this specific section from database
             let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
@@ -1223,7 +1348,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
 
         // Insert section summary row
-        let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        let sectionTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
@@ -1231,8 +1356,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
 
         // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        if (category !== 'worktop' && category !== 'cabinet' && typedItemsInCategory.length > 0) {
+          const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
           
           // Get the correct labour percentage for this specific section
           let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
@@ -1292,9 +1417,6 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         originalQuotationNumber: salesOrder.original_quotation_number || "",
         documentTitle: "SALES ORDER",
         items,
-        subtotal: salesOrder.total_amount || 0,
-        vat: salesOrder.vat_amount || 0,
-        vatPercentage: salesOrder.vat_percentage || 16,
         total: salesOrder.grand_total || 0,
         notes: salesOrder.notes || "",
         terms: parseTermsAndConditions(salesOrder.terms_conditions || ""),
@@ -1320,6 +1442,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }
       
       setPdfUrl(url);
+      setPdfBlob(blob);
       
     } catch (error) {
       console.error('Error generating PDF for viewing:', error);
@@ -1382,10 +1505,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
     // Convert date input to date-only value for database storage
     // This prevents the "one day less" issue by treating the date as a pure calendar date
-    const dateToSave = quotationDate ? dateInputToDateOnly(quotationDate) : new Date()
+    const dateToSave = orderDate ? dateInputToDateOnly(orderDate) : new Date()
     
     const quotationData = {
-      quotation_number: quotationNumber,
+      quotation_number: orderNumber,
       client_id: selectedClient.id,
       date_created: dateToSave.toISOString(),
       cabinet_total: totals.cabinetTotal,
@@ -1509,16 +1632,17 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const grandTotal = subtotalWithLabour; // Grand total remains the same
 
   return (
-    <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <div 
-        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
-        style={mode === "view" && pdfUrl ? {
-          maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
-          width: "min(794px, 95vw)",
-          margin: "1.75rem auto"
-        } : {}}
-      >
-        <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
+    <>
+      <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+        <div 
+          className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
+          style={mode === "view" && pdfUrl ? {
+            maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
+            width: "min(794px, 95vw)",
+            margin: "1.75rem auto"
+          } : {}}
+        >
+          <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
           {/* Header */}
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
             <div className="d-flex align-items-center">
@@ -1559,19 +1683,29 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
               display: "flex",
               justifyContent: "center"
             }}>
-              <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
-                <iframe
-                  src={pdfUrl}
-                  style={{
-                    width: "min(794px, 100%)", // Responsive width
-                    height: "70vh",
-                    border: "none",
-                    borderRadius: "0",
-                    maxWidth: "100%"
-                  }}
-                  title="Quotation PDF"
+              {isMobile ? (
+                <MobilePDFViewer
+                  pdfUrl={pdfUrl}
+                  quotationNumber={orderNumber}
+                  onDownload={handleDownload}
+                  onPrint={handlePrint}
+                  onShare={handleShare}
                 />
-              </div>
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
+                  <iframe
+                    src={pdfUrl}
+                    style={{
+                      width: "min(794px, 100%)", // Responsive width
+                      height: "70vh",
+                      border: "none",
+                      borderRadius: "0",
+                      maxWidth: "100%"
+                    }}
+                    title="Sales Order PDF"
+                  />
+                </div>
+              )}
             </div>
           ) : mode === "view" && pdfLoading ? (
             <div className="modal-body" style={{ 
@@ -3747,6 +3881,19 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         </div>
       </div>
     </div>
+      
+      {/* Print Modal for Mobile */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={handlePrintModalClose}
+        pdfUrl={pdfUrl}
+        quotationNumber={orderNumber}
+        onDownload={handleDownload}
+        onPrint={handlePrint}
+        onView={handleView}
+        onShare={handleShare}
+      />
+    </>
   )
 }
 
