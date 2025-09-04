@@ -293,6 +293,7 @@ const PurchasesPage = () => {
             purchase_date: purchaseData.purchase_date,
             supplier_id: purchaseData.supplier_id,
             payment_method: purchaseData.payment_method,
+            payment_status: purchaseData.payment_status,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -390,6 +391,7 @@ const PurchasesPage = () => {
             purchase_date: purchaseData.purchase_date,
             supplier_id: purchaseData.supplier_id,
             payment_method: purchaseData.payment_method,
+            payment_status: purchaseData.payment_status,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -446,6 +448,7 @@ const PurchasesPage = () => {
             client_id: purchaseData.client_id,
             paid_to: purchaseData.paid_to,
             payment_method: purchaseData.payment_method,
+            payment_status: purchaseData.payment_status,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -545,6 +548,7 @@ const PurchasesPage = () => {
             client_id: purchaseData.client_id,
             paid_to: purchaseData.paid_to,
             payment_method: purchaseData.payment_method,
+            payment_status: purchaseData.payment_status,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })

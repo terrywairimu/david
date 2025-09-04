@@ -229,7 +229,7 @@ const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLink
               margin: '0 8px 8px 8px'
             }}
           >
-            {/* Credit Section */}
+            {/* Credit Section - Partial/No Payment */}
             <div className="accordion-section">
               <div 
                 className="accordion-trigger"
@@ -312,7 +312,7 @@ const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLink
                 )}
             </div>
 
-            {/* Cash Section */}
+            {/* Cash Section - Full Payment */}
             <div className="accordion-section">
               <div 
                 className="accordion-trigger"
