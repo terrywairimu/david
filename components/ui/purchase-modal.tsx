@@ -106,6 +106,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
   const [filteredSuppliers, setFilteredSuppliers] = useState<RegisteredEntity[]>([])
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState("cash")
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [lastPurchasePrices, setLastPurchasePrices] = useState<{[key: number]: number}>({})
@@ -251,6 +252,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setSupplierName("")
     setSupplierSearch("")
     setPaymentMethod("")
+    setPaymentStatus("cash")
     setItems([createNewItem()])
     setTotal(0)
     setItemSearches({})
@@ -317,6 +319,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setPurchaseOrderNumber(purchase.purchase_order_number || "")
     setSupplierId(purchase.supplier_id || null)
     setPaymentMethod(purchase.payment_method || "")
+    setPaymentStatus(purchase.payment_status || "cash")
 
     if (purchase.items && purchase.items.length > 0) {
       setItems(purchase.items.map((item: any) => {
@@ -505,6 +508,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         purchase_order_number: purchaseOrderNumber,
         supplier_id: supplierId,
         payment_method: paymentMethod,
+        payment_status: paymentStatus,
         total_amount: total,
         status: "pending",
         items: items.map(item => ({
@@ -660,6 +664,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <option value="credit">Credit</option>
                     <option value="cheque">Cheque</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label htmlFor="paymentStatus" className="form-label">Payment Status</label>
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    id="paymentStatus"
+                    value={paymentStatus}
+                    onChange={(e) => setPaymentStatus(e.target.value)}
+                    required
+                    style={{ borderRadius: "16px", height: "45px" }}
+                    disabled={mode === "view"}
+                  >
+                    <option value="cash">Cash (Full Payment)</option>
+                    <option value="credit">Credit (No Payment)</option>
+                    <option value="partial">Partial Payment</option>
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-text">
+                    <small className="text-muted">
+                      {paymentStatus === "cash" && "Full payment made at time of purchase"}
+                      {paymentStatus === "credit" && "No payment made, full credit"}
+                      {paymentStatus === "partial" && "Partial payment made, balance on credit"}
+                    </small>
+                  </div>
                 </div>
               </div>
 

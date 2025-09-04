@@ -110,6 +110,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
   const [clientId, setClientId] = useState<number | null>(null)
   const [paidTo, setPaidTo] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState("cash")
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -299,6 +300,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     setClientId(purchase.client_id || null)
     setPaidTo(purchase.paid_to || "")
     setPaymentMethod(purchase.payment_method || "")
+    setPaymentStatus(purchase.payment_status || "cash")
 
     if (purchase.items && purchase.items.length > 0) {
       setItems(purchase.items.map((item: any) => {
@@ -477,6 +479,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
       client_id: clientId,
       paid_to: paidTo,
       payment_method: paymentMethod,
+      payment_status: paymentStatus,
       total_amount: totalAmount,
       status: "pending",
       items: items
@@ -493,6 +496,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     setClientId(null)
     setPaidTo("")
     setPaymentMethod("")
+    setPaymentStatus("cash")
     setItems([])
     setItemSearches({})
     setItemDropdownVisible({})
@@ -663,6 +667,21 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                     <option value="cooperative_bank">Cooperative Bank</option>
                     <option value="cheque">Cheque</option>
                     <option value="credit">Credit</option>
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Payment Status</label>
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    value={paymentStatus}
+                    onChange={(e) => setPaymentStatus(e.target.value)}
+                    required
+                    style={{ borderRadius: "16px", height: "45px" }}
+                    disabled={mode === "view"}
+                  >
+                    <option value="cash">Cash (Full Payment)</option>
+                    <option value="credit">Credit (No Payment)</option>
+                    <option value="partial">Partial Payment</option>
                   </select>
                 </div>
               </div>

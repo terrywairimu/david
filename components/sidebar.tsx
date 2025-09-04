@@ -1,15 +1,18 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import FloatingSidebarButton from "./ui/floating-sidebar-button"
 
 const Sidebar = () => {
   const [activeSection, setActiveSection] = useState("register")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [showPurchaseAccordion, setShowPurchaseAccordion] = useState(false)
+  const [isHoveringPurchase, setIsHoveringPurchase] = useState(false)
   const pathname = usePathname()
+  const purchaseLinkRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Set active section based on current path
@@ -33,6 +36,30 @@ const Sidebar = () => {
 
   const handleMobileToggle = (isOpen: boolean) => {
     setIsMobileOpen(isOpen)
+  }
+
+  const handlePurchaseClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowPurchaseAccordion(!showPurchaseAccordion)
+  }
+
+  const handlePurchaseMouseEnter = () => {
+    setIsHoveringPurchase(true)
+    if (!isMobileOpen) {
+      setShowPurchaseAccordion(true)
+    }
+  }
+
+  const handlePurchaseMouseLeave = () => {
+    setIsHoveringPurchase(false)
+    // Delay closing to allow user to move to accordion
+    setTimeout(() => {
+      setShowPurchaseAccordion(false)
+    }, 300)
+  }
+
+  const handleAccordionClose = () => {
+    setShowPurchaseAccordion(false)
   }
 
   return (
@@ -71,12 +98,16 @@ const Sidebar = () => {
             isActive={activeSection === "expenses"}
             onClick={() => handleSectionClick("expenses")}
           />
-          <SidebarLink
+          <PurchaseSidebarLink
             href="/purchases"
             label="Purchases"
             icon="fas fa-shopping-basket"
             isActive={activeSection === "purchases"}
-            onClick={() => handleSectionClick("purchases")}
+            onClick={handlePurchaseClick}
+            onMouseEnter={handlePurchaseMouseEnter}
+            onMouseLeave={handlePurchaseMouseLeave}
+            ref={purchaseLinkRef}
+            showAccordion={showPurchaseAccordion}
           />
           <SidebarLink
             href="/stock"
@@ -118,6 +149,7 @@ const Sidebar = () => {
         onToggle={handleMobileToggle}
         isOpen={isMobileOpen}
       />
+
     </>
   )
 }
@@ -130,6 +162,18 @@ interface SidebarLinkProps {
   onClick?: () => void
 }
 
+interface PurchaseSidebarLinkProps {
+  href: string
+  label: string
+  icon: string
+  isActive?: boolean
+  onClick?: (e: React.MouseEvent) => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
+  ref?: React.RefObject<HTMLDivElement>
+  showAccordion?: boolean
+}
+
 const SidebarLink = ({ href, label, icon, isActive, onClick }: SidebarLinkProps) => {
   return (
     <Link href={href} className={`nav-link ${isActive ? "active" : ""}`} onClick={onClick}>
@@ -138,5 +182,225 @@ const SidebarLink = ({ href, label, icon, isActive, onClick }: SidebarLinkProps)
     </Link>
   )
 }
+
+const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLinkProps>(
+  ({ href, label, icon, isActive, onClick, onMouseEnter, onMouseLeave, showAccordion }, ref) => {
+    const [activeSection, setActiveSection] = React.useState<string | null>(null)
+
+    const toggleSection = (section: string) => {
+      setActiveSection(activeSection === section ? null : section)
+    }
+
+    return (
+      <div 
+        style={{ position: 'relative' }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <div 
+          ref={ref}
+          className={`nav-link purchase-nav-link ${isActive ? "active" : ""}`}
+          onClick={onClick}
+          style={{ position: 'relative' }}
+        >
+          <i className={icon}></i>
+          <span>{label}</span>
+          <i className={`fas fa-chevron-down purchase-dropdown-arrow ${showAccordion ? 'rotated' : ''}`} 
+             style={{ 
+               marginLeft: 'auto', 
+               transition: 'transform 0.3s ease',
+               transform: showAccordion ? 'rotate(180deg)' : 'rotate(0deg)'
+             }}></i>
+        </div>
+        
+        {/* Inline Accordion - Outside the nav-link to be part of sidebar flow */}
+        {showAccordion && (
+          <div 
+            className="purchase-inline-accordion" 
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '0 0 12px 12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              zIndex: 1000,
+              overflow: 'hidden',
+              animation: 'accordionSlideDown 0.3s ease',
+              margin: '0 8px 8px 8px'
+            }}
+          >
+            {/* Credit Section */}
+            <div className="accordion-section">
+              <div 
+                className="accordion-trigger"
+                onClick={() => toggleSection('credit')}
+                style={{
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <i className="fas fa-credit-card" style={{ color: '#ff6b6b', width: '16px' }}></i>
+                <span style={{ fontSize: '14px', color: 'white', fontWeight: '500' }}>Credit Purchases</span>
+                <i className={`fas fa-chevron-down ${activeSection === 'credit' ? 'rotated' : ''}`} 
+                   style={{ 
+                     marginLeft: 'auto', 
+                     fontSize: '12px',
+                     transition: 'transform 0.3s ease',
+                     transform: activeSection === 'credit' ? 'rotate(180deg)' : 'rotate(0deg)'
+                   }}></i>
+              </div>
+              
+                              {activeSection === 'credit' && (
+                  <div style={{ padding: '0' }}>
+                    <Link
+                      href="/purchases?type=credit&view=client"
+                      className="accordion-link"
+                      style={{
+                        display: 'block',
+                        padding: '12px 16px',
+                        textDecoration: 'none',
+                        color: 'white',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        background: 'rgba(255, 107, 107, 0.2)',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.3)'
+                        e.currentTarget.style.transform = 'translateX(4px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)'
+                        e.currentTarget.style.transform = 'translateX(0)'
+                      }}
+                    >
+                      <i className="fas fa-user" style={{ marginRight: '8px', fontSize: '12px' }}></i>
+                      Client Credit
+                    </Link>
+                    <Link
+                      href="/purchases?type=credit&view=general"
+                      className="accordion-link"
+                      style={{
+                        display: 'block',
+                        padding: '12px 16px',
+                        textDecoration: 'none',
+                        color: 'white',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        background: 'rgba(255, 107, 107, 0.2)',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.3)'
+                        e.currentTarget.style.transform = 'translateX(4px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)'
+                        e.currentTarget.style.transform = 'translateX(0)'
+                      }}
+                    >
+                      <i className="fas fa-building" style={{ marginRight: '8px', fontSize: '12px' }}></i>
+                      General Credit
+                    </Link>
+                  </div>
+                )}
+            </div>
+
+            {/* Cash Section */}
+            <div className="accordion-section">
+              <div 
+                className="accordion-trigger"
+                onClick={() => toggleSection('cash')}
+                style={{
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <i className="fas fa-dollar-sign" style={{ color: '#00b894', width: '16px' }}></i>
+                <span style={{ fontSize: '14px', color: 'white', fontWeight: '500' }}>Cash Purchases</span>
+                <i className={`fas fa-chevron-down ${activeSection === 'cash' ? 'rotated' : ''}`} 
+                   style={{ 
+                     marginLeft: 'auto', 
+                     fontSize: '12px',
+                     transition: 'transform 0.3s ease',
+                     transform: activeSection === 'cash' ? 'rotate(180deg)' : 'rotate(0deg)'
+                   }}></i>
+              </div>
+              
+                              {activeSection === 'cash' && (
+                  <div style={{ padding: '0' }}>
+                    <Link
+                      href="/purchases?type=cash&view=client"
+                      className="accordion-link"
+                      style={{
+                        display: 'block',
+                        padding: '12px 16px',
+                        textDecoration: 'none',
+                        color: 'white',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        background: 'rgba(0, 184, 148, 0.2)',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.3)'
+                        e.currentTarget.style.transform = 'translateX(4px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.2)'
+                        e.currentTarget.style.transform = 'translateX(0)'
+                      }}
+                    >
+                      <i className="fas fa-user" style={{ marginRight: '8px', fontSize: '12px' }}></i>
+                      Client Cash
+                    </Link>
+                    <Link
+                      href="/purchases?type=cash&view=general"
+                      className="accordion-link"
+                      style={{
+                        display: 'block',
+                        padding: '12px 16px',
+                        textDecoration: 'none',
+                        color: 'white',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        background: 'rgba(0, 184, 148, 0.2)',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.3)'
+                        e.currentTarget.style.transform = 'translateX(4px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.2)'
+                        e.currentTarget.style.transform = 'translateX(0)'
+                      }}
+                    >
+                      <i className="fas fa-building" style={{ marginRight: '8px', fontSize: '12px' }}></i>
+                      General Cash
+                    </Link>
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+
+PurchaseSidebarLink.displayName = "PurchaseSidebarLink"
 
 export default Sidebar

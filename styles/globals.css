@@ -859,6 +859,151 @@ body {
     background-color: #f8f9fa;
 }
 
+/* Purchase Accordion Styles */
+.purchase-nav-link {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.purchase-nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.purchase-dropdown-arrow {
+  font-size: 12px;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.purchase-nav-link:hover .purchase-dropdown-arrow {
+  opacity: 1;
+}
+
+.purchase-inline-accordion {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+  animation: accordionSlideDown 0.3s ease;
+  margin: 0 8px 8px 8px;
+}
+
+.purchase-accordion {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.purchase-accordion.mobile {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 400px;
+  animation: accordionSlideIn 0.3s ease;
+}
+
+.purchase-accordion.desktop {
+  top: 100%;
+  left: 0;
+  transform: translateY(8px);
+  width: 320px;
+  animation: accordionFadeIn 0.3s ease;
+}
+
+@keyframes accordionSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes accordionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes accordionSlideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    padding-top: 0;
+    padding-bottom: 16px;
+  }
+}
+
+.accordion-trigger {
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.accordion-trigger:hover {
+  background-color: #f8f9fa;
+}
+
+.accordion-panel {
+  animation: accordionSlideDown 0.3s ease;
+}
+
+.accordion-link {
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.accordion-link:hover {
+  transform: translateX(4px);
+}
+
+.accordion-link:last-child {
+  margin-bottom: 0;
+}
+
 /* Item Search Container Dropdown Styles */
 .item-search-container {
     position: relative;

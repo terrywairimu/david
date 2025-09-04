@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer, Edit } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
@@ -19,6 +20,7 @@ interface Purchase {
   client_id?: number
   paid_to?: string
   payment_method: string
+  payment_status?: string
   total_amount: number
   status: string
   supplier?: RegisteredEntity
@@ -38,6 +40,7 @@ interface Purchase {
 }
 
 const PurchasesPage = () => {
+  const searchParams = useSearchParams()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -53,6 +56,10 @@ const PurchasesPage = () => {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | undefined>()
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("create")
   const [currentView, setCurrentView] = useState<"client" | "general">("client")
+  
+  // URL parameters
+  const paymentType = searchParams.get('type') || 'all'
+  const viewType = searchParams.get('view') || 'general'
 
   useEffect(() => {
     fetchPurchases()
@@ -77,10 +84,21 @@ const PurchasesPage = () => {
     }
   }, [])
 
+  // Handle URL parameters
+  useEffect(() => {
+    if (viewType === 'client') {
+      setCurrentView('client')
+    } else {
+      setCurrentView('general')
+    }
+    // Refetch purchases when URL parameters change
+    fetchPurchases()
+  }, [viewType, paymentType])
+
   const fetchPurchases = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("purchases")
         .select(`
           *,
@@ -91,7 +109,24 @@ const PurchasesPage = () => {
             stock_item:stock_items(name, description, unit)
           )
         `)
-        .order("purchase_date", { ascending: false })
+
+      // Filter by payment type if specified
+      if (paymentType !== 'all') {
+        if (paymentType === 'credit') {
+          query = query.in('payment_status', ['credit', 'partial'])
+        } else if (paymentType === 'cash') {
+          query = query.eq('payment_status', 'cash')
+        }
+      }
+
+      // Filter by view type (client vs general)
+      if (viewType === 'client') {
+        query = query.not('client_id', 'is', null)
+      } else if (viewType === 'general') {
+        query = query.is('client_id', null)
+      }
+
+      const { data, error } = await query.order("purchase_date", { ascending: false })
 
       if (error) throw error
       setPurchases(data || [])
@@ -702,7 +737,7 @@ const PurchasesPage = () => {
   return (
     <div className="card">
       <SectionHeader 
-        title="Purchase Management" 
+        title={`Purchase Management${paymentType !== 'all' ? ` - ${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}` : ''}`}
         icon={<ShoppingCart size={24} />}
       >
         <button
