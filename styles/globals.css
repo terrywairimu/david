@@ -1051,8 +1051,8 @@ body {
   }
   
   /* Hide dropdown icon on mobile */
-  .make-payments-container .btn .dropdown-icon {
-    display: none;
+  .make-payments-container .dropdown-icon {
+    display: none !important;
   }
   
   .make-payments-dropdown {
