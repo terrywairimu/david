@@ -204,7 +204,7 @@ export default function PaymentsPage() {
             >
               <DollarSign size={16} className="me-1" />
               Make Payments
-              <ChevronDown size={14} className="ms-1" />
+              <ChevronDown size={14} className="ms-1 dropdown-icon" />
             </button>
             
             {showMakePaymentDropdown && (

@@ -982,6 +982,7 @@ body {
   position: absolute;
   top: 100%;
   left: 0;
+  right: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 12px;
@@ -991,7 +992,7 @@ body {
   overflow: hidden;
   animation: slideDown 0.3s ease-out;
   margin-top: 2px;
-  min-width: 180px;
+  width: 100%;
 }
 
 .make-payments-dropdown .dropdown-item {
@@ -1014,6 +1015,54 @@ body {
   background: rgba(0, 0, 0, 0.05);
   color: #333;
   text-decoration: none;
+}
+
+/* Desktop: Reduce padding on Make Payments button */
+.make-payments-container .btn {
+  padding: 0.375rem 0.75rem;
+}
+
+/* Mobile responsive styles for payment buttons */
+@media (max-width: 768px) {
+  .section-header {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .section-header .btn {
+    flex: 1;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+  }
+  
+  .make-payments-container {
+    flex: 1;
+    position: relative;
+  }
+  
+  .make-payments-container .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  
+  /* Hide dropdown icon on mobile */
+  .make-payments-container .btn .dropdown-icon {
+    display: none;
+  }
+  
+  .make-payments-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin-top: 2px;
+  }
 }
 
 .make-payments-dropdown .dropdown-item:active {
