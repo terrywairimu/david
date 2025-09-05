@@ -2905,3 +2905,434 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* ===== RESPONSIVE TABLES ===== */
+/* Base responsive table styles */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 0;
+  table-layout: fixed; /* Forces equal column distribution */
+}
+
+/* Compact table spacing - maintain original font sizes with full content visibility */
+.table th,
+.table td {
+  padding: 0.75rem 0.5rem !important;
+  vertical-align: top; /* Changed to top for better text wrapping */
+  border-top: 1px solid #dee2e6;
+  white-space: normal; /* Allow text wrapping */
+  overflow: visible; /* Show all content */
+  text-overflow: unset; /* Remove ellipsis */
+  font-size: 0.875rem; /* Original Bootstrap table font size */
+  line-height: 1.5;
+  word-wrap: break-word; /* Break long words */
+  word-break: break-word; /* Break words if needed */
+}
+
+/* Table headers */
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.875rem; /* Original Bootstrap table header font size */
+  padding: 0.75rem 0.5rem !important;
+  border-bottom: 2px solid #dee2e6;
+  white-space: normal; /* Allow header text wrapping */
+  word-wrap: break-word; /* Break long header text */
+  word-break: break-word; /* Break words if needed */
+  vertical-align: top; /* Align to top for consistency */
+}
+
+/* Dynamic column widths for different screen sizes - maintain original font sizes */
+/* Large screens (15+ inch) */
+@media (min-width: 1600px) {
+  .table th,
+  .table td {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  .table th {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+}
+
+/* Medium screens (13-15 inch) */
+@media (max-width: 1599px) and (min-width: 1200px) {
+  .table th,
+  .table td {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  .table th {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+}
+
+/* Small laptop screens (13 inch) */
+@media (max-width: 1199px) and (min-width: 992px) {
+  .table th,
+  .table td {
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  .table th {
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 991px) {
+  .table th,
+  .table td {
+    padding: 0.4rem 0.25rem !important;
+    font-size: 0.8rem; /* Slightly smaller for tablets */
+  }
+  .table th {
+    padding: 0.4rem 0.25rem !important;
+    font-size: 0.8rem; /* Slightly smaller for tablets */
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.75rem; /* Smaller for mobile */
+  }
+  .table th {
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.75rem; /* Smaller for mobile */
+  }
+}
+
+/* Specific column width optimizations - ensure all content is visible */
+.table .col-id { width: 8%; min-width: 60px; }
+.table .col-date { width: 10%; min-width: 80px; }
+.table .col-number { width: 12%; min-width: 100px; }
+.table .col-client { width: 15%; min-width: 120px; }
+.table .col-supplier { width: 15%; min-width: 120px; }
+.table .col-employee { width: 15%; min-width: 120px; }
+.table .col-amount { width: 10%; min-width: 80px; }
+.table .col-status { width: 8%; min-width: 70px; }
+.table .col-actions { width: 12%; min-width: 100px; }
+.table .col-items { width: 20%; min-width: 150px; }
+.table .col-description { width: 25%; min-width: 200px; }
+
+/* Ensure all table content is fully visible */
+.table td,
+.table th {
+  max-width: none !important; /* Remove max-width restrictions */
+  min-width: auto !important; /* Allow natural minimum widths */
+  overflow: visible !important; /* Show all content */
+  text-overflow: unset !important; /* Remove ellipsis */
+  white-space: normal !important; /* Allow wrapping */
+}
+
+/* Action buttons in tables - maintain original sizes */
+.table .btn {
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  margin: 0.125rem !important;
+  min-width: auto !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+.table .btn-sm {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* Table container responsiveness */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Ensure tables don't break layout */
+.card-body .table-responsive {
+  margin: 0;
+  border: none;
+}
+
+/* Responsive table wrapper */
+.responsive-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Additional responsive table utilities */
+.table-cell-truncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-wrap {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Ensure tables fit within containers */
+.card-body .responsive-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Medium screen optimizations (13-14 inch laptops) - maintain original font sizes */
+@media (max-width: 1440px) and (min-width: 1200px) {
+  .table th,
+  .table td {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  .table th {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  
+  /* Adjust column widths for medium screens */
+  .table .col-id { width: 6%; min-width: 50px; }
+  .table .col-date { width: 8%; min-width: 70px; }
+  .table .col-number { width: 10%; min-width: 90px; }
+  .table .col-client { width: 12%; min-width: 100px; }
+  .table .col-supplier { width: 12%; min-width: 100px; }
+  .table .col-employee { width: 12%; min-width: 100px; }
+  .table .col-amount { width: 8%; min-width: 70px; }
+  .table .col-status { width: 6%; min-width: 60px; }
+  .table .col-actions { width: 10%; min-width: 90px; }
+  .table .col-items { width: 18%; min-width: 140px; }
+  .table .col-description { width: 20%; min-width: 160px; }
+}
+
+/* Small laptop screens (13 inch) - maintain original font sizes */
+@media (max-width: 1199px) and (min-width: 992px) {
+  .table th,
+  .table td {
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  .table th {
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.875rem; /* Keep original font size */
+  }
+  
+  .table .col-id { width: 5%; min-width: 45px; }
+  .table .col-date { width: 7%; min-width: 60px; }
+  .table .col-number { width: 9%; min-width: 80px; }
+  .table .col-client { width: 11%; min-width: 90px; }
+  .table .col-supplier { width: 11%; min-width: 90px; }
+  .table .col-employee { width: 11%; min-width: 90px; }
+  .table .col-amount { width: 7%; min-width: 60px; }
+  .table .col-status { width: 5%; min-width: 50px; }
+  .table .col-actions { width: 9%; min-width: 80px; }
+  .table .col-items { width: 16%; min-width: 120px; }
+  .table .col-description { width: 18%; min-width: 140px; }
+}
+
+/* Force table to never exceed container width but allow content wrapping */
+.table {
+  max-width: 100% !important;
+  table-layout: auto !important; /* Changed to auto for better content fitting */
+  width: 100% !important;
+}
+
+/* Ensure all table content is contained but fully visible */
+.table td,
+.table th {
+  box-sizing: border-box;
+  max-width: none !important; /* Remove max-width to show all content */
+  width: auto !important; /* Allow natural width based on content */
+}
+
+/* Better button sizing in tables for small screens - maintain original sizes */
+@media (max-width: 1199px) {
+  .table .btn {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    margin: 0.125rem !important;
+  }
+  
+  .table .btn-sm {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Smart text wrapping - preserve codes/numbers, allow name breaking */
+.table td,
+.table th {
+  hyphens: manual; /* Only break at explicit hyphens */
+  -webkit-hyphens: manual;
+  -moz-hyphens: manual;
+  -ms-hyphens: manual;
+  word-wrap: break-word; /* Break long words only when necessary */
+  word-break: normal; /* Use normal word breaking rules */
+}
+
+/* Ensure long text wraps properly */
+.table td p,
+.table th p {
+  margin: 0;
+  word-wrap: break-word;
+  word-break: normal; /* Normal breaking for paragraphs */
+}
+
+/* Preserve codes, numbers, and dates - don't break them */
+.table td .payment-number,
+.table td .order-number,
+.table td .quotation-number,
+.table td .invoice-number,
+.table td .receipt-number {
+  white-space: nowrap !important;
+  display: inline-block;
+}
+
+/* Preserve dates - don't break them */
+.table td .date,
+.table td .due-date {
+  white-space: nowrap !important;
+  display: inline-block;
+}
+
+/* Preserve amounts - don't break them */
+.table td .amount,
+.table td .currency {
+  white-space: nowrap !important;
+  display: inline-block;
+}
+
+/* Preserve codes and IDs - don't break them */
+.table td .code,
+.table td .id,
+.table td .reference {
+  white-space: nowrap !important;
+  display: inline-block;
+}
+
+/* Allow breaking of names and descriptions with spaces */
+.table td .client-name,
+.table td .supplier-name,
+.table td .employee-name,
+.table td .description,
+.table td .items {
+  word-wrap: break-word;
+  word-break: normal; /* Break at spaces, not within words */
+  white-space: normal;
+}
+
+/* Smart content wrapping rules */
+/* General rule: use normal word breaking for most content */
+.table td {
+  word-break: normal; /* Use normal word breaking */
+  overflow-wrap: break-word; /* Break only when absolutely necessary */
+  hyphens: none; /* Disable automatic hyphenation */
+}
+
+/* Preserve specific column types that should never break */
+.table .col-number,
+.table .col-date,
+.table .col-amount {
+  word-break: keep-all !important; /* Don't break codes, dates, amounts */
+  white-space: nowrap !important; /* Keep on one line */
+}
+
+/* Allow breaking in text columns */
+.table .col-client,
+.table .col-supplier,
+.table .col-employee,
+.table .col-description,
+.table .col-items {
+  word-break: normal; /* Break at spaces */
+  white-space: normal; /* Allow wrapping */
+  overflow-wrap: break-word; /* Break long words if needed */
+}
+
+/* Specific patterns that should never break */
+.table td[data-type="number"],
+.table td[data-type="code"],
+.table td[data-type="date"],
+.table td[data-type="amount"] {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+
+/* Preserve action buttons */
+.table .col-actions {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+}
+
+/* Additional smart wrapping rules for specific content patterns */
+/* Preserve alphanumeric codes (like PN2508023, QT2508023) */
+.table td:first-child,
+.table .col-number {
+  word-break: keep-all !important;
+  white-space: nowrap !important;
+}
+
+/* Preserve dates in date columns */
+.table .col-date {
+  word-break: keep-all !important;
+  white-space: nowrap !important;
+}
+
+/* Preserve amounts in amount columns */
+.table .col-amount {
+  word-break: keep-all !important;
+  white-space: nowrap !important;
+}
+
+/* Allow breaking in client/supplier/employee name columns */
+.table .col-client,
+.table .col-supplier,
+.table .col-employee {
+  word-break: normal !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Allow breaking in description and items columns */
+.table .col-description,
+.table .col-items {
+  word-break: normal !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.table .col-actions .btn {
+  white-space: nowrap !important;
+  display: inline-block;
+  margin: 0 0.125rem;
+}
+
