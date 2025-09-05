@@ -7,10 +7,12 @@ import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
 import { generatePaymentReceiptTemplate } from "@/lib/report-pdf-templates"
-import PaymentModal from "@/components/ui/payment-modal"
+import SupplierPaymentModal from "@/components/ui/supplier-payment-modal"
+import EmployeePaymentModal from "@/components/ui/employee-payment-modal"
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface MakePaymentViewProps {
+  paymentType: "suppliers" | "employees"
   clients: RegisteredEntity[]
   invoices: Invoice[]
   payments: Payment[]
@@ -18,333 +20,392 @@ interface MakePaymentViewProps {
   onRefresh: () => void
 }
 
-const MakePaymentView = ({ clients, invoices, payments, loading, onRefresh }: MakePaymentViewProps) => {
+const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, onRefresh }: MakePaymentViewProps) => {
   const [searchTerm, setSearchTerm] = useState("")
-  const [clientFilter, setClientFilter] = useState("")
+  const [entityFilter, setEntityFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
   const [specificDate, setSpecificDate] = useState("")
   const [periodStartDate, setPeriodStartDate] = useState("")
   const [periodEndDate, setPeriodEndDate] = useState("")
-  const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([])
+  const [entityOptions, setEntityOptions] = useState<{ value: string; label: string }[]>([])
+  const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
+  const [employees, setEmployees] = useState<RegisteredEntity[]>([])
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([])
+  const [supplierPayments, setSupplierPayments] = useState<any[]>([])
+  const [employeePayments, setEmployeePayments] = useState<any[]>([])
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState<any>(null)
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("create")
   
   // Global Progress Manager
   const { startDownload, completeDownload, setError } = useGlobalProgress()
 
   useEffect(() => {
-    setupClientOptions()
-  }, [clients])
+    setupEntityOptions()
+    fetchSuppliersAndEmployees()
+    fetchPayments()
+  }, [clients, paymentType])
 
-  const setupClientOptions = () => {
-    const options = clients.map(client => ({
-      value: client.id.toString(),
-      label: client.name
-    }))
-    setClientOptions(options)
+  const fetchSuppliersAndEmployees = async () => {
+    try {
+      // Fetch suppliers
+      const { data: suppliersData, error: suppliersError } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "supplier")
+        .order("name")
+
+      if (suppliersError) throw suppliersError
+      setSuppliers(suppliersData || [])
+
+      // Fetch employees
+      const { data: employeesData, error: employeesError } = await supabase
+        .from("registered_entities")
+        .select("*")
+        .eq("type", "employee")
+        .order("name")
+
+      if (employeesError) throw employeesError
+      setEmployees(employeesData || [])
+
+      // Fetch purchase orders
+      const { data: purchaseOrdersData, error: purchaseOrdersError } = await supabase
+        .from("purchases")
+        .select("id, purchase_order_number, total_amount, purchase_date, supplier_id")
+        .order("purchase_date", { ascending: false })
+
+      if (purchaseOrdersError) throw purchaseOrdersError
+      setPurchaseOrders(purchaseOrdersData || [])
+    } catch (error) {
+      console.error("Error fetching suppliers and employees:", error)
+    }
   }
 
-  const getFilteredPayments = () => {
-    let filtered = payments
+  const fetchPayments = async () => {
+    try {
+      if (paymentType === "suppliers") {
+        const { data, error } = await supabase
+          .from("supplier_payments")
+          .select(`
+            *,
+            supplier:registered_entities(*),
+            purchase_order:purchases(*)
+          `)
+          .order("date_created", { ascending: false })
+
+        if (error) throw error
+        setSupplierPayments(data || [])
+      } else {
+        const { data, error } = await supabase
+          .from("employee_payments")
+          .select(`
+            *,
+            employee:registered_entities(*)
+          `)
+          .order("date_created", { ascending: false })
+
+        if (error) throw error
+        setEmployeePayments(data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching payments:", error)
+      toast.error("Failed to load payments")
+    }
+  }
+
+  const setupEntityOptions = () => {
+    const entities = paymentType === "suppliers" ? suppliers : employees
+    const options = entities.map(entity => ({
+      value: entity.id.toString(),
+      label: entity.name
+    }))
+    setEntityOptions(options)
+  }
+
+  const handleAddNew = () => {
+    setSelectedPayment(null)
+    setModalMode("create")
+    setShowPaymentModal(true)
+  }
+
+  const handleView = (payment: any) => {
+    setSelectedPayment(payment)
+    setModalMode("view")
+    setShowPaymentModal(true)
+  }
+
+  const handleEdit = (payment: any) => {
+    setSelectedPayment(payment)
+    setModalMode("edit")
+    setShowPaymentModal(true)
+  }
+
+  const handleDelete = async (payment: any) => {
+    if (!confirm(`Are you sure you want to delete this payment?`)) return
+
+    try {
+      const tableName = paymentType === "suppliers" ? "supplier_payments" : "employee_payments"
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq("id", payment.id)
+
+      if (error) throw error
+
+      toast.success("Payment deleted successfully")
+      fetchPayments()
+    } catch (error) {
+      console.error("Error deleting payment:", error)
+      toast.error("Failed to delete payment")
+    }
+  }
+
+  const handleSavePayment = (paymentData: any) => {
+    setShowPaymentModal(false)
+    setSelectedPayment(null)
+    setModalMode("create")
+    fetchPayments()
+  }
+
+  const handleExport = async () => {
+    try {
+      startDownload("Exporting payments report...")
+      
+      const currentPayments = paymentType === "suppliers" ? supplierPayments : employeePayments
+      const fileName = `${paymentType}_payments_${new Date().toISOString().split('T')[0]}.pdf`
+      
+      await exportPaymentsReport(currentPayments, fileName, paymentType)
+      
+      completeDownload()
+      toast.success("Payments report exported successfully")
+    } catch (error) {
+      console.error("Export error:", error)
+      setError("Failed to export payments report")
+      toast.error("Failed to export payments report")
+    }
+  }
+
+  const filteredPayments = () => {
+    const currentPayments = paymentType === "suppliers" ? supplierPayments : employeePayments
+    let filtered = currentPayments
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(payment => 
-        payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      filtered = filtered.filter(payment => {
+        const entityName = paymentType === "suppliers" 
+          ? payment.supplier?.name 
+          : payment.employee?.name
+        return (
+          payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entityName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          payment.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      })
     }
 
-    // Client filter
-    if (clientFilter) {
-      filtered = filtered.filter(payment => 
-        payment.client_id?.toString() === clientFilter
-      )
+    // Entity filter
+    if (entityFilter) {
+      const entityField = paymentType === "suppliers" ? "supplier_id" : "employee_id"
+      filtered = filtered.filter(payment => payment[entityField]?.toString() === entityFilter)
     }
 
     // Date filter
-    if (dateFilter) {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      
+    if (dateFilter === "today") {
+      const today = new Date().toISOString().split('T')[0]
+      filtered = filtered.filter(payment => payment.payment_date === today)
+    } else if (dateFilter === "specific" && specificDate) {
+      filtered = filtered.filter(payment => payment.payment_date === specificDate)
+    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
       filtered = filtered.filter(payment => {
-        const paymentDate = new Date(payment.date_created)
-        const paymentDay = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate())
-        
-        switch (dateFilter) {
-          case "today":
-            return paymentDay.getTime() === today.getTime()
-          case "week":
-            const weekStart = new Date(today)
-            weekStart.setDate(today.getDate() - today.getDay())
-            return paymentDay >= weekStart && paymentDay <= today
-          case "month":
-            return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear()
-          case "year":
-            return paymentDate.getFullYear() === now.getFullYear()
-          case "specific":
-            if (specificDate) {
-              const specDate = new Date(specificDate)
-              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
-              return paymentDay.getTime() === specDay.getTime()
-            }
-            return true
-          case "period":
-            if (periodStartDate && periodEndDate) {
-              const startDate = new Date(periodStartDate)
-              const endDate = new Date(periodEndDate)
-              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
-              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-              return paymentDay >= startDay && paymentDay <= endDay
-            }
-            return true
-          default:
-            return true
-        }
+        const paymentDate = new Date(payment.payment_date)
+        const startDate = new Date(periodStartDate)
+        const endDate = new Date(periodEndDate)
+        return paymentDate >= startDate && paymentDate <= endDate
       })
     }
 
     return filtered
   }
 
-  const handleNewPayment = () => {
-    setSelectedPayment(null)
-    setModalMode("create")
-    setShowPaymentModal(true)
-  }
-
-  const handleViewPayment = (payment: Payment) => {
-    setSelectedPayment(payment)
-    setModalMode("view")
-    setShowPaymentModal(true)
-  }
-
-  const handleEditPayment = (payment: Payment) => {
-    setSelectedPayment(payment)
-    setModalMode("edit")
-    setShowPaymentModal(true)
-  }
-
-  const handleDeletePayment = async (payment: Payment) => {
-    if (window.confirm(`Are you sure you want to delete payment ${payment.payment_number}?`)) {
-      try {
-        const { error } = await supabase
-          .from("payments")
-          .delete()
-          .eq("id", payment.id)
-
-        if (error) throw error
-
-        toast.success("Payment deleted successfully")
-        onRefresh()
-      } catch (error) {
-        console.error("Error deleting payment:", error)
-        toast.error("Failed to delete payment")
-      }
-    }
-  }
-
-  const handleExport = (format: 'pdf' | 'csv') => {
-    // Start modern progress bar for bulk export
-    startDownload(`payments_report_${new Date().toISOString().split('T')[0]}`, format)
-    
-    try {
-      exportPaymentsReport(getFilteredPayments(), format)
-      // Complete progress after a short delay to simulate processing
-      setTimeout(() => {
-        completeDownload()
-      }, 1500)
-    } catch (error) {
-      setError('Failed to export payments report')
-    }
-  }
-
-  const handleExportSinglePayment = async (payment: Payment) => {
-    try {
-      // Start modern progress bar
-      startDownload(`payment_${payment.payment_number}_receipt`, 'pdf')
-      
-      // Generate the professional receipt template with Inter fonts
-      const { template, inputs, fontOptions } = await generatePaymentReceiptTemplate(payment)
-      
-      // Generate and download the PDF with Inter fonts
-      const { generate } = await import('@pdfme/generator')
-      const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ 
-        template, 
-        inputs, 
-        plugins: { text, rectangle, line, image } as any,
-        options: fontOptions
-      })
-      
-      // Download PDF
-      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `payment_${payment.payment_number}_receipt.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      // Complete progress and show success
-      completeDownload()
-      toast.success('Payment receipt downloaded successfully with Inter fonts!')
-    } catch (error) {
-      console.error('Export error:', error)
-      setError('Failed to export payment receipt')
-      toast.error('Failed to export payment receipt')
-    }
-  }
-
-  const handleSavePayment = (payment: any) => {
-    onRefresh()
-    setShowPaymentModal(false)
-  }
-
-  const filteredPayments = getFilteredPayments()
+  const currentPayments = filteredPayments()
 
   return (
-    <div className="card">
-      <div>
-        {/* Add New Payment Button */}
-        <div className="d-flex mb-3">
-          <button className="btn-add" onClick={() => setShowPaymentModal(true)}>
-            <Plus size={16} className="me-2" />
-            Add New Payment
+    <div className="p-4">
+      {/* Header with Add New Button and Export */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h5 className="mb-1">
+            {paymentType === "suppliers" ? "Supplier Payments" : "Employee Payments"}
+          </h5>
+          <p className="text-muted mb-0">
+            Manage payments to {paymentType === "suppliers" ? "suppliers" : "employees"}
+          </p>
+        </div>
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-outline-primary d-flex align-items-center"
+            onClick={handleExport}
+            disabled={loading}
+          >
+            <Download size={16} className="me-1" />
+            Export
+          </button>
+          <button
+            className="btn btn-primary d-flex align-items-center"
+            onClick={handleAddNew}
+          >
+            <Plus size={16} className="me-1" />
+            Add New {paymentType === "suppliers" ? "Supplier" : "Employee"} Payment
           </button>
         </div>
+      </div>
 
-        {/* Enhanced Search and Filter Row */}
-        <SearchFilterRow
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Search payments..."
-          firstFilter={{
-            value: clientFilter,
-            onChange: setClientFilter,
-            options: clientOptions,
-            placeholder: "All Clients"
-          }}
-          dateFilter={{
-            value: dateFilter,
-            onChange: setDateFilter,
-            onSpecificDateChange: setSpecificDate,
-            onPeriodStartChange: setPeriodStartDate,
-            onPeriodEndChange: setPeriodEndDate,
-            specificDate,
-            periodStartDate,
-            periodEndDate
-          }}
-          onExport={handleExport}
-          exportLabel="Export"
-        />
+      {/* Search and Filter Row */}
+      <SearchFilterRow
+        searchPlaceholder={`Search ${paymentType} payments...`}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        firstFilterLabel={paymentType === "suppliers" ? "All Suppliers" : "All Employees"}
+        firstFilterValue={entityFilter}
+        onFirstFilterChange={setEntityFilter}
+        firstFilterOptions={entityOptions}
+        dateFilterValue={dateFilter}
+        onDateFilterChange={setDateFilter}
+        specificDateValue={specificDate}
+        onSpecificDateChange={setSpecificDate}
+        periodStartDateValue={periodStartDate}
+        onPeriodStartDateChange={setPeriodStartDate}
+        periodEndDateValue={periodEndDate}
+        onPeriodEndDateChange={setPeriodEndDate}
+      />
 
-        {/* Payments Table */}
-        <div className="w-full overflow-x-auto">
-          <table className="table table-hover">
-            <thead>
+      {/* Payments Table */}
+      <div className="table-responsive">
+        <table className="table table-hover">
+          <thead className="table-light">
+            <tr>
+              <th>Payment Number</th>
+              <th>Date</th>
+              <th>{paymentType === "suppliers" ? "Supplier" : "Employee"}</th>
+              <th>Paid To</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th>Payment #</th>
-                <th>Client</th>
-                <th>Date</th>
-                <th>Paid To</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Account Credited</th>
-                <th>Actions</th>
+                <td colSpan={8} className="text-center py-4">
+                  <div className="spinner-border spinner-border-sm me-2" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  Loading {paymentType} payments...
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-4">
-                    <div className="text-muted">Loading payments...</div>
+            ) : currentPayments.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-4 text-muted">
+                  No {paymentType} payments found
+                </td>
+              </tr>
+            ) : (
+              currentPayments.map((payment) => (
+                <tr key={payment.id}>
+                  <td>
+                    <span className="fw-medium">{payment.payment_number}</span>
                   </td>
-                </tr>
-              ) : filteredPayments.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-4">
-                    <div className="text-muted">
-                      {searchTerm || clientFilter || dateFilter
-                        ? "No payments found matching your criteria"
-                        : "No payments found"}
+                  <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
+                  <td>
+                    {paymentType === "suppliers" 
+                      ? payment.supplier?.name || "Unknown Supplier"
+                      : payment.employee?.name || "Unknown Employee"
+                    }
+                  </td>
+                  <td>{payment.paid_to || "-"}</td>
+                  <td>
+                    <span className="fw-medium text-success">
+                      KES {parseFloat(payment.amount).toLocaleString()}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="badge bg-secondary">
+                      {payment.payment_method}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${
+                      payment.status === "completed" ? "bg-success" :
+                      payment.status === "pending" ? "bg-warning" : "bg-danger"
+                    }`}>
+                      {payment.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="d-flex gap-1">
+                      <button
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => handleView(payment)}
+                        title="View"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => handleEdit(payment)}
+                        title="Edit"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleDelete(payment)}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ) : (
-                filteredPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="fw-bold">{payment.payment_number}</td>
-                    <td>{payment.client?.name || "-"}</td>
-                    <td>{new Date(payment.date_created).toLocaleDateString()}</td>
-                    <td>{payment.paid_to || "-"}</td>
-                    <td>{payment.description || "-"}</td>
-                    <td className="fw-bold text-success">
-                      KES {payment.amount.toFixed(2)}
-                    </td>
-                    <td>{payment.account_credited || "-"}</td>
-                    <td>
-                      <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleViewPayment(payment)}
-                          title="View"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEditPayment(payment)}
-                          title="Edit"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn text-danger"
-                          onClick={() => handleDeletePayment(payment)}
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleExportSinglePayment(payment)}
-                          title="Download Receipt"
-                        >
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <PaymentModal
-          payment={selectedPayment}
-          mode={modalMode}
-            onClose={() => {
-              setShowPaymentModal(false)
-              setSelectedPayment(null)
-              setModalMode("create")
-            }}
-          onSave={handleSavePayment}
-          clients={clients}
-          invoices={invoices}
-        />
+        <>
+          {paymentType === "suppliers" ? (
+            <SupplierPaymentModal
+              payment={selectedPayment}
+              mode={modalMode}
+              onClose={() => {
+                setShowPaymentModal(false)
+                setSelectedPayment(null)
+                setModalMode("create")
+              }}
+              onSave={handleSavePayment}
+              suppliers={suppliers}
+              purchaseOrders={purchaseOrders}
+            />
+          ) : (
+            <EmployeePaymentModal
+              payment={selectedPayment}
+              mode={modalMode}
+              onClose={() => {
+                setShowPaymentModal(false)
+                setSelectedPayment(null)
+                setModalMode("create")
+              }}
+              onSave={handleSavePayment}
+              employees={employees}
+            />
+          )}
+        </>
       )}
-      
-
-      </div>
     </div>
   )
 }

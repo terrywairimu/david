@@ -6,6 +6,7 @@ import { SectionHeader } from "@/components/ui/section-header"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import MakePaymentView from "./components/make-payment-view"
+import ReceivePaymentView from "./components/receive-payment-view"
 import AccountSummaryView from "./components/account-summary-view"
 
 export default function PaymentsPage() {
@@ -13,7 +14,8 @@ export default function PaymentsPage() {
   const [clients, setClients] = useState<RegisteredEntity[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeView, setActiveView] = useState<"make-payment" | "account-summary">("make-payment")
+  const [activeView, setActiveView] = useState<"receive-payment" | "make-payment" | "account-summary">("receive-payment")
+  const [paymentType, setPaymentType] = useState<"suppliers" | "employees">("suppliers")
 
   useEffect(() => {
     fetchData()
@@ -110,8 +112,17 @@ export default function PaymentsPage() {
 
   const renderActiveView = () => {
     switch (activeView) {
+      case "receive-payment":
+        return <ReceivePaymentView 
+          clients={clients} 
+          invoices={invoices} 
+          payments={payments} 
+          loading={loading}
+          onRefresh={handleRefresh} 
+        />
       case "make-payment":
         return <MakePaymentView 
+          paymentType={paymentType}
           clients={clients} 
           invoices={invoices} 
           payments={payments} 
@@ -126,7 +137,7 @@ export default function PaymentsPage() {
           onRefresh={handleRefresh} 
         />
       default:
-        return <MakePaymentView 
+        return <ReceivePaymentView 
           clients={clients} 
           invoices={invoices} 
           payments={payments} 
@@ -145,12 +156,51 @@ export default function PaymentsPage() {
           icon={<CreditCard size={20} />}
         >
           <button
-            className={`btn-add ${activeView === "make-payment" ? "active" : ""}`}
-            onClick={() => setActiveView("make-payment")}
+            className={`btn-add ${activeView === "receive-payment" ? "active" : ""}`}
+            onClick={() => setActiveView("receive-payment")}
           >
             <DollarSign size={16} className="me-1" />
-            Make Payment
+            Receive Payments
           </button>
+          <div className="btn-group" role="group">
+            <button
+              className={`btn-add ${activeView === "make-payment" ? "active" : ""}`}
+              onClick={() => setActiveView("make-payment")}
+            >
+              <DollarSign size={16} className="me-1" />
+              Make Payments
+            </button>
+            <div className="dropdown">
+              <button
+                className="btn-add dropdown-toggle dropdown-toggle-split"
+                type="button"
+                id="makePaymentDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style={{ borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+              >
+                <span className="visually-hidden">Toggle Dropdown</span>
+              </button>
+              <ul className="dropdown-menu" aria-labelledby="makePaymentDropdown">
+                <li>
+                  <button 
+                    className={`dropdown-item ${paymentType === "suppliers" ? "active" : ""}`}
+                    onClick={() => setPaymentType("suppliers")}
+                  >
+                    Suppliers
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    className={`dropdown-item ${paymentType === "employees" ? "active" : ""}`}
+                    onClick={() => setPaymentType("employees")}
+                  >
+                    Employees
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
           <button
             className={`btn-add ${activeView === "account-summary" ? "active" : ""}`}
             onClick={() => setActiveView("account-summary")}
