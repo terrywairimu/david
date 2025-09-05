@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { CreditCard, DollarSign, Receipt } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { CreditCard, DollarSign, Receipt, ChevronDown, Building2, User } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -16,6 +16,10 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<"receive-payment" | "make-payment" | "account-summary">("receive-payment")
   const [paymentType, setPaymentType] = useState<"suppliers" | "employees">("suppliers")
+  const [showMakePaymentDropdown, setShowMakePaymentDropdown] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const makePaymentButtonRef = useRef<HTMLDivElement>(null)
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -37,8 +41,22 @@ export default function PaymentsPage() {
       })
       .subscribe()
 
+    // Click outside handler
+    const handleClickOutside = (event: MouseEvent) => {
+      if (makePaymentButtonRef.current && !makePaymentButtonRef.current.contains(event.target as Node)) {
+        setShowMakePaymentDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
     return () => {
       supabase.removeChannel(paymentsSubscription)
+      document.removeEventListener('mousedown', handleClickOutside)
+      // Cleanup timeout on unmount
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current)
+      }
     }
   }, [])
 
@@ -162,44 +180,91 @@ export default function PaymentsPage() {
             <DollarSign size={16} className="me-1" />
             Receive Payments
           </button>
-          <div className="btn-group" role="group">
+          <div 
+            ref={makePaymentButtonRef}
+            className="make-payments-container"
+            onMouseEnter={() => {
+              // Clear any existing timeout
+              if (dropdownTimeoutRef.current) {
+                clearTimeout(dropdownTimeoutRef.current)
+                dropdownTimeoutRef.current = null
+              }
+              
+              if (makePaymentButtonRef.current) {
+                const rect = makePaymentButtonRef.current.getBoundingClientRect()
+                setDropdownPosition({
+                  top: rect.bottom + 8,
+                  left: rect.left
+                })
+              }
+              setShowMakePaymentDropdown(true)
+            }}
+            onMouseLeave={() => {
+              // Add a small delay before hiding to allow moving to dropdown
+              dropdownTimeoutRef.current = setTimeout(() => {
+                setShowMakePaymentDropdown(false)
+              }, 150)
+            }}
+          >
             <button
               className={`btn-add ${activeView === "make-payment" ? "active" : ""}`}
-              onClick={() => setActiveView("make-payment")}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (makePaymentButtonRef.current) {
+                  const rect = makePaymentButtonRef.current.getBoundingClientRect()
+                  setDropdownPosition({
+                    top: rect.bottom + 8,
+                    left: rect.left
+                  })
+                }
+                setShowMakePaymentDropdown(!showMakePaymentDropdown)
+              }}
             >
               <DollarSign size={16} className="me-1" />
               Make Payments
+              <ChevronDown size={14} className="ms-1" />
             </button>
-            <div className="dropdown">
-              <button
-                className="btn-add dropdown-toggle dropdown-toggle-split"
-                type="button"
-                id="makePaymentDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                style={{ borderLeft: '1px solid rgba(255,255,255,0.2)' }}
+            
+            {showMakePaymentDropdown && (
+              <div 
+                className="make-payments-dropdown"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`
+                }}
+                onMouseEnter={() => {
+                  // Clear any existing timeout
+                  if (dropdownTimeoutRef.current) {
+                    clearTimeout(dropdownTimeoutRef.current)
+                    dropdownTimeoutRef.current = null
+                  }
+                  setShowMakePaymentDropdown(true)
+                }}
+                onMouseLeave={() => {
+                  // Add a small delay before hiding
+                  dropdownTimeoutRef.current = setTimeout(() => {
+                    setShowMakePaymentDropdown(false)
+                  }, 150)
+                }}
               >
-                <span className="visually-hidden">Toggle Dropdown</span>
-              </button>
-              <ul className="dropdown-menu" aria-labelledby="makePaymentDropdown">
-                <li>
-                  <button 
-                    className={`dropdown-item ${paymentType === "suppliers" ? "active" : ""}`}
-                    onClick={() => setPaymentType("suppliers")}
-                  >
-                    Suppliers
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    className={`dropdown-item ${paymentType === "employees" ? "active" : ""}`}
-                    onClick={() => setPaymentType("employees")}
-                  >
-                    Employees
-                  </button>
-                </li>
-              </ul>
-            </div>
+                <div className="dropdown-item" onClick={() => {
+                  setPaymentType("suppliers")
+                  setActiveView("make-payment")
+                  setShowMakePaymentDropdown(false)
+                }}>
+                  <Building2 size={16} className="me-2" />
+                  To Suppliers
+                </div>
+                <div className="dropdown-item" onClick={() => {
+                  setPaymentType("employees")
+                  setActiveView("make-payment")
+                  setShowMakePaymentDropdown(false)
+                }}>
+                  <User size={16} className="me-2" />
+                  To Employees
+                </div>
+              </div>
+            )}
           </div>
           <button
             className={`btn-add ${activeView === "account-summary" ? "active" : ""}`}

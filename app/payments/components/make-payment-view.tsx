@@ -44,11 +44,11 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
     setupEntityOptions()
     fetchSuppliersAndEmployees()
     fetchPayments()
-  }, [clients, paymentType])
+  }, [clients, paymentType, suppliers, employees])
 
   const fetchSuppliersAndEmployees = async () => {
     try {
-      // Fetch suppliers
+      // Fetch suppliers from registered_entities table
       const { data: suppliersData, error: suppliersError } = await supabase
         .from("registered_entities")
         .select("*")
@@ -58,7 +58,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
       if (suppliersError) throw suppliersError
       setSuppliers(suppliersData || [])
 
-      // Fetch employees
+      // Fetch employees from registered_entities table
       const { data: employeesData, error: employeesError } = await supabase
         .from("registered_entities")
         .select("*")
@@ -78,6 +78,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
       setPurchaseOrders(purchaseOrdersData || [])
     } catch (error) {
       console.error("Error fetching suppliers and employees:", error)
+      toast.error("Failed to load suppliers and employees")
     }
   }
 
@@ -167,25 +168,8 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
     fetchPayments()
   }
 
-  const handleExport = async () => {
-    try {
-      startDownload("Exporting payments report...")
-      
-      const currentPayments = paymentType === "suppliers" ? supplierPayments : employeePayments
-      const fileName = `${paymentType}_payments_${new Date().toISOString().split('T')[0]}.pdf`
-      
-      await exportPaymentsReport(currentPayments, fileName, paymentType)
-      
-      completeDownload()
-      toast.success("Payments report exported successfully")
-    } catch (error) {
-      console.error("Export error:", error)
-      setError("Failed to export payments report")
-      toast.error("Failed to export payments report")
-    }
-  }
 
-  const filteredPayments = () => {
+  const getFilteredPayments = () => {
     const currentPayments = paymentType === "suppliers" ? supplierPayments : employeePayments
     let filtered = currentPayments
 
@@ -196,7 +180,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
           ? payment.supplier?.name 
           : payment.employee?.name
         return (
-          payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           entityName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           payment.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -211,169 +195,197 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
     }
 
     // Date filter
-    if (dateFilter === "today") {
-      const today = new Date().toISOString().split('T')[0]
-      filtered = filtered.filter(payment => payment.payment_date === today)
-    } else if (dateFilter === "specific" && specificDate) {
-      filtered = filtered.filter(payment => payment.payment_date === specificDate)
-    } else if (dateFilter === "period" && periodStartDate && periodEndDate) {
+    if (dateFilter) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
       filtered = filtered.filter(payment => {
         const paymentDate = new Date(payment.payment_date)
-        const startDate = new Date(periodStartDate)
-        const endDate = new Date(periodEndDate)
-        return paymentDate >= startDate && paymentDate <= endDate
+        const paymentDay = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate())
+        
+        switch (dateFilter) {
+          case "today":
+            return paymentDay.getTime() === today.getTime()
+          case "week":
+            const weekStart = new Date(today)
+            weekStart.setDate(today.getDate() - today.getDay())
+            return paymentDay >= weekStart && paymentDay <= today
+          case "month":
+            return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear()
+          case "year":
+            return paymentDate.getFullYear() === now.getFullYear()
+          case "specific":
+            if (specificDate) {
+              const specDate = new Date(specificDate)
+              const specDay = new Date(specDate.getFullYear(), specDate.getMonth(), specDate.getDate())
+              return paymentDay.getTime() === specDay.getTime()
+            }
+            return true
+          case "period":
+            if (periodStartDate && periodEndDate) {
+              const startDate = new Date(periodStartDate)
+              const endDate = new Date(periodEndDate)
+              const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+              const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+              return paymentDay >= startDay && paymentDay <= endDay
+            }
+            return true
+          default:
+            return true
+        }
       })
     }
 
     return filtered
   }
 
-  const currentPayments = filteredPayments()
+  const filteredPayments = getFilteredPayments()
+
+  const handleExport = (format: 'pdf' | 'csv') => {
+    try {
+      startDownload(`${paymentType}_payments_report_${new Date().toISOString().split('T')[0]}`, format)
+      
+      exportPaymentsReport(filteredPayments, format)
+      
+      setTimeout(() => {
+        completeDownload()
+      }, 1500)
+    } catch (error) {
+      setError(`Failed to export ${paymentType} payments report`)
+    }
+  }
 
   return (
-    <div className="p-4">
-      {/* Header with Add New Button and Export */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h5 className="mb-1">
-            {paymentType === "suppliers" ? "Supplier Payments" : "Employee Payments"}
-          </h5>
-          <p className="text-muted mb-0">
-            Manage payments to {paymentType === "suppliers" ? "suppliers" : "employees"}
-          </p>
-        </div>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-outline-primary d-flex align-items-center"
-            onClick={handleExport}
-            disabled={loading}
-          >
-            <Download size={16} className="me-1" />
-            Export
-          </button>
-          <button
-            className="btn btn-primary d-flex align-items-center"
-            onClick={handleAddNew}
-          >
-            <Plus size={16} className="me-1" />
+    <div className="card">
+      <div>
+        {/* Add New Payment Button */}
+        <div className="d-flex mb-3">
+          <button className="btn-add" onClick={handleAddNew}>
+            <Plus size={16} className="me-2" />
             Add New {paymentType === "suppliers" ? "Supplier" : "Employee"} Payment
           </button>
         </div>
-      </div>
 
-      {/* Search and Filter Row */}
-      <SearchFilterRow
-        searchPlaceholder={`Search ${paymentType} payments...`}
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        firstFilterLabel={paymentType === "suppliers" ? "All Suppliers" : "All Employees"}
-        firstFilterValue={entityFilter}
-        onFirstFilterChange={setEntityFilter}
-        firstFilterOptions={entityOptions}
-        dateFilterValue={dateFilter}
-        onDateFilterChange={setDateFilter}
-        specificDateValue={specificDate}
-        onSpecificDateChange={setSpecificDate}
-        periodStartDateValue={periodStartDate}
-        onPeriodStartDateChange={setPeriodStartDate}
-        periodEndDateValue={periodEndDate}
-        onPeriodEndDateChange={setPeriodEndDate}
-      />
+        {/* Enhanced Search and Filter Row */}
+        <SearchFilterRow
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={`Search ${paymentType} payments...`}
+          firstFilter={{
+            value: entityFilter,
+            onChange: setEntityFilter,
+            options: entityOptions,
+            placeholder: paymentType === "suppliers" ? "All Suppliers" : "All Employees"
+          }}
+          dateFilter={{
+            value: dateFilter,
+            onChange: setDateFilter,
+            onSpecificDateChange: setSpecificDate,
+            onPeriodStartChange: setPeriodStartDate,
+            onPeriodEndChange: setPeriodEndDate,
+            specificDate,
+            periodStartDate,
+            periodEndDate
+          }}
+          onExport={handleExport}
+          exportLabel="Export"
+        />
 
-      {/* Payments Table */}
-      <div className="table-responsive">
-        <table className="table table-hover">
-          <thead className="table-light">
-            <tr>
-              <th>Payment Number</th>
-              <th>Date</th>
-              <th>{paymentType === "suppliers" ? "Supplier" : "Employee"}</th>
-              <th>Paid To</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Payments Table */}
+        <div className="w-full overflow-x-auto">
+          <table className="table table-hover">
+            <thead className="table-light">
               <tr>
-                <td colSpan={8} className="text-center py-4">
-                  <div className="spinner-border spinner-border-sm me-2" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  Loading {paymentType} payments...
-                </td>
+                <th>Payment Number</th>
+                <th>Date</th>
+                <th>{paymentType === "suppliers" ? "Supplier" : "Employee"}</th>
+                <th>Paid To</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ) : currentPayments.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center py-4 text-muted">
-                  No {paymentType} payments found
-                </td>
-              </tr>
-            ) : (
-              currentPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td>
-                    <span className="fw-medium">{payment.payment_number}</span>
-                  </td>
-                  <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
-                  <td>
-                    {paymentType === "suppliers" 
-                      ? payment.supplier?.name || "Unknown Supplier"
-                      : payment.employee?.name || "Unknown Employee"
-                    }
-                  </td>
-                  <td>{payment.paid_to || "-"}</td>
-                  <td>
-                    <span className="fw-medium text-success">
-                      KES {parseFloat(payment.amount).toLocaleString()}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge bg-secondary">
-                      {payment.payment_method}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${
-                      payment.status === "completed" ? "bg-success" :
-                      payment.status === "pending" ? "bg-warning" : "bg-danger"
-                    }`}>
-                      {payment.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => handleView(payment)}
-                        title="View"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => handleEdit(payment)}
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDelete(payment)}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Loading...</span>
                     </div>
+                    Loading {paymentType} payments...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-4 text-muted">
+                    No {paymentType} payments found
+                  </td>
+                </tr>
+              ) : (
+                filteredPayments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>
+                      <span className="fw-medium">{payment.payment_number}</span>
+                    </td>
+                    <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
+                    <td>
+                      {paymentType === "suppliers" 
+                        ? payment.supplier?.name || "Unknown Supplier"
+                        : payment.employee?.name || "Unknown Employee"
+                      }
+                    </td>
+                    <td>{payment.paid_to || "-"}</td>
+                    <td>
+                      <span className="fw-medium text-success">
+                        KES {parseFloat(payment.amount).toLocaleString()}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="badge bg-secondary">
+                        {payment.payment_method}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        payment.status === "completed" ? "bg-success" :
+                        payment.status === "pending" ? "bg-warning" : "bg-danger"
+                      }`}>
+                        {payment.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => handleView(payment)}
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => handleEdit(payment)}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(payment)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        </div>
 
       {/* Payment Modal */}
       {showPaymentModal && (
@@ -393,16 +405,16 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
             />
           ) : (
             <EmployeePaymentModal
-              payment={selectedPayment}
-              mode={modalMode}
-              onClose={() => {
-                setShowPaymentModal(false)
-                setSelectedPayment(null)
-                setModalMode("create")
-              }}
-              onSave={handleSavePayment}
+          payment={selectedPayment}
+          mode={modalMode}
+            onClose={() => {
+              setShowPaymentModal(false)
+              setSelectedPayment(null)
+              setModalMode("create")
+            }}
+          onSave={handleSavePayment}
               employees={employees}
-            />
+        />
           )}
         </>
       )}
