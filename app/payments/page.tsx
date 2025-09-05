@@ -17,9 +17,8 @@ export default function PaymentsPage() {
   const [activeView, setActiveView] = useState<"receive-payment" | "make-payment" | "account-summary">("receive-payment")
   const [paymentType, setPaymentType] = useState<"suppliers" | "employees">("suppliers")
   const [showMakePaymentDropdown, setShowMakePaymentDropdown] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
-  const makePaymentButtonRef = useRef<HTMLDivElement>(null)
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
 
   useEffect(() => {
     fetchData()
@@ -43,7 +42,8 @@ export default function PaymentsPage() {
 
     // Click outside handler
     const handleClickOutside = (event: MouseEvent) => {
-      if (makePaymentButtonRef.current && !makePaymentButtonRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement
+      if (!target.closest('.make-payments-container')) {
         setShowMakePaymentDropdown(false)
       }
     }
@@ -180,43 +180,25 @@ export default function PaymentsPage() {
             <DollarSign size={16} className="me-1" />
             Receive Payments
           </button>
-          <div 
-            ref={makePaymentButtonRef}
-            className="make-payments-container"
-            onMouseEnter={() => {
-              // Clear any existing timeout
-              if (dropdownTimeoutRef.current) {
-                clearTimeout(dropdownTimeoutRef.current)
-                dropdownTimeoutRef.current = null
-              }
-              
-              if (makePaymentButtonRef.current) {
-                const rect = makePaymentButtonRef.current.getBoundingClientRect()
-                setDropdownPosition({
-                  top: rect.bottom + 8,
-                  left: rect.left
-                })
-              }
-              setShowMakePaymentDropdown(true)
-            }}
-            onMouseLeave={() => {
-              // Add a small delay before hiding to allow moving to dropdown
-              dropdownTimeoutRef.current = setTimeout(() => {
-                setShowMakePaymentDropdown(false)
-              }, 150)
-            }}
-          >
+          <div className="make-payments-container">
             <button
               className={`btn-add ${activeView === "make-payment" ? "active" : ""}`}
+              onMouseEnter={() => {
+                // Clear any existing timeout
+                if (dropdownTimeoutRef.current) {
+                  clearTimeout(dropdownTimeoutRef.current)
+                  dropdownTimeoutRef.current = null
+                }
+                setShowMakePaymentDropdown(true)
+              }}
+              onMouseLeave={() => {
+                // Add a longer delay before hiding to allow moving to dropdown
+                dropdownTimeoutRef.current = setTimeout(() => {
+                  setShowMakePaymentDropdown(false)
+                }, 300)
+              }}
               onClick={(e) => {
                 e.stopPropagation()
-                if (makePaymentButtonRef.current) {
-                  const rect = makePaymentButtonRef.current.getBoundingClientRect()
-                  setDropdownPosition({
-                    top: rect.bottom + 8,
-                    left: rect.left
-                  })
-                }
                 setShowMakePaymentDropdown(!showMakePaymentDropdown)
               }}
             >
@@ -228,10 +210,6 @@ export default function PaymentsPage() {
             {showMakePaymentDropdown && (
               <div 
                 className="make-payments-dropdown"
-                style={{
-                  top: `${dropdownPosition.top}px`,
-                  left: `${dropdownPosition.left}px`
-                }}
                 onMouseEnter={() => {
                   // Clear any existing timeout
                   if (dropdownTimeoutRef.current) {
@@ -241,10 +219,10 @@ export default function PaymentsPage() {
                   setShowMakePaymentDropdown(true)
                 }}
                 onMouseLeave={() => {
-                  // Add a small delay before hiding
+                  // Add a longer delay before hiding
                   dropdownTimeoutRef.current = setTimeout(() => {
                     setShowMakePaymentDropdown(false)
-                  }, 150)
+                  }, 300)
                 }}
               >
                 <div className="dropdown-item" onClick={() => {
