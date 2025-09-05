@@ -993,16 +993,16 @@ const SalesOrdersView = () => {
 
       {/* Sales Orders Table */}
       <div className="card table-section">
-          <div className="w-full overflow-x-auto">
+          <div className="responsive-table-wrapper">
             <table className="table table-hover">
           <thead>
             <tr>
-              <th>Order #</th>
-                <th>Date</th>
-              <th>Client</th>
-              <th>Total Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="col-number">Order #</th>
+                <th className="col-date">Date</th>
+              <th className="col-client">Client</th>
+              <th className="col-amount">Total Amount</th>
+              <th className="col-status">Status</th>
+              <th className="col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>

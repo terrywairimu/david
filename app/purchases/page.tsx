@@ -819,22 +819,22 @@ const PurchasesPage = () => {
 
       {/* Purchases Table */}
       <div className="card table-section">
-        <div className="w-full overflow-x-auto">
+        <div className="responsive-table-wrapper">
           <table className="table table-hover">
             <thead>
               <tr>
-                <th>Order Number</th>
-                <th>Date</th>
-                <th>Supplier</th>
+                <th className="col-number">Order Number</th>
+                <th className="col-date">Date</th>
+                <th className="col-supplier">Supplier</th>
                 {currentView === "client" && (
                   <>
-                    <th>Client</th>
-                    <th>Paid To</th>
+                    <th className="col-client">Client</th>
+                    <th className="col-client">Paid To</th>
                   </>
                 )}
-                <th>Items</th>
-                <th>Total Amount</th>
-                <th style={{ width: "120px" }}>Actions</th>
+                <th className="col-items">Items</th>
+                <th className="col-amount">Total Amount</th>
+                <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>

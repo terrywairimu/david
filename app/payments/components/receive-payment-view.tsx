@@ -245,18 +245,18 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
         />
 
         {/* Payments Table */}
-        <div className="w-full overflow-x-auto">
+        <div className="responsive-table-wrapper">
           <table className="table table-hover">
             <thead>
               <tr>
-                <th>Payment #</th>
-                <th>Client</th>
-                <th>Date</th>
-                <th>Paid To</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Account Credited</th>
-                <th>Actions</th>
+                <th className="col-number">Payment #</th>
+                <th className="col-client">Client</th>
+                <th className="col-date">Date</th>
+                <th className="col-client">Paid To</th>
+                <th className="col-description">Description</th>
+                <th className="col-amount">Amount</th>
+                <th className="col-client">Account Credited</th>
+                <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>

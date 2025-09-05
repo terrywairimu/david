@@ -292,18 +292,20 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
         />
 
         {/* Payments Table */}
-        <div className="w-full overflow-x-auto">
+        <div className="responsive-table-wrapper">
           <table className="table table-hover">
             <thead className="table-light">
               <tr>
-                <th>Payment Number</th>
-                <th>Date</th>
-                <th>{paymentType === "suppliers" ? "Supplier" : "Employee"}</th>
-                <th>Paid To</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th className="col-number">Payment #</th>
+                <th className="col-date">Date</th>
+                <th className={paymentType === "suppliers" ? "col-supplier" : "col-employee"}>
+                  {paymentType === "suppliers" ? "Supplier" : "Employee"}
+                </th>
+                <th className="col-client">Paid To</th>
+                <th className="col-amount">Amount</th>
+                <th className="col-status">Method</th>
+                <th className="col-status">Status</th>
+                <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>

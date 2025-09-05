@@ -1792,6 +1792,262 @@ body {
   height: 0 !important;
 }
 
+/* ===== RESPONSIVE TABLES ===== */
+/* Base responsive table styles */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 0;
+  table-layout: fixed; /* Forces equal column distribution */
+}
+
+/* Compact table spacing */
+.table th,
+.table td {
+  padding: 0.3rem 0.2rem !important;
+  vertical-align: middle;
+  border-top: 1px solid #dee2e6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+/* Table headers */
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.15rem !important;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Dynamic column widths for different screen sizes */
+/* Large screens (15+ inch) */
+@media (min-width: 1600px) {
+  .table th,
+  .table td {
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.8rem;
+  }
+  .table th {
+    padding: 0.35rem 0.25rem !important;
+    font-size: 0.75rem;
+  }
+}
+
+/* Medium screens (13-15 inch) */
+@media (max-width: 1599px) and (min-width: 1200px) {
+  .table th,
+  .table td {
+    padding: 0.25rem 0.15rem !important;
+    font-size: 0.7rem;
+  }
+  .table th {
+    padding: 0.2rem 0.1rem !important;
+    font-size: 0.65rem;
+  }
+}
+
+/* Small laptop screens (13 inch) */
+@media (max-width: 1199px) and (min-width: 992px) {
+  .table th,
+  .table td {
+    padding: 0.2rem 0.1rem !important;
+    font-size: 0.65rem;
+  }
+  .table th {
+    padding: 0.15rem 0.08rem !important;
+    font-size: 0.6rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 991px) {
+  .table th,
+  .table td {
+    padding: 0.15rem 0.05rem !important;
+    font-size: 0.6rem;
+  }
+  .table th {
+    padding: 0.1rem 0.05rem !important;
+    font-size: 0.55rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: 0.1rem 0.03rem !important;
+    font-size: 0.55rem;
+  }
+  .table th {
+    padding: 0.08rem 0.03rem !important;
+    font-size: 0.5rem;
+  }
+}
+
+/* Specific column width optimizations */
+.table .col-id { width: 8%; min-width: 60px; }
+.table .col-date { width: 10%; min-width: 80px; }
+.table .col-number { width: 12%; min-width: 100px; }
+.table .col-client { width: 15%; min-width: 120px; }
+.table .col-supplier { width: 15%; min-width: 120px; }
+.table .col-employee { width: 15%; min-width: 120px; }
+.table .col-amount { width: 10%; min-width: 80px; }
+.table .col-status { width: 8%; min-width: 70px; }
+.table .col-actions { width: 12%; min-width: 100px; }
+.table .col-items { width: 20%; min-width: 150px; }
+.table .col-description { width: 25%; min-width: 200px; }
+
+/* Action buttons in tables */
+.table .btn {
+  padding: 0.1rem 0.2rem !important;
+  font-size: 0.6rem !important;
+  margin: 0.05rem !important;
+  min-width: auto !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+}
+
+.table .btn-sm {
+  padding: 0.05rem 0.1rem !important;
+  font-size: 0.55rem !important;
+}
+
+/* Table container responsiveness */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Ensure tables don't break layout */
+.card-body .table-responsive {
+  margin: 0;
+  border: none;
+}
+
+/* Responsive table wrapper */
+.responsive-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.responsive-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Additional responsive table utilities */
+.table-cell-truncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-wrap {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Ensure tables fit within containers */
+.card-body .responsive-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Medium screen optimizations (13-14 inch laptops) */
+@media (max-width: 1440px) and (min-width: 1200px) {
+  .table th,
+  .table td {
+    padding: 0.2rem 0.1rem !important;
+    font-size: 0.65rem;
+  }
+  .table th {
+    padding: 0.15rem 0.08rem !important;
+    font-size: 0.6rem;
+  }
+  
+  /* Adjust column widths for medium screens */
+  .table .col-id { width: 6%; min-width: 50px; }
+  .table .col-date { width: 8%; min-width: 70px; }
+  .table .col-number { width: 10%; min-width: 90px; }
+  .table .col-client { width: 12%; min-width: 100px; }
+  .table .col-supplier { width: 12%; min-width: 100px; }
+  .table .col-employee { width: 12%; min-width: 100px; }
+  .table .col-amount { width: 8%; min-width: 70px; }
+  .table .col-status { width: 6%; min-width: 60px; }
+  .table .col-actions { width: 10%; min-width: 90px; }
+  .table .col-items { width: 18%; min-width: 140px; }
+  .table .col-description { width: 20%; min-width: 160px; }
+}
+
+/* Small laptop screens (13 inch) - more aggressive */
+@media (max-width: 1199px) and (min-width: 992px) {
+  .table .col-id { width: 5%; min-width: 45px; }
+  .table .col-date { width: 7%; min-width: 60px; }
+  .table .col-number { width: 9%; min-width: 80px; }
+  .table .col-client { width: 11%; min-width: 90px; }
+  .table .col-supplier { width: 11%; min-width: 90px; }
+  .table .col-employee { width: 11%; min-width: 90px; }
+  .table .col-amount { width: 7%; min-width: 60px; }
+  .table .col-status { width: 5%; min-width: 50px; }
+  .table .col-actions { width: 9%; min-width: 80px; }
+  .table .col-items { width: 16%; min-width: 120px; }
+  .table .col-description { width: 18%; min-width: 140px; }
+}
+
+/* Force table to never exceed container width */
+.table {
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+/* Ensure all table content is contained */
+.table td,
+.table th {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Better button sizing in tables for small screens */
+@media (max-width: 1199px) {
+  .table .btn {
+    padding: 0.05rem 0.1rem !important;
+    font-size: 0.5rem !important;
+    margin: 0.02rem !important;
+  }
+  
+  .table .btn-sm {
+    padding: 0.03rem 0.08rem !important;
+    font-size: 0.45rem !important;
+  }
+}
+
 .section-header-title-desktop {
   text-align: right;
 }

@@ -961,19 +961,19 @@ const InvoicesView = () => {
 
         {/* Invoices Table */}
         <div className="card table-section">
-          <div className="w-full overflow-x-auto">
+          <div className="responsive-table-wrapper">
             <table className="table table-hover">
               <thead>
                 <tr>
-                  <th>Invoice #</th>
-                  <th>Date</th>
-                  <th>Due Date</th>
-                  <th>Client</th>
-                  <th>Total Amount</th>
-                  <th>Paid Amount</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th className="col-number">Invoice #</th>
+                  <th className="col-date">Date</th>
+                  <th className="col-date">Due Date</th>
+                  <th className="col-client">Client</th>
+                  <th className="col-amount">Total Amount</th>
+                  <th className="col-amount">Paid Amount</th>
+                  <th className="col-amount">Balance</th>
+                  <th className="col-status">Status</th>
+                  <th className="col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
