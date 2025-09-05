@@ -1743,14 +1743,53 @@ body {
   justify-content: flex-start;
 }
 
-.section-header-actions-desktop .btn {
+/* Force card header button styles with maximum specificity */
+.card .card-header .section-header-actions-desktop .btn,
+.card .card-header .section-header-actions-desktop .btn-add,
+.card .card-header .section-header-actions-desktop .section-header-btn-responsive,
+.section-header-actions-desktop .btn,
+.section-header-actions-desktop .btn-add,
+.section-header-actions-desktop .section-header-btn-responsive {
   flex: 1 1 0 !important;
   min-width: 0 !important;
   font-size: 0.6rem !important;
-  padding: 0.2rem 0.1rem !important;
+  padding: 0.1rem 0.05rem !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  min-height: auto !important;
+  border-radius: 8px !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+}
+
+/* Hide dropdown arrow completely in Make Payments button */
+.section-header-actions-desktop .dropdown-icon,
+.card .card-header .section-header-actions-desktop .dropdown-icon,
+.make-payments-container .dropdown-icon,
+.make-payments-container .btn .dropdown-icon,
+.card .card-header .make-payments-container .dropdown-icon,
+.card .card-header .make-payments-container .btn .dropdown-icon,
+.section-header-actions-desktop .make-payments-container .dropdown-icon,
+.section-header-actions-desktop .make-payments-container .btn .dropdown-icon {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Hide ChevronDown SVG specifically */
+.make-payments-container svg[data-lucide="chevron-down"],
+.card .card-header .make-payments-container svg[data-lucide="chevron-down"],
+.section-header-actions-desktop .make-payments-container svg[data-lucide="chevron-down"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .section-header-title-desktop {
@@ -1776,39 +1815,61 @@ body {
   box-shadow: 0 4px 16px rgba(99,102,241,0.12);
 }
 
-/* Responsive breakpoints for card header buttons */
+/* Responsive breakpoints for card header buttons - HALVED PADDING */
 @media (max-width: 1600px) {
-  .section-header-actions-desktop .btn {
+  .card .card-header .section-header-actions-desktop .btn,
+  .card .card-header .section-header-actions-desktop .btn-add,
+  .card .card-header .section-header-actions-desktop .section-header-btn-responsive,
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
     font-size: 0.55rem !important;
-    padding: 0.15rem 0.08rem !important;
+    padding: 0.075rem 0.04rem !important;
   }
 }
 
 @media (max-width: 1400px) {
-  .section-header-actions-desktop .btn {
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
     font-size: 0.5rem !important;
-    padding: 0.1rem 0.05rem !important;
+    padding: 0.05rem 0.025rem !important;
   }
 }
 
 @media (max-width: 1200px) {
-  .section-header-actions-desktop .btn {
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
     font-size: 0.45rem !important;
-    padding: 0.08rem 0.03rem !important;
+    padding: 0.04rem 0.015rem !important;
   }
 }
 
 @media (max-width: 1024px) {
-  .section-header-actions-desktop .btn {
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
     font-size: 0.4rem !important;
-    padding: 0.05rem 0.02rem !important;
+    padding: 0.025rem 0.01rem !important;
   }
 }
 
 @media (max-width: 992px) {
-  .section-header-actions-desktop .btn {
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
     font-size: 0.35rem !important;
-    padding: 0.03rem 0.01rem !important;
+    padding: 0.015rem 0.005rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header-actions-desktop .btn,
+  .section-header-actions-desktop .btn-add,
+  .section-header-actions-desktop .section-header-btn-responsive {
+    font-size: 0.3rem !important;
+    padding: 0.01rem 0.0025rem !important;
   }
 }
 

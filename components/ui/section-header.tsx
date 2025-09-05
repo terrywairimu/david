@@ -44,11 +44,12 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
                   className: `${element.props.className || ''} btn-sm section-header-btn-responsive`.trim(),
                   style: {
                     ...element.props.style,
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
+                    borderRadius: '8px',
+                    fontSize: '0.6rem',
                     fontWeight: 500,
                     transition: 'all 0.2s ease',
-                    minHeight: '38px',
+                    minHeight: 'auto',
+                    padding: '0.1rem 0.05rem',
                   }
                 })
               }
