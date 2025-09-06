@@ -314,7 +314,7 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
                       "text-warning"
                     }`} style={{
                       color: expense.status === "fully_paid" ? "#dc3545" : 
-                             expense.status === "partially_paid" ? "#fd7e14" : 
+                             expense.status === "partially_paid" ? "#6f42c1" : 
                              "#ffc107"
                     }}>
                       KES {expense.amount.toFixed(2)}
