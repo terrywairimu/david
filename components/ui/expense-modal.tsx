@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import { generateExpenseNumber, generatePaymentNumber } from "@/lib/workflow-utils"
+import { generateExpenseNumber, generateEmployeePaymentNumber } from "@/lib/workflow-utils"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 import { Expense } from "@/lib/types"
 
@@ -387,21 +387,51 @@ const ExpenseModal = ({
 
   const createEmployeePaymentFromExpense = async (expense: any) => {
     try {
-      // Generate payment number using proper system
-      const paymentNumber = await generatePaymentNumber()
+      console.log("Starting employee payment creation for expense:", expense)
+      
+      // Check if employee payment already exists for this expense
+      const { data: existingPayment } = await supabase
+        .from("employee_payments")
+        .select("id")
+        .eq("paid_to", expense.expense_number)
+        .eq("employee_id", expense.employee_id)
+        .single()
+      
+      if (existingPayment) {
+        console.log("Employee payment already exists for this expense, skipping creation")
+        toast.info("Employee payment already exists for this expense")
+        return
+      }
+      
+      // Generate payment number using standardized system
+      let paymentNumber
+      try {
+        paymentNumber = await generateEmployeePaymentNumber()
+        console.log("Generated employee payment number:", paymentNumber)
+      } catch (error) {
+        console.error("Error generating employee payment number:", error)
+        // Fallback to timestamp-based number
+        const timestamp = Date.now().toString().slice(-6)
+        paymentNumber = `PNE2509003${timestamp}`
+        console.log("Using fallback payment number:", paymentNumber)
+      }
       
       const paymentData = {
         payment_number: paymentNumber,
         employee_id: expense.employee_id,
         date_created: new Date().toISOString(),
         description: `Payment for expense ${expense.expense_number}`,
-        amount: expense.amount,
+        amount: expense.amount_paid || expense.main_amount || expense.amount, // Use amount_paid instead of total amount
         paid_to: expense.expense_number,
         account_debited: expense.account_debited || "Cash",
-        status: "completed",
-        category: expense.category,
-        balance: expense.balance || 0
+        status: expense.status === "fully_paid" ? "completed" : "pending",
+        category: expense.expense_category || expense.category || "others",
+        balance: expense.balance || 0,
+        payment_method: "cash" // Add required payment_method field
       }
+
+      console.log("Creating employee payment with data:", paymentData)
+      console.log("Payment amount (amount_paid):", expense.amount_paid, "Total amount:", expense.main_amount || expense.amount)
 
       const { error } = await supabase
         .from("employee_payments")
@@ -409,13 +439,13 @@ const ExpenseModal = ({
 
       if (error) {
         console.error("Error creating employee payment:", error)
-        toast.error("Failed to create employee payment")
+        toast.error(`Failed to create employee payment: ${error.message}`)
       } else {
-        toast.success("Employee payment created automatically")
+        toast.success(`Employee payment created automatically (${expense.status === "fully_paid" ? "completed" : "pending"})`)
       }
     } catch (error) {
       console.error("Error creating employee payment:", error)
-      toast.error("Failed to create employee payment")
+      toast.error(`Failed to create employee payment: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -535,8 +565,8 @@ const ExpenseModal = ({
         
         toast.success("Expense created successfully")
         
-        // If expense is fully paid, create employee payment
-        if (formData.status === "fully_paid" && formData.employee_id) {
+        // If expense is fully paid or partially paid, create employee payment
+        if ((formData.status === "fully_paid" || formData.status === "partially_paid") && formData.employee_id) {
           await createEmployeePaymentFromExpense(savedExpense)
         }
       } else if (mode === "edit") {
@@ -554,8 +584,8 @@ const ExpenseModal = ({
         if (error) throw error
         savedExpense = data
         
-        // If expense is fully paid, create employee payment
-        if (formData.status === "fully_paid" && formData.employee_id) {
+        // If expense is fully paid or partially paid, create employee payment
+        if ((formData.status === "fully_paid" || formData.status === "partially_paid") && formData.employee_id) {
           await createEmployeePaymentFromExpense(savedExpense)
         }
         

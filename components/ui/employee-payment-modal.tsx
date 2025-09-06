@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import { generatePaymentNumber } from "@/lib/workflow-utils"
+import { generateEmployeePaymentNumber } from "@/lib/workflow-utils"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
 interface EmployeePaymentModalProps {
@@ -187,12 +187,12 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
 
   const generateNewPaymentNumber = async () => {
     try {
-      const paymentNumber = await generatePaymentNumber()
+      const paymentNumber = await generateEmployeePaymentNumber()
       setFormData(prev => ({ ...prev, payment_number: paymentNumber }))
     } catch (error) {
       console.error("Error generating payment number:", error)
       const timestamp = Date.now().toString().slice(-6)
-      setFormData(prev => ({ ...prev, payment_number: `EP-${timestamp}` }))
+      setFormData(prev => ({ ...prev, payment_number: `PNE2509003${timestamp}` }))
     }
   }
 

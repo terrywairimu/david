@@ -102,6 +102,80 @@ export const generatePaymentNumber = async () => {
   }
 }
 
+export const generateEmployeePaymentNumber = async () => {
+  try {
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2) // Last 2 digits
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const prefix = `PNE${year}${month}`
+    
+    // Get the highest payment number for the current month ONLY
+    const { data, error } = await supabase
+      .from('employee_payments')
+      .select('payment_number')
+      .like('payment_number', `${prefix}%`)
+      .order('payment_number', { ascending: false })
+      .limit(1)
+    
+    if (error) throw error
+    
+    if (data && data.length > 0) {
+      const lastNumber = data[0].payment_number
+      // Extract the sequential part from PNEYYMMNNN format
+      const sequentialPart = lastNumber.slice(-3)
+      const nextNumber = parseInt(sequentialPart) + 1
+      return `${prefix}${nextNumber.toString().padStart(3, '0')}`
+    }
+    
+    // First payment of the month - start from 001
+    return `${prefix}001`
+  } catch (error) {
+    console.error('Error generating employee payment number:', error)
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2)
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const timestamp = Date.now().toString().slice(-3)
+    return `PNE${year}${month}${timestamp}`
+  }
+}
+
+export const generateSupplierPaymentNumber = async () => {
+  try {
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2) // Last 2 digits
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const prefix = `PNS${year}${month}`
+    
+    // Get the highest payment number for the current month ONLY
+    const { data, error } = await supabase
+      .from('supplier_payments')
+      .select('payment_number')
+      .like('payment_number', `${prefix}%`)
+      .order('payment_number', { ascending: false })
+      .limit(1)
+    
+    if (error) throw error
+    
+    if (data && data.length > 0) {
+      const lastNumber = data[0].payment_number
+      // Extract the sequential part from PNSYYMMNNN format
+      const sequentialPart = lastNumber.slice(-3)
+      const nextNumber = parseInt(sequentialPart) + 1
+      return `${prefix}${nextNumber.toString().padStart(3, '0')}`
+    }
+    
+    // First payment of the month - start from 001
+    return `${prefix}001`
+  } catch (error) {
+    console.error('Error generating supplier payment number:', error)
+    const currentDate = new Date()
+    const year = currentDate.getFullYear().toString().slice(-2)
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    const timestamp = Date.now().toString().slice(-3)
+    return `PNS${year}${month}${timestamp}`
+  }
+}
+
 export const generateExpenseNumber = async (type: 'client' | 'company') => {
   try {
     const currentDate = new Date()
