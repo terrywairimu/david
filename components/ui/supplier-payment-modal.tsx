@@ -477,10 +477,10 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                     disabled={mode === "view"}
                   >
                     <option value="">Select Account</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cooperative Bank">Cooperative Bank</option>
-                    <option value="Credit">Credit</option>
-                    <option value="Cheque">Cheque</option>
+                    <option value="cash">Cash</option>
+                    <option value="cooperative_bank">Cooperative Bank</option>
+                    <option value="credit">Credit</option>
+                    <option value="cheque">Cheque</option>
                   </select>
                 </div>
               </div>
