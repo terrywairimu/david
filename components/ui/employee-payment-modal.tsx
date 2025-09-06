@@ -12,7 +12,6 @@ interface EmployeePaymentModalProps {
   mode: "view" | "edit" | "create"
   onClose: () => void
   onSave: (payment: any) => void
-  employees: any[]
 }
 
 const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
@@ -20,7 +19,6 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
   mode,
   onClose,
   onSave,
-  employees,
 }) => {
   const [formData, setFormData] = useState({
     payment_number: "",
@@ -31,23 +29,105 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
     paid_to: "",
     account_debited: "",
     status: "completed",
-    payment_method: "cash",
-    category: "wages"
+    category: "wages",
+    balance: 0
   })
   const [loading, setLoading] = useState(false)
   const [employeeSearch, setEmployeeSearch] = useState("")
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false)
-  const [filteredEmployees, setFilteredEmployees] = useState(employees)
+  const [employees, setEmployees] = useState<any[]>([])
+  const [filteredEmployees, setFilteredEmployees] = useState<any[]>([])
+  const [paidToSearch, setPaidToSearch] = useState("")
+  const [showPaidToDropdown, setShowPaidToDropdown] = useState(false)
+  const [employeeExpenses, setEmployeeExpenses] = useState<any[]>([])
+  const [filteredEmployeeExpenses, setFilteredEmployeeExpenses] = useState<any[]>([])
 
   const employeeInputGroupRef = useRef<HTMLDivElement>(null);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
+  const paidToInputGroupRef = useRef<HTMLDivElement>(null);
+  const paidToDropdownRef = useRef<HTMLDivElement>(null);
 
   const paymentCategories = [
     { value: "wages", label: "Wages" },
+    { value: "fare", label: "Fare" },
     { value: "transport", label: "Transport" },
-    { value: "fair", label: "Fair" },
-    { value: "client_expenses", label: "Client Expenses" }
+    { value: "accomodation", label: "Accomodation" },
+    { value: "meals", label: "Meals" },
+    { value: "material facilitation", label: "Material Facilitation" },
+    { value: "others", label: "Others" }
   ]
+
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("status", "active")
+        .order("name")
+
+      if (error) throw error
+      setEmployees(data || [])
+      setFilteredEmployees(data || [])
+    } catch (error) {
+      console.error("Error fetching employees:", error)
+      toast.error("Failed to load employees")
+    }
+  }
+
+  const fetchEmployeeExpenses = async (employeeId?: string, category?: string) => {
+    try {
+      let query = supabase
+        .from("expenses")
+        .select("*")
+        .eq("expense_type", "client")
+        .in("status", ["not_yet_paid", "partially_paid"]) // Only show unpaid and partially paid expenses
+        .order("expense_number", { ascending: false })
+
+      if (employeeId) {
+        query = query.eq("employee_id", employeeId)
+      }
+
+      if (category) {
+        query = query.eq("category", category)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setEmployeeExpenses(data || [])
+      setFilteredEmployeeExpenses(data || [])
+    } catch (error) {
+      console.error("Error fetching employee expenses:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchEmployees()
+    fetchEmployeeExpenses()
+  }, [])
+
+  // Fetch expenses when employee or category changes
+  useEffect(() => {
+    if (formData.employee_id && formData.category) {
+      fetchEmployeeExpenses(formData.employee_id, formData.category)
+    } else if (formData.employee_id) {
+      fetchEmployeeExpenses(formData.employee_id)
+    } else {
+      fetchEmployeeExpenses()
+    }
+  }, [formData.employee_id, formData.category])
+
+  // Filter expenses based on search
+  useEffect(() => {
+    if (paidToSearch.trim() === "") {
+      setFilteredEmployeeExpenses(employeeExpenses)
+    } else {
+      const filtered = employeeExpenses.filter(expense =>
+        expense.expense_number.toLowerCase().includes(paidToSearch.toLowerCase())
+      )
+      setFilteredEmployeeExpenses(filtered)
+    }
+  }, [paidToSearch, employeeExpenses])
 
   useEffect(() => {
     if (payment && mode !== "create") {
@@ -60,14 +140,19 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
         paid_to: payment.paid_to || "",
         account_debited: payment.account_debited || "",
         status: payment.status || "completed",
-        payment_method: payment.payment_method || "cash",
-        category: payment.category || "wages"
+        category: payment.category || "wages",
+        balance: payment.balance || 0
       })
       
       // Set employee search text
       const employee = employees.find(e => e.id === payment.employee_id)
       if (employee) {
         setEmployeeSearch(employee.name)
+      }
+      
+      // Set paid to search text
+      if (payment.paid_to) {
+        setPaidToSearch(payment.paid_to)
       }
     } else if (mode === "create") {
       generateNewPaymentNumber()
@@ -77,6 +162,28 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
   useEffect(() => {
     setFilteredEmployees(employees)
   }, [employees])
+
+  // Employee search filtering with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (employeeSearch.trim() === "") {
+        setFilteredEmployees(employees)
+      } else {
+        const filtered = employees.filter(employee => {
+          const searchLower = employeeSearch.toLowerCase()
+          const nameLower = employee.name?.toLowerCase() || ""
+          const phoneLower = employee.phone?.toLowerCase() || ""
+          const locationLower = employee.location?.toLowerCase() || ""
+          return nameLower.includes(searchLower) ||
+                 phoneLower.includes(searchLower) ||
+                 locationLower.includes(searchLower)
+        })
+        setFilteredEmployees(filtered)
+      }
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [employeeSearch, employees])
 
   const generateNewPaymentNumber = async () => {
     try {
@@ -92,21 +199,29 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
   const handleEmployeeSearch = (searchTerm: string) => {
     setEmployeeSearch(searchTerm)
     setShowEmployeeDropdown(true)
-    
-    if (searchTerm.trim() === "") {
-      setFilteredEmployees(employees)
-    } else {
-      const filtered = employees.filter(employee =>
-        employee.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      setFilteredEmployees(filtered)
-    }
   }
 
   const handleEmployeeSelect = (employee: any) => {
-    setFormData(prev => ({ ...prev, employee_id: employee.id }))
+    setFormData(prev => ({ ...prev, employee_id: employee.id, paid_to: "" }))
     setEmployeeSearch(employee.name)
+    setPaidToSearch("") // Clear paid to search when employee changes
     setShowEmployeeDropdown(false)
+  }
+
+  const handleCategoryChange = (category: string) => {
+    setFormData(prev => ({ ...prev, category, paid_to: "" }))
+    setPaidToSearch("") // Clear paid to search when category changes
+  }
+
+  const handlePaidToSearch = (searchTerm: string) => {
+    setPaidToSearch(searchTerm)
+    setShowPaidToDropdown(true)
+  }
+
+  const handlePaidToSelect = (expense: any) => {
+    setFormData(prev => ({ ...prev, paid_to: expense.expense_number }))
+    setPaidToSearch(expense.expense_number)
+    setShowPaidToDropdown(false)
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -167,6 +282,9 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
       if (employeeInputGroupRef.current && !employeeInputGroupRef.current.contains(event.target as Node)) {
         setShowEmployeeDropdown(false)
       }
+      if (paidToInputGroupRef.current && !paidToInputGroupRef.current.contains(event.target as Node)) {
+        setShowPaidToDropdown(false)
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
@@ -219,47 +337,64 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="employee" className="form-label">Employee</label>
-                  <div className="input-group" ref={employeeInputGroupRef}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="employee"
-                      placeholder="Search employee..."
-                      value={employeeSearch}
-                      onChange={(e) => handleEmployeeSearch(e.target.value)}
-                      onFocus={() => setShowEmployeeDropdown(true)}
-                      required
-                      readOnly={mode === "view"}
-                    />
-                    <button
-                      className="btn btn-outline-secondary"
-                      type="button"
-                      onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-                      disabled={mode === "view"}
-                    >
-                      <Search size={16} />
-                    </button>
-                  </div>
-                  
-                  {showEmployeeDropdown && filteredEmployees.length > 0 && (
-                    <div 
-                      className="dropdown-menu show w-100" 
-                      ref={employeeDropdownRef}
-                      style={{ maxHeight: "200px", overflowY: "auto" }}
-                    >
-                      {filteredEmployees.map((employee) => (
-                        <button
-                          key={employee.id}
-                          type="button"
-                          className="dropdown-item"
-                          onClick={() => handleEmployeeSelect(employee)}
-                        >
-                          <User size={16} className="me-2" />
-                          {employee.name}
-                        </button>
-                      ))}
+                  <div className="position-relative" ref={employeeInputGroupRef}>
+                    <div className="input-group shadow-sm">
+                      <input
+                        type="text"
+                        className="form-control border-0" 
+                        id="employee"
+                        placeholder="Search employee..."
+                        value={employeeSearch}
+                        onChange={(e) => handleEmployeeSearch(e.target.value)}
+                        onFocus={() => setShowEmployeeDropdown(true)}
+                        style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
+                        autoComplete="off"
+                        required
+                        readOnly={mode === "view"}
+                      />
+                      <button
+                        className="btn btn-light border-0 dropdown-toggle" 
+                        type="button"
+                        onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
+                        disabled={mode === "view"}
+                      >
+                        <User size={16} className="text-muted" />
+                      </button>
                     </div>
-                  )}
+                    {showEmployeeDropdown && mode !== "view" && (
+                      <div 
+                        className="shadow-sm"
+                        style={{
+                          display: "block",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          position: "absolute",
+                          width: "100%",
+                          zIndex: 1000,
+                          background: "white",
+                          borderRadius: "16px",
+                          marginTop: "5px",
+                          border: "1px solid #e0e0e0"
+                        }}
+                      >
+                        {filteredEmployees.map((employee) => (
+                          <div
+                            key={employee.id}
+                            className="dropdown-item"
+                            onClick={() => handleEmployeeSelect(employee)}
+                            style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
+                          >
+                            <strong style={{ color: "#000000" }}>{employee.name}</strong>
+                            <div className="small" style={{ color: "#6c757d" }}>
+                              {employee.phone && `${employee.phone} • `}
+                              {employee.location}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="amount" className="form-label">Amount (KES)</label>
@@ -284,7 +419,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                     className="form-select"
                     id="category"
                     value={formData.category}
-                    onChange={(e) => handleInputChange("category", e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     required
                     disabled={mode === "view"}
                   >
@@ -297,19 +432,80 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="paidTo" className="form-label">Paid To</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="paidTo"
-                    value={formData.paid_to}
-                    onChange={(e) => handleInputChange("paid_to", e.target.value)}
-                    placeholder="Enter recipient name"
-                    readOnly={mode === "view"}
-                  />
+                  <div className="position-relative" ref={paidToInputGroupRef}>
+                    <div className="input-group shadow-sm">
+                      <input
+                        type="text"
+                        className="form-control border-0" 
+                        id="paidTo"
+                        placeholder={formData.employee_id && formData.category ? "Search expense number for this employee and category..." : "Select employee and category first..."}
+                        value={paidToSearch}
+                        onChange={(e) => handlePaidToSearch(e.target.value)}
+                        onFocus={() => setShowPaidToDropdown(true)}
+                        style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
+                        autoComplete="off"
+                        required
+                        readOnly={mode === "view" || !formData.employee_id || !formData.category}
+                      />
+                      <button
+                        className="btn btn-light border-0 dropdown-toggle" 
+                        type="button"
+                        onClick={() => setShowPaidToDropdown(!showPaidToDropdown)}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
+                        disabled={mode === "view" || !formData.employee_id || !formData.category}
+                      >
+                        <Search size={16} className="text-muted" />
+                      </button>
+                    </div>
+                    {showPaidToDropdown && mode !== "view" && formData.employee_id && formData.category && (
+                      <div 
+                        className="shadow-sm"
+                        style={{
+                          display: "block",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          position: "absolute",
+                          width: "100%",
+                          zIndex: 1000,
+                          background: "white",
+                          borderRadius: "16px",
+                          marginTop: "5px",
+                          border: "1px solid #e0e0e0"
+                        }}
+                      >
+                        {filteredEmployeeExpenses.map((expense) => (
+                          <div
+                            key={expense.expense_number}
+                            className="dropdown-item"
+                            onClick={() => handlePaidToSelect(expense)}
+                            style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
+                          >
+                            <strong style={{ color: "#000000" }}>{expense.expense_number}</strong>
+                            <div className="small" style={{ color: "#6c757d" }}>
+                              KES {parseFloat(expense.amount).toLocaleString()} • {new Date(expense.date_created).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="row mb-3">
+                <div className="col-md-6">
+                  <label htmlFor="balance" className="form-label">Balance (KES)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="balance"
+                    value={formData.balance}
+                    onChange={(e) => handleInputChange("balance", e.target.value)}
+                    min="0"
+                    step="0.01"
+                    readOnly={mode === "view"}
+                  />
+                </div>
                 <div className="col-md-6">
                   <label htmlFor="accountDebited" className="form-label">Account Debited</label>
                   <select
@@ -321,25 +517,10 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                     disabled={mode === "view"}
                   >
                     <option value="">Select Account</option>
-                    <option value="bank">Bank</option>
-                    <option value="david">David</option>
-                    <option value="kim">Kim</option>
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
-                  <select
-                    className="form-select"
-                    id="paymentMethod"
-                    value={formData.payment_method}
-                    onChange={(e) => handleInputChange("payment_method", e.target.value)}
-                    required
-                    disabled={mode === "view"}
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cheque">Cheque</option>
-                    <option value="mobile_money">Mobile Money</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Cooperative Bank">Cooperative Bank</option>
+                    <option value="Credit">Credit</option>
+                    <option value="Cheque">Cheque</option>
                   </select>
                 </div>
               </div>

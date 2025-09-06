@@ -308,9 +308,17 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
                     <td>{expense.expense_category ? expense.expense_category.charAt(0).toUpperCase() + expense.expense_category.slice(1) : "-"}</td>
                     <td>{expense.employee?.name || "-"}</td>
                     <td>{formatExpenseItems(expense.id)}</td>
-                    <td className="fw-bold text-danger">
+                    <td className={`fw-bold ${
+                      expense.status === "fully_paid" ? "text-danger" : 
+                      expense.status === "partially_paid" ? "text-warning" : 
+                      "text-warning"
+                    }`} style={{
+                      color: expense.status === "fully_paid" ? "#dc3545" : 
+                             expense.status === "partially_paid" ? "#fd7e14" : 
+                             "#ffc107"
+                    }}>
                       KES {expense.amount.toFixed(2)}
-                  </td>
+                    </td>
                     <td>{expense.account_debited || "-"}</td>
                     <td>
                       <div className="d-flex gap-1">

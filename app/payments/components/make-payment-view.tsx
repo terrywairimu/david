@@ -41,10 +41,13 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
   const { startDownload, completeDownload, setError } = useGlobalProgress()
 
   useEffect(() => {
-    setupEntityOptions()
     fetchSuppliersAndEmployees()
     fetchPayments()
-  }, [clients, paymentType, suppliers, employees])
+  }, [clients, paymentType])
+
+  useEffect(() => {
+    setupEntityOptions()
+  }, [suppliers, employees, paymentType])
 
   const fetchSuppliersAndEmployees = async () => {
     try {
@@ -58,11 +61,11 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
       if (suppliersError) throw suppliersError
       setSuppliers(suppliersData || [])
 
-      // Fetch employees from registered_entities table
+      // Fetch employees from employees table
       const { data: employeesData, error: employeesError } = await supabase
-        .from("registered_entities")
+        .from("employees")
         .select("*")
-        .eq("type", "employee")
+        .eq("status", "active")
         .order("name")
 
       if (employeesError) throw employeesError
@@ -101,7 +104,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
           .from("employee_payments")
           .select(`
             *,
-            employee:registered_entities(*)
+            employee:employees(*)
           `)
           .order("date_created", { ascending: false })
 
@@ -303,6 +306,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
                 </th>
                 <th className="col-client">Paid To</th>
                 <th className="col-amount">Amount</th>
+                <th className="col-amount">Balance</th>
                 <th className="col-status">Method</th>
                 <th className="col-status">Status</th>
                 <th className="col-actions">Actions</th>
@@ -341,6 +345,11 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
                     <td>
                       <span className="fw-medium text-success">
                         KES {parseFloat(payment.amount).toLocaleString()}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="fw-medium text-warning">
+                        KES {parseFloat(payment.balance || 0).toLocaleString()}
                       </span>
                     </td>
                     <td>
@@ -415,7 +424,6 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
               setModalMode("create")
             }}
           onSave={handleSavePayment}
-              employees={employees}
         />
           )}
         </>

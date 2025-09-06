@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import { generateExpenseNumber } from "@/lib/workflow-utils"
+import { generateExpenseNumber, generatePaymentNumber } from "@/lib/workflow-utils"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 import { Expense } from "@/lib/types"
 
@@ -55,7 +55,10 @@ const ExpenseModal = ({
     expense_type: expenseType,
     employee_id: "",
     expense_category: "",
-    main_amount: 0  // Add separate field for main amount input
+    main_amount: 0,  // Add separate field for main amount input
+    status: "not_yet_paid",  // New status field
+    amount_paid: 0,  // Amount paid for partially paid expenses
+    balance: 0  // Calculated balance
   })
   const [expenseNumberGenerated, setExpenseNumberGenerated] = useState(false)
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
@@ -167,7 +170,10 @@ const ExpenseModal = ({
         expense_type: expense.expense_type || expenseType,
         employee_id: expense.employee_id?.toString() || "",
         expense_category: mappedExpenseCategory,
-        main_amount: expense.amount || 0 // Initialize main_amount with the expense amount
+        main_amount: expense.amount || 0, // Initialize main_amount with the expense amount
+        status: expense.status || "not_yet_paid",
+        amount_paid: expense.amount_paid || 0,
+        balance: (expense.amount || 0) - (expense.amount_paid || 0)
       })
       setExpenseNumberGenerated(true) // Expense number already exists in edit mode
       setSelectedQuotation(expense.quotation_number || "");
@@ -224,6 +230,31 @@ const ExpenseModal = ({
       })
     }
   }, [formData.account_debited, formData.expense_category, formData.category, mode, expenseType])
+
+  // Calculate balance and auto-update amount_paid based on status
+  useEffect(() => {
+    setFormData(prev => {
+      let newAmountPaid = prev.amount_paid
+      let newBalance = prev.balance
+
+      if (prev.status === "fully_paid") {
+        newAmountPaid = prev.main_amount
+        newBalance = 0
+      } else if (prev.status === "not_yet_paid") {
+        newAmountPaid = 0
+        newBalance = prev.main_amount
+      } else if (prev.status === "partially_paid") {
+        // Keep current amount_paid, calculate balance
+        newBalance = prev.main_amount - prev.amount_paid
+      }
+
+      return {
+        ...prev,
+        amount_paid: newAmountPaid,
+        balance: newBalance
+      }
+    })
+  }, [formData.status, formData.main_amount, formData.amount_paid])
 
   const loadExpenseItems = async (expenseId: number) => {
     try {
@@ -354,6 +385,40 @@ const ExpenseModal = ({
     }
   }
 
+  const createEmployeePaymentFromExpense = async (expense: any) => {
+    try {
+      // Generate payment number using proper system
+      const paymentNumber = await generatePaymentNumber()
+      
+      const paymentData = {
+        payment_number: paymentNumber,
+        employee_id: expense.employee_id,
+        date_created: new Date().toISOString(),
+        description: `Payment for expense ${expense.expense_number}`,
+        amount: expense.amount,
+        paid_to: expense.expense_number,
+        account_debited: expense.account_debited || "Cash",
+        status: "completed",
+        category: expense.category,
+        balance: expense.balance || 0
+      }
+
+      const { error } = await supabase
+        .from("employee_payments")
+        .insert([paymentData])
+
+      if (error) {
+        console.error("Error creating employee payment:", error)
+        toast.error("Failed to create employee payment")
+      } else {
+        toast.success("Employee payment created automatically")
+      }
+    } catch (error) {
+      console.error("Error creating employee payment:", error)
+      toast.error("Failed to create employee payment")
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -367,6 +432,12 @@ const ExpenseModal = ({
     const requiredCategory = expenseType === "client" ? formData.expense_category : formData.category
     if (!formData.expense_number || !requiredCategory) {
       toast.error("Please fill in all required fields")
+      return
+    }
+    
+    // Check if Account Debited is required for paid statuses
+    if ((formData.status === "fully_paid" || formData.status === "partially_paid") && !formData.account_debited) {
+      toast.error("Account Debited is required for paid expenses")
       return
     }
     
@@ -463,6 +534,11 @@ const ExpenseModal = ({
         }
         
         toast.success("Expense created successfully")
+        
+        // If expense is fully paid, create employee payment
+        if (formData.status === "fully_paid" && formData.employee_id) {
+          await createEmployeePaymentFromExpense(savedExpense)
+        }
       } else if (mode === "edit") {
         const { data, error } = await supabase
           .from("expenses")
@@ -477,6 +553,11 @@ const ExpenseModal = ({
 
         if (error) throw error
         savedExpense = data
+        
+        // If expense is fully paid, create employee payment
+        if (formData.status === "fully_paid" && formData.employee_id) {
+          await createEmployeePaymentFromExpense(savedExpense)
+        }
         
         // Delete existing expense items and insert new ones only if they have descriptions
         await supabase
@@ -693,7 +774,6 @@ const ExpenseModal = ({
                         value={formData.account_debited}
                         onChange={(e) => setFormData(prev => ({ ...prev, account_debited: e.target.value }))}
                         style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                        required
                         disabled={mode === "view"}
                       >
                         <option value="">Select Account</option>
@@ -887,10 +967,66 @@ const ExpenseModal = ({
                 )}
               </div>
 
-              {/* Total Section */}
+              {/* Status, Amount Paid, Balance, and Total Amount in one row */}
               <div className="row mb-3">
-                <div className="col-md-8"></div>
-                <div className="col-md-4">
+                {/* Status - Left */}
+                <div className="col-md-3">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select border-0 shadow-sm"
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                    required
+                    disabled={mode === "view"}
+                  >
+                    <option value="not_yet_paid">Not Yet Paid</option>
+                    <option value="partially_paid">Partially Paid</option>
+                    <option value="fully_paid">Fully Paid</option>
+                  </select>
+                </div>
+                
+                {/* Amount Paid - Middle Left */}
+                <div className="col-md-3">
+                  <label className="form-label">Amount Paid</label>
+                  <input
+                    type="number"
+                    className="form-control border-0 shadow-sm"
+                    value={formData.amount_paid}
+                    onChange={(e) => {
+                      if (formData.status === "partially_paid") {
+                        const newAmountPaid = parseFloat(e.target.value) || 0
+                        setFormData(prev => ({ ...prev, amount_paid: newAmountPaid }))
+                      }
+                    }}
+                    style={{ 
+                      borderRadius: "16px", 
+                      height: "45px", 
+                      color: "#000000",
+                      backgroundColor: formData.status !== "partially_paid" ? "#f8f9fa" : "white"
+                    }}
+                    step="0.01"
+                    min="0"
+                    max={formData.main_amount}
+                    required={formData.status === "partially_paid"}
+                    readOnly={mode === "view" || formData.status !== "partially_paid"}
+                  />
+                </div>
+                
+                {/* Balance - Middle Right */}
+                <div className="col-md-3">
+                  <label className="form-label">Balance</label>
+                  <input
+                    type="number"
+                    className="form-control border-0 shadow-sm"
+                    value={formData.balance}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
+                    readOnly
+                  />
+                </div>
+                
+                {/* Total Amount - Right */}
+                <div className="col-md-3">
                   <label className="form-label">Total Amount</label>
                   <div className="input-group shadow-sm">
                     <span 

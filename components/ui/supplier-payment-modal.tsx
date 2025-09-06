@@ -33,16 +33,22 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     paid_to: "",
     account_debited: "",
     status: "completed",
-    payment_method: "cash"
+    balance: 0
   })
   const [loading, setLoading] = useState(false)
   const [supplierSearch, setSupplierSearch] = useState("")
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
   const [filteredSuppliers, setFilteredSuppliers] = useState(suppliers)
   const [availablePurchaseOrders, setAvailablePurchaseOrders] = useState<any[]>([])
+  const [paidToSearch, setPaidToSearch] = useState("")
+  const [showPaidToDropdown, setShowPaidToDropdown] = useState(false)
+  const [creditPurchaseOrders, setCreditPurchaseOrders] = useState<any[]>([])
+  const [filteredCreditOrders, setFilteredCreditOrders] = useState<any[]>([])
 
   const supplierInputGroupRef = useRef<HTMLDivElement>(null);
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
+  const paidToInputGroupRef = useRef<HTMLDivElement>(null);
+  const paidToDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (payment && mode !== "create") {
@@ -55,7 +61,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
         paid_to: payment.paid_to || "",
         account_debited: payment.account_debited || "",
         status: payment.status || "completed",
-        payment_method: payment.payment_method || "cash"
+        balance: payment.balance || 0
       })
       
       // Set supplier search text
@@ -63,6 +69,9 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
       if (supplier) {
         setSupplierSearch(supplier.name)
       }
+      
+      // Set paid to search text
+      setPaidToSearch(payment.paid_to || "")
     } else if (mode === "create") {
       generateNewPaymentNumber()
     }
@@ -72,6 +81,41 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     setFilteredSuppliers(suppliers)
   }, [suppliers])
 
+  // Supplier search filtering with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (supplierSearch.trim() === "") {
+        setFilteredSuppliers(suppliers)
+      } else {
+        const filtered = suppliers.filter(supplier => {
+          const searchLower = supplierSearch.toLowerCase()
+          const nameLower = supplier.name?.toLowerCase() || ""
+          const phoneLower = supplier.phone?.toLowerCase() || ""
+          const locationLower = supplier.location?.toLowerCase() || ""
+          return nameLower.includes(searchLower) ||
+                 phoneLower.includes(searchLower) ||
+                 locationLower.includes(searchLower)
+        })
+        setFilteredSuppliers(filtered)
+      }
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [supplierSearch, suppliers])
+
+  useEffect(() => {
+    fetchCreditPurchaseOrders()
+  }, [])
+
+  useEffect(() => {
+    if (formData.supplier_id) {
+      fetchCreditPurchaseOrders(formData.supplier_id)
+    } else {
+      // If no supplier selected, show all credit orders
+      fetchCreditPurchaseOrders()
+    }
+  }, [formData.supplier_id])
+
   useEffect(() => {
     if (formData.supplier_id) {
       fetchPurchaseOrdersForSupplier(formData.supplier_id)
@@ -79,6 +123,24 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
       setAvailablePurchaseOrders([])
     }
   }, [formData.supplier_id])
+
+  // Paid To search filtering with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (paidToSearch.trim() === "") {
+        setFilteredCreditOrders(creditPurchaseOrders)
+      } else {
+        const filtered = creditPurchaseOrders.filter(order => {
+          const searchLower = paidToSearch.toLowerCase()
+          const orderNumberLower = order.purchase_order_number?.toLowerCase() || ""
+          return orderNumberLower.includes(searchLower)
+        })
+        setFilteredCreditOrders(filtered)
+      }
+    }, 150) // 150ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [paidToSearch, creditPurchaseOrders])
 
   const generateNewPaymentNumber = async () => {
     try {
@@ -107,24 +169,52 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     }
   }
 
-  const handleSupplierSearch = (searchTerm: string) => {
-    setSupplierSearch(searchTerm)
-    setShowSupplierDropdown(true)
-    
-    if (searchTerm.trim() === "") {
-      setFilteredSuppliers(suppliers)
-    } else {
-      const filtered = suppliers.filter(supplier =>
-        supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      setFilteredSuppliers(filtered)
+  const fetchCreditPurchaseOrders = async (supplierId?: string) => {
+    try {
+      let query = supabase
+        .from("purchases")
+        .select("purchase_order_number, total_amount, purchase_date, supplier_id")
+        .eq("payment_status", "credit")
+        .order("purchase_date", { ascending: false })
+
+      // If supplierId is provided, filter by supplier
+      if (supplierId) {
+        query = query.eq("supplier_id", supplierId)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setCreditPurchaseOrders(data || [])
+      setFilteredCreditOrders(data || [])
+    } catch (error) {
+      console.error("Error fetching credit purchase orders:", error)
+      setCreditPurchaseOrders([])
+      setFilteredCreditOrders([])
     }
   }
 
+  const handleSupplierSearch = (searchTerm: string) => {
+    setSupplierSearch(searchTerm)
+    setShowSupplierDropdown(true)
+  }
+
   const handleSupplierSelect = (supplier: any) => {
-    setFormData(prev => ({ ...prev, supplier_id: supplier.id }))
+    setFormData(prev => ({ ...prev, supplier_id: supplier.id, paid_to: "" }))
     setSupplierSearch(supplier.name)
+    setPaidToSearch("") // Clear paid to search when supplier changes
     setShowSupplierDropdown(false)
+  }
+
+  const handlePaidToSearch = (searchTerm: string) => {
+    setPaidToSearch(searchTerm)
+    setShowPaidToDropdown(true)
+  }
+
+  const handlePaidToSelect = (order: any) => {
+    setFormData(prev => ({ ...prev, paid_to: order.purchase_order_number }))
+    setPaidToSearch(order.purchase_order_number)
+    setShowPaidToDropdown(false)
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -185,6 +275,9 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
       if (supplierInputGroupRef.current && !supplierInputGroupRef.current.contains(event.target as Node)) {
         setShowSupplierDropdown(false)
       }
+      if (paidToInputGroupRef.current && !paidToInputGroupRef.current.contains(event.target as Node)) {
+        setShowPaidToDropdown(false)
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
@@ -237,47 +330,64 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="supplier" className="form-label">Supplier</label>
-                  <div className="input-group" ref={supplierInputGroupRef}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="supplier"
-                      placeholder="Search supplier..."
-                      value={supplierSearch}
-                      onChange={(e) => handleSupplierSearch(e.target.value)}
-                      onFocus={() => setShowSupplierDropdown(true)}
-                      required
-                      readOnly={mode === "view"}
-                    />
-                    <button
-                      className="btn btn-outline-secondary"
-                      type="button"
-                      onClick={() => setShowSupplierDropdown(!showSupplierDropdown)}
-                      disabled={mode === "view"}
-                    >
-                      <Search size={16} />
-                    </button>
-                  </div>
-                  
-                  {showSupplierDropdown && filteredSuppliers.length > 0 && (
-                    <div 
-                      className="dropdown-menu show w-100" 
-                      ref={supplierDropdownRef}
-                      style={{ maxHeight: "200px", overflowY: "auto" }}
-                    >
-                      {filteredSuppliers.map((supplier) => (
-                        <button
-                          key={supplier.id}
-                          type="button"
-                          className="dropdown-item"
-                          onClick={() => handleSupplierSelect(supplier)}
-                        >
-                          <User size={16} className="me-2" />
-                          {supplier.name}
-                        </button>
-                      ))}
+                  <div className="position-relative" ref={supplierInputGroupRef}>
+                    <div className="input-group shadow-sm">
+                      <input
+                        type="text"
+                        className="form-control border-0" 
+                        id="supplier"
+                        placeholder="Search supplier..."
+                        value={supplierSearch}
+                        onChange={(e) => handleSupplierSearch(e.target.value)}
+                        onFocus={() => setShowSupplierDropdown(true)}
+                        style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
+                        autoComplete="off"
+                        required
+                        readOnly={mode === "view"}
+                      />
+                      <button
+                        className="btn btn-light border-0 dropdown-toggle" 
+                        type="button"
+                        onClick={() => setShowSupplierDropdown(!showSupplierDropdown)}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
+                        disabled={mode === "view"}
+                      >
+                        <User size={16} className="text-muted" />
+                      </button>
                     </div>
-                  )}
+                    {showSupplierDropdown && mode !== "view" && (
+                      <div 
+                        className="shadow-sm"
+                        style={{
+                          display: "block",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          position: "absolute",
+                          width: "100%",
+                          zIndex: 1000,
+                          background: "white",
+                          borderRadius: "16px",
+                          marginTop: "5px",
+                          border: "1px solid #e0e0e0"
+                        }}
+                      >
+                        {filteredSuppliers.map((supplier) => (
+                          <div
+                            key={supplier.id}
+                            className="dropdown-item"
+                            onClick={() => handleSupplierSelect(supplier)}
+                            style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
+                          >
+                            <strong style={{ color: "#000000" }}>{supplier.name}</strong>
+                            <div className="small" style={{ color: "#6c757d" }}>
+                              {supplier.phone && `${supplier.phone} • `}
+                              {supplier.location}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="amount" className="form-label">Amount (KES)</label>
@@ -298,15 +408,63 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="paidTo" className="form-label">Paid To</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="paidTo"
-                    value={formData.paid_to}
-                    onChange={(e) => handleInputChange("paid_to", e.target.value)}
-                    placeholder="Enter recipient name"
-                    readOnly={mode === "view"}
-                  />
+                  <div className="position-relative" ref={paidToInputGroupRef}>
+                    <div className="input-group shadow-sm">
+                      <input
+                        type="text"
+                        className="form-control border-0" 
+                        id="paidTo"
+                        placeholder={formData.supplier_id ? "Search order number for this supplier..." : "Select supplier first..."}
+                        value={paidToSearch}
+                        onChange={(e) => handlePaidToSearch(e.target.value)}
+                        onFocus={() => setShowPaidToDropdown(true)}
+                        style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
+                        autoComplete="off"
+                        required
+                        readOnly={mode === "view" || !formData.supplier_id}
+                      />
+                      <button
+                        className="btn btn-light border-0 dropdown-toggle" 
+                        type="button"
+                        onClick={() => setShowPaidToDropdown(!showPaidToDropdown)}
+                        style={{ borderRadius: "0 16px 16px 0", height: "45px", background: "white" }}
+                        disabled={mode === "view" || !formData.supplier_id}
+                      >
+                        <Search size={16} className="text-muted" />
+                      </button>
+                    </div>
+                    {showPaidToDropdown && mode !== "view" && formData.supplier_id && (
+                      <div 
+                        className="shadow-sm"
+                        style={{
+                          display: "block",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          position: "absolute",
+                          width: "100%",
+                          zIndex: 1000,
+                          background: "white",
+                          borderRadius: "16px",
+                          marginTop: "5px",
+                          border: "1px solid #e0e0e0"
+                        }}
+                      >
+                        {filteredCreditOrders.map((order) => (
+                          <div
+                            key={order.purchase_order_number}
+                            className="dropdown-item"
+                            onClick={() => handlePaidToSelect(order)}
+                            style={{ cursor: "pointer", padding: "10px 15px", color: "#000000" }}
+                          >
+                            <strong style={{ color: "#000000" }}>{order.purchase_order_number}</strong>
+                            <div className="small" style={{ color: "#6c757d" }}>
+                              KES {parseFloat(order.total_amount).toLocaleString()} • {new Date(order.purchase_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="accountDebited" className="form-label">Account Debited</label>
@@ -319,29 +477,27 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                     disabled={mode === "view"}
                   >
                     <option value="">Select Account</option>
-                    <option value="bank">Bank</option>
-                    <option value="david">David</option>
-                    <option value="kim">Kim</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Cooperative Bank">Cooperative Bank</option>
+                    <option value="Credit">Credit</option>
+                    <option value="Cheque">Cheque</option>
                   </select>
                 </div>
               </div>
 
               <div className="row mb-3">
                 <div className="col-md-6">
-                  <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
-                  <select
-                    className="form-select"
-                    id="paymentMethod"
-                    value={formData.payment_method}
-                    onChange={(e) => handleInputChange("payment_method", e.target.value)}
-                    required
-                    disabled={mode === "view"}
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cheque">Cheque</option>
-                    <option value="mobile_money">Mobile Money</option>
-                  </select>
+                  <label htmlFor="balance" className="form-label">Balance (KES)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="balance"
+                    value={formData.balance}
+                    onChange={(e) => handleInputChange("balance", e.target.value)}
+                    min="0"
+                    step="0.01"
+                    readOnly={mode === "view"}
+                  />
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="status" className="form-label">Status</label>
