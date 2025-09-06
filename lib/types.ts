@@ -351,6 +351,7 @@ export interface Expense {
   expense_number: string
   client_id?: number
   category: string
+  expense_category?: string
   department?: string
   amount: number
   description?: string
@@ -358,7 +359,15 @@ export interface Expense {
   account_debited?: string
   date_created: string
   expense_type: "client" | "company"
+  status?: "pending" | "partially_paid" | "fully_paid" | "cancelled"
   client?: RegisteredEntity
+  employee?: {
+    id: number
+    name: string
+    email?: string
+    phone?: string
+    department?: string
+  }
 }
 
 export interface ExpenseCategory {

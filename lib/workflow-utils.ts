@@ -141,16 +141,10 @@ export const generateEmployeePaymentNumber = async () => {
 
 export const generateSupplierPaymentNumber = async () => {
   try {
-    const currentDate = new Date()
-    const year = currentDate.getFullYear().toString().slice(-2) // Last 2 digits
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
-    const prefix = `PNS${year}${month}`
-    
-    // Get the highest payment number for the current month ONLY
+    // Get the highest payment number from all supplier payments
     const { data, error } = await supabase
       .from('supplier_payments')
       .select('payment_number')
-      .like('payment_number', `${prefix}%`)
       .order('payment_number', { ascending: false })
       .limit(1)
     
@@ -158,21 +152,19 @@ export const generateSupplierPaymentNumber = async () => {
     
     if (data && data.length > 0) {
       const lastNumber = data[0].payment_number
-      // Extract the sequential part from PNSYYMMNNN format
+      // Extract the sequential part from PNS2509NNN format
       const sequentialPart = lastNumber.slice(-3)
       const nextNumber = parseInt(sequentialPart) + 1
-      return `${prefix}${nextNumber.toString().padStart(3, '0')}`
+      return `PNS2509${nextNumber.toString().padStart(3, '0')}`
     }
     
-    // First payment of the month - start from 001
-    return `${prefix}001`
+    // First payment - start from PNS2509001
+    return `PNS2509001`
   } catch (error) {
     console.error('Error generating supplier payment number:', error)
-    const currentDate = new Date()
-    const year = currentDate.getFullYear().toString().slice(-2)
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+    // Fallback to timestamp-based number
     const timestamp = Date.now().toString().slice(-3)
-    return `PNS${year}${month}${timestamp}`
+    return `PNS2509${timestamp}`
   }
 }
 

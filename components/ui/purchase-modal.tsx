@@ -106,7 +106,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
   const [filteredSuppliers, setFilteredSuppliers] = useState<RegisteredEntity[]>([])
   const [paymentMethod, setPaymentMethod] = useState("")
-  const [paymentStatus, setPaymentStatus] = useState("cash")
+  const [paymentStatus, setPaymentStatus] = useState("not_yet_paid")
+  const [amountPaid, setAmountPaid] = useState(0)
+  const [balance, setBalance] = useState(0)
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [lastPurchasePrices, setLastPurchasePrices] = useState<{[key: number]: number}>({})
@@ -195,6 +197,26 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setTotal(newTotal)
   }, [items])
 
+  // Calculate balance and auto-update amount_paid based on status
+  useEffect(() => {
+    let newAmountPaid = amountPaid
+    let newBalance = balance
+
+    if (paymentStatus === "fully_paid") {
+      newAmountPaid = total
+      newBalance = 0
+    } else if (paymentStatus === "not_yet_paid") {
+      newAmountPaid = 0
+      newBalance = total
+    } else if (paymentStatus === "partially_paid") {
+      // Keep current amount_paid, calculate balance
+      newBalance = total - amountPaid
+    }
+
+    setAmountPaid(newAmountPaid)
+    setBalance(newBalance)
+  }, [paymentStatus, total, amountPaid])
+
   // Filter suppliers based on search with debouncing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -252,7 +274,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setSupplierName("")
     setSupplierSearch("")
     setPaymentMethod("")
-    setPaymentStatus("cash")
+    setPaymentStatus("not_yet_paid")
+    setAmountPaid(0)
+    setBalance(0)
     setItems([createNewItem()])
     setTotal(0)
     setItemSearches({})
@@ -319,7 +343,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setPurchaseOrderNumber(purchase.purchase_order_number || "")
     setSupplierId(purchase.supplier_id || null)
     setPaymentMethod(purchase.payment_method || "")
-    setPaymentStatus(purchase.payment_status || "cash")
+    setPaymentStatus(purchase.payment_status || "not_yet_paid")
+    setAmountPaid(purchase.amount_paid || 0)
+    setBalance(purchase.balance || 0)
 
     if (purchase.items && purchase.items.length > 0) {
       setItems(purchase.items.map((item: any) => {
@@ -509,6 +535,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         supplier_id: supplierId,
         payment_method: paymentMethod,
         payment_status: paymentStatus,
+        amount_paid: amountPaid,
+        balance: balance,
         total_amount: total,
         status: "pending",
         items: items.map(item => ({
@@ -667,30 +695,81 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 </div>
               </div>
 
+              {/* Status, Amount Paid, Balance, and Total Amount in one row */}
               <div className="row mb-3">
-                <div className="col-md-6">
-                  <label htmlFor="paymentStatus" className="form-label">Payment Status</label>
+                {/* Status - Left */}
+                <div className="col-md-3">
+                  <label className="form-label">Payment Status</label>
                   <select
                     className="form-select border-0 shadow-sm"
-                    id="paymentStatus"
                     value={paymentStatus}
                     onChange={(e) => setPaymentStatus(e.target.value)}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                     required
-                    style={{ borderRadius: "16px", height: "45px" }}
                     disabled={mode === "view"}
                   >
-                    <option value="cash">Cash (Full Payment)</option>
-                    <option value="credit">Credit (No Payment)</option>
-                    <option value="partial">Partial Payment</option>
+                    <option value="not_yet_paid">Not Yet Paid</option>
+                    <option value="partially_paid">Partially Paid</option>
+                    <option value="fully_paid">Fully Paid</option>
                   </select>
                 </div>
-                <div className="col-md-6">
-                  <div className="form-text">
-                    <small className="text-muted">
-                      {paymentStatus === "cash" && "Full payment made at time of purchase"}
-                      {paymentStatus === "credit" && "No payment made, full credit"}
-                      {paymentStatus === "partial" && "Partial payment made, balance on credit"}
-                    </small>
+                
+                {/* Amount Paid - Middle Left */}
+                <div className="col-md-3">
+                  <label className="form-label">Amount Paid</label>
+                  <input
+                    type="number"
+                    className="form-control border-0 shadow-sm"
+                    value={amountPaid}
+                    onChange={(e) => {
+                      if (paymentStatus === "partially_paid") {
+                        const newAmountPaid = parseFloat(e.target.value) || 0
+                        setAmountPaid(newAmountPaid)
+                      }
+                    }}
+                    style={{ 
+                      borderRadius: "16px", 
+                      height: "45px", 
+                      color: "#000000",
+                      backgroundColor: paymentStatus !== "partially_paid" ? "#f8f9fa" : "white"
+                    }}
+                    step="0.01"
+                    min="0"
+                    max={total}
+                    required={paymentStatus === "partially_paid"}
+                    readOnly={mode === "view" || paymentStatus !== "partially_paid"}
+                  />
+                </div>
+                
+                {/* Balance - Middle Right */}
+                <div className="col-md-3">
+                  <label className="form-label">Balance</label>
+                  <input
+                    type="number"
+                    className="form-control border-0 shadow-sm"
+                    value={balance}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
+                    readOnly
+                  />
+                </div>
+                
+                {/* Total Amount - Right */}
+                <div className="col-md-3">
+                  <label className="form-label">Total Amount</label>
+                  <div className="input-group shadow-sm">
+                    <span 
+                      className="input-group-text border-0"
+                      style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
+                    >
+                      KES
+                    </span>
+                    <input 
+                      type="number" 
+                      className="form-control border-0"
+                      value={total.toFixed(2)}
+                      readOnly
+                      style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
+                    />
                   </div>
                 </div>
               </div>
@@ -922,28 +1001,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 )}
                 </div>
 
-                {/* Total */}
-                <div className="row mb-3">
-                  <div className="col-md-8"></div>
-                  <div className="col-md-4">
-                    <label htmlFor="total" className="form-label">Total</label>
-                    <div className="input-group shadow-sm">
-                      <span 
-                        className="input-group-text border-0" 
-                        style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
-                      >
-                        KES
-                      </span>
-                      <input
-                        type="number"
-                        className="form-control border-0"
-                        value={total.toFixed(2)}
-                        readOnly
-                        style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right" }}
-                      />
-                  </div>
-                </div>
-              </div>
             </form>
           </div>
 

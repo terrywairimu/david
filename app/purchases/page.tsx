@@ -10,7 +10,7 @@ import PurchaseModal from "@/components/ui/purchase-modal"
 import ClientPurchaseModal from "@/components/ui/client-purchase-modal"
 import { RegisteredEntity } from "@/lib/types"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import { exportPurchasesReport } from "@/lib/workflow-utils"
+import { exportPurchasesReport, generateSupplierPaymentNumber } from "@/lib/workflow-utils"
 
 interface Purchase {
   id: number
@@ -113,9 +113,9 @@ const PurchasesPage = () => {
       // Filter by payment type if specified
       if (paymentType !== 'all') {
         if (paymentType === 'credit') {
-          query = query.in('payment_status', ['credit', 'partial'])
+          query = query.in('payment_status', ['not_yet_paid', 'partially_paid'])
         } else if (paymentType === 'cash') {
-          query = query.eq('payment_status', 'cash')
+          query = query.eq('payment_status', 'fully_paid')
         }
       }
 
@@ -165,6 +165,58 @@ const PurchasesPage = () => {
       setClients(data || [])
     } catch (error) {
       console.error("Error fetching clients:", error)
+    }
+  }
+
+  const createSupplierPaymentFromPurchase = async (purchase: any, purchaseData: any) => {
+    try {
+      console.log("Starting supplier payment creation for purchase:", purchase)
+      
+      // Check if supplier payment already exists for this purchase
+      const { data: existingPayment } = await supabase
+        .from("supplier_payments")
+        .select("id")
+        .eq("paid_to", purchase.purchase_order_number)
+        .eq("supplier_id", purchaseData.supplier_id)
+        .single()
+      
+      if (existingPayment) {
+        console.log("Supplier payment already exists for this purchase, skipping creation")
+        toast.info("Supplier payment already exists for this purchase")
+        return
+      }
+      
+      // Generate payment number using the proper generator
+      const paymentNumber = await generateSupplierPaymentNumber()
+      
+      const paymentData = {
+        payment_number: paymentNumber,
+        supplier_id: purchaseData.supplier_id,
+        date_created: new Date().toISOString(),
+        description: `Payment for purchase ${purchase.purchase_order_number}`,
+        amount: purchaseData.amount_paid || purchaseData.total_amount,
+        paid_to: purchase.purchase_order_number,
+        account_debited: purchaseData.payment_method || "cash",
+        status: purchaseData.payment_status === "fully_paid" ? "completed" : "pending",
+        balance: purchaseData.balance || 0,
+        payment_method: purchaseData.payment_method || "cash"
+      }
+
+      console.log("Creating supplier payment with data:", paymentData)
+
+      const { error } = await supabase
+        .from("supplier_payments")
+        .insert([paymentData])
+
+      if (error) {
+        console.error("Error creating supplier payment:", error)
+        toast.error(`Failed to create supplier payment: ${error.message}`)
+      } else {
+        toast.success(`Supplier payment ${paymentNumber} created automatically (${purchaseData.payment_status === "fully_paid" ? "completed" : "pending"})`)
+      }
+    } catch (error) {
+      console.error("Error creating supplier payment:", error)
+      toast.error(`Failed to create supplier payment: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -294,6 +346,8 @@ const PurchasesPage = () => {
             supplier_id: purchaseData.supplier_id,
             payment_method: purchaseData.payment_method,
             payment_status: purchaseData.payment_status,
+            amount_paid: purchaseData.amount_paid,
+            balance: purchaseData.balance,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -383,6 +437,11 @@ const PurchasesPage = () => {
         }
 
         toast.success("General purchase created successfully")
+        
+        // If purchase is fully paid or partially paid, create supplier payment
+        if ((purchaseData.payment_status === "fully_paid" || purchaseData.payment_status === "partially_paid") && purchaseData.supplier_id) {
+          await createSupplierPaymentFromPurchase(newPurchase, purchaseData)
+        }
       } else if (modalMode === "edit") {
         // Update existing purchase
         const { error: updateError } = await supabase
@@ -391,7 +450,6 @@ const PurchasesPage = () => {
             purchase_date: purchaseData.purchase_date,
             supplier_id: purchaseData.supplier_id,
             payment_method: purchaseData.payment_method,
-            payment_status: purchaseData.payment_status,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -425,6 +483,11 @@ const PurchasesPage = () => {
         }
 
         toast.success("General purchase updated successfully")
+        
+        // If purchase is fully paid or partially paid, create supplier payment
+        if ((purchaseData.payment_status === "fully_paid" || purchaseData.payment_status === "partially_paid") && purchaseData.supplier_id) {
+          await createSupplierPaymentFromPurchase(selectedPurchase, purchaseData)
+        }
       }
 
       fetchPurchases()
@@ -449,6 +512,8 @@ const PurchasesPage = () => {
             paid_to: purchaseData.paid_to,
             payment_method: purchaseData.payment_method,
             payment_status: purchaseData.payment_status,
+            amount_paid: purchaseData.amount_paid,
+            balance: purchaseData.balance,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -538,6 +603,11 @@ const PurchasesPage = () => {
         }
 
         toast.success("Client purchase created successfully")
+        
+        // If purchase is fully paid or partially paid, create supplier payment
+        if ((purchaseData.payment_status === "fully_paid" || purchaseData.payment_status === "partially_paid") && purchaseData.supplier_id) {
+          await createSupplierPaymentFromPurchase(newPurchase, purchaseData)
+        }
       } else if (modalMode === "edit") {
         // Update existing purchase
         const { error: updateError } = await supabase
@@ -549,6 +619,8 @@ const PurchasesPage = () => {
             paid_to: purchaseData.paid_to,
             payment_method: purchaseData.payment_method,
             payment_status: purchaseData.payment_status,
+            amount_paid: purchaseData.amount_paid,
+            balance: purchaseData.balance,
             total_amount: purchaseData.total_amount,
             status: purchaseData.status
           })
@@ -582,6 +654,11 @@ const PurchasesPage = () => {
         }
 
         toast.success("Client purchase updated successfully")
+        
+        // If purchase is fully paid or partially paid, create supplier payment
+        if ((purchaseData.payment_status === "fully_paid" || purchaseData.payment_status === "partially_paid") && purchaseData.supplier_id) {
+          await createSupplierPaymentFromPurchase(selectedPurchase, purchaseData)
+        }
       }
 
       fetchPurchases()
