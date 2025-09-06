@@ -173,8 +173,8 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     try {
       let query = supabase
         .from("purchases")
-        .select("purchase_order_number, total_amount, purchase_date, supplier_id")
-        .eq("payment_status", "credit")
+        .select("purchase_order_number, total_amount, purchase_date, supplier_id, balance")
+        .in("payment_status", ["not_yet_paid", "partially_paid"])
         .order("purchase_date", { ascending: false })
 
       // If supplierId is provided, filter by supplier
@@ -458,7 +458,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                           >
                             <strong style={{ color: "#000000" }}>{order.purchase_order_number}</strong>
                             <div className="small" style={{ color: "#6c757d" }}>
-                              KES {parseFloat(order.total_amount).toLocaleString()} • {new Date(order.purchase_date).toLocaleDateString()}
+                              Total: KES {parseFloat(order.total_amount).toLocaleString()} • Balance: KES {parseFloat(order.balance || order.total_amount).toLocaleString()} • {new Date(order.purchase_date).toLocaleDateString()}
                             </div>
                           </div>
                         ))}
