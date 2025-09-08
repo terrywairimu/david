@@ -282,15 +282,35 @@ export class RealTimePaymentMonitor {
     try {
       console.log(`🔄 Converting quotation ${quotation.quotation_number} to Sales Order...`)
       
-      // Check if sales order already exists
-      const { data: existingSalesOrder } = await supabase
+      // Check if sales order already exists (more comprehensive check)
+      const { data: existingSalesOrders, error: checkError } = await supabase
         .from('sales_orders')
-        .select('id')
+        .select('id, order_number, date_created')
         .eq('original_quotation_number', quotation.quotation_number)
-        .single()
 
-      if (existingSalesOrder) {
-        console.log(`Sales order already exists for quotation ${quotation.quotation_number}`)
+      if (checkError) {
+        console.error(`❌ Error checking existing sales orders:`, checkError)
+        return
+      }
+
+      if (existingSalesOrders && existingSalesOrders.length > 0) {
+        console.log(`⚠️ Sales order(s) already exist for quotation ${quotation.quotation_number}:`)
+        existingSalesOrders.forEach(order => {
+          console.log(`   - ${order.order_number} (${order.date_created})`)
+        })
+        
+        // If there are multiple, clean up duplicates
+        if (existingSalesOrders.length > 1) {
+          console.log(`🧹 Cleaning up ${existingSalesOrders.length - 1} duplicate sales orders...`)
+          await this.cleanupDuplicateSalesOrdersForQuotation(quotation.quotation_number, existingSalesOrders)
+        }
+        
+        return
+      }
+
+      // Check if quotation is already converted
+      if (quotation.status === 'converted_to_sales_order') {
+        console.log(`⚠️ Quotation ${quotation.quotation_number} is already marked as converted to sales order`)
         return
       }
 
@@ -390,6 +410,125 @@ export class RealTimePaymentMonitor {
     } catch (error) {
       console.error('❌ Error converting invoice to cash sale:', error)
       toast.error(`Failed to convert invoice ${invoice.invoice_number} to Cash Sale`)
+    }
+  }
+
+  // Clean up duplicate sales orders for a specific quotation
+  private async cleanupDuplicateSalesOrdersForQuotation(quotationNumber: string, existingOrders: any[]) {
+    try {
+      console.log(`🧹 Cleaning up duplicate sales orders for quotation ${quotationNumber}...`)
+      
+      // Sort by date created (keep the first one)
+      const sortedOrders = existingOrders.sort((a, b) => 
+        new Date(a.date_created).getTime() - new Date(b.date_created).getTime()
+      )
+      
+      const keepOrder = sortedOrders[0]
+      const deleteOrders = sortedOrders.slice(1)
+      
+      console.log(`   ✅ Keeping: ${keepOrder.order_number} (${keepOrder.date_created})`)
+      
+      for (const deleteOrder of deleteOrders) {
+        console.log(`   ❌ Deleting: ${deleteOrder.order_number} (${deleteOrder.date_created})`)
+        
+        try {
+          // Delete sales order items first
+          const { error: itemsError } = await supabase
+            .from('sales_order_items')
+            .delete()
+            .eq('sales_order_id', deleteOrder.id)
+          
+          if (itemsError) {
+            console.error(`   ⚠️ Error deleting items for ${deleteOrder.order_number}:`, itemsError)
+          }
+          
+          // Delete the sales order
+          const { error: deleteError } = await supabase
+            .from('sales_orders')
+            .delete()
+            .eq('id', deleteOrder.id)
+          
+          if (deleteError) {
+            console.error(`   ❌ Error deleting ${deleteOrder.order_number}:`, deleteError)
+          } else {
+            console.log(`   ✅ Successfully deleted ${deleteOrder.order_number}`)
+          }
+        } catch (error) {
+          console.error(`   ❌ Error processing ${deleteOrder.order_number}:`, error)
+        }
+      }
+      
+      console.log(`✅ Cleanup completed for quotation ${quotationNumber}`)
+    } catch (error) {
+      console.error(`❌ Error cleaning up duplicates for quotation ${quotationNumber}:`, error)
+    }
+  }
+
+  // Clean up all duplicate sales orders
+  async cleanupAllDuplicateSalesOrders() {
+    try {
+      console.log('🧹 Starting comprehensive cleanup of duplicate sales orders...')
+      
+      // Get all sales orders
+      const { data: salesOrders, error } = await supabase
+        .from('sales_orders')
+        .select(`
+          id,
+          order_number,
+          client_id,
+          original_quotation_number,
+          grand_total,
+          date_created,
+          status,
+          client:registered_entities(name)
+        `)
+        .order('date_created', { ascending: true })
+
+      if (error) throw error
+
+      if (!salesOrders || salesOrders.length === 0) {
+        console.log('No sales orders found')
+        return
+      }
+
+      // Group by quotation number to find duplicates
+      const quotationGroups = new Map<string, any[]>()
+      
+      for (const order of salesOrders) {
+        if (order.original_quotation_number) {
+          const key = order.original_quotation_number
+          if (!quotationGroups.has(key)) {
+            quotationGroups.set(key, [])
+          }
+          quotationGroups.get(key)!.push(order)
+        }
+      }
+
+      // Find groups with duplicates
+      const duplicateGroups = Array.from(quotationGroups.entries())
+        .filter(([quotation, orders]) => orders.length > 1)
+
+      console.log(`📊 Found ${duplicateGroups.length} quotations with duplicate sales orders`)
+
+      let totalDeleted = 0
+      let totalKept = 0
+
+      for (const [quotationNumber, orders] of duplicateGroups) {
+        console.log(`\n🔄 Processing quotation ${quotationNumber} with ${orders.length} sales orders`)
+        
+        await this.cleanupDuplicateSalesOrdersForQuotation(quotationNumber, orders)
+        
+        totalKept++
+        totalDeleted += orders.length - 1
+      }
+
+      console.log(`\n🎉 Comprehensive cleanup completed!`)
+      console.log(`   📊 Quotations processed: ${duplicateGroups.length}`)
+      console.log(`   ✅ Sales orders kept: ${totalKept}`)
+      console.log(`   ❌ Sales orders deleted: ${totalDeleted}`)
+
+    } catch (error) {
+      console.error('❌ Error during comprehensive cleanup:', error)
     }
   }
 

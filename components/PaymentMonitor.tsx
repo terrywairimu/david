@@ -8,7 +8,10 @@ export default function PaymentMonitor() {
     // Start real-time payment monitoring when component mounts
     paymentMonitor.startMonitoring()
     
-    // Fix incorrectly converted quotations first
+    // Clean up duplicate sales orders first
+    paymentMonitor.cleanupAllDuplicateSalesOrders()
+    
+    // Fix incorrectly converted quotations
     paymentMonitor.fixIncorrectlyConvertedQuotations()
     
     // Then process all existing quotations to catch up on missed conversions

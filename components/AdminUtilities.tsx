@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 export default function AdminUtilities() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
+  const [isCleaning, setIsCleaning] = useState(false)
   const [processingStatus, setProcessingStatus] = useState('')
 
   const handleProcessAllQuotations = async () => {
@@ -61,6 +62,32 @@ export default function AdminUtilities() {
     }
   }
 
+  const handleCleanupDuplicates = async () => {
+    setIsCleaning(true)
+    setProcessingStatus('Starting to clean up duplicate sales orders...')
+    
+    try {
+      // Add a small delay to show the status
+      setTimeout(async () => {
+        setProcessingStatus('Scanning for duplicate sales orders...')
+        await paymentMonitor.cleanupAllDuplicateSalesOrders()
+        setProcessingStatus('Cleanup completed!')
+        toast.success('Duplicate sales orders cleaned up successfully!')
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setProcessingStatus('')
+          setIsCleaning(false)
+        }, 3000)
+      }, 500)
+    } catch (error) {
+      console.error('Error cleaning up duplicates:', error)
+      toast.error('Failed to clean up duplicates')
+      setProcessingStatus('')
+      setIsCleaning(false)
+    }
+  }
+
   return (
     <div className="admin-utilities p-3 border rounded bg-light">
       <h6 className="mb-3 text-primary">
@@ -73,7 +100,7 @@ export default function AdminUtilities() {
           <button
             className="btn btn-warning btn-sm"
             onClick={handleProcessAllQuotations}
-            disabled={isProcessing || isFixing}
+            disabled={isProcessing || isFixing || isCleaning}
           >
             {isProcessing ? (
               <>
@@ -91,7 +118,7 @@ export default function AdminUtilities() {
           <button
             className="btn btn-danger btn-sm"
             onClick={handleFixIncorrectlyConverted}
-            disabled={isProcessing || isFixing}
+            disabled={isProcessing || isFixing || isCleaning}
           >
             {isFixing ? (
               <>
@@ -102,6 +129,24 @@ export default function AdminUtilities() {
               <>
                 <i className="fas fa-wrench me-2"></i>
                 Fix Incorrect Conversions
+              </>
+            )}
+          </button>
+          
+          <button
+            className="btn btn-info btn-sm"
+            onClick={handleCleanupDuplicates}
+            disabled={isProcessing || isFixing || isCleaning}
+          >
+            {isCleaning ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Cleaning...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-broom me-2"></i>
+                Clean Duplicates
               </>
             )}
           </button>
@@ -116,7 +161,7 @@ export default function AdminUtilities() {
       
       <small className="d-block text-muted">
         <i className="fas fa-info-circle me-1"></i>
-        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale.
+        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale. Clean Duplicates: Remove duplicate sales orders from the same quotation.
       </small>
       
       <div className="mt-2">
