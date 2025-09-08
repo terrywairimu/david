@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
-import SalesOrderModal from "@/components/ui/sales-order-modal"
+import SalesOrderModal from "@/components/ui/sales-order-modal-standard"
 import { 
   proceedToInvoice, 
   proceedToCashSaleFromSalesOrder, 

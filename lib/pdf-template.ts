@@ -813,3 +813,68 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     inputs
   };
 };
+
+// Standard PDF templates for different document types
+export const salesOrderTemplate = {
+  ...quotationTemplate,
+  schemas: [
+    [
+      ...quotationTemplate.schemas[0].map(schema => {
+        if (schema.name === 'quotationTitle') {
+          return { ...schema, content: 'SALES ORDER' }
+        }
+        if (schema.name === 'deliveryNoteNo') {
+          return { ...schema, content: 'Delivery Note No.' }
+        }
+        return schema
+      })
+    ]
+  ]
+};
+
+export const invoiceTemplate = {
+  ...quotationTemplate,
+  schemas: [
+    [
+      ...quotationTemplate.schemas[0].map(schema => {
+        if (schema.name === 'quotationTitle') {
+          return { ...schema, content: 'INVOICE' }
+        }
+        if (schema.name === 'deliveryNoteNo') {
+          return { ...schema, content: 'Invoice No.' }
+        }
+        return schema
+      })
+    ]
+  ]
+};
+
+export const cashSaleTemplate = {
+  ...quotationTemplate,
+  schemas: [
+    [
+      ...quotationTemplate.schemas[0].map(schema => {
+        if (schema.name === 'quotationTitle') {
+          return { ...schema, content: 'CASH SALE' }
+        }
+        if (schema.name === 'deliveryNoteNo') {
+          return { ...schema, content: 'Receipt No.' }
+        }
+        return schema
+      })
+    ]
+  ]
+};
+
+// Generate PDF for different document types
+export const generateSalesOrderPDF = async (data: QuotationData) => {
+  return generateQuotationPDF({ ...data, documentTitle: 'SALES ORDER' });
+};
+
+export const generateInvoicePDF = async (data: QuotationData) => {
+  return generateQuotationPDF({ ...data, documentTitle: 'INVOICE' });
+};
+
+export const generateCashSalePDF = async (data: QuotationData) => {
+  return generateQuotationPDF({ ...data, documentTitle: 'CASH SALE' });
+};

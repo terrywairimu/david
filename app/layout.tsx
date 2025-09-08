@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import Sidebar from "@/components/sidebar"
 import { ProgressProvider } from "@/components/GlobalProgressManager"
+import PaymentMonitor from "@/components/PaymentMonitor"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ProgressProvider>
+            <PaymentMonitor />
             <div className="app-container">
               <Sidebar />
               <div className="content">

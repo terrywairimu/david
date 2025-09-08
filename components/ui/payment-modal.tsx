@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
+import { paymentMonitor } from "@/lib/real-time-payment-monitor"
 import { generatePaymentNumber } from "@/lib/workflow-utils"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
@@ -207,6 +208,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         // Update related documents if paid_to is specified
         if (paymentData.paid_to) {
           await updateRelatedDocuments(paymentData)
+          // Trigger real-time monitoring for automatic document conversion
+          setTimeout(() => {
+            paymentMonitor.processNewPayment(paymentData)
+          }, 1000)
         }
         
         toast.success("Payment created successfully")
@@ -227,6 +232,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         // Update related documents if paid_to is specified
         if (paymentData.paid_to) {
           await updateRelatedDocuments(paymentData)
+          // Trigger real-time monitoring for automatic document conversion
+          setTimeout(() => {
+            paymentMonitor.processPaymentUpdate(paymentData)
+          }, 1000)
         }
         
         toast.success("Payment updated successfully")

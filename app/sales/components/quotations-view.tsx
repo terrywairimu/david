@@ -14,6 +14,7 @@ import {
   exportQuotations as exportQuotationsReport
 } from "@/lib/workflow-utils"
 import SearchFilterRow from "@/components/ui/search-filter-row"
+import AdminUtilities from "@/components/AdminUtilities"
 
 interface Quotation {
   id: number
@@ -1191,6 +1192,11 @@ const QuotationsView = () => {
             <Plus size={16} />
             Add New Quotation
           </button>
+        </div>
+
+        {/* Admin Utilities */}
+        <div className="mb-3">
+          <AdminUtilities />
         </div>
 
         {/* Search and Filter Row */}
