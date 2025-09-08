@@ -403,6 +403,98 @@ export class RealTimePaymentMonitor {
     console.log('🛑 Stopped real-time payment monitoring')
   }
 
+  // Fix quotations that were incorrectly converted directly to cash_sale
+  async fixIncorrectlyConvertedQuotations() {
+    try {
+      console.log('🔧 Fixing incorrectly converted quotations...')
+      
+      // Get quotations that were incorrectly converted directly to cash_sale
+      const { data: incorrectQuotations, error } = await supabase
+        .from('quotations')
+        .select('*')
+        .eq('status', 'converted_to_cash_sale')
+
+      if (error) throw error
+
+      let fixedCount = 0
+      for (const quotation of incorrectQuotations || []) {
+        try {
+          console.log(`🔄 Fixing quotation ${quotation.quotation_number}...`)
+          
+          // Get payments for this quotation
+          const { data: payments } = await supabase
+            .from('payments')
+            .select('amount, status')
+            .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
+            .eq('status', 'completed')
+
+          const totalPaid = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+          const quotationTotal = quotation.grand_total || quotation.total_amount || 0
+          const paymentPercentage = quotationTotal > 0 ? (totalPaid / quotationTotal) * 100 : 0
+
+          if (totalPaid > 0) {
+            console.log(`📊 Quotation ${quotation.quotation_number}: ${paymentPercentage.toFixed(2)}% paid (${totalPaid}/${quotationTotal})`)
+            
+            // Check what documents already exist
+            const { data: salesOrder } = await supabase
+              .from('sales_orders')
+              .select('id')
+              .eq('original_quotation_number', quotation.quotation_number)
+              .single()
+
+            const { data: invoice } = await supabase
+              .from('invoices')
+              .select('id')
+              .eq('original_quotation_number', quotation.quotation_number)
+              .single()
+
+            const { data: cashSale } = await supabase
+              .from('cash_sales')
+              .select('id')
+              .eq('original_quotation_number', quotation.quotation_number)
+              .single()
+
+            // Reset quotation status to pending
+            await supabase
+              .from('quotations')
+              .update({ status: 'pending' })
+              .eq('id', quotation.id)
+
+            // Follow correct conversion flow
+            if (!salesOrder && !invoice && !cashSale) {
+              // Create Sales Order first
+              await proceedToSalesOrder(quotation.id)
+              
+              // Get the newly created sales order
+              const { data: newSalesOrder } = await supabase
+                .from('sales_orders')
+                .select('id')
+                .eq('original_quotation_number', quotation.quotation_number)
+                .single()
+              
+              if (newSalesOrder) {
+                if (paymentPercentage >= 100) {
+                  // 100% paid → Convert Sales Order to Cash Sale
+                  await proceedToCashSaleFromSalesOrder(newSalesOrder.id)
+                } else if (paymentPercentage >= 75) {
+                  // 75% paid → Convert Sales Order to Invoice
+                  await proceedToInvoice(newSalesOrder.id)
+                }
+              }
+              fixedCount++
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error fixing quotation ${quotation.quotation_number}:`, error)
+        }
+      }
+
+      console.log(`✅ Fixed ${fixedCount} incorrectly converted quotations`)
+    } catch (error) {
+      console.error('❌ Error fixing incorrectly converted quotations:', error)
+    }
+  }
+
   // Process all existing quotations to catch up on missed conversions
   async processAllQuotations() {
     try {

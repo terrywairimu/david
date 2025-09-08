@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 export default function AdminUtilities() {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isFixing, setIsFixing] = useState(false)
   const [processingStatus, setProcessingStatus] = useState('')
 
   const handleProcessAllQuotations = async () => {
@@ -34,6 +35,32 @@ export default function AdminUtilities() {
     }
   }
 
+  const handleFixIncorrectlyConverted = async () => {
+    setIsFixing(true)
+    setProcessingStatus('Starting to fix incorrectly converted quotations...')
+    
+    try {
+      // Add a small delay to show the status
+      setTimeout(async () => {
+        setProcessingStatus('Fixing quotations with incorrect conversion status...')
+        await paymentMonitor.fixIncorrectlyConvertedQuotations()
+        setProcessingStatus('Fix completed!')
+        toast.success('Incorrectly converted quotations fixed successfully!')
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setProcessingStatus('')
+          setIsFixing(false)
+        }, 3000)
+      }, 500)
+    } catch (error) {
+      console.error('Error fixing quotations:', error)
+      toast.error('Failed to fix quotations')
+      setProcessingStatus('')
+      setIsFixing(false)
+    }
+  }
+
   return (
     <div className="admin-utilities p-3 border rounded bg-light">
       <h6 className="mb-3 text-primary">
@@ -42,23 +69,43 @@ export default function AdminUtilities() {
       </h6>
       
       <div className="mb-3">
-        <button
-          className="btn btn-warning btn-sm"
-          onClick={handleProcessAllQuotations}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <>
-              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              Processing...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-sync-alt me-2"></i>
-              Process All Quotations
-            </>
-          )}
-        </button>
+        <div className="d-flex gap-2 flex-wrap">
+          <button
+            className="btn btn-warning btn-sm"
+            onClick={handleProcessAllQuotations}
+            disabled={isProcessing || isFixing}
+          >
+            {isProcessing ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-sync-alt me-2"></i>
+                Process All Quotations
+              </>
+            )}
+          </button>
+          
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={handleFixIncorrectlyConverted}
+            disabled={isProcessing || isFixing}
+          >
+            {isFixing ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Fixing...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-wrench me-2"></i>
+                Fix Incorrect Conversions
+              </>
+            )}
+          </button>
+        </div>
       </div>
       
       {processingStatus && (
@@ -69,7 +116,7 @@ export default function AdminUtilities() {
       
       <small className="d-block text-muted">
         <i className="fas fa-info-circle me-1"></i>
-        This will check all existing quotations and create missing invoices/cash sales based on payment status
+        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale.
       </small>
       
       <div className="mt-2">
