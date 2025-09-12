@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-client"
+import { supabase, NumberGenerationService } from "./supabase-client"
 import { toast } from "sonner"
 
 // Progress tracking for exports
@@ -1502,8 +1502,8 @@ export const proceedToCashSale = async (quotationId: number): Promise<any> => {
 
     if (quotationError) throw quotationError
 
-    // Generate cash sale number
-    const saleNumber = await generateNextNumber("cash_sales", "sale_number", "CS")
+    // Generate cash sale number using the dedicated service
+    const saleNumber = await NumberGenerationService.generateCashSaleNumber()
 
     // Create cash sale
     const cashSaleData = {
@@ -1599,8 +1599,8 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
     console.log(`   Client: ${salesOrder.client?.name}`)
     console.log(`   Items count: ${salesOrder.items?.length || 0}`)
 
-    // Generate cash sale number
-    const saleNumber = await generateNextNumber("cash_sales", "sale_number", "CS")
+    // Generate cash sale number using the dedicated service
+    const saleNumber = await NumberGenerationService.generateCashSaleNumber()
     console.log(`📝 Generated cash sale number: ${saleNumber}`)
 
     // Create cash sale
@@ -1707,8 +1707,8 @@ export const proceedToCashSaleFromInvoice = async (invoiceId: number): Promise<a
 
     if (invoiceError) throw invoiceError
 
-    // Generate cash sale number
-    const saleNumber = await generateNextNumber("cash_sales", "sale_number", "CS")
+    // Generate cash sale number using the dedicated service
+    const saleNumber = await NumberGenerationService.generateCashSaleNumber()
 
     // Create cash sale
     const cashSaleData = {

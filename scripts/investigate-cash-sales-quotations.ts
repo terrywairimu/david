@@ -32,7 +32,7 @@ async function investigateCashSalesQuotations() {
           *,
           client:registered_entities(name, phone)
         `)
-        .eq('cash_sale_number', cashSale.number)
+        .eq('sale_number', cashSale.number)
         .single()
 
       if (cashSaleError) {
@@ -116,7 +116,7 @@ async function investigateCashSalesQuotations() {
         console.log(`📄 Document Flow Check:`)
         console.log(`   Sales Order: ${salesOrder ? `${salesOrder.order_number} (${salesOrder.status})` : 'Not found'}`)
         console.log(`   Invoice: ${invoice ? `${invoice.invoice_number} (${invoice.status})` : 'Not found'}`)
-        console.log(`   Cash Sale: ${cashSaleRecord.cash_sale_number} (${cashSaleRecord.status || 'active'})`)
+        console.log(`   Cash Sale: ${cashSaleRecord.sale_number} (${cashSaleRecord.status || 'active'})`)
 
         // Determine what needs to be fixed
         console.log(`🔧 Analysis:`)

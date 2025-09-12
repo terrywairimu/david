@@ -1819,27 +1819,27 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           {/* Header */}
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
             <div className="d-flex align-items-center justify-content-between w-100">
-              <div className="d-flex align-items-center">
-                <div className="me-3" style={{ 
-                  width: "48px", 
-                  height: "48px", 
-                  borderRadius: "16px", 
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  <FileText size={24} color="white" />
-                </div>
-                <div>
-                  <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
-                    {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
-              </h5>
-                  {mode !== "view" && (
-                    <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
-                  )}
-                </div>
+            <div className="d-flex align-items-center">
+              <div className="me-3" style={{ 
+                width: "48px", 
+                height: "48px", 
+                borderRadius: "16px", 
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <FileText size={24} color="white" />
               </div>
+              <div>
+                <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
+                  {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
+            </h5>
+                {mode !== "view" && (
+                  <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
+                )}
+              </div>
+            </div>
               
               <div className="d-flex align-items-center gap-2">
                 {mode === "create" && (
@@ -1853,12 +1853,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     Import
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "8px" }}
-                />
+            <button
+              type="button"
+              className="btn-close"
+              onClick={onClose}
+              style={{ borderRadius: "12px", padding: "8px" }}
+            />
               </div>
             </div>
           </div>

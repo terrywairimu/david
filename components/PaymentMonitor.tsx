@@ -7,18 +7,6 @@ export default function PaymentMonitor() {
   useEffect(() => {
     // Start real-time payment monitoring when component mounts
     paymentMonitor.startMonitoring()
-    
-    // Clean up duplicate sales orders first
-    paymentMonitor.cleanupAllDuplicateSalesOrders()
-    
-    // Fix cash sales with pending quotations
-    paymentMonitor.fixCashSalesWithPendingQuotations()
-    
-    // Fix incorrectly converted quotations
-    paymentMonitor.fixIncorrectlyConvertedQuotations()
-    
-    // Then process all existing quotations to catch up on missed conversions
-    paymentMonitor.processAllQuotations()
 
     // Cleanup when component unmounts
     return () => {

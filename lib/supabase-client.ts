@@ -710,21 +710,34 @@ export class NumberGenerationService {
 
   static async generateCashSaleNumber(): Promise<string> {
     try {
+      const now = new Date()
+      const year = now.getFullYear().toString().slice(-2)
+      const month = (now.getMonth() + 1).toString().padStart(2, '0')
+      
+      // Query database for the latest number for this year/month
       const { data } = await supabase
         .from('cash_sales')
         .select('sale_number')
-        .order('id', { ascending: false })
+        .ilike('sale_number', `CS${year}${month}%`)
+        .order('sale_number', { ascending: false })
         .limit(1)
 
       let nextNumber = 1
       if (data && data.length > 0) {
-        const lastNumber = parseInt(data[0].sale_number.replace('CS', ''))
-        nextNumber = lastNumber + 1
+        const match = data[0].sale_number.match(new RegExp(`CS\\d{4}(\\d{3})`))
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1
+        }
       }
 
-      return `CS${nextNumber.toString().padStart(4, '0')}`
+      return `CS${year}${month}${nextNumber.toString().padStart(3, '0')}`
     } catch (error) {
-      return `CS${Date.now().toString().slice(-4)}`
+      // Fallback to timestamp-based number
+      const timestamp = Date.now().toString().slice(-3)
+      const now = new Date()
+      const year = now.getFullYear().toString().slice(-2)
+      const month = (now.getMonth() + 1).toString().padStart(2, '0')
+      return `CS${year}${month}${timestamp}`
     }
   }
 }

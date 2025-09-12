@@ -469,6 +469,14 @@ export class RealTimePaymentMonitor {
     try {
       console.log('🔧 Fixing cash sales with pending quotations...')
       
+      // Add rate limiting - only run if not recently run
+      const lastRun = localStorage.getItem('fixCashSalesLastRun')
+      const now = Date.now()
+      if (lastRun && (now - parseInt(lastRun)) < 300000) { // 5 minutes
+        console.log('⏭️ Skipping fixCashSalesWithPendingQuotations - recently run')
+        return
+      }
+      
       // Get all cash sales
       const { data: cashSales, error } = await supabase
         .from('cash_sales')
@@ -497,13 +505,13 @@ export class RealTimePaymentMonitor {
             .single()
 
           if (quotationError || !quotation) {
-            console.log(`⚠️ Quotation ${cashSale.original_quotation_number} not found for cash sale ${cashSale.cash_sale_number}`)
+            console.log(`⚠️ Quotation ${cashSale.original_quotation_number} not found for cash sale ${cashSale.sale_number}`)
             continue
           }
 
           // Check if quotation is still pending
           if (quotation.status === 'pending') {
-            console.log(`🔧 Fixing quotation ${quotation.quotation_number} for cash sale ${cashSale.cash_sale_number}`)
+            console.log(`🔧 Fixing quotation ${quotation.quotation_number} for cash sale ${cashSale.sale_number}`)
             
             // Get payments for this quotation
             const { data: payments } = await supabase
@@ -517,23 +525,42 @@ export class RealTimePaymentMonitor {
 
             console.log(`   💰 Total paid: KES ${totalPaid} (${paymentPercentage.toFixed(2)}%)`)
 
-            // Check what documents exist
-            const { data: salesOrder } = await supabase
-              .from('sales_orders')
-              .select('id, order_number')
-              .eq('original_quotation_number', quotation.quotation_number)
-              .single()
+            // Check what documents exist with error handling
+            let salesOrder = null
+            let invoice = null
+            
+            try {
+              const { data: salesOrderData, error: salesOrderError } = await supabase
+                .from('sales_orders')
+                .select('id, order_number')
+                .eq('original_quotation_number', quotation.quotation_number)
+                .single()
+              
+              if (!salesOrderError) {
+                salesOrder = salesOrderData
+              }
+            } catch (error) {
+              console.log(`   ⚠️ Could not fetch sales order for ${quotation.quotation_number}`)
+            }
 
-            const { data: invoice } = await supabase
-              .from('invoices')
-              .select('id, invoice_number')
-              .eq('original_quotation_number', quotation.quotation_number)
-              .single()
+            try {
+              const { data: invoiceData, error: invoiceError } = await supabase
+                .from('invoices')
+                .select('id, invoice_number')
+                .eq('original_quotation_number', quotation.quotation_number)
+                .single()
+              
+              if (!invoiceError) {
+                invoice = invoiceData
+              }
+            } catch (error) {
+              console.log(`   ⚠️ Could not fetch invoice for ${quotation.quotation_number}`)
+            }
 
             console.log(`   📄 Document flow check:`)
             console.log(`     Sales Order: ${salesOrder ? salesOrder.order_number : 'Not found'}`)
             console.log(`     Invoice: ${invoice ? invoice.invoice_number : 'Not found'}`)
-            console.log(`     Cash Sale: ${cashSale.cash_sale_number}`)
+            console.log(`     Cash Sale: ${cashSale.sale_number}`)
 
             // CORRECT FLOW: Quotation → Sales Order → (Invoice OR Cash Sale)
             // If cash sale exists but no sales order, we need to create the proper flow
@@ -585,11 +612,14 @@ export class RealTimePaymentMonitor {
           }
 
         } catch (error) {
-          console.error(`❌ Error processing cash sale ${cashSale.cash_sale_number}:`, error)
+          console.error(`❌ Error processing cash sale ${cashSale.sale_number}:`, error)
         }
       }
 
       console.log(`✅ Fixed ${fixedCount} quotations with incorrect status`)
+      
+      // Update last run timestamp
+      localStorage.setItem('fixCashSalesLastRun', now.toString())
 
     } catch (error) {
       console.error('❌ Error fixing cash sales with pending quotations:', error)

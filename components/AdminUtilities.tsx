@@ -1,117 +1,48 @@
 'use client'
 
 import { useState } from 'react'
-import { paymentMonitor } from '@/lib/real-time-payment-monitor'
 import { toast } from 'sonner'
 
 export default function AdminUtilities() {
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isFixing, setIsFixing] = useState(false)
   const [isCleaning, setIsCleaning] = useState(false)
-  const [isFixingCashSales, setIsFixingCashSales] = useState(false)
   const [processingStatus, setProcessingStatus] = useState('')
-
-  const handleProcessAllQuotations = async () => {
-    setIsProcessing(true)
-    setProcessingStatus('Starting to process quotations...')
-    
-    try {
-      // Add a small delay to show the status
-      setTimeout(async () => {
-        setProcessingStatus('Checking quotations with payments...')
-        await paymentMonitor.processAllQuotations()
-        setProcessingStatus('Processing completed!')
-        toast.success('All quotations processed successfully!')
-        
-        // Reset status after 3 seconds
-        setTimeout(() => {
-          setProcessingStatus('')
-          setIsProcessing(false)
-        }, 3000)
-      }, 500)
-    } catch (error) {
-      console.error('Error processing quotations:', error)
-      toast.error('Failed to process quotations')
-      setProcessingStatus('')
-      setIsProcessing(false)
-    }
-  }
-
-  const handleFixIncorrectlyConverted = async () => {
-    setIsFixing(true)
-    setProcessingStatus('Starting to fix incorrectly converted quotations...')
-    
-    try {
-      // Add a small delay to show the status
-      setTimeout(async () => {
-        setProcessingStatus('Fixing quotations with incorrect conversion status...')
-        await paymentMonitor.fixIncorrectlyConvertedQuotations()
-        setProcessingStatus('Fix completed!')
-        toast.success('Incorrectly converted quotations fixed successfully!')
-        
-        // Reset status after 3 seconds
-        setTimeout(() => {
-          setProcessingStatus('')
-          setIsFixing(false)
-        }, 3000)
-      }, 500)
-    } catch (error) {
-      console.error('Error fixing quotations:', error)
-      toast.error('Failed to fix quotations')
-      setProcessingStatus('')
-      setIsFixing(false)
-    }
-  }
 
   const handleCleanupDuplicates = async () => {
     setIsCleaning(true)
-    setProcessingStatus('Starting to clean up duplicate sales orders...')
+    setProcessingStatus('Starting to clean up duplicate cash sales...')
     
     try {
       // Add a small delay to show the status
       setTimeout(async () => {
-        setProcessingStatus('Scanning for duplicate sales orders...')
-        await paymentMonitor.cleanupAllDuplicateSalesOrders()
-        setProcessingStatus('Cleanup completed!')
-        toast.success('Duplicate sales orders cleaned up successfully!')
+        setProcessingStatus('Scanning for duplicate cash sales...')
         
-        // Reset status after 3 seconds
+        // Call the cleanup API
+        const response = await fetch('/api/cleanup-duplicates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (response.ok) {
+          const result = await response.json()
+          setProcessingStatus(`Cleanup completed! Removed ${result.deletedCount} duplicate records.`)
+          toast.success(`Duplicate cash sales cleaned up successfully! Removed ${result.deletedCount} duplicates.`)
+        } else {
+          throw new Error('Cleanup failed')
+        }
+        
+        // Reset status after 5 seconds
         setTimeout(() => {
           setProcessingStatus('')
           setIsCleaning(false)
-        }, 3000)
+        }, 5000)
       }, 500)
     } catch (error) {
       console.error('Error cleaning up duplicates:', error)
       toast.error('Failed to clean up duplicates')
       setProcessingStatus('')
       setIsCleaning(false)
-    }
-  }
-
-  const handleFixCashSalesQuotations = async () => {
-    setIsFixingCashSales(true)
-    setProcessingStatus('Starting to fix cash sales with pending quotations...')
-    
-    try {
-      // Add a small delay to show the status
-      setTimeout(async () => {
-        setProcessingStatus('Checking cash sales and their quotations...')
-        await paymentMonitor.fixCashSalesWithPendingQuotations()
-        setProcessingStatus('Cash sales quotations fixed!')
-        toast.success('Cash sales quotations fixed successfully!')
-        
-        // Reset status after 3 seconds
-        setTimeout(() => {
-          setProcessingStatus('')
-          setIsFixingCashSales(false)
-        }, 3000)
-      }, 500)
-    } catch (error) {
-      console.error('Error fixing cash sales quotations:', error)
-      toast.error('Failed to fix cash sales quotations')
-      setProcessingStatus('')
-      setIsFixingCashSales(false)
     }
   }
 
@@ -125,45 +56,9 @@ export default function AdminUtilities() {
       <div className="mb-3">
         <div className="d-flex gap-2 flex-wrap">
           <button
-            className="btn btn-warning btn-sm"
-            onClick={handleProcessAllQuotations}
-            disabled={isProcessing || isFixing || isCleaning}
-          >
-            {isProcessing ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Processing...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-sync-alt me-2"></i>
-                Process All Quotations
-              </>
-            )}
-          </button>
-          
-          <button
-            className="btn btn-danger btn-sm"
-            onClick={handleFixIncorrectlyConverted}
-            disabled={isProcessing || isFixing || isCleaning}
-          >
-            {isFixing ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Fixing...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-wrench me-2"></i>
-                Fix Incorrect Conversions
-              </>
-            )}
-          </button>
-          
-          <button
             className="btn btn-info btn-sm"
             onClick={handleCleanupDuplicates}
-            disabled={isProcessing || isFixing || isCleaning || isFixingCashSales}
+            disabled={isCleaning}
           >
             {isCleaning ? (
               <>
@@ -173,25 +68,7 @@ export default function AdminUtilities() {
             ) : (
               <>
                 <i className="fas fa-broom me-2"></i>
-                Clean Duplicates
-              </>
-            )}
-          </button>
-          
-          <button
-            className="btn btn-success btn-sm"
-            onClick={handleFixCashSalesQuotations}
-            disabled={isProcessing || isFixing || isCleaning || isFixingCashSales}
-          >
-            {isFixingCashSales ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Fixing...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-cash-register me-2"></i>
-                Fix Cash Sales
+                Clean Duplicate Cash Sales
               </>
             )}
           </button>
@@ -206,18 +83,8 @@ export default function AdminUtilities() {
       
       <small className="d-block text-muted">
         <i className="fas fa-info-circle me-1"></i>
-        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale. Clean Duplicates: Remove duplicate sales orders from the same quotation. Fix Cash Sales: Fix quotations that are still pending but have cash sales created.
+        Clean Duplicates: Remove duplicate cash sales records, keeping only the original ones.
       </small>
-      
-      <div className="mt-2">
-        <small className="text-muted">
-          <strong>Conversion Rules:</strong><br/>
-          • Quotation → Sales Order (any payment)<br/>
-          • Sales Order → Invoice (75% payment)<br/>
-          • Sales Order → Cash Sale (100% payment)<br/>
-          • Invoice → Cash Sale (100% payment)
-        </small>
-      </div>
     </div>
   )
 }
