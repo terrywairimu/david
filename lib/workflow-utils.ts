@@ -94,6 +94,65 @@ const deductStockFromItems = async (items: any[], referenceType: string, referen
   return results;
 }
 
+const addStockToItems = async (items: any[], referenceType: string, referenceId: number, referenceNumber: string) => {
+  const results = [];
+  
+  for (const item of items) {
+    if (item.stock_item_id && item.quantity > 0) {
+      try {
+        const result = await updateStockQuantity(
+          item.stock_item_id,
+          item.quantity, // Add quantity (positive)
+          referenceType,
+          referenceId,
+          `${referenceType}: ${referenceNumber}`
+        );
+        results.push({ success: true, item: item.description, result });
+        toast.success(`Stock added for ${item.description}: +${item.quantity}`);
+      } catch (error) {
+        console.error(`Error adding stock for ${item.description}:`, error);
+        results.push({ 
+          success: false, 
+          item: item.description, 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        toast.error(`Failed to add stock for ${item.description}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } else {
+      console.log(`Skipping stock addition for item without stock_item_id or zero quantity:`, item);
+      results.push({ success: true, item: item.description, skipped: true });
+    }
+  }
+  
+  return results;
+}
+
+// Helper function to handle stock adjustments when editing purchases
+export const adjustStockForPurchaseEdit = async (originalItems: any[], newItems: any[], purchaseId: number, purchaseNumber: string) => {
+  try {
+    console.log(`🔄 Adjusting stock for purchase edit: ${purchaseNumber}`);
+    
+    // First, subtract original quantities (reverse the original purchase)
+    if (originalItems && originalItems.length > 0) {
+      console.log(`📤 Reversing original stock additions for ${originalItems.length} items...`);
+      await deductStockFromItems(originalItems, "purchase_reversal", purchaseId, purchaseNumber);
+    }
+    
+    // Then, add new quantities
+    if (newItems && newItems.length > 0) {
+      console.log(`📥 Adding new stock quantities for ${newItems.length} items...`);
+      await addStockToItems(newItems, "purchase", purchaseId, purchaseNumber);
+    }
+    
+    console.log(`✅ Stock adjustment completed for purchase ${purchaseNumber}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error adjusting stock for purchase edit:", error);
+    toast.error("Purchase updated but stock adjustment failed. Please check stock levels manually.");
+    return { success: false, error };
+  }
+}
+
 // Progress tracking for exports
 let globalProgressManager: any = null;
 

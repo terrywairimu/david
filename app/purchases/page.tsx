@@ -10,7 +10,7 @@ import PurchaseModal from "@/components/ui/purchase-modal"
 import ClientPurchaseModal from "@/components/ui/client-purchase-modal"
 import { RegisteredEntity } from "@/lib/types"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import { exportPurchasesReport, generateSupplierPaymentNumber } from "@/lib/workflow-utils"
+import { exportPurchasesReport, generateSupplierPaymentNumber, adjustStockForPurchaseEdit } from "@/lib/workflow-utils"
 
 interface Purchase {
   id: number
@@ -443,6 +443,9 @@ const PurchasesPage = () => {
           await createSupplierPaymentFromPurchase(newPurchase, purchaseData)
         }
       } else if (modalMode === "edit") {
+        // Get original items for stock adjustment
+        const originalItems = selectedPurchase?.items || [];
+        
         // Update existing purchase
         const { error: updateError } = await supabase
           .from("purchases")
@@ -480,6 +483,21 @@ const PurchasesPage = () => {
             .insert(purchaseItems)
 
           if (itemsError) throw itemsError
+        }
+
+        // Adjust stock quantities: reverse original + add new
+        if (selectedPurchase?.id && selectedPurchase?.purchase_order_number) {
+          try {
+            await adjustStockForPurchaseEdit(
+              originalItems,
+              purchaseData.items || [],
+              selectedPurchase.id,
+              selectedPurchase.purchase_order_number
+            );
+          } catch (stockError) {
+            console.error("Error adjusting stock for purchase edit:", stockError);
+            // Don't throw error - purchase update should succeed even if stock adjustment fails
+          }
         }
 
         toast.success("General purchase updated successfully")
@@ -609,6 +627,9 @@ const PurchasesPage = () => {
           await createSupplierPaymentFromPurchase(newPurchase, purchaseData)
         }
       } else if (modalMode === "edit") {
+        // Get original items for stock adjustment
+        const originalItems = selectedPurchase?.items || [];
+        
         // Update existing purchase
         const { error: updateError } = await supabase
           .from("purchases")
@@ -651,6 +672,21 @@ const PurchasesPage = () => {
             .insert(purchaseItems)
 
           if (itemsError) throw itemsError
+        }
+
+        // Adjust stock quantities: reverse original + add new
+        if (selectedPurchase?.id && selectedPurchase?.purchase_order_number) {
+          try {
+            await adjustStockForPurchaseEdit(
+              originalItems,
+              purchaseData.items || [],
+              selectedPurchase.id,
+              selectedPurchase.purchase_order_number
+            );
+          } catch (stockError) {
+            console.error("Error adjusting stock for purchase edit:", stockError);
+            // Don't throw error - purchase update should succeed even if stock adjustment fails
+          }
         }
 
         toast.success("Client purchase updated successfully")
