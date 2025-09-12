@@ -1690,7 +1690,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
           return {
             id: Date.now() + Math.random(),
-            category: section as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit",
+            category: section === 'kitchen_cabinets' ? 'cabinet' : section as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit",
             description: item.description,
             unit: item.unit || 'pcs',
             quantity: parseFloat(item.quantity) || 1,

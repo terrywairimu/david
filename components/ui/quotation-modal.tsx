@@ -1779,7 +1779,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           }
 
           return {
-            ...item,
+            id: Date.now() + Math.random(),
+            category: section === 'kitchen_cabinets' ? 'cabinet' : section as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit",
+            description: item.description,
+            unit: item.unit || 'pcs',
+            quantity: parseFloat(item.quantity) || 1,
+            unit_price: parseFloat(item.unit_price) || 0,
+            total_price: (parseFloat(item.quantity) || 1) * (parseFloat(item.unit_price) || 0),
+            specifications: '',
+            notes: '',
             stock_item_id: stockItemId,
             stock_item: stockItem
           }
