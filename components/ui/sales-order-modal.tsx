@@ -1709,7 +1709,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         if (validItems.length > 0) {
           // Add items to the appropriate section and auto-open the section
           if (section === 'kitchen_cabinets') {
-            setCabinetItems(prev => [...prev, ...validItems])
+            setCabinetItems(prev => {
+              // Filter out empty items (those with empty descriptions) and add new items
+              const nonEmptyItems = prev.filter(item => item.description.trim() !== '')
+              return [...nonEmptyItems, ...validItems]
+            })
           } else if (section === 'worktop') {
             setWorktopItems(prev => [...prev, ...validItems])
             setIncludeWorktop(true) // Auto-open worktop section
