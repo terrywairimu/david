@@ -1441,7 +1441,7 @@ const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
     'Supplier': 30,
     'Product': 35,
     'Paid To': 25,
-    'Items': 25,
+    'Items': 45, // Made wider to accommodate item descriptions
     
     // Wide columns (descriptions, addresses)
     'Description': 40,
@@ -1566,14 +1566,18 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
       // Note: Client purchases will use all fields, general purchases will skip client and paidTo
       // The template will generate all fields, but data will only be provided for the columns that exist
       // Field positions are calculated dynamically based on header positions
+      // Made items column wider to accommodate descriptions
+      const purchaseHeaders = ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount'];
+      const purchasePositions = calculateHeaderPositions(purchaseHeaders, 0); // y=0 since we'll set it in position
+      
       fields.push(
-        { name: `orderNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `supplier_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `client_${rowIdx}`, type: 'text', position: { x: 103, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `items_${rowIdx}`, type: 'text', position: { x: 157, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: 184, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
+        { name: `orderNumber_${rowIdx}`, type: 'text', position: { x: purchasePositions[0].x, y: yPosition }, width: purchasePositions[0].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `date_${rowIdx}`, type: 'text', position: { x: purchasePositions[1].x, y: yPosition }, width: purchasePositions[1].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `supplier_${rowIdx}`, type: 'text', position: { x: purchasePositions[2].x, y: yPosition }, width: purchasePositions[2].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `client_${rowIdx}`, type: 'text', position: { x: purchasePositions[3].x, y: yPosition }, width: purchasePositions[3].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: purchasePositions[4].x, y: yPosition }, width: purchasePositions[4].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `items_${rowIdx}`, type: 'text', position: { x: purchasePositions[5].x, y: yPosition }, width: purchasePositions[5].width, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: purchasePositions[6].x, y: yPosition }, width: purchasePositions[6].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
       );
       break;
       

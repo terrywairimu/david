@@ -8,6 +8,7 @@ export default function AdminUtilities() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
   const [isCleaning, setIsCleaning] = useState(false)
+  const [isFixingCashSales, setIsFixingCashSales] = useState(false)
   const [processingStatus, setProcessingStatus] = useState('')
 
   const handleProcessAllQuotations = async () => {
@@ -88,6 +89,32 @@ export default function AdminUtilities() {
     }
   }
 
+  const handleFixCashSalesQuotations = async () => {
+    setIsFixingCashSales(true)
+    setProcessingStatus('Starting to fix cash sales with pending quotations...')
+    
+    try {
+      // Add a small delay to show the status
+      setTimeout(async () => {
+        setProcessingStatus('Checking cash sales and their quotations...')
+        await paymentMonitor.fixCashSalesWithPendingQuotations()
+        setProcessingStatus('Cash sales quotations fixed!')
+        toast.success('Cash sales quotations fixed successfully!')
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setProcessingStatus('')
+          setIsFixingCashSales(false)
+        }, 3000)
+      }, 500)
+    } catch (error) {
+      console.error('Error fixing cash sales quotations:', error)
+      toast.error('Failed to fix cash sales quotations')
+      setProcessingStatus('')
+      setIsFixingCashSales(false)
+    }
+  }
+
   return (
     <div className="admin-utilities p-3 border rounded bg-light">
       <h6 className="mb-3 text-primary">
@@ -136,7 +163,7 @@ export default function AdminUtilities() {
           <button
             className="btn btn-info btn-sm"
             onClick={handleCleanupDuplicates}
-            disabled={isProcessing || isFixing || isCleaning}
+            disabled={isProcessing || isFixing || isCleaning || isFixingCashSales}
           >
             {isCleaning ? (
               <>
@@ -147,6 +174,24 @@ export default function AdminUtilities() {
               <>
                 <i className="fas fa-broom me-2"></i>
                 Clean Duplicates
+              </>
+            )}
+          </button>
+          
+          <button
+            className="btn btn-success btn-sm"
+            onClick={handleFixCashSalesQuotations}
+            disabled={isProcessing || isFixing || isCleaning || isFixingCashSales}
+          >
+            {isFixingCashSales ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Fixing...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-cash-register me-2"></i>
+                Fix Cash Sales
               </>
             )}
           </button>
@@ -161,7 +206,7 @@ export default function AdminUtilities() {
       
       <small className="d-block text-muted">
         <i className="fas fa-info-circle me-1"></i>
-        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale. Clean Duplicates: Remove duplicate sales orders from the same quotation.
+        Process All: Check existing quotations and create missing documents. Fix Incorrect: Fix quotations that were wrongly converted directly to cash_sale. Clean Duplicates: Remove duplicate sales orders from the same quotation. Fix Cash Sales: Fix quotations that are still pending but have cash sales created.
       </small>
       
       <div className="mt-2">

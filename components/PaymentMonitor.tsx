@@ -11,6 +11,9 @@ export default function PaymentMonitor() {
     // Clean up duplicate sales orders first
     paymentMonitor.cleanupAllDuplicateSalesOrders()
     
+    // Fix cash sales with pending quotations
+    paymentMonitor.fixCashSalesWithPendingQuotations()
+    
     // Fix incorrectly converted quotations
     paymentMonitor.fixIncorrectlyConvertedQuotations()
     

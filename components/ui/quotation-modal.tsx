@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Upload } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -11,6 +11,7 @@ import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
+import ImportQuotationModal from "./import-quotation-modal"
 import dynamic from 'next/dynamic'
 
 // Dynamically import MobilePDFViewer to avoid SSR issues
@@ -202,6 +203,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [totalPaid, setTotalPaid] = useState(0)
   const [hasPayments, setHasPayments] = useState(false)
   const [paymentPercentage, setPaymentPercentage] = useState(0)
+  
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false)
   
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
@@ -1639,6 +1643,89 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }
   }
 
+  // Handle import data from Excel/CSV
+  const handleImportData = async (importData: any) => {
+    try {
+      const { section, items } = importData
+      
+      // Check if items exist in stock, create new ones if they don't
+      const processedItems = await Promise.all(items.map(async (item: any) => {
+        // Search for existing stock item by name or description
+        const { data: existingItems } = await supabase
+          .from('stock_items')
+          .select('*')
+          .or(`name.ilike.%${item.description}%,description.ilike.%${item.description}%`)
+          .limit(1)
+
+        let stockItemId = null
+        let stockItem = null
+
+        if (existingItems && existingItems.length > 0) {
+          // Use existing item
+          stockItemId = existingItems[0].id
+          stockItem = existingItems[0]
+        } else {
+          // Create new stock item
+          const newStockItem = {
+            name: item.description,
+            description: item.description,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            category: section,
+            status: 'active',
+            quantity: 0, // Will be updated when purchased
+            reorder_level: 0
+          }
+
+          const { data: createdItem, error } = await supabase
+            .from('stock_items')
+            .insert([newStockItem])
+            .select()
+            .single()
+
+          if (error) {
+            console.error('Error creating stock item:', error)
+            toast.error(`Failed to create stock item: ${item.description}`)
+            return null
+          }
+
+          stockItemId = createdItem.id
+          stockItem = createdItem
+          toast.success(`Created new stock item: ${item.description}`)
+        }
+
+        return {
+          ...item,
+          stock_item_id: stockItemId,
+          stock_item: stockItem
+        }
+      }))
+
+      // Filter out any failed items
+      const validItems = processedItems.filter(item => item !== null)
+
+      // Add items to the appropriate section
+      if (section === 'kitchen_cabinets') {
+        setCabinetItems(prev => [...prev, ...validItems])
+      } else if (section === 'worktop') {
+        setWorktopItems(prev => [...prev, ...validItems])
+      } else if (section === 'accessories') {
+        setAccessoriesItems(prev => [...prev, ...validItems])
+      } else if (section === 'appliances') {
+        setAppliancesItems(prev => [...prev, ...validItems])
+      } else if (section === 'wardrobes') {
+        setWardrobesItems(prev => [...prev, ...validItems])
+      } else if (section === 'tvunit') {
+        setTvUnitItems(prev => [...prev, ...validItems])
+      }
+
+      toast.success(`Successfully imported ${validItems.length} items to ${section}`)
+    } catch (error) {
+      console.error('Error importing data:', error)
+      toast.error('Failed to import data')
+    }
+  }
+
   const [labourPercentageInput, setLabourPercentageInput] = useState(labourPercentage.toString());
 
   // Add individual labour percentage states for each section
@@ -1752,6 +1839,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 )}
               </div>
             </div>
+            {mode === "create" && (
+              <button
+                type="button"
+                className="btn btn-outline-light btn-sm d-flex align-items-center"
+                onClick={() => setShowImportModal(true)}
+                style={{ borderRadius: "12px", padding: "8px 16px" }}
+              >
+                <Upload size={16} className="me-2" />
+                Import
+              </button>
+            )}
             <button
               type="button"
               className="btn-close"
@@ -4157,6 +4255,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         onPrint={handlePrint}
         onView={handleView}
         onShare={handleShare}
+      />
+
+      {/* Import Quotation Modal */}
+      <ImportQuotationModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportData}
       />
     </>
   )

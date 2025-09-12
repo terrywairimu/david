@@ -464,6 +464,138 @@ export class RealTimePaymentMonitor {
     }
   }
 
+  // Fix cash sales that have quotations still showing as pending
+  async fixCashSalesWithPendingQuotations() {
+    try {
+      console.log('🔧 Fixing cash sales with pending quotations...')
+      
+      // Get all cash sales
+      const { data: cashSales, error } = await supabase
+        .from('cash_sales')
+        .select(`
+          *,
+          client:registered_entities(name, phone)
+        `)
+        .not('original_quotation_number', 'is', null)
+
+      if (error) throw error
+
+      if (!cashSales || cashSales.length === 0) {
+        console.log('No cash sales found')
+        return
+      }
+
+      let fixedCount = 0
+
+      for (const cashSale of cashSales) {
+        try {
+          // Get the original quotation
+          const { data: quotation, error: quotationError } = await supabase
+            .from('quotations')
+            .select('*')
+            .eq('quotation_number', cashSale.original_quotation_number)
+            .single()
+
+          if (quotationError || !quotation) {
+            console.log(`⚠️ Quotation ${cashSale.original_quotation_number} not found for cash sale ${cashSale.cash_sale_number}`)
+            continue
+          }
+
+          // Check if quotation is still pending
+          if (quotation.status === 'pending') {
+            console.log(`🔧 Fixing quotation ${quotation.quotation_number} for cash sale ${cashSale.cash_sale_number}`)
+            
+            // Get payments for this quotation
+            const { data: payments } = await supabase
+              .from('payments')
+              .select('amount, status')
+              .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
+              .eq('status', 'completed')
+
+            const totalPaid = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+            const paymentPercentage = quotation.grand_total > 0 ? (totalPaid / quotation.grand_total) * 100 : 0
+
+            console.log(`   💰 Total paid: KES ${totalPaid} (${paymentPercentage.toFixed(2)}%)`)
+
+            // Check what documents exist
+            const { data: salesOrder } = await supabase
+              .from('sales_orders')
+              .select('id, order_number')
+              .eq('original_quotation_number', quotation.quotation_number)
+              .single()
+
+            const { data: invoice } = await supabase
+              .from('invoices')
+              .select('id, invoice_number')
+              .eq('original_quotation_number', quotation.quotation_number)
+              .single()
+
+            console.log(`   📄 Document flow check:`)
+            console.log(`     Sales Order: ${salesOrder ? salesOrder.order_number : 'Not found'}`)
+            console.log(`     Invoice: ${invoice ? invoice.invoice_number : 'Not found'}`)
+            console.log(`     Cash Sale: ${cashSale.cash_sale_number}`)
+
+            // CORRECT FLOW: Quotation → Sales Order → (Invoice OR Cash Sale)
+            // If cash sale exists but no sales order, we need to create the proper flow
+            if (!salesOrder && totalPaid > 0) {
+              console.log(`   🔄 Creating missing Sales Order first...`)
+              try {
+                await proceedToSalesOrder(quotation.id)
+                console.log(`   ✅ Sales Order created`)
+                
+                // Get the newly created sales order
+                const { data: newSalesOrder } = await supabase
+                  .from('sales_orders')
+                  .select('id, order_number')
+                  .eq('original_quotation_number', quotation.quotation_number)
+                  .single()
+                
+                if (newSalesOrder) {
+                  // Now create the cash sale from the sales order (not directly from quotation)
+                  console.log(`   🔄 Creating Cash Sale from Sales Order...`)
+                  await proceedToCashSaleFromSalesOrder(newSalesOrder.id)
+                  console.log(`   ✅ Cash Sale created from Sales Order`)
+                }
+              } catch (error) {
+                console.error(`   ❌ Error creating proper document flow:`, error)
+              }
+            } else if (salesOrder && !invoice && paymentPercentage >= 100) {
+              // Sales order exists, payment is 100%, create cash sale from sales order
+              console.log(`   🔄 Creating Cash Sale from existing Sales Order...`)
+              try {
+                await proceedToCashSaleFromSalesOrder(salesOrder.id)
+                console.log(`   ✅ Cash Sale created from Sales Order`)
+              } catch (error) {
+                console.error(`   ❌ Error creating Cash Sale from Sales Order:`, error)
+              }
+            }
+
+            // Update quotation status to reflect the proper conversion
+            const { error: updateError } = await supabase
+              .from('quotations')
+              .update({ status: 'converted_to_cash_sale' })
+              .eq('id', quotation.id)
+
+            if (updateError) {
+              console.error(`   ❌ Error updating quotation status:`, updateError)
+            } else {
+              console.log(`   ✅ Updated quotation status to: converted_to_cash_sale`)
+              fixedCount++
+            }
+          }
+
+        } catch (error) {
+          console.error(`❌ Error processing cash sale ${cashSale.cash_sale_number}:`, error)
+        }
+      }
+
+      console.log(`✅ Fixed ${fixedCount} quotations with incorrect status`)
+
+    } catch (error) {
+      console.error('❌ Error fixing cash sales with pending quotations:', error)
+    }
+  }
+
   // Clean up all duplicate sales orders
   async cleanupAllDuplicateSalesOrders() {
     try {

@@ -857,6 +857,32 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         
         // Real Data Rows (populated with actual data from purchases array)
         ...purchases.map((purchase, index) => {
+          // Format items description similar to frontend display
+          const formatItemsDescription = (items: any[]) => {
+            if (!items || items.length === 0) return 'No items';
+            if (items.length === 1) {
+              const item = items[0];
+              const description = (
+                item.stock_item?.description && item.stock_item.description.trim() !== ''
+                  ? item.stock_item.description
+                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
+                      ? item.stock_item.name
+                      : 'N/A')
+              );
+              return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
+            }
+            return `${items.length} items: ${items.map(item => {
+              const description = (
+                item.stock_item?.description && item.stock_item.description.trim() !== ''
+                  ? item.stock_item.description
+                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
+                      ? item.stock_item.name
+                      : 'N/A')
+              );
+              return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
+            }).join(', ')}`;
+          };
+
           if (purchaseType === 'client') {
             return {
               [`orderNumber_${index}`]: String(purchase.purchase_order_number || 'N/A'),
@@ -864,7 +890,7 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
               [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
               [`client_${index}`]: String(purchase.client?.name || 'N/A'),
               [`paidTo_${index}`]: String(purchase.paid_to || 'N/A'),
-              [`items_${index}`]: String(purchase.items?.length || 0),
+              [`items_${index}`]: formatItemsDescription(purchase.items || []),
               [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
             };
           } else {
@@ -874,7 +900,7 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
               [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
               [`client_${index}`]: '', // Empty for general purchases
               [`paidTo_${index}`]: '', // Empty for general purchases
-              [`items_${index}`]: String(purchase.items?.length || 0),
+              [`items_${index}`]: formatItemsDescription(purchase.items || []),
               [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
             };
           }
@@ -1551,6 +1577,8 @@ export const proceedToCashSale = async (quotationId: number): Promise<any> => {
 // Convert sales order to cash sale
 export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Promise<any> => {
   try {
+    console.log(`🔄 Converting sales order ${salesOrderId} to cash sale...`)
+    
     // Get sales order data
     const { data: salesOrder, error: salesOrderError } = await supabase
       .from("sales_orders")
@@ -1562,10 +1590,18 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
       .eq("id", salesOrderId)
       .single()
 
-    if (salesOrderError) throw salesOrderError
+    if (salesOrderError) {
+      console.error("❌ Error fetching sales order:", salesOrderError)
+      throw salesOrderError
+    }
+
+    console.log(`✅ Found sales order: ${salesOrder.order_number}`)
+    console.log(`   Client: ${salesOrder.client?.name}`)
+    console.log(`   Items count: ${salesOrder.items?.length || 0}`)
 
     // Generate cash sale number
     const saleNumber = await generateNextNumber("cash_sales", "sale_number", "CS")
+    console.log(`📝 Generated cash sale number: ${saleNumber}`)
 
     // Create cash sale
     const cashSaleData = {
@@ -1574,34 +1610,41 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
       sales_order_id: salesOrder.id,
       original_quotation_number: salesOrder.original_quotation_number,
       date_created: new Date().toISOString().split('T')[0],
-      cabinet_total: salesOrder.cabinet_total,
-      worktop_total: salesOrder.worktop_total,
-      accessories_total: salesOrder.accessories_total,
-      labour_percentage: salesOrder.labour_percentage,
-      labour_total: salesOrder.labour_total,
-      total_amount: salesOrder.total_amount,
-      grand_total: salesOrder.grand_total,
-      amount_paid: salesOrder.grand_total, // Full payment for cash sale
+      cabinet_total: salesOrder.cabinet_total || 0,
+      worktop_total: salesOrder.worktop_total || 0,
+      accessories_total: salesOrder.accessories_total || 0,
+      labour_percentage: salesOrder.labour_percentage || 0,
+      labour_total: salesOrder.labour_total || 0,
+      total_amount: salesOrder.total_amount || 0,
+      grand_total: salesOrder.grand_total || 0,
+      amount_paid: salesOrder.grand_total || 0, // Full payment for cash sale
       change_amount: 0,
       balance_amount: 0,
-      include_accessories: salesOrder.include_accessories,
+      include_accessories: salesOrder.include_accessories || false,
       payment_method: "cash",
       status: "completed",
-      notes: salesOrder.notes,
-      terms_conditions: salesOrder.terms_conditions
+      notes: salesOrder.notes || "",
+      terms_conditions: salesOrder.terms_conditions || ""
     }
 
     // Insert cash sale
+    console.log(`💾 Inserting cash sale with data:`, cashSaleData)
     const { data: newCashSale, error: cashSaleError } = await supabase
       .from("cash_sales")
       .insert(cashSaleData)
       .select()
       .single()
 
-    if (cashSaleError) throw cashSaleError
+    if (cashSaleError) {
+      console.error("❌ Error inserting cash sale:", cashSaleError)
+      throw cashSaleError
+    }
+    
+    console.log(`✅ Cash sale created with ID: ${newCashSale.id}`)
 
     // Insert cash sale items
     if (salesOrder.items && salesOrder.items.length > 0) {
+      console.log(`📦 Inserting ${salesOrder.items.length} cash sale items...`)
       const cashSaleItems = salesOrder.items.map((item: any) => ({
         cash_sale_id: newCashSale.id,
         category: item.category,
@@ -1613,17 +1656,25 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
         stock_item_id: item.stock_item_id
       }))
 
+      console.log(`📦 Cash sale items data:`, cashSaleItems)
       const { error: itemsError } = await supabase
         .from("cash_sale_items")
         .insert(cashSaleItems)
 
-      if (itemsError) throw itemsError
+      if (itemsError) {
+        console.error("❌ Error inserting cash sale items:", itemsError)
+        throw itemsError
+      }
+      
+      console.log(`✅ Cash sale items inserted successfully`)
+    } else {
+      console.log(`ℹ️ No items to insert for cash sale`)
     }
 
     // Update sales order status
     const { error: updateError } = await supabase
       .from("sales_orders")
-      .update({ status: "converted_to_cash_sale" })
+      .update({ status: "completed" })
       .eq("id", salesOrderId)
 
     if (updateError) throw updateError
@@ -1632,7 +1683,10 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
     return { ...cashSaleData, id: newCashSale.id, client: salesOrder.client, items: salesOrder.items }
   } catch (error) {
     console.error("Error converting sales order to cash sale:", error)
-    toast.error(error instanceof Error ? error.message : "Failed to convert sales order to cash sale")
+    const errorMessage = error instanceof Error ? error.message : 
+      (typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error))
+    console.error("Detailed error:", errorMessage)
+    toast.error(`Failed to convert sales order to cash sale: ${errorMessage}`)
     throw error
   }
 }
