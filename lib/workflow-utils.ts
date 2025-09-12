@@ -1,6 +1,99 @@
 import { supabase, NumberGenerationService } from "./supabase-client"
 import { toast } from "sonner"
 
+// Stock management helper functions
+const updateStockQuantity = async (stockItemId: number, quantityChange: number, referenceType: string, referenceId: number, notes: string) => {
+  try {
+    console.log(`Updating stock for item ID: ${stockItemId}, quantity change: ${quantityChange}`);
+    
+    // Get current stock level
+    const { data: stockItem, error: fetchError } = await supabase
+      .from("stock_items")
+      .select("quantity, name")
+      .eq("id", stockItemId)
+      .single()
+
+    if (fetchError) {
+      console.error("Error fetching stock item:", fetchError);
+      throw fetchError;
+    }
+
+    console.log(`Current stock for ${stockItem.name}: ${stockItem.quantity}`);
+
+    // Calculate new quantity
+    const newQuantity = Math.max(0, (stockItem.quantity || 0) + quantityChange)
+
+    console.log(`Updating to new quantity: ${newQuantity}`);
+
+    // Update stock quantity
+    const { error: updateError } = await supabase
+      .from("stock_items")
+      .update({ quantity: newQuantity })
+      .eq("id", stockItemId)
+
+    if (updateError) {
+      console.error("Error updating stock quantity:", updateError);
+      throw updateError;
+    }
+
+    // Record stock movement
+    const { error: movementError } = await supabase
+      .from("stock_movements")
+      .insert({
+        stock_item_id: stockItemId,
+        movement_type: quantityChange > 0 ? "in" : "out",
+        quantity: Math.abs(quantityChange),
+        reference_type: referenceType,
+        reference_id: referenceId,
+        notes: notes
+      })
+
+    if (movementError) {
+      console.error("Error creating stock movement:", movementError);
+      // Don't throw error for movement tracking, just log it
+    }
+
+    console.log(`Successfully updated stock for ${stockItem.name}: ${stockItem.quantity} + ${quantityChange} = ${newQuantity}`);
+    return { success: true, newQuantity, itemName: stockItem.name };
+  } catch (error) {
+    console.error("Error updating stock for item:", stockItemId, error);
+    throw error;
+  }
+}
+
+const deductStockFromItems = async (items: any[], referenceType: string, referenceId: number, referenceNumber: string) => {
+  const results = [];
+  
+  for (const item of items) {
+    if (item.stock_item_id && item.quantity > 0) {
+      try {
+        const result = await updateStockQuantity(
+          item.stock_item_id,
+          -item.quantity, // Deduct quantity (negative)
+          referenceType,
+          referenceId,
+          `${referenceType}: ${referenceNumber}`
+        );
+        results.push({ success: true, item: item.description, result });
+        toast.success(`Stock deducted for ${item.description}: -${item.quantity}`);
+      } catch (error) {
+        console.error(`Error deducting stock for ${item.description}:`, error);
+        results.push({ 
+          success: false, 
+          item: item.description, 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        toast.error(`Failed to deduct stock for ${item.description}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } else {
+      console.log(`Skipping stock deduction for item without stock_item_id or zero quantity:`, item);
+      results.push({ success: true, item: item.description, skipped: true });
+    }
+  }
+  
+  return results;
+}
+
 // Progress tracking for exports
 let globalProgressManager: any = null;
 
@@ -1477,6 +1570,19 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<InvoiceDat
 
     if (updateError) throw updateError
 
+    // Deduct stock quantities for all items
+    if (salesOrder.items && salesOrder.items.length > 0) {
+      console.log(`📦 Deducting stock for ${salesOrder.items.length} items in invoice ${invoiceNumber}...`)
+      try {
+        await deductStockFromItems(salesOrder.items, "invoice", newInvoice.id, invoiceNumber)
+        console.log(`✅ Stock deduction completed for invoice ${invoiceNumber}`)
+      } catch (error) {
+        console.error("Error deducting stock for invoice:", error)
+        // Don't throw error - invoice creation should succeed even if stock deduction fails
+        toast.error("Invoice created but some stock deductions failed. Please check stock levels manually.")
+      }
+    }
+
     toast.success("Successfully converted sales order to invoice")
     return { ...invoiceData, id: newInvoice.id, client: salesOrder.client, items: salesOrder.items }
   } catch (error) {
@@ -1564,6 +1670,19 @@ export const proceedToCashSale = async (quotationId: number): Promise<any> => {
       .eq("id", quotationId)
 
     if (updateError) throw updateError
+
+    // Deduct stock quantities for all items
+    if (quotation.items && quotation.items.length > 0) {
+      console.log(`📦 Deducting stock for ${quotation.items.length} items in cash sale ${saleNumber}...`)
+      try {
+        await deductStockFromItems(quotation.items, "cash_sale", newCashSale.id, saleNumber)
+        console.log(`✅ Stock deduction completed for cash sale ${saleNumber}`)
+      } catch (error) {
+        console.error("Error deducting stock for cash sale:", error)
+        // Don't throw error - cash sale creation should succeed even if stock deduction fails
+        toast.error("Cash sale created but some stock deductions failed. Please check stock levels manually.")
+      }
+    }
 
     toast.success("Successfully converted quotation to cash sale")
     return { ...cashSaleData, id: newCashSale.id, client: quotation.client, items: quotation.items }
@@ -1679,6 +1798,19 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
 
     if (updateError) throw updateError
 
+    // Deduct stock quantities for all items
+    if (salesOrder.items && salesOrder.items.length > 0) {
+      console.log(`📦 Deducting stock for ${salesOrder.items.length} items in cash sale ${saleNumber}...`)
+      try {
+        await deductStockFromItems(salesOrder.items, "cash_sale", newCashSale.id, saleNumber)
+        console.log(`✅ Stock deduction completed for cash sale ${saleNumber}`)
+      } catch (error) {
+        console.error("Error deducting stock for cash sale:", error)
+        // Don't throw error - cash sale creation should succeed even if stock deduction fails
+        toast.error("Cash sale created but some stock deductions failed. Please check stock levels manually.")
+      }
+    }
+
     toast.success("Successfully converted sales order to cash sale")
     return { ...cashSaleData, id: newCashSale.id, client: salesOrder.client, items: salesOrder.items }
   } catch (error) {
@@ -1770,6 +1902,19 @@ export const proceedToCashSaleFromInvoice = async (invoiceId: number): Promise<a
       .eq("id", invoiceId)
 
     if (updateError) throw updateError
+
+    // Deduct stock quantities for all items
+    if (invoice.items && invoice.items.length > 0) {
+      console.log(`📦 Deducting stock for ${invoice.items.length} items in cash sale ${saleNumber}...`)
+      try {
+        await deductStockFromItems(invoice.items, "cash_sale", newCashSale.id, saleNumber)
+        console.log(`✅ Stock deduction completed for cash sale ${saleNumber}`)
+      } catch (error) {
+        console.error("Error deducting stock for cash sale:", error)
+        // Don't throw error - cash sale creation should succeed even if stock deduction fails
+        toast.error("Cash sale created but some stock deductions failed. Please check stock levels manually.")
+      }
+    }
 
     toast.success("Successfully converted invoice to cash sale")
     return { ...cashSaleData, id: newCashSale.id, client: invoice.client, items: invoice.items }
