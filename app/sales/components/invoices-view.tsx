@@ -1015,15 +1015,6 @@ const InvoicesView = () => {
                           >
                             <Eye size={14} />
                           </button>
-                          {invoice.status !== "converted_to_cash_sale" && (
-                            <button 
-                              className="action-btn"
-                              onClick={() => handleEdit(invoice)}
-                              title="Edit"
-                            >
-                              <Edit size={14} />
-                            </button>
-                          )}
                           <button 
                             className="action-btn"
                             onClick={() => handleDelete(invoice)}

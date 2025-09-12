@@ -76,7 +76,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       const workbook = XLSX.read(data, { type: 'array' })
       const sheetName = workbook.SheetNames[0]
       const worksheet = workbook.Sheets[sheetName]
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][]
 
       if (jsonData.length < 3) {
         toast.error('File must contain at least 3 rows: title row, header row, and one data row')
@@ -577,10 +577,10 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                 <Upload size={24} color="white" />
               </div>
               <div>
-                <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
+                <h5 className="modal-title mb-1 fw-bold">
                   Import Quotation Data
                 </h5>
-                <p className="mb-0 text-white small">Upload Excel/CSV file to import items</p>
+                <p className="mb-0 text-muted small">Upload Excel/CSV file to import items</p>
               </div>
             </div>
             <button

@@ -1789,19 +1789,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         const validItems = processedItems.filter(item => item !== null)
         
         if (validItems.length > 0) {
-          // Add items to the appropriate section
+          // Add items to the appropriate section and auto-open the section
           if (section === 'kitchen_cabinets') {
             setCabinetItems(prev => [...prev, ...validItems])
           } else if (section === 'worktop') {
             setWorktopItems(prev => [...prev, ...validItems])
+            setIncludeWorktop(true) // Auto-open worktop section
           } else if (section === 'accessories') {
             setAccessoriesItems(prev => [...prev, ...validItems])
+            setIncludeAccessories(true) // Auto-open accessories section
           } else if (section === 'appliances') {
             setAppliancesItems(prev => [...prev, ...validItems])
+            setIncludeAppliances(true) // Auto-open appliances section
           } else if (section === 'wardrobes') {
             setWardrobesItems(prev => [...prev, ...validItems])
+            setIncludeWardrobes(true) // Auto-open wardrobes section
           } else if (section === 'tvunit') {
             setTvUnitItems(prev => [...prev, ...validItems])
+            setIncludeTvUnit(true) // Auto-open TV unit section
           }
           
           totalImported += validItems.length

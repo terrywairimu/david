@@ -601,13 +601,6 @@ const CashSalesView: React.FC = () => {
                     </button>
                         <button 
                           className="action-btn"
-                          onClick={() => handleEdit(sale)}
-                          title="Edit"
-                        >
-                      <Edit size={14} />
-                    </button>
-                        <button 
-                          className="action-btn"
                           onClick={() => handleDelete(sale)}
                           title="Delete"
                         >
