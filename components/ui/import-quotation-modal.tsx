@@ -14,7 +14,8 @@ interface ImportQuotationModalProps {
 interface ParsedData {
   headers: string[]
   rows: any[][]
-  section: string
+  sections: { value: string; label: string; count: number }[]
+  detectedSections: string[]
 }
 
 interface ColumnMapping {
@@ -33,7 +34,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ParsedData | null>(null)
-  const [selectedSection, setSelectedSection] = useState<string>('kitchen_cabinets')
+  const [selectedSections, setSelectedSections] = useState<{[key: string]: string}>({})
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     description: '',
     unit: '',
@@ -41,7 +42,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     unitPrice: '',
     total: ''
   })
-  const [mappedData, setMappedData] = useState<any[]>([])
+  const [mappedData, setMappedData] = useState<{[key: string]: any[]}>({})
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -82,41 +83,52 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
         return
       }
 
+      // Detect sections from the first row (title row)
+      const titleRow = jsonData[0] as string[]
+      const detectedSections = detectSectionsFromTitle(titleRow)
+      
       // Use second row as headers (first row is usually the quotation type name)
       const headers = jsonData[1] as string[]
-      const rows = jsonData.slice(2) as any[][]
+      const allRows = jsonData.slice(2) as any[][]
+
+      // Filter out empty rows and total rows
+      const rows = allRows.filter(row => {
+        const hasData = row.some(cell => cell && String(cell).trim() !== '')
+        const isTotalRow = row.some(cell => {
+          const cellStr = String(cell).toLowerCase().trim()
+          return cellStr === 'total' || cellStr === 'subtotal' || cellStr === 'grand total' || cellStr === 'sum'
+        })
+        return hasData && !isTotalRow
+      })
 
       // Debug: Log the structure for troubleshooting
       console.log('File structure:', {
         totalRows: jsonData.length,
-        titleRow: jsonData[0],
+        titleRow: titleRow,
         headerRow: headers,
-        dataRows: rows.length
+        dataRows: rows.length,
+        detectedSections: detectedSections
       })
 
       // Auto-map columns based on headers
       const autoMappedColumns = autoMapColumns(headers)
       setColumnMapping(autoMappedColumns)
 
-      setParsedData({ headers, rows, section: selectedSection })
+      // Process data by sections
+      const sectionData = processDataBySections(rows, headers, autoMappedColumns, detectedSections)
+      
+      setParsedData({ 
+        headers, 
+        rows, 
+        sections: sectionData.sections,
+        detectedSections: detectedSections
+      })
       
       // Check if we have the required mappings
       if (autoMappedColumns.description && autoMappedColumns.quantity && autoMappedColumns.unitPrice) {
         // Auto-proceed to preview if all required fields are mapped
-        const mappedRows = rows.map(row => {
-          const mappedRow: any = {}
-          Object.entries(autoMappedColumns).forEach(([field, headerName]) => {
-            if (headerName) {
-              const columnIndex = headers.indexOf(headerName)
-              if (columnIndex !== -1) {
-                mappedRow[field] = row[columnIndex]
-              }
-            }
-          })
-          return mappedRow
-        }).filter(row => row.description && row.quantity && row.unitPrice)
-
-        setMappedData(mappedRows)
+        setMappedData(sectionData.mappedData)
+        setSelectedSections(sectionData.defaultSections)
         setStep('preview')
       } else {
         // Go to mapping step if auto-mapping failed
@@ -127,6 +139,86 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       toast.error('Error parsing file. Please check the format.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const detectSectionsFromTitle = (titleRow: string[]) => {
+    const detectedSections: string[] = []
+    const titleText = titleRow.join(' ').toLowerCase()
+    
+    // Check for section keywords in the title
+    if (titleText.includes('kitchen') && titleText.includes('cabinets')) {
+      detectedSections.push('kitchen_cabinets')
+    }
+    if (titleText.includes('wardrobe') || titleText.includes('wardrobes')) {
+      detectedSections.push('wardrobes')
+    }
+    if (titleText.includes('worktop') || titleText.includes('work top')) {
+      detectedSections.push('worktop')
+    }
+    if (titleText.includes('accessories')) {
+      detectedSections.push('accessories')
+    }
+    if (titleText.includes('appliances')) {
+      detectedSections.push('appliances')
+    }
+    if (titleText.includes('tv') && titleText.includes('unit')) {
+      detectedSections.push('tvunit')
+    }
+    
+    // Default to kitchen cabinets if no sections detected
+    if (detectedSections.length === 0) {
+      detectedSections.push('kitchen_cabinets')
+    }
+    
+    return detectedSections
+  }
+
+  const processDataBySections = (rows: any[][], headers: string[], columnMapping: ColumnMapping, detectedSections: string[]) => {
+    const sectionData: {[key: string]: any[]} = {}
+    const sectionCounts: {[key: string]: number} = {}
+    const defaultSections: {[key: string]: string} = {}
+    
+    // Initialize section data
+    detectedSections.forEach(section => {
+      sectionData[section] = []
+      sectionCounts[section] = 0
+      defaultSections[section] = section
+    })
+    
+    // Process each row
+    rows.forEach(row => {
+      const mappedRow: any = {}
+      Object.entries(columnMapping).forEach(([field, headerName]) => {
+        if (headerName) {
+          const columnIndex = headers.indexOf(headerName)
+          if (columnIndex !== -1) {
+            mappedRow[field] = row[columnIndex]
+          }
+        }
+      })
+      
+      // Only process rows with valid data
+      if (mappedRow.description && mappedRow.quantity && mappedRow.unitPrice) {
+        // For now, add to the first detected section
+        // In a more advanced implementation, you could analyze the row content to determine section
+        const targetSection = detectedSections[0]
+        sectionData[targetSection].push(mappedRow)
+        sectionCounts[targetSection]++
+      }
+    })
+    
+    // Create sections array for display
+    const sectionsArray = detectedSections.map(section => ({
+      value: section,
+      label: sections.find(s => s.value === section)?.label || section,
+      count: sectionCounts[section]
+    }))
+    
+    return {
+      sections: sectionsArray,
+      mappedData: sectionData,
+      defaultSections
     }
   }
 
@@ -198,46 +290,50 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     if (!parsedData) return
 
     const { headers, rows } = parsedData
-    const mappedRows = rows.map(row => {
-      const mappedRow: any = {}
-      Object.entries(columnMapping).forEach(([field, headerName]) => {
-        if (headerName) {
-          const columnIndex = headers.indexOf(headerName)
-          if (columnIndex !== -1) {
-            mappedRow[field] = row[columnIndex]
-          }
-        }
-      })
-      return mappedRow
-    }).filter(row => row.description && row.quantity && row.unitPrice)
-
-    setMappedData(mappedRows)
+    const sectionData = processDataBySections(rows, headers, columnMapping, parsedData.detectedSections)
+    
+    setMappedData(sectionData.mappedData)
+    setSelectedSections(sectionData.defaultSections)
     setStep('preview')
   }
 
   const handleImport = () => {
-    if (mappedData.length === 0) {
+    const totalItems = Object.values(mappedData).flat().length
+    if (totalItems === 0) {
       toast.error('No valid data to import')
       return
     }
 
-    const formattedData = mappedData.map(row => ({
-      category: selectedSection,
-      description: String(row.description || '').trim(),
-      unit: String(row.unit || 'pcs').trim(),
-      quantity: parseFloat(row.quantity) || 1,
-      unit_price: parseFloat(row.unitPrice) || 0,
-      total_price: (parseFloat(row.quantity) || 1) * (parseFloat(row.unitPrice) || 0),
-      specifications: '',
-      notes: ''
-    }))
-
-    onImport({
-      section: selectedSection,
-      items: formattedData
+    // Prepare data for each section
+    const importData: {[key: string]: any[]} = {}
+    Object.entries(mappedData).forEach(([section, items]) => {
+      if (items.length > 0) {
+        importData[section] = items.map(row => ({
+          category: section,
+          description: String(row.description || '').trim(),
+          unit: String(row.unit || 'pcs').trim(),
+          quantity: parseFloat(row.quantity) || 1,
+          unit_price: parseFloat(row.unitPrice) || 0,
+          total_price: (parseFloat(row.quantity) || 1) * (parseFloat(row.unitPrice) || 0),
+          specifications: '',
+          notes: ''
+        }))
+      }
     })
+
+    onImport(importData)
     
-    toast.success(`Successfully imported ${formattedData.length} items to ${sections.find(s => s.value === selectedSection)?.label}`)
+    // Create success message
+    const sectionMessages = Object.entries(importData).map(([section, items]) => 
+      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label}`
+    )
+    
+    if (sectionMessages.length === 1) {
+      toast.success(`Auto-Mapping Successful: ${sectionMessages[0]}`)
+    } else {
+      toast.success(`Auto-Mapping Successful: ${sectionMessages.join(' & ')}`)
+    }
+    
     onClose()
   }
 
@@ -245,7 +341,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     setStep('upload')
     setFile(null)
     setParsedData(null)
-    setSelectedSection('kitchen_cabinets')
+    setSelectedSections({})
     setColumnMapping({
       description: '',
       unit: '',
@@ -253,7 +349,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       unitPrice: '',
       total: ''
     })
-    setMappedData([])
+    setMappedData({})
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -313,18 +409,10 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                     <p className="text-muted mb-3">Select a file containing quotation items data</p>
                     
                     <div className="mb-4">
-                      <label className="form-label fw-semibold">Select Section:</label>
-                      <select 
-                        className="form-select"
-                        value={selectedSection}
-                        onChange={(e) => setSelectedSection(e.target.value)}
-                      >
-                        {sections.map(section => (
-                          <option key={section.value} value={section.value}>
-                            {section.label}
-                          </option>
-                        ))}
-                      </select>
+                      <label className="form-label fw-semibold">Sections will be auto-detected from your file</label>
+                      <p className="text-muted small mb-0">
+                        The system will automatically detect sections like "Kitchen Cabinets", "Wardrobes", "Worktop" from your Excel file headers.
+                      </p>
                     </div>
 
                     <div className="d-flex justify-content-end">
@@ -460,7 +548,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
               </div>
             )}
 
-            {step === 'preview' && (
+            {step === 'preview' && parsedData && (
               <div>
                 <div className="alert alert-success mb-4">
                   <h6 className="mb-2">
@@ -468,14 +556,47 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                     Auto-Mapping Successful
                   </h6>
                   <p className="mb-0">
-                    {mappedData.length} items will be imported to <strong>{sections.find(s => s.value === selectedSection)?.label}</strong>
+                    {Object.entries(mappedData).map(([section, items]) => 
+                      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label}`
+                    ).join(' & ')}
                   </p>
                 </div>
 
+                {/* Section Selection */}
+                {parsedData.sections.length > 1 && (
+                  <div className="mb-4">
+                    <h6 className="mb-3">Detected Sections:</h6>
+                    <div className="row g-2">
+                      {parsedData.sections.map((section, index) => (
+                        <div key={section.value} className={`col-md-${12 / Math.min(parsedData.sections.length, 3)}`}>
+                          <label className="form-label fw-semibold">{section.label}</label>
+                          <select 
+                            className="form-select"
+                            value={selectedSections[section.value] || section.value}
+                            onChange={(e) => setSelectedSections(prev => ({
+                              ...prev,
+                              [section.value]: e.target.value
+                            }))}
+                          >
+                            {sections.map(s => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                          <small className="text-muted">{section.count} items</small>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Data Preview */}
                 <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   <table className="table table-sm">
                     <thead className="table-light sticky-top">
                       <tr>
+                        <th>Section</th>
                         <th>Description</th>
                         <th>Unit</th>
                         <th>Quantity</th>
@@ -484,19 +605,26 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {mappedData.slice(0, 10).map((row, index) => (
-                        <tr key={index}>
-                          <td>{row.description}</td>
-                          <td>{row.unit || 'pcs'}</td>
-                          <td>{row.quantity}</td>
-                          <td>{row.unitPrice}</td>
-                          <td>{(parseFloat(row.quantity) || 0) * (parseFloat(row.unitPrice) || 0)}</td>
-                        </tr>
-                      ))}
-                      {mappedData.length > 10 && (
+                      {Object.entries(mappedData).flatMap(([section, items]) => 
+                        items.slice(0, 5).map((row, index) => (
+                          <tr key={`${section}-${index}`}>
+                            <td>
+                              <span className="badge bg-primary">
+                                {sections.find(s => s.value === section)?.label}
+                              </span>
+                            </td>
+                            <td>{row.description}</td>
+                            <td>{row.unit || 'pcs'}</td>
+                            <td>{row.quantity}</td>
+                            <td>{row.unitPrice}</td>
+                            <td>{(parseFloat(row.quantity) || 0) * (parseFloat(row.unitPrice) || 0)}</td>
+                          </tr>
+                        ))
+                      )}
+                      {Object.values(mappedData).flat().length > 5 && (
                         <tr>
-                          <td colSpan={5} className="text-center text-muted">
-                            ... and {mappedData.length - 10} more items
+                          <td colSpan={6} className="text-center text-muted">
+                            ... and {Object.values(mappedData).flat().length - 5} more items
                           </td>
                         </tr>
                       )}
@@ -518,7 +646,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                     style={{ borderRadius: "12px", padding: "12px 24px" }}
                   >
                     <CheckCircle size={16} className="me-2" />
-                    Import {mappedData.length} Items
+                    Import {Object.values(mappedData).flat().length} Items
                   </button>
                 </div>
               </div>

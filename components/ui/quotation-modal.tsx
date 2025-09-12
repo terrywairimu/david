@@ -1646,80 +1646,103 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // Handle import data from Excel/CSV
   const handleImportData = async (importData: any) => {
     try {
-      const { section, items } = importData
+      // Handle both old format (single section) and new format (multiple sections)
+      const sectionsData = importData.section ? 
+        { [importData.section]: importData.items } : 
+        importData
       
-      // Check if items exist in stock, create new ones if they don't
-      const processedItems = await Promise.all(items.map(async (item: any) => {
-        // Search for existing stock item by name or description
-        const { data: existingItems } = await supabase
-          .from('stock_items')
-          .select('*')
-          .or(`name.ilike.%${item.description}%,description.ilike.%${item.description}%`)
-          .limit(1)
-
-        let stockItemId = null
-        let stockItem = null
-
-        if (existingItems && existingItems.length > 0) {
-          // Use existing item
-          stockItemId = existingItems[0].id
-          stockItem = existingItems[0]
-        } else {
-          // Create new stock item
-          const newStockItem = {
-            name: item.description,
-            description: item.description,
-            unit: item.unit,
-            unit_price: item.unit_price,
-            category: section,
-            status: 'active',
-            quantity: 0, // Will be updated when purchased
-            reorder_level: 0
-          }
-
-          const { data: createdItem, error } = await supabase
+      let totalImported = 0
+      const sectionMessages: string[] = []
+      
+      // Process each section
+      for (const [section, items] of Object.entries(sectionsData)) {
+        if (!Array.isArray(items) || items.length === 0) continue
+        
+        // Check if items exist in stock, create new ones if they don't
+        const processedItems = await Promise.all(items.map(async (item: any) => {
+          // Search for existing stock item by name or description
+          const { data: existingItems } = await supabase
             .from('stock_items')
-            .insert([newStockItem])
-            .select()
-            .single()
+            .select('*')
+            .or(`name.ilike.%${item.description}%,description.ilike.%${item.description}%`)
+            .limit(1)
 
-          if (error) {
-            console.error('Error creating stock item:', error)
-            toast.error(`Failed to create stock item: ${item.description}`)
-            return null
+          let stockItemId = null
+          let stockItem = null
+
+          if (existingItems && existingItems.length > 0) {
+            // Use existing item
+            stockItemId = existingItems[0].id
+            stockItem = existingItems[0]
+          } else {
+            // Create new stock item
+            const newStockItem = {
+              name: item.description,
+              description: item.description,
+              unit: item.unit,
+              unit_price: item.unit_price,
+              category: section,
+              status: 'active',
+              quantity: 0, // Will be updated when purchased
+              reorder_level: 0
+            }
+
+            const { data: createdItem, error } = await supabase
+              .from('stock_items')
+              .insert([newStockItem])
+              .select()
+              .single()
+
+            if (error) {
+              console.error('Error creating stock item:', error)
+              toast.error(`Failed to create stock item: ${item.description}`)
+              return null
+            }
+
+            stockItemId = createdItem.id
+            stockItem = createdItem
+            toast.success(`Created new stock item: ${item.description}`)
           }
 
-          stockItemId = createdItem.id
-          stockItem = createdItem
-          toast.success(`Created new stock item: ${item.description}`)
+          return {
+            ...item,
+            stock_item_id: stockItemId,
+            stock_item: stockItem
+          }
+        }))
+
+        // Filter out any failed items
+        const validItems = processedItems.filter(item => item !== null)
+        
+        if (validItems.length > 0) {
+          // Add items to the appropriate section
+          if (section === 'kitchen_cabinets') {
+            setCabinetItems(prev => [...prev, ...validItems])
+          } else if (section === 'worktop') {
+            setWorktopItems(prev => [...prev, ...validItems])
+          } else if (section === 'accessories') {
+            setAccessoriesItems(prev => [...prev, ...validItems])
+          } else if (section === 'appliances') {
+            setAppliancesItems(prev => [...prev, ...validItems])
+          } else if (section === 'wardrobes') {
+            setWardrobesItems(prev => [...prev, ...validItems])
+          } else if (section === 'tvunit') {
+            setTvUnitItems(prev => [...prev, ...validItems])
+          }
+          
+          totalImported += validItems.length
+          sectionMessages.push(`${validItems.length} items to ${section}`)
         }
-
-        return {
-          ...item,
-          stock_item_id: stockItemId,
-          stock_item: stockItem
-        }
-      }))
-
-      // Filter out any failed items
-      const validItems = processedItems.filter(item => item !== null)
-
-      // Add items to the appropriate section
-      if (section === 'kitchen_cabinets') {
-        setCabinetItems(prev => [...prev, ...validItems])
-      } else if (section === 'worktop') {
-        setWorktopItems(prev => [...prev, ...validItems])
-      } else if (section === 'accessories') {
-        setAccessoriesItems(prev => [...prev, ...validItems])
-      } else if (section === 'appliances') {
-        setAppliancesItems(prev => [...prev, ...validItems])
-      } else if (section === 'wardrobes') {
-        setWardrobesItems(prev => [...prev, ...validItems])
-      } else if (section === 'tvunit') {
-        setTvUnitItems(prev => [...prev, ...validItems])
       }
-
-      toast.success(`Successfully imported ${validItems.length} items to ${section}`)
+      
+      if (totalImported > 0) {
+        const message = sectionMessages.length === 1 ? 
+          `Successfully imported ${sectionMessages[0]}` :
+          `Successfully imported ${sectionMessages.join(' & ')}`
+        toast.success(message)
+      } else {
+        toast.error('No valid items to import')
+      }
     } catch (error) {
       console.error('Error importing data:', error)
       toast.error('Failed to import data')
