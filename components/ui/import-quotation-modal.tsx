@@ -288,7 +288,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                 <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
                   Import Quotation Data
                 </h5>
-                <p className="mb-0 text-white small">Upload Excel/CSV file and map columns</p>
+                <p className="mb-0 text-white small">Upload Excel/CSV file to import items</p>
               </div>
             </div>
             <button
@@ -312,7 +312,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                     <h6 className="mb-2">Upload Excel or CSV File</h6>
                     <p className="text-muted mb-3">Select a file containing quotation items data</p>
                     
-                    <div className="mb-3">
+                    <div className="mb-4">
                       <label className="form-label fw-semibold">Select Section:</label>
                       <select 
                         className="form-select"
@@ -327,55 +327,23 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                       </select>
                     </div>
 
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleFileUpload}
-                      className="form-control"
-                      disabled={loading}
-                    />
+                    <div className="d-flex justify-content-end">
+                      <label className="btn btn-primary d-flex align-items-center" style={{ borderRadius: "12px", padding: "12px 24px" }}>
+                        <Upload size={16} className="me-2" />
+                        Choose File
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={handleFileUpload}
+                          className="d-none"
+                          disabled={loading}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div className="text-start">
-                  <h6 className="mb-2">Expected File Format:</h6>
-                  <div className="table-responsive mb-3">
-                    <table className="table table-sm table-bordered">
-                      <thead className="table-light">
-                        <tr>
-                          <th className="text-center">Row 1: Section Title</th>
-                          <th className="text-center">Row 2: Column Headers</th>
-                          <th className="text-center">Row 3+: Data</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="text-center">"Kitchen Cabinets Quote"</td>
-                          <td className="text-center">"Description", "Units", "QTY", "Unit Price", "Total"</td>
-                          <td className="text-center">Item data...</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <ul className="list-unstyled text-muted small">
-                    <li>• <strong>Row 1:</strong> Section title (e.g., "Kitchen Cabinets Quote", "WORKTOP")</li>
-                    <li>• <strong>Row 2:</strong> Column headers ("Description", "Units", "QTY", "Unit Price", "Total")</li>
-                    <li>• <strong>Row 3+:</strong> Item data rows</li>
-                  </ul>
-                  
-                  <div className="alert alert-info mt-3">
-                    <h6 className="mb-1">
-                      <CheckCircle size={16} className="me-2" />
-                      Auto-Mapping Feature
-                    </h6>
-                    <p className="mb-0 small">
-                      The system automatically uses the second row as column headers and maps them to the appropriate fields. 
-                      You'll only need to verify the mapping if needed.
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
 
