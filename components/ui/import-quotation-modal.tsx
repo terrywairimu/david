@@ -83,45 +83,27 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
         return
       }
 
-      // Detect sections from the first row (title row)
-      const titleRow = jsonData[0] as string[]
-      const detectedSections = detectSectionsFromTitle(titleRow)
+      // Detect sections and their boundaries in the data
+      const sectionAnalysis = analyzeSectionsInData(jsonData)
       
-      // Use second row as headers (first row is usually the quotation type name)
-      const headers = jsonData[1] as string[]
-      const allRows = jsonData.slice(2) as any[][]
-
-      // Filter out empty rows and total rows
-      const rows = allRows.filter(row => {
-        const hasData = row.some(cell => cell && String(cell).trim() !== '')
-        const isTotalRow = row.some(cell => {
-          const cellStr = String(cell).toLowerCase().trim()
-          return cellStr === 'total' || cellStr === 'subtotal' || cellStr === 'grand total' || cellStr === 'sum'
-        })
-        return hasData && !isTotalRow
-      })
-
       // Debug: Log the structure for troubleshooting
       console.log('File structure:', {
         totalRows: jsonData.length,
-        titleRow: titleRow,
-        headerRow: headers,
-        dataRows: rows.length,
-        detectedSections: detectedSections
+        sectionAnalysis: sectionAnalysis
       })
 
-      // Auto-map columns based on headers
-      const autoMappedColumns = autoMapColumns(headers)
+      // Auto-map columns based on the first section's headers
+      const autoMappedColumns = autoMapColumns(sectionAnalysis.sections[0]?.headers || [])
       setColumnMapping(autoMappedColumns)
 
       // Process data by sections
-      const sectionData = processDataBySections(rows, headers, autoMappedColumns, detectedSections)
+      const sectionData = processDataByDetectedSections(sectionAnalysis, autoMappedColumns)
       
       setParsedData({ 
-        headers, 
-        rows, 
+        headers: sectionAnalysis.sections[0]?.headers || [],
+        rows: [],
         sections: sectionData.sections,
-        detectedSections: detectedSections
+        detectedSections: sectionAnalysis.detectedSections
       })
       
       // Check if we have the required mappings
@@ -139,6 +121,166 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       toast.error('Error parsing file. Please check the format.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const analyzeSectionsInData = (jsonData: any[][]) => {
+    const sections: Array<{
+      title: string,
+      headers: string[],
+      startRow: number,
+      endRow: number,
+      dataRows: any[][]
+    }> = []
+    const detectedSections: string[] = []
+    
+    let currentSection: any = null
+    let i = 0
+    
+    while (i < jsonData.length) {
+      const row = jsonData[i]
+      const firstCell = String(row[0] || '').trim()
+      
+      // Check if this row is a section title
+      if (firstCell && isSectionTitle(firstCell)) {
+        // Save previous section if exists
+        if (currentSection) {
+          currentSection.endRow = i - 1
+          currentSection.dataRows = jsonData.slice(currentSection.startRow + 2, i).filter(r => 
+            r.some(cell => cell && String(cell).trim() !== '') && 
+            !isTotalRow(r)
+          )
+          sections.push(currentSection)
+        }
+        
+        // Start new section
+        const sectionType = detectSectionType(firstCell)
+        currentSection = {
+          title: firstCell,
+          headers: jsonData[i + 1] || [],
+          startRow: i,
+          endRow: jsonData.length - 1,
+          dataRows: []
+        }
+        
+        if (sectionType && !detectedSections.includes(sectionType)) {
+          detectedSections.push(sectionType)
+        }
+      }
+      
+      i++
+    }
+    
+    // Save the last section
+    if (currentSection) {
+      currentSection.endRow = jsonData.length - 1
+      currentSection.dataRows = jsonData.slice(currentSection.startRow + 2).filter(r => 
+        r.some(cell => cell && String(cell).trim() !== '') && 
+        !isTotalRow(r)
+      )
+      sections.push(currentSection)
+    }
+    
+    // If no sections detected, treat the whole file as one section
+    if (sections.length === 0) {
+      const sectionType = 'kitchen_cabinets' // Default
+      sections.push({
+        title: 'Default Section',
+        headers: jsonData[1] || [],
+        startRow: 0,
+        endRow: jsonData.length - 1,
+        dataRows: jsonData.slice(2).filter(r => 
+          r.some(cell => cell && String(cell).trim() !== '') && 
+          !isTotalRow(r)
+        )
+      })
+      detectedSections.push(sectionType)
+    }
+    
+    return { sections, detectedSections }
+  }
+
+  const isSectionTitle = (text: string) => {
+    const lowerText = text.toLowerCase()
+    return lowerText.includes('quote') || 
+           lowerText.includes('kitchen') || 
+           lowerText.includes('cabinets') ||
+           lowerText.includes('wardrobe') ||
+           lowerText.includes('worktop') ||
+           lowerText.includes('work top') ||
+           lowerText.includes('accessories') ||
+           lowerText.includes('appliances') ||
+           lowerText.includes('tv') ||
+           lowerText.includes('unit')
+  }
+
+  const isTotalRow = (row: any[]) => {
+    return row.some(cell => {
+      const cellStr = String(cell).toLowerCase().trim()
+      return cellStr === 'total' || cellStr === 'subtotal' || cellStr === 'grand total' || 
+             cellStr === 'sum' || cellStr === 'add labour' || cellStr.includes('labour')
+    })
+  }
+
+  const detectSectionType = (title: string) => {
+    const lowerTitle = title.toLowerCase()
+    if (lowerTitle.includes('kitchen') && lowerTitle.includes('cabinets')) return 'kitchen_cabinets'
+    if (lowerTitle.includes('wardrobe')) return 'wardrobes'
+    if (lowerTitle.includes('worktop') || lowerTitle.includes('work top')) return 'worktop'
+    if (lowerTitle.includes('accessories')) return 'accessories'
+    if (lowerTitle.includes('appliances')) return 'appliances'
+    if (lowerTitle.includes('tv') && lowerTitle.includes('unit')) return 'tvunit'
+    return 'kitchen_cabinets' // Default
+  }
+
+  const processDataByDetectedSections = (sectionAnalysis: any, columnMapping: ColumnMapping) => {
+    const sectionData: {[key: string]: any[]} = {}
+    const sectionCounts: {[key: string]: number} = {}
+    const defaultSections: {[key: string]: string} = {}
+    
+    // Initialize section data
+    sectionAnalysis.detectedSections.forEach((section: string) => {
+      sectionData[section] = []
+      sectionCounts[section] = 0
+      defaultSections[section] = section
+    })
+    
+    // Process each detected section
+    sectionAnalysis.sections.forEach((section: any) => {
+      const sectionType = detectSectionType(section.title)
+      
+      // Map the data rows for this section
+      const mappedRows = section.dataRows.map((row: any[]) => {
+        const mappedRow: any = {}
+        Object.entries(columnMapping).forEach(([field, headerName]) => {
+          if (headerName) {
+            const columnIndex = section.headers.indexOf(headerName)
+            if (columnIndex !== -1) {
+              mappedRow[field] = row[columnIndex]
+            }
+          }
+        })
+        return mappedRow
+      }).filter((row: any) => row.description && row.quantity && row.unitPrice)
+      
+      // Add to the appropriate section
+      if (sectionData[sectionType]) {
+        sectionData[sectionType].push(...mappedRows)
+        sectionCounts[sectionType] += mappedRows.length
+      }
+    })
+    
+    // Create sections array for display
+    const sectionsArray = sectionAnalysis.detectedSections.map((section: string) => ({
+      value: section,
+      label: sections.find(s => s.value === section)?.label || section,
+      count: sectionCounts[section]
+    }))
+    
+    return {
+      sections: sectionsArray,
+      mappedData: sectionData,
+      defaultSections
     }
   }
 
@@ -186,27 +328,66 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       defaultSections[section] = section
     })
     
-    // Process each row
-    rows.forEach(row => {
-      const mappedRow: any = {}
-      Object.entries(columnMapping).forEach(([field, headerName]) => {
-        if (headerName) {
-          const columnIndex = headers.indexOf(headerName)
-          if (columnIndex !== -1) {
-            mappedRow[field] = row[columnIndex]
+    // If only one section detected, put all data there
+    if (detectedSections.length === 1) {
+      rows.forEach(row => {
+        const mappedRow: any = {}
+        Object.entries(columnMapping).forEach(([field, headerName]) => {
+          if (headerName) {
+            const columnIndex = headers.indexOf(headerName)
+            if (columnIndex !== -1) {
+              mappedRow[field] = row[columnIndex]
+            }
           }
+        })
+        
+        // Only process rows with valid data
+        if (mappedRow.description && mappedRow.quantity && mappedRow.unitPrice) {
+          sectionData[detectedSections[0]].push(mappedRow)
+          sectionCounts[detectedSections[0]]++
         }
       })
+    } else {
+      // Multiple sections detected - need to analyze the data to separate by sections
+      // This is a simplified approach - in a real implementation, you might need more sophisticated logic
+      let currentSection = detectedSections[0] // Start with first section
       
-      // Only process rows with valid data
-      if (mappedRow.description && mappedRow.quantity && mappedRow.unitPrice) {
-        // For now, add to the first detected section
-        // In a more advanced implementation, you could analyze the row content to determine section
-        const targetSection = detectedSections[0]
-        sectionData[targetSection].push(mappedRow)
-        sectionCounts[targetSection]++
-      }
-    })
+      rows.forEach(row => {
+        const mappedRow: any = {}
+        Object.entries(columnMapping).forEach(([field, headerName]) => {
+          if (headerName) {
+            const columnIndex = headers.indexOf(headerName)
+            if (columnIndex !== -1) {
+              mappedRow[field] = row[columnIndex]
+            }
+          }
+        })
+        
+        // Check if this row contains section indicators
+        const description = String(mappedRow.description || '').toLowerCase()
+        const hasSectionIndicator = detectedSections.some(section => {
+          const sectionKeywords = getSectionKeywords(section)
+          return sectionKeywords.some(keyword => description.includes(keyword))
+        })
+        
+        // If we find a section indicator, switch to that section
+        if (hasSectionIndicator) {
+          for (const section of detectedSections) {
+            const sectionKeywords = getSectionKeywords(section)
+            if (sectionKeywords.some(keyword => description.includes(keyword))) {
+              currentSection = section
+              break
+            }
+          }
+        }
+        
+        // Only process rows with valid data
+        if (mappedRow.description && mappedRow.quantity && mappedRow.unitPrice) {
+          sectionData[currentSection].push(mappedRow)
+          sectionCounts[currentSection]++
+        }
+      })
+    }
     
     // Create sections array for display
     const sectionsArray = detectedSections.map(section => ({
@@ -220,6 +401,18 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       mappedData: sectionData,
       defaultSections
     }
+  }
+
+  const getSectionKeywords = (section: string) => {
+    const keywords: {[key: string]: string[]} = {
+      'kitchen_cabinets': ['kitchen', 'cabinets', 'cabinet', 'board', 'hinge', 'screw', 'profile', 'led', 'door'],
+      'wardrobes': ['wardrobe', 'wardrobes', 'closet', 'closets'],
+      'worktop': ['worktop', 'work top', 'granite', 'slab', 'island', 'silicon', 'installation'],
+      'accessories': ['accessory', 'accessories', 'handle', 'knob', 'pull'],
+      'appliances': ['appliance', 'appliances', 'oven', 'fridge', 'dishwasher', 'microwave'],
+      'tvunit': ['tv', 'television', 'unit', 'entertainment', 'media']
+    }
+    return keywords[section] || []
   }
 
   const autoMapColumns = (headers: string[]) => {
@@ -289,8 +482,9 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   const proceedToPreview = () => {
     if (!parsedData) return
 
-    const { headers, rows } = parsedData
-    const sectionData = processDataBySections(rows, headers, columnMapping, parsedData.detectedSections)
+    // For manual mapping, we need to re-analyze the data
+    // This is a simplified approach - in a real implementation, you'd want to preserve the original analysis
+    const sectionData = processDataBySections(parsedData.rows, parsedData.headers, columnMapping, parsedData.detectedSections)
     
     setMappedData(sectionData.mappedData)
     setSelectedSections(sectionData.defaultSections)
@@ -334,6 +528,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       toast.success(`Auto-Mapping Successful: ${sectionMessages.join(' & ')}`)
     }
     
+    // Reset modal state before closing
+    resetModal()
     onClose()
   }
 
