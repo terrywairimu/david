@@ -1660,12 +1660,25 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         
         // Check if items exist in stock, create new ones if they don't
         const processedItems = await Promise.all(items.map(async (item: any) => {
-          // Search for existing stock item by name or description
-          const { data: existingItems } = await supabase
+          // Search for existing stock item by exact name match first, then partial matches
+          const searchTerm = item.description.trim()
+          
+          // First try exact match
+          let { data: existingItems } = await supabase
             .from('stock_items')
             .select('*')
-            .or(`name.ilike.%${item.description}%,description.ilike.%${item.description}%`)
+            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
             .limit(1)
+
+          // If no exact match, try partial match
+          if (!existingItems || existingItems.length === 0) {
+            const { data: partialMatches } = await supabase
+              .from('stock_items')
+              .select('*')
+              .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+              .limit(1)
+            existingItems = partialMatches
+          }
 
           let stockItemId = null
           let stockItem = null
@@ -1674,6 +1687,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             // Use existing item
             stockItemId = existingItems[0].id
             stockItem = existingItems[0]
+            console.log(`✅ Found existing stock item: ${searchTerm} -> ID: ${stockItemId}`)
           } else {
             // Create new stock item
             const newStockItem = {
@@ -1701,6 +1715,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
             stockItemId = createdItem.id
             stockItem = createdItem
+            console.log(`🆕 Created new stock item: ${searchTerm} -> ID: ${stockItemId}`)
             toast.success(`Created new stock item: ${item.description}`)
           }
 
