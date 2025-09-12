@@ -2067,7 +2067,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                     {/* Item Rows */}
                     {cabinetItems.map((item, index) => (
-                      <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                      <div key={item.id || `cabinet-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                         <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                           <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                       <input
@@ -2373,7 +2373,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {worktopItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                        <div key={item.id || `worktop-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           {isMobile ? (
@@ -2731,7 +2731,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {accessoriesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                        <div key={item.id || `accessories-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3038,7 +3038,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {appliancesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                        <div key={item.id || `appliances-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3345,7 +3345,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {wardrobesItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row" style={{ flexDirection: 'row' }}>
+                        <div key={item.id || `wardrobes-${index}`} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row" style={{ flexDirection: 'row' }}>
                           <div className="" style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
@@ -3652,7 +3652,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                       {/* Item Rows */}
                       {tvUnitItems.map((item, index) => (
-                        <div key={item.id} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                        <div key={item.id || `tvunit-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
                           <div style={{ flex: "2", marginRight: "16px" }}>
                             <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
                           <input
