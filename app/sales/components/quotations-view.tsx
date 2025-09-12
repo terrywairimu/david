@@ -14,7 +14,6 @@ import {
   exportQuotations as exportQuotationsReport
 } from "@/lib/workflow-utils"
 import SearchFilterRow from "@/components/ui/search-filter-row"
-import AdminUtilities from "@/components/AdminUtilities"
 
 interface Quotation {
   id: number
@@ -1194,10 +1193,6 @@ const QuotationsView = () => {
           </button>
         </div>
 
-        {/* Admin Utilities */}
-        <div className="mb-3">
-          <AdminUtilities />
-        </div>
 
         {/* Search and Filter Row */}
         <SearchFilterRow
@@ -1274,7 +1269,7 @@ const QuotationsView = () => {
                         >
                       <Eye size={14} />
                     </button>
-                        {quotation.status !== "converted_to_sales_order" && (
+                        {quotation.status === "pending" && (
                           <button
                             className="btn btn-sm action-btn"
                             onClick={() => handleEdit(quotation)}
