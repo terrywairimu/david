@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Share2, ExternalLink } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Share2, ExternalLink, Upload } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -11,6 +11,7 @@ import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
+import ImportQuotationModal from "./import-quotation-modal"
 import dynamic from 'next/dynamic'
 
 // Dynamically import MobilePDFViewer to avoid SSR issues
@@ -204,6 +205,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [totalPaid, setTotalPaid] = useState(0)
   const [hasPayments, setHasPayments] = useState(false)
   const [paymentPercentage, setPaymentPercentage] = useState(0)
+  
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false)
   
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
@@ -1556,6 +1560,193 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
   }
 
+  // Import data handler
+  const handleImportData = async (importData: any) => {
+    try {
+      const sectionsData = importData.section ? 
+        { [importData.section]: importData.items } : 
+        importData // Handles both old and new format
+      
+      let totalImported = 0
+      const sectionMessages: string[] = []
+      
+      for (const [section, items] of Object.entries(sectionsData)) {
+        if (!Array.isArray(items) || items.length === 0) continue
+        
+        const processedItems = await Promise.all(items.map(async (item: any) => {
+          const searchTerm = item.description.trim()
+          console.log(`🔍 Searching for stock item: "${searchTerm}"`)
+          let existingItems = null
+          
+          // Strategy 1: Exact match using eq (most reliable)
+          const { data: exactMatches } = await supabase
+            .from('stock_items')
+            .select('*')
+            .eq('name', searchTerm)
+            .limit(1)
+          
+          if (exactMatches && exactMatches.length > 0) {
+            existingItems = exactMatches
+            console.log(`✅ Found exact match: ${searchTerm} -> ID: ${exactMatches[0].id}`)
+          } else {
+            // Strategy 1b: Try case insensitive exact match
+            const { data: caseInsensitiveMatches } = await supabase
+              .from('stock_items')
+              .select('*')
+              .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+              .limit(1)
+            
+            if (caseInsensitiveMatches && caseInsensitiveMatches.length > 0) {
+              existingItems = caseInsensitiveMatches
+              console.log(`✅ Found case insensitive match: ${searchTerm} -> ID: ${caseInsensitiveMatches[0].id}`)
+            } else {
+              // Strategy 2: Partial match
+              const { data: partialMatches } = await supabase
+                .from('stock_items')
+                .select('*')
+                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+                .limit(1)
+              
+              if (partialMatches && partialMatches.length > 0) {
+                existingItems = partialMatches
+                console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
+              } else {
+                // Strategy 3: Search with normalized text (remove extra spaces, special chars)
+                const normalizedTerm = searchTerm.replace(/\s+/g, ' ').trim()
+                const { data: normalizedMatches } = await supabase
+                  .from('stock_items')
+                  .select('*')
+                  .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
+                  .limit(1)
+                
+                if (normalizedMatches && normalizedMatches.length > 0) {
+                  existingItems = normalizedMatches
+                  console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
+                } else {
+                  console.log(`❌ No match found for: ${searchTerm}`)
+                }
+              }
+            }
+          }
+
+          let stockItemId = null
+          let stockItem = null;
+
+          if (existingItems && existingItems.length > 0) {
+            stockItemId = existingItems[0].id
+            stockItem = existingItems[0]
+            console.log(`✅ Found existing stock item: ${searchTerm} -> ID: ${stockItemId}`)
+          } else {
+            const newStockItem = {
+              name: item.description,
+              description: item.description,
+              unit: item.unit,
+              unit_price: item.unit_price,
+              category: section,
+              status: 'active',
+              quantity: 0, // Will be updated when purchased
+              reorder_level: 0
+            }
+
+            const { data: createdItem, error } = await supabase
+              .from('stock_items')
+              .insert([newStockItem])
+              .select()
+              .single()
+
+            if (error) {
+              // If it's a unique constraint violation, try to find the existing item
+              if (error.code === '23505' && error.message.includes('already exists')) {
+                console.log(`⚠️ Item already exists, searching for it: ${searchTerm}`)
+                
+                // Try to find the existing item again with a more comprehensive search
+                const { data: existingItem } = await supabase
+                  .from('stock_items')
+                  .select('*')
+                  .eq('name', item.description)
+                  .limit(1)
+                
+                if (existingItem && existingItem.length > 0) {
+                  stockItemId = existingItem[0].id
+                  stockItem = existingItem[0]
+                  console.log(`✅ Found existing item after conflict: ${searchTerm} -> ID: ${stockItemId}`)
+                } else {
+                  console.error('Could not find existing item after conflict:', error)
+                  toast.error(`Failed to find existing stock item: ${item.description}`)
+                  return null
+                }
+              } else {
+                console.error('Error creating stock item:', error)
+                toast.error(`Failed to create stock item: ${item.description}`)
+                return null
+              }
+            } else {
+              stockItemId = createdItem.id
+              stockItem = createdItem
+              console.log(`🆕 Created new stock item: ${searchTerm} -> ID: ${stockItemId}`)
+              toast.success(`Created new stock item: ${item.description}`)
+            }
+          }
+
+          return {
+            id: Date.now() + Math.random(),
+            category: section as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit",
+            description: item.description,
+            unit: item.unit || 'pcs',
+            quantity: parseFloat(item.quantity) || 1,
+            unit_price: parseFloat(item.unit_price) || 0,
+            total_price: (parseFloat(item.quantity) || 1) * (parseFloat(item.unit_price) || 0),
+            specifications: '',
+            notes: '',
+            stock_item_id: stockItemId,
+            stock_item: stockItem
+          }
+        }))
+
+        // Filter out any failed items
+        const validItems = processedItems.filter(item => item !== null) as QuotationItem[]
+        
+        if (validItems.length > 0) {
+          // Add items to the appropriate section and auto-open the section
+          if (section === 'kitchen_cabinets') {
+            setCabinetItems(prev => [...prev, ...validItems])
+          } else if (section === 'worktop') {
+            setWorktopItems(prev => [...prev, ...validItems])
+            setIncludeWorktop(true) // Auto-open worktop section
+          } else if (section === 'accessories') {
+            setAccessoriesItems(prev => [...prev, ...validItems])
+            setIncludeAccessories(true) // Auto-open accessories section
+          } else if (section === 'appliances') {
+            setAppliancesItems(prev => [...prev, ...validItems])
+            setIncludeAppliances(true) // Auto-open appliances section
+          } else if (section === 'wardrobes') {
+            setWardrobesItems(prev => [...prev, ...validItems])
+            setIncludeWardrobes(true) // Auto-open wardrobes section
+          } else if (section === 'tvunit') {
+            setTvUnitItems(prev => [...prev, ...validItems])
+            setIncludeTvUnit(true) // Auto-open TV unit section
+          }
+          
+          totalImported += validItems.length
+          sectionMessages.push(`${validItems.length} items to ${section}`)
+        }
+      }
+
+      if (totalImported > 0) {
+        if (sectionMessages.length === 1) {
+          toast.success(`Successfully imported ${totalImported} items: ${sectionMessages[0]}`)
+        } else {
+          toast.success(`Successfully imported ${totalImported} items: ${sectionMessages.join(' & ')}`)
+        }
+      } else {
+        toast.error('No valid items were imported')
+      }
+    } catch (error) {
+      console.error('Error importing data:', error)
+      toast.error('Failed to import data. Please try again.')
+    }
+  }
+
   const [labourPercentageInput, setLabourPercentageInput] = useState(labourPercentage.toString());
 
   // Add individual labour percentage states for each section
@@ -1645,6 +1836,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
           {/* Header */}
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
+            <div className="d-flex align-items-center justify-content-between w-100">
             <div className="d-flex align-items-center">
               <div className="me-3" style={{ 
                 width: "48px", 
@@ -1666,12 +1858,26 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onClose}
-              style={{ borderRadius: "12px", padding: "8px" }}
-            />
+            <div className="d-flex align-items-center gap-2">
+              {mode !== "view" && (
+                <button
+                  type="button"
+                  className="btn btn-outline-light btn-sm d-flex align-items-center"
+                  onClick={() => setShowImportModal(true)}
+                  style={{ borderRadius: "12px", padding: "8px 16px" }}
+                >
+                  <Upload size={16} className="me-2" />
+                  Import
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-close"
+                onClick={onClose}
+                style={{ borderRadius: "12px", padding: "8px" }}
+              />
+            </div>
+            </div>
               </div>
 
           {/* Body */}
@@ -3892,6 +4098,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         onPrint={handlePrint}
         onView={handleView}
         onShare={handleShare}
+      />
+
+      {/* Import Quotation Modal */}
+      <ImportQuotationModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportData}
       />
     </>
   )
