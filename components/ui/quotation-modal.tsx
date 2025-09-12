@@ -1660,24 +1660,49 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         
         // Check if items exist in stock, create new ones if they don't
         const processedItems = await Promise.all(items.map(async (item: any) => {
-          // Search for existing stock item by exact name match first, then partial matches
+          // Search for existing stock item with multiple strategies
           const searchTerm = item.description.trim()
+          console.log(`🔍 Searching for stock item: "${searchTerm}"`)
           
-          // First try exact match
-          let { data: existingItems } = await supabase
+          let existingItems = null
+          
+          // Strategy 1: Exact match (case insensitive)
+          const { data: exactMatches } = await supabase
             .from('stock_items')
             .select('*')
             .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
             .limit(1)
-
-          // If no exact match, try partial match
-          if (!existingItems || existingItems.length === 0) {
+          
+          if (exactMatches && exactMatches.length > 0) {
+            existingItems = exactMatches
+            console.log(`✅ Found exact match: ${searchTerm} -> ID: ${exactMatches[0].id}`)
+          } else {
+            // Strategy 2: Partial match
             const { data: partialMatches } = await supabase
               .from('stock_items')
               .select('*')
               .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
               .limit(1)
-            existingItems = partialMatches
+            
+            if (partialMatches && partialMatches.length > 0) {
+              existingItems = partialMatches
+              console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
+            } else {
+              // Strategy 3: Search with normalized text (remove extra spaces, special chars)
+              const normalizedTerm = searchTerm.replace(/\s+/g, ' ').trim()
+              const { data: normalizedMatches } = await supabase
+                .from('stock_items')
+                .select('*')
+                .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
+                .limit(1)
+              
+              if (normalizedMatches && normalizedMatches.length > 0) {
+                existingItems = normalizedMatches
+                console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
+              } else {
+                console.log(`❌ No match found for: ${searchTerm}`)
+              }
+            }
           }
 
           let stockItemId = null
