@@ -77,22 +77,117 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       const worksheet = workbook.Sheets[sheetName]
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
 
-      if (jsonData.length < 2) {
-        toast.error('File must contain at least a header row and one data row')
+      if (jsonData.length < 3) {
+        toast.error('File must contain at least 3 rows: title row, header row, and one data row')
         return
       }
 
-      const headers = jsonData[0] as string[]
-      const rows = jsonData.slice(1) as any[][]
+      // Use second row as headers (first row is usually the quotation type name)
+      const headers = jsonData[1] as string[]
+      const rows = jsonData.slice(2) as any[][]
+
+      // Debug: Log the structure for troubleshooting
+      console.log('File structure:', {
+        totalRows: jsonData.length,
+        titleRow: jsonData[0],
+        headerRow: headers,
+        dataRows: rows.length
+      })
+
+      // Auto-map columns based on headers
+      const autoMappedColumns = autoMapColumns(headers)
+      setColumnMapping(autoMappedColumns)
 
       setParsedData({ headers, rows, section: selectedSection })
-      setStep('mapping')
+      
+      // Check if we have the required mappings
+      if (autoMappedColumns.description && autoMappedColumns.quantity && autoMappedColumns.unitPrice) {
+        // Auto-proceed to preview if all required fields are mapped
+        const mappedRows = rows.map(row => {
+          const mappedRow: any = {}
+          Object.entries(autoMappedColumns).forEach(([field, headerName]) => {
+            if (headerName) {
+              const columnIndex = headers.indexOf(headerName)
+              if (columnIndex !== -1) {
+                mappedRow[field] = row[columnIndex]
+              }
+            }
+          })
+          return mappedRow
+        }).filter(row => row.description && row.quantity && row.unitPrice)
+
+        setMappedData(mappedRows)
+        setStep('preview')
+      } else {
+        // Go to mapping step if auto-mapping failed
+        setStep('mapping')
+      }
     } catch (error) {
       console.error('Error parsing file:', error)
       toast.error('Error parsing file. Please check the format.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const autoMapColumns = (headers: string[]) => {
+    const mapping: ColumnMapping = {
+      description: '',
+      unit: '',
+      quantity: '',
+      unitPrice: '',
+      total: ''
+    }
+
+    // Auto-detect columns based on common header names
+    headers.forEach(header => {
+      const lowerHeader = header.toLowerCase().trim()
+      
+      // Description mapping - prioritize exact matches first
+      if (lowerHeader === 'description' || lowerHeader === 'item' || lowerHeader === 'name' || 
+          lowerHeader === 'product' || lowerHeader === 'item name' || lowerHeader === 'product name') {
+        mapping.description = header
+      } else if (!mapping.description && (lowerHeader.includes('description') || lowerHeader.includes('item') || 
+          lowerHeader.includes('name') || lowerHeader.includes('product'))) {
+        mapping.description = header
+      }
+      // Unit mapping
+      else if (lowerHeader === 'unit' || lowerHeader === 'units' || lowerHeader === 'uom' || 
+               lowerHeader === 'measure' || lowerHeader === 'measurement') {
+        mapping.unit = header
+      } else if (!mapping.unit && (lowerHeader.includes('unit') || lowerHeader.includes('units') || 
+               lowerHeader.includes('uom') || lowerHeader.includes('measure'))) {
+        mapping.unit = header
+      }
+      // Quantity mapping
+      else if (lowerHeader === 'qty' || lowerHeader === 'quantity' || lowerHeader === 'count' || 
+               lowerHeader === 'amount' || lowerHeader === 'pieces') {
+        mapping.quantity = header
+      } else if (!mapping.quantity && (lowerHeader.includes('qty') || lowerHeader.includes('quantity') || 
+               lowerHeader.includes('amount') || lowerHeader.includes('count'))) {
+        mapping.quantity = header
+      }
+      // Unit Price mapping - prioritize exact matches
+      else if (lowerHeader === 'unit price' || lowerHeader === 'unitprice' || lowerHeader === 'price' || 
+               lowerHeader === 'rate' || lowerHeader === 'cost per unit' || lowerHeader === 'per unit' ||
+               lowerHeader === 'unit cost' || lowerHeader === 'cost') {
+        mapping.unitPrice = header
+      } else if (!mapping.unitPrice && (lowerHeader.includes('unit price') || lowerHeader.includes('unitprice') || 
+               lowerHeader.includes('price') || lowerHeader.includes('rate') ||
+               lowerHeader.includes('cost per unit') || lowerHeader.includes('per unit'))) {
+        mapping.unitPrice = header
+      }
+      // Total mapping
+      else if (lowerHeader === 'total' || lowerHeader === 'subtotal' || lowerHeader === 'sum' || 
+               lowerHeader === 'grand total' || lowerHeader === 'amount') {
+        mapping.total = header
+      } else if (!mapping.total && (lowerHeader.includes('total') || lowerHeader.includes('subtotal') || 
+               lowerHeader.includes('amount') || lowerHeader.includes('sum'))) {
+        mapping.total = header
+      }
+    })
+
+    return mapping
   }
 
   const handleMappingChange = (field: keyof ColumnMapping, value: string) => {
@@ -245,25 +340,62 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
 
                 <div className="text-start">
                   <h6 className="mb-2">Expected File Format:</h6>
+                  <div className="table-responsive mb-3">
+                    <table className="table table-sm table-bordered">
+                      <thead className="table-light">
+                        <tr>
+                          <th className="text-center">Row 1: Section Title</th>
+                          <th className="text-center">Row 2: Column Headers</th>
+                          <th className="text-center">Row 3+: Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="text-center">"Kitchen Cabinets Quote"</td>
+                          <td className="text-center">"Description", "Units", "QTY", "Unit Price", "Total"</td>
+                          <td className="text-center">Item data...</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
                   <ul className="list-unstyled text-muted small">
-                    <li>• <strong>Description:</strong> Item description/name</li>
-                    <li>• <strong>Units:</strong> Unit of measurement (pcs, mtrs, etc.)</li>
-                    <li>• <strong>Quantity:</strong> Number of items</li>
-                    <li>• <strong>Unit Price:</strong> Price per unit</li>
-                    <li>• <strong>Total:</strong> Total price (optional, will be calculated)</li>
+                    <li>• <strong>Row 1:</strong> Section title (e.g., "Kitchen Cabinets Quote", "WORKTOP")</li>
+                    <li>• <strong>Row 2:</strong> Column headers ("Description", "Units", "QTY", "Unit Price", "Total")</li>
+                    <li>• <strong>Row 3+:</strong> Item data rows</li>
                   </ul>
+                  
+                  <div className="alert alert-info mt-3">
+                    <h6 className="mb-1">
+                      <CheckCircle size={16} className="me-2" />
+                      Auto-Mapping Feature
+                    </h6>
+                    <p className="mb-0 small">
+                      The system automatically uses the second row as column headers and maps them to the appropriate fields. 
+                      You'll only need to verify the mapping if needed.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
             {step === 'mapping' && parsedData && (
               <div>
-                <h6 className="mb-3">Map Columns to Fields</h6>
-                <p className="text-muted mb-4">Match your file columns to the system fields</p>
+                <div className="alert alert-info mb-4">
+                  <h6 className="mb-2">Auto-Mapping Results</h6>
+                  <p className="mb-0">The system automatically detected some columns. Please verify and adjust if needed:</p>
+                </div>
 
                 <div className="row g-3">
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold">Description *</label>
+                    <label className="form-label fw-semibold">
+                      Description * 
+                      {columnMapping.description && (
+                        <span className="text-success ms-2">
+                          <CheckCircle size={16} />
+                        </span>
+                      )}
+                    </label>
                     <select 
                       className="form-select"
                       value={columnMapping.description}
@@ -277,7 +409,14 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold">Unit</label>
+                    <label className="form-label fw-semibold">
+                      Unit
+                      {columnMapping.unit && (
+                        <span className="text-success ms-2">
+                          <CheckCircle size={16} />
+                        </span>
+                      )}
+                    </label>
                     <select 
                       className="form-select"
                       value={columnMapping.unit}
@@ -291,7 +430,14 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold">Quantity *</label>
+                    <label className="form-label fw-semibold">
+                      Quantity * 
+                      {columnMapping.quantity && (
+                        <span className="text-success ms-2">
+                          <CheckCircle size={16} />
+                        </span>
+                      )}
+                    </label>
                     <select 
                       className="form-select"
                       value={columnMapping.quantity}
@@ -305,7 +451,14 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </div>
 
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold">Unit Price *</label>
+                    <label className="form-label fw-semibold">
+                      Unit Price * 
+                      {columnMapping.unitPrice && (
+                        <span className="text-success ms-2">
+                          <CheckCircle size={16} />
+                        </span>
+                      )}
+                    </label>
                     <select 
                       className="form-select"
                       value={columnMapping.unitPrice}
@@ -339,10 +492,15 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
 
             {step === 'preview' && (
               <div>
-                <h6 className="mb-3">Preview Import Data</h6>
-                <p className="text-muted mb-4">
-                  {mappedData.length} items will be imported to <strong>{sections.find(s => s.value === selectedSection)?.label}</strong>
-                </p>
+                <div className="alert alert-success mb-4">
+                  <h6 className="mb-2">
+                    <CheckCircle size={20} className="me-2" />
+                    Auto-Mapping Successful
+                  </h6>
+                  <p className="mb-0">
+                    {mappedData.length} items will be imported to <strong>{sections.find(s => s.value === selectedSection)?.label}</strong>
+                  </p>
+                </div>
 
                 <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   <table className="table table-sm">
