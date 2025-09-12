@@ -1666,41 +1666,53 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           
           let existingItems = null
           
-          // Strategy 1: Exact match (case insensitive)
+          // Strategy 1: Exact match using eq (most reliable)
           const { data: exactMatches } = await supabase
             .from('stock_items')
             .select('*')
-            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+            .eq('name', searchTerm)
             .limit(1)
           
           if (exactMatches && exactMatches.length > 0) {
             existingItems = exactMatches
             console.log(`✅ Found exact match: ${searchTerm} -> ID: ${exactMatches[0].id}`)
           } else {
-            // Strategy 2: Partial match
-            const { data: partialMatches } = await supabase
+            // Strategy 1b: Try case insensitive exact match
+            const { data: caseInsensitiveMatches } = await supabase
               .from('stock_items')
               .select('*')
-              .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+              .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
               .limit(1)
             
-            if (partialMatches && partialMatches.length > 0) {
-              existingItems = partialMatches
-              console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
+            if (caseInsensitiveMatches && caseInsensitiveMatches.length > 0) {
+              existingItems = caseInsensitiveMatches
+              console.log(`✅ Found case insensitive match: ${searchTerm} -> ID: ${caseInsensitiveMatches[0].id}`)
             } else {
-              // Strategy 3: Search with normalized text (remove extra spaces, special chars)
-              const normalizedTerm = searchTerm.replace(/\s+/g, ' ').trim()
-              const { data: normalizedMatches } = await supabase
+              // Strategy 2: Partial match
+              const { data: partialMatches } = await supabase
                 .from('stock_items')
                 .select('*')
-                .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
+                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
                 .limit(1)
               
-              if (normalizedMatches && normalizedMatches.length > 0) {
-                existingItems = normalizedMatches
-                console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
+              if (partialMatches && partialMatches.length > 0) {
+                existingItems = partialMatches
+                console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
               } else {
-                console.log(`❌ No match found for: ${searchTerm}`)
+                // Strategy 3: Search with normalized text (remove extra spaces, special chars)
+                const normalizedTerm = searchTerm.replace(/\s+/g, ' ').trim()
+                const { data: normalizedMatches } = await supabase
+                  .from('stock_items')
+                  .select('*')
+                  .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
+                  .limit(1)
+                
+                if (normalizedMatches && normalizedMatches.length > 0) {
+                  existingItems = normalizedMatches
+                  console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
+                } else {
+                  console.log(`❌ No match found for: ${searchTerm}`)
+                }
               }
             }
           }
@@ -1733,15 +1745,37 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               .single()
 
             if (error) {
-              console.error('Error creating stock item:', error)
-              toast.error(`Failed to create stock item: ${item.description}`)
-              return null
+              // If it's a unique constraint violation, try to find the existing item
+              if (error.code === '23505' && error.message.includes('already exists')) {
+                console.log(`⚠️ Item already exists, searching for it: ${searchTerm}`)
+                
+                // Try to find the existing item again with a more comprehensive search
+                const { data: existingItem } = await supabase
+                  .from('stock_items')
+                  .select('*')
+                  .eq('name', item.description)
+                  .limit(1)
+                
+                if (existingItem && existingItem.length > 0) {
+                  stockItemId = existingItem[0].id
+                  stockItem = existingItem[0]
+                  console.log(`✅ Found existing item after conflict: ${searchTerm} -> ID: ${stockItemId}`)
+                } else {
+                  console.error('Could not find existing item after conflict:', error)
+                  toast.error(`Failed to find existing stock item: ${item.description}`)
+                  return null
+                }
+              } else {
+                console.error('Error creating stock item:', error)
+                toast.error(`Failed to create stock item: ${item.description}`)
+                return null
+              }
+            } else {
+              stockItemId = createdItem.id
+              stockItem = createdItem
+              console.log(`🆕 Created new stock item: ${searchTerm} -> ID: ${stockItemId}`)
+              toast.success(`Created new stock item: ${item.description}`)
             }
-
-            stockItemId = createdItem.id
-            stockItem = createdItem
-            console.log(`🆕 Created new stock item: ${searchTerm} -> ID: ${stockItemId}`)
-            toast.success(`Created new stock item: ${item.description}`)
           }
 
           return {
