@@ -559,8 +559,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg modal-dialog-centered">
+    <div className="modal fade show d-block import-quotation-modal" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal-dialog modal-xl modal-dialog-centered">
         <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
           {/* Header */}
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
@@ -592,7 +592,11 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
           </div>
 
           {/* Body */}
-          <div className="modal-body" style={{ padding: "24px 32px" }}>
+          <div className="modal-body" style={{ 
+            padding: "24px 32px", 
+            maxHeight: "70vh", 
+            overflowY: "auto" 
+          }}>
             {step === 'upload' && (
               <div className="text-center">
                 <div className="mb-4">
@@ -847,6 +851,11 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Footer */}
+          <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
+            {/* Footer content can be added here if needed */}
           </div>
         </div>
       </div>

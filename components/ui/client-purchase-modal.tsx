@@ -627,9 +627,9 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
   return (
     <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-      <div className="modal-dialog modal-xl">
-        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-          <div className="modal-header border-0 pb-0">
+      <div className="modal-dialog modal-xl modal-dialog-centered">
+        <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
+          <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
             <h5 className="modal-title fw-bold">
               {mode === "create" ? "Add New Client Purchase" : mode === "edit" ? "Edit Client Purchase" : "View Client Purchase"}
             </h5>
@@ -637,7 +637,11 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
               <X size={18} />
             </button>
           </div>
-          <div className="modal-body pt-2">
+          <div className="modal-body" style={{ 
+            padding: "0 32px 24px", 
+            maxHeight: "70vh", 
+            overflowY: "auto" 
+          }}>
             <form id="clientPurchaseForm">
               {/* Basic Information */}
               <div className="row mb-4">
@@ -1093,7 +1097,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
             </form>
           </div>
-          <div className="modal-footer border-0">
+          <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
             <button
               type="button"
               className="btn btn-secondary"

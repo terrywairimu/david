@@ -254,9 +254,9 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
 
   return (
     <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-      <div className="modal-dialog modal-xl">
-        <div className="modal-content" style={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-          <div className="modal-header border-0 pb-0">
+      <div className="modal-dialog modal-xl modal-dialog-centered">
+        <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
+          <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
             <h5 className="modal-title fw-bold">
               {mode === "view" ? "View" : mode === "edit" ? "Edit" : "New"} Cash Sale
             </h5>
@@ -268,7 +268,11 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <div className="modal-body pt-2">
+          <div className="modal-body" style={{ 
+            padding: "0 32px 24px", 
+            maxHeight: "70vh", 
+            overflowY: "auto" 
+          }}>
             <form className="a4-document">
               {/* Company Header */}
               <div className="document-header">
@@ -743,7 +747,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
               />
             </form>
           </div>
-          <div className="modal-footer border-0 pt-0">
+          <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Close
             </button>
