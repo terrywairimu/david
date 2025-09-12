@@ -440,19 +440,21 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-4">
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                  <button 
+                    className="btn btn-outline-secondary"
+                    onClick={() => setStep('upload')}
+                    style={{ borderRadius: "12px", padding: "12px 24px" }}
+                  >
+                    Back
+                  </button>
                   <button 
                     className="btn btn-primary"
                     onClick={proceedToPreview}
                     disabled={!columnMapping.description || !columnMapping.quantity || !columnMapping.unitPrice}
+                    style={{ borderRadius: "12px", padding: "12px 24px" }}
                   >
                     Preview Data
-                  </button>
-                  <button 
-                    className="btn btn-outline-secondary ms-2"
-                    onClick={() => setStep('upload')}
-                  >
-                    Back
                   </button>
                 </div>
               </div>
@@ -502,19 +504,21 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </table>
                 </div>
 
-                <div className="mt-4">
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                  <button 
+                    className="btn btn-outline-secondary"
+                    onClick={() => setStep('mapping')}
+                    style={{ borderRadius: "12px", padding: "12px 24px" }}
+                  >
+                    Back to Mapping
+                  </button>
                   <button 
                     className="btn btn-success"
                     onClick={handleImport}
+                    style={{ borderRadius: "12px", padding: "12px 24px" }}
                   >
                     <CheckCircle size={16} className="me-2" />
                     Import {mappedData.length} Items
-                  </button>
-                  <button 
-                    className="btn btn-outline-secondary ms-2"
-                    onClick={() => setStep('mapping')}
-                  >
-                    Back to Mapping
                   </button>
                 </div>
               </div>
