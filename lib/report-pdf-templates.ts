@@ -422,25 +422,6 @@ const formatPercentage = (value: number): string => {
   return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 };
 
-// Simple test function to verify PDF generation works
-const generateTestPDF = async () => {
-  const template = {
-    basePdf: {
-      width: 210,
-      height: 297,
-      padding: [0, 0, 0, 0] as [number, number, number, number],
-    },
-    schemas: [
-      [
-        { name: 'testText', type: 'text', position: { x: 100, y: 150 }, width: 100, height: 20, fontSize: 16, fontColor: '#000000', fontName: 'Helvetica-Bold', alignment: 'center' },
-      ]
-    ]
-  };
-
-  const inputs = [{ testText: 'TEST PDF WORKS!' }];
-
-  return { template, inputs };
-};
 
 // Generate dynamic sales template based on number of rows - Professional quotation-style design
 const generateDynamicSalesTemplate = (rowCount: number) => {
@@ -2171,7 +2152,6 @@ export {
   financialReportTemplate,
   customReportTemplate,
   defaultReportValues,
-  generateTestPDF,
   generateSalesReportPDF,
   generateExpenseReportPDF,
   generateInventoryReportPDF,

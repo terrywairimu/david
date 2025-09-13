@@ -10,7 +10,6 @@ import {
   generateInventoryReportPDF,
   generateClientReportPDF,
   generateFinancialReportPDF,
-  generateTestPDF,
   type SalesReportData,
   type ExpenseReportData,
   type InventoryReportData,
@@ -142,7 +141,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [datePreset, setDatePreset] = useState<DateRangeKey>('month')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
-  const [format, setFormat] = useState<'pdf'|'excel'|'csv'>('csv')
+  const [format, setFormat] = useState<'pdf'|'excel'|'csv'>('pdf')
   
   // Sales
   const [salesGroupBy, setSalesGroupBy] = useState<'day'|'week'|'month'|'client'|'product'>('month')
@@ -192,34 +191,6 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
   if (!isOpen) return null
 
-  const testPDFGeneration = async () => {
-    try {
-      console.log('Testing PDF generation...')
-      const { template, inputs } = await generateTestPDF()
-      console.log('Template:', template)
-      console.log('Inputs:', inputs)
-      
-      const { generate } = await import('@pdfme/generator')
-      const { text, rectangle, line, image } = await import('@pdfme/schemas')
-      const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } })
-      console.log('PDF generated successfully:', pdf)
-      
-      // Download PDF
-      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'test.pdf'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      
-      console.log('Test PDF downloaded successfully')
-    } catch (error) {
-      console.error('Test PDF generation failed:', error)
-    }
-  }
 
   const runAndExport = async () => {
     const { start, end } = computeDateRange(datePreset)
@@ -1470,14 +1441,6 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
             >
               Close
-            </button>
-            <button 
-              type="button" 
-              className="btn btn-info border-0 shadow-sm" 
-              onClick={testPDFGeneration}
-              style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
-            >
-              Test PDF
             </button>
           </div>
         </div>
