@@ -56,7 +56,7 @@ const ExpenseModal = ({
     employee_id: "",
     expense_category: "",
     main_amount: 0,  // Add separate field for main amount input
-    status: "not_yet_paid",  // New status field
+    status: "fully_paid",  // New status field - default to fully paid
     amount_paid: 0,  // Amount paid for partially paid expenses
     balance: 0  // Calculated balance
   })
@@ -492,8 +492,15 @@ const ExpenseModal = ({
         throw new Error("Category is required for client expenses")
       }
       
-      const expenseData = {
+      // Auto-set amount_paid and balance for fully_paid expenses
+      const processedFormData = {
         ...mappedFormData,
+        amount_paid: mappedFormData.status === "fully_paid" ? mappedFormData.amount : mappedFormData.amount_paid,
+        balance: mappedFormData.status === "fully_paid" ? 0 : (mappedFormData.amount - (mappedFormData.amount_paid || 0))
+      }
+
+      const expenseData = {
+        ...processedFormData,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
         employee_id: formData.employee_id ? parseInt(formData.employee_id) : null,
         date_created: dateToSave.toISOString(),
