@@ -2230,11 +2230,11 @@ export const createPaymentWithTransaction = async (paymentData: any) => {
 // Enhanced expense creation with automatic transaction
 export const createExpenseWithTransaction = async (expenseData: any) => {
   try {
-    // Ensure fully_paid expenses have correct amount_paid and balance
+    // Ensure fully_paid company expenses have correct amount_paid and balance
     const processedExpenseData = {
       ...expenseData,
-      amount_paid: expenseData.status === "fully_paid" ? expenseData.amount : (expenseData.amount_paid || 0),
-      balance: expenseData.status === "fully_paid" ? 0 : (expenseData.amount - (expenseData.amount_paid || 0))
+      amount_paid: (expenseData.status === "fully_paid" && expenseData.expense_type === "company") ? expenseData.amount : (expenseData.amount_paid || 0),
+      balance: (expenseData.status === "fully_paid" && expenseData.expense_type === "company") ? 0 : (expenseData.amount - (expenseData.amount_paid || 0))
     }
 
     // Create the expense
