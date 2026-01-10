@@ -105,11 +105,6 @@ export interface QuotationData {
   // Terms and Conditions (dynamic array)
   terms: string[];
 
-  // VAT and Subtotal
-  subtotal?: number;
-  vat?: number;
-  vatPercentage?: number;
-
   // Signatures
   preparedBy: string;
   approvedBy: string;
