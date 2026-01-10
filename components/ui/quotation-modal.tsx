@@ -1272,228 +1272,224 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Convert watermark logo to base64
       const watermarkBase64 = await imageToBase64('/logowatermark.png');
 
+      // Use the same calculation as the UI display for consistency
+      const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+      const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+      const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+      const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+      const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+
+      // Calculate subtotal with all labour included (consistent with UI display)
+      const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+
+      // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
+      const vatPercentageNum = Number(vatPercentage);
+
+      // Reverse calculate VAT: if total includes VAT, extract the VAT amount
+      const originalAmount = subtotalWithLabour / (1 + (vatPercentageNum / 100));
+      const vat = subtotalWithLabour - originalAmount;
+
       // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-      const grouped = quotation.items?.reduce((acc: Record<string, any[]>, item: any) => {
-        (acc[item.category] = acc[item.category] || []).push(item);
-        return acc;
-      }, {} as Record<string, any[]>) || {};
 
-      // Define the default section order
-      const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
-
-      // Process sections in the defined order
-      sectionOrder.forEach((category) => {
-        const itemsInCategory = grouped[category] || [];
-
-        // Check if section is included based on quotation data
-        let isIncluded = true;
-        if (category === 'worktop') isIncluded = quotation.include_worktop !== false;
-        else if (category === 'accessories') isIncluded = quotation.include_accessories !== false;
-        else if (category === 'appliances') isIncluded = quotation.include_appliances !== false;
-        else if (category === 'wardrobes') isIncluded = quotation.include_wardrobes !== false;
-        else if (category === 'tvunit') isIncluded = quotation.include_tvunit !== false;
-
-        if (!isIncluded || itemsInCategory.length === 0) return; // Skip excluded or empty sections
-
-        // Calculate section total first to determine if we should include this section
-        let currentSectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-
-        // Add worktop labor to section total if it exists
-        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
-          currentSectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            currentSectionTotal += labourCharge;
-          }
-        }
-
-        // Only include section if total is greater than 0
-        if (currentSectionTotal <= 0) return;
-
-        // Section mapping
-        const sectionLabels: { [key: string]: string } = {
-          cabinet: quotation.section_names?.cabinet || "General",
-          worktop: quotation.section_names?.worktop || "Worktop",
-          accessories: quotation.section_names?.accessories || "Accessories",
-          appliances: quotation.section_names?.appliances || "Appliances",
-          wardrobes: quotation.section_names?.wardrobes || "Wardrobes",
-          tvunit: quotation.section_names?.tvunit || "TV Unit"
-        };
-
-        const sectionLabel = sectionLabels[category] || category;
-
-        // Insert section header
-        const sectionHeaderRow = {
-          isSection: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
-          description: sectionLabel,
-          unitPrice: "",
-          total: ""
-        };
-        items.push(sectionHeaderRow);
-
-        // Insert items for this section
-        let itemNumber = 1;
-        itemsInCategory.forEach((item: any) => {
-          const itemRow = {
-            itemNumber: itemNumber.toString(),
-            quantity: item.quantity?.toString() || "",
-            unit: item.unit || "",
-            description: item.description || "",
-            unitPrice: item.unit_price?.toFixed(2) || "",
-            total: item.total_price?.toFixed(2) || ""
-          };
-          items.push(itemRow);
-          itemNumber++;
-        });
-
-        // Add labour charge logic to quotation modal PDF generation
-
-        // In handlePrint function, after items are added but before section summary
-        // Add worktop installation labor if exists
-        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+      // Add cabinet section header and items
+      if (cabinetItems.length > 0) {
+        const cabinetTotalWithLabour = totals.cabinetTotal + cabinetLabour;
+        if (cabinetTotalWithLabour > 0) {
           items.push({
-            itemNumber: String(itemNumber),
-            quantity: quotation.worktop_labor_qty,
-            unit: "per slab",
-            description: "Worktop Installation Labor",
-            unitPrice: quotation.worktop_labor_unit_price.toFixed(2),
-            total: (quotation.worktop_labor_qty * quotation.worktop_labor_unit_price).toFixed(2)
+            isSection: true,
+            description: sectionNames.cabinet,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
           });
-          itemNumber++;
+          cabinetItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add cabinet section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.cabinet} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.cabinetTotal,
+            total: cabinetTotalWithLabour
+          });
         }
+      }
 
-        // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (itemsInCategory.length > 0 && category !== 'worktop') {
-          // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some((item: any) =>
-            item.description && item.description.toLowerCase().includes('labour charge')
-          );
-
-          // Only calculate labour charge if no labour charge items exist
-          if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-
-            // Get the correct labour percentage for this specific section from database
-            let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-            switch (category) {
-              case 'cabinet':
-                labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-                break;
-              case 'accessories':
-                labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-                break;
-              case 'appliances':
-                labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-                break;
-              case 'wardrobes':
-                labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-                break;
-              case 'tvunit':
-                labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-                break;
-              default:
-                labourPercentage = quotation.labour_percentage || 30;
-            }
-
-            const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-
-            if (labourCharge > 0) {
-              items.push({
-                itemNumber: String(itemNumber),
-                quantity: 1,
-                unit: "sum",
-                description: `Labour Charge (${labourPercentage}%)`,
-                unitPrice: labourCharge.toFixed(2),
-                total: labourCharge.toFixed(2)
-              });
-              itemNumber++;
-            }
-          }
+      // Add worktop section header and items
+      if (includeWorktop && worktopItems.length > 0) {
+        if (totals.worktopTotal > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.worktop,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          worktopItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add worktop section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.worktop} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.worktopTotal,
+            total: totals.worktopTotal
+          });
         }
+      }
 
-        // Insert section summary row
-        let sectionTotal2 = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-
-        // Add worktop labor to section total if it exists
-        if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
-          sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+      // Add accessories section header and items
+      if (includeAccessories && accessoriesItems.length > 0) {
+        const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
+        if (accessoriesTotalWithLabour > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.accessories,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          accessoriesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add accessories section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.accessories} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.accessoriesTotal,
+            total: accessoriesTotalWithLabour
+          });
         }
+      }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal2 += labourCharge;
-          }
+      // Add appliances section header and items
+      if (includeAppliances && appliancesItems.length > 0) {
+        const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
+        if (appliancesTotalWithLabour > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.appliances,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          appliancesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add appliances section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.appliances} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.appliancesTotal,
+            total: appliancesTotalWithLabour
+          });
         }
+      }
 
-        const summaryRow = {
-          isSectionSummary: true,
-          itemNumber: "",
-          quantity: "",
-          unit: "",
-          description: `${sectionLabel} Total`,
-          unitPrice: "",
-          total: sectionTotal2.toFixed(2) // Always show total, even if 0.00
-        };
+      // Add wardrobes section header and items
+      if (includeWardrobes && wardrobesItems.length > 0) {
+        const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
+        if (wardrobesTotalWithLabour > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.wardrobes,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          wardrobesItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add wardrobes section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.wardrobes} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.wardrobesTotal,
+            total: wardrobesTotalWithLabour
+          });
+        }
+      }
 
-        items.push(summaryRow);
-      });
+      // Add TV Unit section header and items
+      if (includeTvUnit && tvUnitItems.length > 0) {
+        const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
+        if (tvUnitTotalWithLabour > 0) {
+          items.push({
+            isSection: true,
+            description: sectionNames.tvunit,
+            quantity: 0,
+            unit: "",
+            unitPrice: 0,
+            total: 0
+          });
+          tvUnitItems.forEach(item => {
+            items.push({
+              quantity: item.quantity,
+              unit: item.unit,
+              description: item.description,
+              unitPrice: item.unit_price,
+              total: item.total_price
+            });
+          });
+          // Add TV Unit section summary
+          items.push({
+            isSectionSummary: true,
+            description: `${sectionNames.tvunit} Total`,
+            quantity: 0,
+            unit: "",
+            unitPrice: totals.tvUnitTotal,
+            total: tvUnitTotalWithLabour
+          });
+        }
+      }
 
-      // Parse terms and conditions from database
+      // Parse terms and conditions from database or current state
       const parseTermsAndConditions = (termsText: string) => {
         return (termsText || "").split('\n').filter(line => line.trim());
       };
@@ -1504,17 +1500,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        clientNames: quotation.client?.name || "",
-        siteLocation: quotation.client?.location || "",
-        mobileNo: quotation.client?.phone || "",
-        date: new Date(quotation.date_created).toLocaleDateString(),
+        clientNames: selectedClient?.name || quotation.client?.name || "",
+        siteLocation: selectedClient?.location || quotation.client?.location || "",
+        mobileNo: selectedClient?.phone || quotation.client?.phone || "",
+        date: quotationDate || new Date(quotation.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: quotation.quotation_number,
+        quotationNumber: quotationNumber || quotation.quotation_number,
         items,
-        sectionTotals: [],
-        total: quotation.grand_total || 0,
-        notes: quotation.notes || "",
-        terms: parseTermsAndConditions(quotation.terms_conditions || ""),
+        section_names: sectionNames,
+        subtotal: originalAmount,
+        vat: vat,
+        vatPercentage: vatPercentageNum,
+        total: subtotalWithLabour,
+        notes: notes || quotation.notes || "",
+        terms: parseTermsAndConditions(termsConditions || quotation.terms_conditions || ""),
         preparedBy: "",
         approvedBy: "",
         companyLogo: logoBase64,

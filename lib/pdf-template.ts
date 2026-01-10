@@ -55,19 +55,19 @@ export interface QuotationData {
   companyPhone: string;
   companyEmail: string;
   companyLogo?: string; // Base64 image data
-  
+
   // Client Information
   clientNames: string;
   siteLocation: string;
   mobileNo: string;
   date: string;
-  
+
   // Quotation Details
   deliveryNoteNo: string;
   quotationNumber: string;
   originalQuotationNumber?: string; // Original quotation number for sales orders
   documentTitle?: string; // Optional title to override "QUOTATION" (e.g., "SALES ORDER")
-  
+
   // Items (dynamic array)
   items: Array<{
     isSection?: boolean;
@@ -79,7 +79,7 @@ export interface QuotationData {
     unitPrice?: string | number;
     total?: string | number;
   }>;
-  
+
   // Custom section names
   section_names?: {
     cabinet: string;
@@ -89,22 +89,27 @@ export interface QuotationData {
     wardrobes: string;
     tvunit: string;
   };
-  
+
   // Section totals
   sectionTotals?: Array<{
     name: string;
     total: number;
   }>;
-  
+
   // Final total
   total: number;
-  
+
   // Notes
   notes?: string;
-  
+
   // Terms and Conditions (dynamic array)
   terms: string[];
-  
+
+  // VAT and Subtotal
+  subtotal?: number;
+  vat?: number;
+  vatPercentage?: number;
+
   // Signatures
   preparedBy: string;
   approvedBy: string;
@@ -129,40 +134,40 @@ const calculateTextWidth = (text: string, fontSize: number, fontName: string = '
     'Times-Roman': 0.48,
     'Times-Bold': 0.52
   };
-  
+
   const multiplier = fontMultipliers[fontName as keyof typeof fontMultipliers] || 0.52;
-  
+
   // Calculate approximate width in mm
   // Convert font size from points to mm (1 point = 0.352778 mm)
   const fontSizeInMM = fontSize * 0.352778;
-  
+
   // For section headers, add a small buffer to account for character variations
   const baseWidth = text.length * fontSizeInMM * multiplier;
-  
+
   // Add extra padding for section headers to prevent wrapping
   if (fontName === 'Helvetica-Bold' && fontSize === 11) {
     return baseWidth + 1; // Add 1mm buffer for section headers
   }
-  
+
   return baseWidth;
 };
 
 // Function to truncate text to fit within a given width
 const truncateTextToFit = (text: string, maxWidth: number, fontSize: number, fontName: string = 'Helvetica-Bold'): string => {
   const textWidth = calculateTextWidth(text, fontSize, fontName);
-  
+
   if (textWidth <= maxWidth) {
     return text;
   }
-  
+
   // Calculate how many characters can fit
   const avgCharWidth = calculateTextWidth('A', fontSize, fontName);
   const maxChars = Math.floor(maxWidth / avgCharWidth) - 3; // Reserve space for "..."
-  
+
   if (maxChars <= 0) {
     return '...';
   }
-  
+
   return text.substring(0, maxChars) + '...';
 };
 
@@ -172,17 +177,17 @@ export const defaultValues: QuotationData = {
   companyLocation: "Location: Ruiru Eastern By-Pass",
   companyPhone: "Tel: +254729554475",
   companyEmail: "Email: cabinetmasterstyles@gmail.com",
-  
+
   clientNames: "",
   siteLocation: "",
   mobileNo: "",
   date: "",
-  
+
   deliveryNoteNo: "Delivery Note No.",
   quotationNumber: "",
-  
+
   items: [],
-  
+
   // Default section names
   section_names: {
     cabinet: "General",
@@ -192,19 +197,19 @@ export const defaultValues: QuotationData = {
     wardrobes: "Wardrobes",
     tvunit: "TV Unit"
   },
-  
+
   sectionTotals: [],
   total: 0,
-  
+
   notes: "",
-  
+
   terms: [
     "1. All work to be completed within agreed timeframe.",
     "2. Client to provide necessary measurements and specifications.",
     "3. Final payment due upon completion.",
     "4. Any changes to the original design may incur additional charges."
   ],
-  
+
   preparedBy: "",
   approvedBy: "",
   watermarkLogo: ""
@@ -257,20 +262,20 @@ export const generateQuotationPDF = async (data: QuotationData) => {
 
   // Merge default values with provided data
   const mergedData = { ...defaultValues, ...data };
-  
+
   // Calculate dynamic totals box height based on number of section totals
   const sectionTotalsCount = mergedData.sectionTotals?.length || 0;
   const lineHeight = 8; // 8mm per line
   const baseTotalsHeight = 15; // Base height for total line + padding
   const dynamicTotalsHeight = baseTotalsHeight + (sectionTotalsCount * lineHeight);
-  
+
   // Calculate dynamic totals box width based on longest section name
   const rightMargin = 15; // Right margin in mm
   const pageWidth = 210; // A4 page width in mm
   const maxRightPosition = pageWidth - rightMargin; // 195mm
   const valueColumnWidth = 35; // Width needed for currency values
   const padding = 4; // Internal padding
-  
+
   let maxLabelWidth = 25; // Minimum label width
   if (mergedData.sectionTotals && mergedData.sectionTotals.length > 0) {
     // Find the longest section name
@@ -284,11 +289,11 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     // Add some padding to the calculated width
     maxLabelWidth = Math.min(maxLabelWidth + 2, 45); // Cap at 45mm to prevent excessive expansion
   }
-  
+
   const dynamicTotalsWidth = maxLabelWidth + valueColumnWidth + padding;
   const totalsBoxStartX = maxRightPosition - dynamicTotalsWidth;
   const termsBoxWidth = totalsBoxStartX - 15 - 10; // 15mm left margin, 10mm gap
-  
+
 
 
   // Transform items to table row format for the template, supporting section headings
@@ -327,7 +332,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   // Calculate dynamic footer height based on terms
   const termsHeight = Math.max(20, mergedData.terms.length * 4); // 4mm per line, minimum 20mm
   const dynamicFooterHeight = baseFooterHeight + (termsHeight - 20); // Adjust footer height based on terms
-  
+
   // Calculate rows per page
   // First page: reserve some space for better layout (target ~22 rows instead of 24)
   const firstPageReservedSpace = 16; // Reserve 16mm for better spacing
@@ -339,12 +344,12 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   // Paginate rows
   const pages: Array<Array<{ isSection: boolean; isSectionSummary?: boolean; row: string[] }>> = [];
   let rowIndex = 0;
-  
+
   // First page
   const firstPageActualRows = Math.min(firstPageRows, tableRows.length);
   pages.push(tableRows.slice(0, firstPageActualRows));
   rowIndex += firstPageActualRows;
-  
+
   // Subsequent pages (only if there are remaining rows)
   while (rowIndex < tableRows.length) {
     const remainingRows = tableRows.length - rowIndex;
@@ -354,42 +359,42 @@ export const generateQuotationPDF = async (data: QuotationData) => {
     }
     rowIndex += rowsForThisPage;
   }
-  
+
 
 
   // Build schemas for all pages (with async yielding for performance)
   let schemas: any[][] = [];
   let footerPageSchemas: any[] | null = null; // Will hold footer page if needed
-  
+
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const rows = pages[pageIdx];
-    
+
     // Yield control to prevent blocking main thread
     if (pageIdx > 0) {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
     let pageSchemas: any[] = [];
-    
+
     // Add watermark logo to every page as background
     const watermarkSchema = quotationTemplate.schemas[0].filter((s: any) => s.name === 'watermarkLogo');
     pageSchemas.push(...watermarkSchema);
-    
 
 
-    
+
+
     // Header (first page only)
     if (pageIdx === 0) {
       pageSchemas.push(...quotationTemplate.schemas[0].filter((s: any) => [
-        'logo','companyName','companyLocation','companyPhone','companyEmail','quotationHeaderBg','quotationTitle','clientInfoBox','clientNamesLabel','clientNamesValue','siteLocationLabel','siteLocationValue','mobileNoLabel','mobileNoValue','dateLabel','dateValue','quotationNoFull'
+        'logo', 'companyName', 'companyLocation', 'companyPhone', 'companyEmail', 'quotationHeaderBg', 'quotationTitle', 'clientInfoBox', 'clientNamesLabel', 'clientNamesValue', 'siteLocationLabel', 'siteLocationValue', 'mobileNoLabel', 'mobileNoValue', 'dateLabel', 'dateValue', 'quotationNoFull'
       ].includes(s.name)));
     }
     // Table header (every page)
     const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
     pageSchemas.push(...quotationTemplate.schemas[0]
       .filter((s: any) => [
-        'tableHeaderBg','itemHeader','descriptionHeader','unitHeader','quantityHeader','unitPriceHeader','totalHeader'
+        'tableHeaderBg', 'itemHeader', 'descriptionHeader', 'unitHeader', 'quantityHeader', 'unitPriceHeader', 'totalHeader'
       ].includes(s.name))
-      .map((s: any) => ({ ...s, position: { ...s.position, y: tableHeaderY + (s.position.y - 105) }}))
+      .map((s: any) => ({ ...s, position: { ...s.position, y: tableHeaderY + (s.position.y - 105) } }))
     );
     // Table rows
     rows.forEach((rowObj, rowIdx) => {
@@ -401,18 +406,18 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         const sectionText = rowObj.row[1];
         const fontSize = 11;
         const fontName = 'Helvetica-Bold';
-        
+
         // Check if text fits within available space
         const textWidth = calculateTextWidth(sectionText, fontSize, fontName);
         let displayText = sectionText;
         let sectionWidth = Math.min(textWidth + 3, maxSectionWidth); // Increased padding to 3mm
-        
+
         // If text is too long, truncate it to fit
         if (textWidth > maxSectionWidth - 3) {
           displayText = truncateTextToFit(sectionText, maxSectionWidth - 3, fontSize, fontName);
           sectionWidth = maxSectionWidth;
         }
-        
+
         pageSchemas.push({
           name: `descSection${pageIdx}_${rowIdx}`,
           type: 'text',
@@ -431,12 +436,12 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         let unitPriceSummaryContent = rowObj.row[1] !== "" ? rowObj.row[1] + ":" : "";
         let totalSummaryContent = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
         const summaryY = y + 2;
-        
+
         // Calculate available width for section summary label (from x:67 to x:165 to avoid overlapping total)
         const maxSummaryLabelWidth = 98; // From x:67 to x:165
         const summaryFontSize = 11;
         const summaryFontName = 'Helvetica-Bold';
-        
+
         // Truncate summary label if too long
         if (unitPriceSummaryContent) {
           const summaryTextWidth = calculateTextWidth(unitPriceSummaryContent, summaryFontSize, summaryFontName);
@@ -444,7 +449,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
             unitPriceSummaryContent = truncateTextToFit(unitPriceSummaryContent, maxSummaryLabelWidth, summaryFontSize, summaryFontName);
           }
         }
-        
+
         // Wider label, shifted left to overflow into other columns
         pageSchemas.push({ name: `unitPriceSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 67, y: summaryY }, width: maxSummaryLabelWidth, height: 5, fontSize: summaryFontSize, fontColor: '#000', fontName: summaryFontName, alignment: 'right', content: unitPriceSummaryContent });
         pageSchemas.push({ name: `totalSummary${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y: summaryY }, width: 28, height: 5, fontSize: summaryFontSize, fontColor: '#000', fontName: summaryFontName, alignment: 'right', content: totalSummaryContent });
@@ -461,27 +466,27 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         pageSchemas.push({ name: `total${pageIdx}_${rowIdx}`, type: 'text', position: { x: 167, y }, width: 28, height: 5, fontSize: 11, fontColor: '#000', fontName: 'Helvetica', alignment: 'right', content: totalContent });
       }
     });
-    
+
     // Check if footer fits on this page (only on the last table page)
     if (pageIdx === pages.length - 1) {
       const lastRowY = tableHeaderY + tableHeaderHeight + (rows.length * rowHeight);
       const footerStartY = lastRowY + 10; // 10mm spacing after last row
       const availableSpace = pageHeight - bottomMargin - footerStartY;
-      
+
       // If footer doesn't fit on current page, we'll create a separate footer page later
       if (availableSpace < dynamicFooterHeight) {
         // Don't add footer to this page - we'll create a separate footer page
         footerPageSchemas = [];
         footerPageSchemas.push(...watermarkSchema);
-        
+
         const footerY = topMargin + 10;
         // Calculate signature positioning below totals box
         const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
         const signatureY = totalsBoxBottomY + 5; // 5mm gap below totals box
-        
+
         // Add base footer elements (without subtotal/vat)
         footerPageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-          'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+          'termsTitle', 'totalsBox', 'totalLabel', 'totalValue', 'preparedByLabel', 'preparedByLine', 'approvedByLabel', 'approvedByLine'
         ].includes(s.name)).map(s => {
           if (s.name === 'totalsBox') {
             return { ...s, position: { x: totalsBoxStartX, y: footerY + (s.position.y - 245) }, width: dynamicTotalsWidth, height: dynamicTotalsHeight };
@@ -506,7 +511,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
-        
+
         // Add dynamic section totals
         mergedData.sectionTotals?.forEach((sectionTotal, index) => {
           const yPosition = footerY + 4 + (index * lineHeight); // Start 4mm from top of box
@@ -533,7 +538,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
             alignment: 'right'
           });
         });
-        
+
         // Update total label and value positions to be at the bottom of the totals box
         const totalY = footerY + 4 + (sectionTotalsCount * lineHeight);
         footerPageSchemas = footerPageSchemas.map(s => {
@@ -542,29 +547,29 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           }
           return s;
         });
-        
-        footerPageSchemas.push({ 
-          name: 'termsContent', 
-          type: 'text', 
-          position: { x: 15, y: footerY + 5 }, 
-          width: termsBoxWidth, 
-          height: termsHeight, 
-          fontSize: 8, 
-          fontColor: '#000', 
-          fontName: 'Helvetica', 
-          alignment: 'left' 
+
+        footerPageSchemas.push({
+          name: 'termsContent',
+          type: 'text',
+          position: { x: 15, y: footerY + 5 },
+          width: termsBoxWidth,
+          height: termsHeight,
+          fontSize: 8,
+          fontColor: '#000',
+          fontName: 'Helvetica',
+          alignment: 'left'
         });
       } else {
         // Footer fits on current page - add it to this page
         const footerY = footerStartY;
-        
+
         // Calculate signature positioning below totals box
         const totalsBoxBottomY = footerY + (245 - 245) + dynamicTotalsHeight; // Bottom of totals box
         const signatureY = totalsBoxBottomY + 5; // 5mm gap below totals box
-        
+
         // Add base footer elements (without subtotal/vat)
         pageSchemas.push(...quotationTemplate.schemas[0].filter(s => [
-          'termsTitle','totalsBox','totalLabel','totalValue','preparedByLabel','preparedByLine','approvedByLabel','approvedByLine'
+          'termsTitle', 'totalsBox', 'totalLabel', 'totalValue', 'preparedByLabel', 'preparedByLine', 'approvedByLabel', 'approvedByLine'
         ].includes(s.name)).map(s => {
           if (s.name === 'totalsBox') {
             return { ...s, position: { x: totalsBoxStartX, y: footerY + (s.position.y - 245) }, width: dynamicTotalsWidth, height: dynamicTotalsHeight };
@@ -592,7 +597,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
           }
           return { ...s, position: { ...s.position, y: footerY + (s.position.y - 245) } };
         }));
-        
+
         // Add dynamic section totals
         mergedData.sectionTotals?.forEach((sectionTotal, index) => {
           const yPosition = footerY + 4 + (index * lineHeight); // Start 4mm from top of box
@@ -619,7 +624,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
             alignment: 'right'
           });
         });
-        
+
         // Update total label and value positions to be at the bottom of the totals box
         const totalY = footerY + 4 + (sectionTotalsCount * lineHeight);
         const totalLabelIndex = pageSchemas.findIndex(s => s.name === 'totalLabel');
@@ -630,24 +635,24 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         if (totalValueIndex !== -1) {
           pageSchemas[totalValueIndex] = { ...pageSchemas[totalValueIndex], position: { ...pageSchemas[totalValueIndex].position, y: totalY } };
         }
-        
-        pageSchemas.push({ 
-          name: 'termsContent', 
-          type: 'text', 
-          position: { x: 15, y: footerY + 5 }, 
-          width: 120, 
-          height: termsHeight, 
-          fontSize: 8, 
-          fontColor: '#000', 
-          fontName: 'Helvetica', 
-          alignment: 'left' 
+
+        pageSchemas.push({
+          name: 'termsContent',
+          type: 'text',
+          position: { x: 15, y: footerY + 5 },
+          width: 120,
+          height: termsHeight,
+          fontSize: 8,
+          fontColor: '#000',
+          fontName: 'Helvetica',
+          alignment: 'left'
         });
       }
     }
-    
+
     schemas.push(pageSchemas);
   }
-  
+
   // Add footer page at the very end if needed
   if (footerPageSchemas) {
     schemas.push(footerPageSchemas);
@@ -706,33 +711,33 @@ export const generateQuotationPDF = async (data: QuotationData) => {
         const fontSize = 11;
         const fontName = 'Helvetica-Bold';
         const sectionText = rowObj.row[1];
-        
+
         const textWidth = calculateTextWidth(sectionText, fontSize, fontName);
         let displayText = sectionText;
-        
+
         // If text is too long, truncate it to fit
         if (textWidth > maxSectionWidth - 3) {
           displayText = truncateTextToFit(sectionText, maxSectionWidth - 3, fontSize, fontName);
         }
-        
+
         dynamicRowInputs[`descSection${pageIdx}_${rowIdx}`] = displayText;
       } else if (rowObj.isSectionSummary) {
         // Format section summary values with currency formatting for inputs
         let unitPriceSummaryContent = rowObj.row[1] !== "" ? rowObj.row[1] + ":" : "";
         let totalSummaryContent = rowObj.row[5] !== "" ? formatCurrency(parseFloat(rowObj.row[5])) : "";
-        
+
         // Apply text truncation for section summary labels
         if (unitPriceSummaryContent) {
           const maxSummaryLabelWidth = 98;
           const summaryFontSize = 11;
           const summaryFontName = 'Helvetica-Bold';
-          
+
           const summaryTextWidth = calculateTextWidth(unitPriceSummaryContent, summaryFontSize, summaryFontName);
           if (summaryTextWidth > maxSummaryLabelWidth) {
             unitPriceSummaryContent = truncateTextToFit(unitPriceSummaryContent, maxSummaryLabelWidth, summaryFontSize, summaryFontName);
           }
         }
-        
+
         dynamicRowInputs[`unitPriceSummary${pageIdx}_${rowIdx}`] = unitPriceSummaryContent;
         dynamicRowInputs[`totalSummary${pageIdx}_${rowIdx}`] = totalSummaryContent;
       } else {
@@ -754,13 +759,13 @@ export const generateQuotationPDF = async (data: QuotationData) => {
   mergedData.sectionTotals?.forEach((sectionTotal, index) => {
     // Use the calculated dynamic width - no truncation needed since we sized the box to fit
     let sectionTotalLabel = `${sectionTotal.name}:`;
-    
+
     // Only truncate if somehow the text is still longer than our calculated max width
     const labelTextWidth = calculateTextWidth(sectionTotalLabel, 10, 'Helvetica');
     if (labelTextWidth > maxLabelWidth) {
       sectionTotalLabel = truncateTextToFit(sectionTotalLabel, maxLabelWidth, 10, 'Helvetica');
     }
-    
+
     sectionTotalInputs[`sectionTotalLabel_${index}`] = sectionTotalLabel;
     sectionTotalInputs[`sectionTotalValue_${index}`] = `KES ${formatCurrency(sectionTotal.total)}`;
   });
@@ -785,7 +790,7 @@ export const generateQuotationPDF = async (data: QuotationData) => {
       dateValue: mergedData.date,
       quotationTitle: mergedData.documentTitle || "QUOTATION",
       deliveryNoteLabel: mergedData.deliveryNoteNo,
-      quotationNoFull: mergedData.originalQuotationNumber 
+      quotationNoFull: mergedData.originalQuotationNumber
         ? `Original Quotation No: ${mergedData.originalQuotationNumber}\n${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`
         : `${mergedData.documentTitle || "Quotation"} No: ${mergedData.quotationNumber}`,
       itemHeader: "Item",
