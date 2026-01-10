@@ -15,7 +15,7 @@ import ImportQuotationModal from "./import-quotation-modal"
 import dynamic from 'next/dynamic'
 
 // Dynamically import MobilePDFViewer to avoid SSR issues
-const MobilePDFViewer = dynamic(() => import('./mobile-pdf-viewer'), { 
+const MobilePDFViewer = dynamic(() => import('./mobile-pdf-viewer'), {
   ssr: false,
   loading: () => (
     <div className="d-flex justify-content-center align-items-center" style={{ height: "400px" }}>
@@ -91,8 +91,8 @@ const PortalDropdown: React.FC<{
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(event.target as Node) && 
-          dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         onClose()
       }
     }
@@ -106,7 +106,7 @@ const PortalDropdown: React.FC<{
   if (!isVisible) return null
 
   return createPortal(
-    <ul 
+    <ul
       ref={dropdownRef}
       style={{
         position: 'fixed',
@@ -189,24 +189,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     "1. All work to be completed within agreed timeframe.\n2. Client to provide necessary measurements and specifications.\n3. Final payment due upon completion.\n4. Any changes to the original design may incur additional charges."
   )
   const [loading, setLoading] = useState(false)
-  
+
   // PDF viewing state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
-  
+
   // Mobile detection and print modal state
   const isMobile = useIsMobile()
   const [showPrintModal, setShowPrintModal] = useState(false)
-  
+
   // Payment tracking state
   const [totalPaid, setTotalPaid] = useState(0)
   const [hasPayments, setHasPayments] = useState(false)
   const [paymentPercentage, setPaymentPercentage] = useState(0)
-  
+
   // Import modal state
   const [showImportModal, setShowImportModal] = useState(false)
-  
+
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
     cabinet: "General",
@@ -216,11 +216,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     wardrobes: "Wardrobes",
     tvunit: "TV Unit"
   })
-  
+
   // Section name editing state
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [editingSectionName, setEditingSectionName] = useState("")
-  
+
   // Items state for each section
   const [cabinetItems, setCabinetItems] = useState<QuotationItem[]>([])
   const [worktopItems, setWorktopItems] = useState<QuotationItem[]>([])
@@ -228,22 +228,22 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [appliancesItems, setAppliancesItems] = useState<QuotationItem[]>([])
   const [wardrobesItems, setWardrobesItems] = useState<QuotationItem[]>([])
   const [tvUnitItems, setTvUnitItems] = useState<QuotationItem[]>([])
-  
+
   // Search states for each section
-  const [itemSearches, setItemSearches] = useState<{[key: string]: string}>({})
-  const [filteredStockItems, setFilteredStockItems] = useState<{[key: string]: StockItem[]}>({})
-  const [itemDropdownVisible, setItemDropdownVisible] = useState<{[key: string]: boolean}>({})
-  
+  const [itemSearches, setItemSearches] = useState<{ [key: string]: string }>({})
+  const [filteredStockItems, setFilteredStockItems] = useState<{ [key: string]: StockItem[] }>({})
+  const [itemDropdownVisible, setItemDropdownVisible] = useState<{ [key: string]: boolean }>({})
+
   // Input handling states for better UX
-  const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: string]: boolean}>({})
-  const [priceInputFocused, setPriceInputFocused] = useState<{[key: string]: boolean}>({})
-  const [rawQuantityValues, setRawQuantityValues] = useState<{[key: string]: string}>({})
-  const [rawPriceValues, setRawPriceValues] = useState<{[key: string]: string}>({})
-  
+  const [quantityInputFocused, setQuantityInputFocused] = useState<{ [key: string]: boolean }>({})
+  const [priceInputFocused, setPriceInputFocused] = useState<{ [key: string]: boolean }>({})
+  const [rawQuantityValues, setRawQuantityValues] = useState<{ [key: string]: string }>({})
+  const [rawPriceValues, setRawPriceValues] = useState<{ [key: string]: string }>({})
+
   // Refs for dropdown positioning
   const clientInputRef = useRef<HTMLDivElement>(null)
-  const itemInputRefs = useRef<{[key: string]: React.RefObject<HTMLDivElement | null>}>({})
-  
+  const itemInputRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement | null> }>({})
+
   // Function to get or create ref for item
   const getItemInputRef = (itemId: string): React.RefObject<HTMLDivElement | null> => {
     if (!itemInputRefs.current[itemId]) {
@@ -351,7 +351,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }
 
     return (
-      <div 
+      <div
         className="d-flex align-items-center"
         style={{ cursor: isReadOnly ? "default" : "pointer" }}
         onClick={() => !isReadOnly && onEdit()}
@@ -361,12 +361,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           {currentName}
         </span>
         {!isReadOnly && (
-          <span 
-            style={{ 
-              color: "#ffffff", 
-              fontSize: "12px", 
+          <span
+            style={{
+              color: "#ffffff",
+              fontSize: "12px",
               marginLeft: "8px",
-              opacity: 0.7 
+              opacity: 0.7
             }}
           >
             ✏️
@@ -389,7 +389,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // Function to fetch payment information
   const fetchPaymentInfo = async () => {
     if (!quotation?.quotation_number) return;
-    
+
     try {
       // First, check all payments for this quotation regardless of status - check both fields
       const { data: allPayments } = await supabase
@@ -403,11 +403,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         .select("amount, status")
         .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
         .eq("status", "completed")
-      
+
       const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
       const hasPaymentsValue = totalPaidAmount > 0
       const paymentPercentageValue = quotation.grand_total > 0 ? (totalPaidAmount / quotation.grand_total) * 100 : 0
-      
+
       // Enhanced debug logging for payment detection
       console.log('Payment Info Debug:', {
         quotation_number: quotation.quotation_number,
@@ -421,17 +421,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         payment_percentage: paymentPercentageValue,
         grand_total: quotation.grand_total
       })
-      
+
       // Also check if there are payments with different quotation_number formats
       const { data: similarPayments } = await supabase
         .from("payments")
         .select("*")
         .ilike("quotation_number", `%${quotation.quotation_number.slice(-4)}%`)
-      
+
       if (similarPayments && similarPayments.length > 0) {
         console.log('Similar Payment Numbers Found:', similarPayments)
       }
-      
+
       setTotalPaid(totalPaidAmount)
       setHasPayments(hasPaymentsValue)
       setPaymentPercentage(paymentPercentageValue)
@@ -474,7 +474,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   useEffect(() => {
     // Debounce expensive filtering operations to prevent main thread blocking
     const timeoutId = setTimeout(() => {
-      const newFilteredItems: {[key: string]: StockItem[]} = {}
+      const newFilteredItems: { [key: string]: StockItem[] } = {}
       Object.keys(itemSearches).forEach(itemId => {
         const search = itemSearches[itemId]
         if (search.trim() === "") {
@@ -486,9 +486,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             const nameLower = stockItem.name.toLowerCase()
             const descLower = stockItem.description?.toLowerCase() || ""
             const skuLower = stockItem.sku?.toLowerCase() || ""
-            return nameLower.includes(searchLower) || 
-                   descLower.includes(searchLower) || 
-                   skuLower.includes(searchLower)
+            return nameLower.includes(searchLower) ||
+              descLower.includes(searchLower) ||
+              skuLower.includes(searchLower)
           })
         }
       })
@@ -510,8 +510,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           const nameLower = client.name.toLowerCase()
           const locationLower = client.location?.toLowerCase() || ""
           return nameLower.includes(searchLower) ||
-                 client.phone?.includes(clientSearchTerm) ||
-                 locationLower.includes(searchLower)
+            client.phone?.includes(clientSearchTerm) ||
+            locationLower.includes(searchLower)
         })
         setFilteredClients(filtered)
       }
@@ -525,7 +525,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     if (isOpen && mode === "view" && quotation) {
       generatePDFForViewing();
     }
-    
+
     // Cleanup PDF URL when component unmounts or modal closes
     return () => {
       if (pdfUrl) {
@@ -609,13 +609,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         .order("name")
 
       if (error) throw error
-      
+
       // Convert numeric strings to numbers for unit_price
       const processedData = (data || []).map(item => ({
         ...item,
         unit_price: parseFloat(item.unit_price) || 0
       }))
-      
+
 
       setStockItems(processedData)
     } catch (error) {
@@ -626,19 +626,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const loadQuotationData = () => {
     if (!quotation) return
-    
+
     setQuotationNumber(quotation.quotation_number || "")
     setSelectedClient(quotation.client || null)
-      setClientSearchTerm(quotation.client?.name || "")
+    setClientSearchTerm(quotation.client?.name || "")
     setLabourPercentage(Number(quotation.labour_percentage) || 30)
     setIncludeWorktop(quotation.include_worktop || false)
-      setIncludeAccessories(quotation.include_accessories || false)
+    setIncludeAccessories(quotation.include_accessories || false)
     setIncludeAppliances(quotation.include_appliances || false)
     setIncludeWardrobes(quotation.include_wardrobes || false)
     setIncludeTvUnit(quotation.include_tvunit || false)
-      setNotes(quotation.notes || "")
-      setTermsConditions(quotation.terms_conditions || "")
-    
+    setNotes(quotation.notes || "")
+    setTermsConditions(quotation.terms_conditions || "")
+
     // Load custom section names if available
     if (quotation.section_names) {
       setSectionNames(prev => ({
@@ -646,17 +646,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         ...quotation.section_names
       }))
     }
-    
+
     // Load VAT percentage from database
     if (quotation.vat_percentage) {
       setVatPercentage(quotation.vat_percentage)
     }
-    
+
     // Load discount amount from database
     if (quotation.discount_amount) {
       setDiscountAmount(quotation.discount_amount)
     }
-    
+
     // Load items by category
     if (quotation.items) {
       const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
@@ -675,9 +675,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     setCabinetLabourPercentage(Number(quotation.cabinet_labour_percentage) || 30)
     setAccessoriesLabourPercentage(Number(quotation.accessories_labour_percentage) || 30)
-          setAppliancesLabourPercentage(Number(quotation.appliances_labour_percentage) || 30)
-      setWardrobesLabourPercentage(Number(quotation.wardrobes_labour_percentage) || 30)
-      setTvUnitLabourPercentage(Number(quotation.tvunit_labour_percentage) || 30)
+    setAppliancesLabourPercentage(Number(quotation.appliances_labour_percentage) || 30)
+    setWardrobesLabourPercentage(Number(quotation.wardrobes_labour_percentage) || 30)
+    setTvUnitLabourPercentage(Number(quotation.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
   }
@@ -695,7 +695,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit") => {
     const newItem = createNewItem(category)
-    
+
     // Use functional updates for better performance and avoiding stale closures
     switch (category) {
       case "cabinet":
@@ -749,22 +749,22 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       return items.map((item, i) => {
         if (i === index) {
           const updatedItem = { ...item, [field]: value }
-          
+
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
-            
-            
+
+
             updatedItem.stock_item = stockItem || undefined
             updatedItem.description = stockItem?.name || ""
             updatedItem.unit = stockItem?.unit || "pieces"
             updatedItem.unit_price = Number(stockItem?.unit_price) || 0
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
-            
-    
+
+
           } else if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
-          
+
           return updatedItem
         }
         return item
@@ -802,12 +802,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   }
 
   const selectStockItem = (itemId: string, stockItem: StockItem) => {
-    
-    
+
+
     // Find which category this item belongs to and get the correct index within that category
     let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
     let index = -1
-    
+
     // Check cabinet items
     const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
     if (cabinetIndex !== -1) {
@@ -849,13 +849,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
     }
-    
+
     if (category && index !== -1) {
 
-      
+
       // Single call to updateItem with stock_item_id will automatically populate all fields
       updateItem(category, index, "stock_item_id", stockItem.id)
-      
+
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
     } else {
@@ -871,32 +871,32 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const generatePDF = async () => {
     try {
-  
+
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
-      
+
       // Use the same calculation as the UI display for consistency
       const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
       const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
       const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
       const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
       const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
-      
+
       // Calculate subtotal with all labour included (consistent with UI display)
       const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
-      
+
       // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
       const vatPercentageNum = Number(vatPercentage);
-      
+
       // Reverse calculate VAT: if total includes VAT, extract the VAT amount
       const originalAmount = subtotalWithLabour / (1 + (vatPercentageNum / 100));
       const vat = subtotalWithLabour - originalAmount;
       const grandTotal = subtotalWithLabour - discountAmount; // Grand total after discount
-      
+
       // Prepare items data as objects for QuotationData with custom section names
-      const items: Array<{isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number}> = [];
-      
+      const items: Array<{ isSection?: boolean, isSectionSummary?: boolean, quantity: number, unit: string, description: string, unitPrice: number, total: number }> = [];
+
       // Add cabinet section header and items
       if (cabinetItems.length > 0) {
         const cabinetTotalWithLabour = totals.cabinetTotal + cabinetLabour;
@@ -929,7 +929,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Add worktop section header and items
       if (worktopItems.length > 0) {
         if (totals.worktopTotal > 0) {
@@ -961,7 +961,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Add accessories section header and items
       if (accessoriesItems.length > 0) {
         const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
@@ -994,7 +994,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Add appliances section header and items
       if (appliancesItems.length > 0) {
         const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
@@ -1027,7 +1027,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Add wardrobes section header and items
       if (wardrobesItems.length > 0) {
         const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
@@ -1060,7 +1060,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Add TV Unit section header and items
       if (tvUnitItems.length > 0) {
         const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
@@ -1093,7 +1093,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           });
         }
       }
-      
+
       // Fetch watermark image as base64
       async function fetchImageAsBase64(url: string): Promise<string> {
         const response = await fetch(url);
@@ -1132,13 +1132,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         companyLogo: watermarkLogoBase64,
       };
 
-      
+
       // Generate PDF using PDF.me template
       const { template, inputs } = await generateQuotationPDF(quotationData);
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } });
-      
+
       // Download the PDF
-      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const blob = new Blob([new Uint8Array(pdf.buffer as ArrayBuffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setPdfBlob(blob);
       const link = document.createElement('a');
@@ -1148,9 +1148,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast.success("PDF generated successfully!");
-      
+
     } catch (error) {
 
       toast.error("Failed to generate PDF. Please try again.");
@@ -1181,7 +1181,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       if (printWindow && pdfUrl) {
         printWindow.location.href = pdfUrl
         printWindow.onload = () => {
-          try { printWindow.print() } catch {}
+          try { printWindow.print() } catch { }
         }
       }
       setShowPrintModal(false)
@@ -1259,10 +1259,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   const generatePDFForViewing = async () => {
     if (!quotation) return;
-    
+
     try {
       setPdfLoading(true)
-      
+
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
       const { generateQuotationPDF, imageToBase64 } = await import('@/lib/pdf-template');
@@ -1281,15 +1281,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
       // Define the default section order
       const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
-      
+
       // Process sections in the defined order
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
-        
+
         // Calculate section total first to determine if we should include this section
         let currentSectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-        
+
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           currentSectionTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
@@ -1298,7 +1298,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         // Add labour charge to section total if it exists (for non-worktop sections)
         if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-          
+
           // Get the correct labour percentage for this specific section
           let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
           switch (category) {
@@ -1320,20 +1320,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             default:
               labourPercentage = quotation.labour_percentage || 30;
           }
-          
+
           const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
           if (labourCharge > 0) {
             currentSectionTotal += labourCharge;
           }
         }
-        
+
         // Only include section if total is greater than 0
         if (currentSectionTotal <= 0) return;
-        
+
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: quotation.section_names?.cabinet || "General",
-          worktop: quotation.section_names?.worktop || "Worktop", 
+          worktop: quotation.section_names?.worktop || "Worktop",
           accessories: quotation.section_names?.accessories || "Accessories",
           appliances: quotation.section_names?.appliances || "Appliances",
           wardrobes: quotation.section_names?.wardrobes || "Wardrobes",
@@ -1388,14 +1388,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         // Add labour charge for each section that has items (except worktop which has its own labor)
         if (itemsInCategory.length > 0 && category !== 'worktop') {
           // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some((item: any) => 
+          const hasExistingLabourCharge = itemsInCategory.some((item: any) =>
             item.description && item.description.toLowerCase().includes('labour charge')
           );
-          
+
           // Only calculate labour charge if no labour charge items exist
           if (!hasExistingLabourCharge) {
             const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-            
+
             // Get the correct labour percentage for this specific section from database
             let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
             switch (category) {
@@ -1417,9 +1417,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               default:
                 labourPercentage = quotation.labour_percentage || 30;
             }
-            
+
             const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-            
+
             if (labourCharge > 0) {
               items.push({
                 itemNumber: String(itemNumber),
@@ -1436,7 +1436,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
         // Insert section summary row
         let sectionTotal2 = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-        
+
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
@@ -1445,7 +1445,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         // Add labour charge to section total if it exists (for non-worktop sections)
         if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
           const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-          
+
           // Get the correct labour percentage for this specific section
           let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
           switch (category) {
@@ -1464,13 +1464,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             default:
               labourPercentage = quotation.labour_percentage || 30;
           }
-          
+
           const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
           if (labourCharge > 0) {
             sectionTotal2 += labourCharge;
           }
         }
-        
+
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",
@@ -1480,7 +1480,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           unitPrice: "",
           total: sectionTotal2.toFixed(2) // Always show total, even if 0.00
         };
-        
+
         items.push(summaryRow);
       });
 
@@ -1517,19 +1517,19 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         inputs,
         plugins: { text, rectangle, line, image }
       });
-      
+
       // Create blob URL for viewing
-      const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' });
+      const blob = new Blob([new Uint8Array(pdf.buffer as ArrayBuffer)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setPdfBlob(blob);
-      
+
       // Clean up previous URL
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
-      
+
       setPdfUrl(url);
-      
+
     } catch (error) {
       console.error('Error generating PDF for viewing:', error);
       toast.error("Failed to generate PDF for viewing. Please try again.");
@@ -1553,10 +1553,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     try {
       // Add labour item to cabinet items if not exists
       let finalCabinetItems = [...cabinetItems].filter(item => !item.description.includes("Labour Charge"));
-      
+
       const cabinetSectionTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0);
       const cabinetLabour = (cabinetSectionTotal * cabinetLabourPercentage) / 100;
-      
+
       if (
         !finalCabinetItems.some(item => item.description.includes("Labour Charge")) &&
         cabinetItems.length > 0 &&
@@ -1575,66 +1575,66 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         });
       }
 
-    // Calculate totals with VAT (consistent with UI display and PDF generation)
-    const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-    const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-    const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-    const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-    const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
-    
-    const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
-    const saveVatPercentageNum = Number(vatPercentage);
-    // Reverse calculate VAT: if total includes VAT, extract the VAT amount
-    const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
-    const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
-    const saveGrandTotalWithVAT = saveSubtotalWithLabour - discountAmount; // Grand total after discount
+      // Calculate totals with VAT (consistent with UI display and PDF generation)
+      const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
+      const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
+      const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
+      const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
+      const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
 
-    // Convert date input to date-only value for database storage
-    // This prevents the "one day less" issue by treating the date as a pure calendar date
-    const dateToSave = quotationDate ? dateInputToDateOnly(quotationDate) : new Date()
-    
-    const quotationData = {
-      quotation_number: quotationNumber,
-      client_id: selectedClient.id,
-      date_created: dateToSave.toISOString(),
-      cabinet_total: totals.cabinetTotal,
-      worktop_total: totals.worktopTotal,
-      accessories_total: totals.accessoriesTotal,
-      appliances_total: totals.appliancesTotal,
-      wardrobes_total: totals.wardrobesTotal,
-      tvunit_total: totals.tvUnitTotal,
-      labour_percentage: labourPercentage,
-      labour_total: totals.labourAmount,
-      total_amount: saveOriginalAmount, // Amount before VAT
-      grand_total: saveGrandTotalWithVAT, // Total amount including VAT and discount
-      vat_amount: saveVatAmount, // VAT amount
-      vat_percentage: saveVatPercentageNum, // VAT percentage
-      discount_amount: discountAmount, // Discount amount
-      include_worktop: includeWorktop,
-      include_accessories: includeAccessories,
-      include_appliances: includeAppliances,
-      include_wardrobes: includeWardrobes,
-      include_tvunit: includeTvUnit,
-      status: "pending",
-      notes,
-      terms_conditions: termsConditions,
-      items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
-      cabinet_labour_percentage: cabinetLabourPercentage,
-      accessories_labour_percentage: accessoriesLabourPercentage,
-      appliances_labour_percentage: appliancesLabourPercentage,
-      wardrobes_labour_percentage: wardrobesLabourPercentage,
-      tvunit_labour_percentage: tvUnitLabourPercentage,
-      worktop_labor_qty: worktopLaborQty,
-      worktop_labor_unit_price: worktopLaborUnitPrice,
-      section_names: sectionNames
-    }
+      const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
+      const saveVatPercentageNum = Number(vatPercentage);
+      // Reverse calculate VAT: if total includes VAT, extract the VAT amount
+      const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
+      const saveVatAmount = saveSubtotalWithLabour - saveOriginalAmount;
+      const saveGrandTotalWithVAT = saveSubtotalWithLabour - discountAmount; // Grand total after discount
 
-    // Confirm quotation number if it's a new quotation
-    // Removed localStorage logic, so this block is effectively removed.
-    // The generateQuotationNumber function now handles the number generation.
+      // Convert date input to date-only value for database storage
+      // This prevents the "one day less" issue by treating the date as a pure calendar date
+      const dateToSave = quotationDate ? dateInputToDateOnly(quotationDate) : new Date()
 
-    await onSave(quotationData)
-    onClose()
+      const quotationData = {
+        quotation_number: quotationNumber,
+        client_id: selectedClient.id,
+        date_created: dateToSave.toISOString(),
+        cabinet_total: totals.cabinetTotal,
+        worktop_total: totals.worktopTotal,
+        accessories_total: totals.accessoriesTotal,
+        appliances_total: totals.appliancesTotal,
+        wardrobes_total: totals.wardrobesTotal,
+        tvunit_total: totals.tvUnitTotal,
+        labour_percentage: labourPercentage,
+        labour_total: totals.labourAmount,
+        total_amount: saveOriginalAmount, // Amount before VAT
+        grand_total: saveGrandTotalWithVAT, // Total amount including VAT and discount
+        vat_amount: saveVatAmount, // VAT amount
+        vat_percentage: saveVatPercentageNum, // VAT percentage
+        discount_amount: discountAmount, // Discount amount
+        include_worktop: includeWorktop,
+        include_accessories: includeAccessories,
+        include_appliances: includeAppliances,
+        include_wardrobes: includeWardrobes,
+        include_tvunit: includeTvUnit,
+        status: "pending",
+        notes,
+        terms_conditions: termsConditions,
+        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
+        cabinet_labour_percentage: cabinetLabourPercentage,
+        accessories_labour_percentage: accessoriesLabourPercentage,
+        appliances_labour_percentage: appliancesLabourPercentage,
+        wardrobes_labour_percentage: wardrobesLabourPercentage,
+        tvunit_labour_percentage: tvUnitLabourPercentage,
+        worktop_labor_qty: worktopLaborQty,
+        worktop_labor_unit_price: worktopLaborUnitPrice,
+        section_names: sectionNames
+      }
+
+      // Confirm quotation number if it's a new quotation
+      // Removed localStorage logic, so this block is effectively removed.
+      // The generateQuotationNumber function now handles the number generation.
+
+      await onSave(quotationData)
+      onClose()
     } catch (error) {
 
       toast.error("Failed to save quotation")
@@ -1647,32 +1647,32 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const handleImportData = async (importData: any) => {
     try {
       // Handle both old format (single section) and new format (multiple sections)
-      const sectionsData = importData.section ? 
-        { [importData.section]: importData.items } : 
+      const sectionsData = importData.section ?
+        { [importData.section]: importData.items } :
         importData
-      
+
       let totalImported = 0
       const sectionMessages: string[] = []
-      
+
       // Process each section
       for (const [section, items] of Object.entries(sectionsData)) {
         if (!Array.isArray(items) || items.length === 0) continue
-        
+
         // Check if items exist in stock, create new ones if they don't
         const processedItems = await Promise.all(items.map(async (item: any) => {
           // Search for existing stock item with multiple strategies
           const searchTerm = item.description.trim()
           console.log(`🔍 Searching for stock item: "${searchTerm}"`)
-          
+
           let existingItems = null
-          
+
           // Strategy 1: Exact match using eq (most reliable)
           const { data: exactMatches } = await supabase
             .from('stock_items')
             .select('*')
             .eq('name', searchTerm)
             .limit(1)
-          
+
           if (exactMatches && exactMatches.length > 0) {
             existingItems = exactMatches
             console.log(`✅ Found exact match: ${searchTerm} -> ID: ${exactMatches[0].id}`)
@@ -1683,7 +1683,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               .select('*')
               .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
               .limit(1)
-            
+
             if (caseInsensitiveMatches && caseInsensitiveMatches.length > 0) {
               existingItems = caseInsensitiveMatches
               console.log(`✅ Found case insensitive match: ${searchTerm} -> ID: ${caseInsensitiveMatches[0].id}`)
@@ -1694,7 +1694,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 .select('*')
                 .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
                 .limit(1)
-              
+
               if (partialMatches && partialMatches.length > 0) {
                 existingItems = partialMatches
                 console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
@@ -1706,7 +1706,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   .select('*')
                   .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
                   .limit(1)
-                
+
                 if (normalizedMatches && normalizedMatches.length > 0) {
                   existingItems = normalizedMatches
                   console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
@@ -1748,14 +1748,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
               // If it's a unique constraint violation, try to find the existing item
               if (error.code === '23505' && error.message.includes('already exists')) {
                 console.log(`⚠️ Item already exists, searching for it: ${searchTerm}`)
-                
+
                 // Try to find the existing item again with a more comprehensive search
                 const { data: existingItem } = await supabase
                   .from('stock_items')
                   .select('*')
                   .eq('name', item.description)
                   .limit(1)
-                
+
                 if (existingItem && existingItem.length > 0) {
                   stockItemId = existingItem[0].id
                   stockItem = existingItem[0]
@@ -1795,7 +1795,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
         // Filter out any failed items
         const validItems = processedItems.filter(item => item !== null)
-        
+
         if (validItems.length > 0) {
           // Add items to the appropriate section and auto-open the section
           if (section === 'kitchen_cabinets') {
@@ -1820,14 +1820,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             setTvUnitItems(prev => [...prev, ...validItems])
             setIncludeTvUnit(true) // Auto-open TV unit section
           }
-          
+
           totalImported += validItems.length
           sectionMessages.push(`${validItems.length} items to ${section}`)
         }
       }
-      
+
       if (totalImported > 0) {
-        const message = sectionMessages.length === 1 ? 
+        const message = sectionMessages.length === 1 ?
           `Successfully imported ${sectionMessages[0]}` :
           `Successfully imported ${sectionMessages.join(' & ')}`
         toast.success(message)
@@ -1848,7 +1848,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [appliancesLabourPercentage, setAppliancesLabourPercentage] = useState(30);
   const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
   const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
-  
+
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
 
@@ -1859,20 +1859,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const totals = useMemo(() => {
     const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
     const worktopTotal = includeWorktop ? (worktopItems.reduce((sum, item) => sum + item.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)) : 0;
-    const accessoriesTotal = accessoriesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const appliancesTotal = appliancesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
-    const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
-    
+    const accessoriesTotal = includeAccessories ? accessoriesItems.reduce((sum, item) => sum + item.total_price, 0) : 0
+    const appliancesTotal = includeAppliances ? appliancesItems.reduce((sum, item) => sum + item.total_price, 0) : 0
+    const wardrobesTotal = includeWardrobes ? wardrobesItems.reduce((sum, item) => sum + item.total_price, 0) : 0
+    const tvUnitTotal = includeTvUnit ? tvUnitItems.reduce((sum, item) => sum + item.total_price, 0) : 0
+
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
-    
+
     // Calculate individual labour amounts (no worktopLabour)
     const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
     const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
     const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
     const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
     const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
-    
+
     const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
     const grandTotal = subtotal + totalLabour
 
@@ -1892,10 +1892,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       wardrobesLabour,
       tvUnitLabour
     }
-  }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
-      includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
-      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
-  
+  }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems,
+    includeWorktop, includeAccessories, includeAppliances, includeWardrobes, includeTvUnit,
+    worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage,
+    accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
+
   // Legacy function for backward compatibility - now just returns memoized values
   const calculateTotals = () => totals
 
@@ -1909,10 +1910,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
   const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
   const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
-  
+
   // Calculate subtotal with all labour included (consistent with PDF generation)
   const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
-  
+
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
   const vatAmount = subtotalWithLabour - originalAmount;
@@ -1921,224 +1922,2226 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   return (
     <>
       <div className="modal fade show d-block quotation-modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-        <div 
-        className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
-        style={mode === "view" && pdfUrl ? {
-          maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
-          width: "min(794px, 95vw)",
-          margin: "1.75rem auto"
-        } : {}}
-      >
-        <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
-          {/* Header */}
-          <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
-            <div className="d-flex align-items-center justify-content-between w-100">
-              <div className="d-flex align-items-center">
-                <div className="me-3" style={{ 
-                  width: "48px", 
-                  height: "48px", 
-                  borderRadius: "16px", 
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  <FileText size={24} color="white" />
+        <div
+          className={`modal-dialog ${mode === "view" ? (pdfUrl ? "" : "modal-xl") : "modal-xl"} modal-dialog-centered`}
+          style={mode === "view" && pdfUrl ? {
+            maxWidth: "min(794px, 95vw)", // Responsive width - A4 width or 95% of viewport
+            width: "min(794px, 95vw)",
+            margin: "1.75rem auto"
+          } : {}}
+        >
+          <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
+            {/* Header */}
+            <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
+              <div className="d-flex align-items-center justify-content-between w-100">
+                <div className="d-flex align-items-center">
+                  <div className="me-3" style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "16px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}>
+                    <FileText size={24} color="white" />
+                  </div>
+                  <div>
+                    <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
+                      {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
+                    </h5>
+                    {mode !== "view" && (
+                      <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h5 className="modal-title mb-1 fw-bold" style={{ color: "#ffffff" }}>
-                    {mode === "create" ? "New Quotation" : mode === "edit" ? "Edit Quotation" : "View Quotation"}
-                  </h5>
-                  {mode !== "view" && (
-                    <p className="mb-0 text-white small">Create a detailed quotation for your client</p>
+
+                <div className="d-flex align-items-center gap-2">
+                  {(mode === "create" || mode === "edit") && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-light btn-sm d-flex align-items-center"
+                      onClick={() => setShowImportModal(true)}
+                      style={{ borderRadius: "12px", padding: "8px 16px" }}
+                    >
+                      <Upload size={16} className="me-2" />
+                      Import
+                    </button>
                   )}
-                </div>
-              </div>
-              
-              <div className="d-flex align-items-center gap-2">
-                {(mode === "create" || mode === "edit") && (
                   <button
                     type="button"
-                    className="btn btn-outline-light btn-sm d-flex align-items-center"
-                    onClick={() => setShowImportModal(true)}
-                    style={{ borderRadius: "12px", padding: "8px 16px" }}
-                  >
-                    <Upload size={16} className="me-2" />
-                    Import
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "8px" }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Body */}
-          {mode === "view" && pdfUrl ? (
-            <div className="modal-body" style={{ 
-              padding: 0, 
-              maxHeight: isMobile ? "80vh" : "70vh", 
-              overflowY: isMobile ? "auto" : "hidden",
-              WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
-              display: "flex",
-              justifyContent: "center",
-              margin: 0
-            }}>
-              {isMobile ? (
-                <MobilePDFViewer
-                  pdfUrl={pdfUrl}
-                  quotationNumber={quotationNumber}
-                  onDownload={handleDownload}
-                  onPrint={handlePrint}
-                  onShare={handleShare}
-                />
-              ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
-                  <iframe
-                    src={pdfUrl}
-                    style={{
-                      width: "100%",
-                      height: "70vh",
-                      border: "none",
-                      borderRadius: "0",
-                      maxWidth: "100%",
-                      margin: 0
-                    }}
-                    title="Quotation PDF"
-                    allowFullScreen={true}
+                    className="btn-close"
+                    onClick={onClose}
+                    style={{ borderRadius: "12px", padding: "8px" }}
                   />
                 </div>
-              )}
-            </div>
-          ) : mode === "view" && pdfLoading ? (
-            <div className="modal-body" style={{ 
-              padding: "0 32px 24px", 
-              maxHeight: "70vh", 
-              overflowY: "auto",
-              display: "flex",
-              justifyContent: "center"
-            }}>
-              <div style={{ 
-                display: "flex", 
-                justifyContent: "center", 
-                alignItems: "center", 
-                height: "50vh",
-                flexDirection: "column"
-              }}>
-                <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-3 text-muted">Generating PDF...</p>
               </div>
             </div>
-          ) : (
-            <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
-              {/* Client and Quotation Number Section */}
-              <div className="row mb-4">
-                <div className="col-md-6 col-12 mb-1 mb-md-0 client-col">
-                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                    <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
-                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                        <User size={18} className="me-2" />
-                        Client Information
-                      </h6>
-                      <div className="position-relative" ref={clientInputRef}>
+
+            {/* Body */}
+            {mode === "view" && pdfUrl ? (
+              <div className="modal-body" style={{
+                padding: 0,
+                maxHeight: isMobile ? "80vh" : "70vh",
+                overflowY: isMobile ? "auto" : "hidden",
+                WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
+                display: "flex",
+                justifyContent: "center",
+                margin: 0
+              }}>
+                {isMobile ? (
+                  <MobilePDFViewer
+                    pdfUrl={pdfUrl}
+                    quotationNumber={quotationNumber}
+                    onDownload={handleDownload}
+                    onPrint={handlePrint}
+                    onShare={handleShare}
+                  />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", justifyContent: "center" }}>
+                    <iframe
+                      src={pdfUrl}
+                      style={{
+                        width: "100%",
+                        height: "70vh",
+                        border: "none",
+                        borderRadius: "0",
+                        maxWidth: "100%",
+                        margin: 0
+                      }}
+                      title="Quotation PDF"
+                      allowFullScreen={true}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : mode === "view" && pdfLoading ? (
+              <div className="modal-body" style={{
+                padding: "0 32px 24px",
+                maxHeight: "70vh",
+                overflowY: "auto",
+                display: "flex",
+                justifyContent: "center"
+              }}>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "50vh",
+                  flexDirection: "column"
+                }}>
+                  <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-3 text-muted">Generating PDF...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="modal-body" style={{ padding: isMobile ? 0 : "0 32px 24px", maxHeight: "70vh", overflowY: "auto" }}>
+                {/* Client and Quotation Number Section */}
+                <div className="row mb-4">
+                  <div className="col-md-6 col-12 mb-1 mb-md-0 client-col">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
+                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                          <User size={18} className="me-2" />
+                          Client Information
+                        </h6>
+                        <div className="position-relative" ref={clientInputRef}>
+                          <div className="input-group">
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Search client..."
+                              value={clientSearchTerm}
+                              onChange={(e) => handleClientSearch(e.target.value)}
+                              onFocus={() => setClientDropdownVisible(true)}
+                              style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
+                              readOnly={isReadOnly}
+                            />
+                          </div>
+
+                          <PortalDropdown
+                            isVisible={clientDropdownVisible && !isReadOnly}
+                            triggerRef={clientInputRef}
+                            onClose={() => setClientDropdownVisible(false)}
+                          >
+                            <div style={{
+                              marginTop: "5px",
+                              borderRadius: "16px",
+                              boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+                              background: "#fff",
+                              minWidth: "100%",
+                              padding: "8px 0"
+                            }}>
+                              {filteredClients.map(client => (
+                                <div
+                                  key={client.id}
+                                  style={{
+                                    padding: "12px 20px",
+                                    cursor: "pointer",
+                                    background: "#fff",
+                                    color: "#212529",
+                                    transition: "background 0.2s"
+                                  }}
+                                  onClick={() => handleClientSelect(client)}
+                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                >
+                                  <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
+                                  {(client.phone || client.location) && (
+                                    <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
+                                      {client.phone}
+                                      {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
+                                      {client.location}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {filteredClients.length === 0 && (
+                                <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
+                                  No clients found
+                                </div>
+                              )}
+                            </div>
+                          </PortalDropdown>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-3 col-12 mb-1 mb-md-0">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-3">
+                        <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
+                          Quotation Number
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={quotationNumber}
+                          readOnly
+                          style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-3 col-12 mb-1 mb-md-0">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-3">
+                        <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
+                          Date
+                        </label>
                         <div className="input-group">
                           <input
-                            type="text"
+                            type="date"
                             className="form-control"
-                            placeholder="Search client..."
-                            value={clientSearchTerm}
-                            onChange={(e) => handleClientSearch(e.target.value)}
-                            onFocus={() => setClientDropdownVisible(true)}
-                            style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
+                            value={quotationDate}
+                            onChange={e => setQuotationDate(e.target.value)}
+                            style={{ borderRadius: "12px", height: "45px", border: "1px solid #e9ecef" }}
                             readOnly={isReadOnly}
                           />
                         </div>
-                        
-                        <PortalDropdown
-                          isVisible={clientDropdownVisible && !isReadOnly}
-                          triggerRef={clientInputRef}
-                          onClose={() => setClientDropdownVisible(false)}
-                        >
-                          <div style={{
-                            marginTop: "5px",
-                            borderRadius: "16px",
-                            boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
-                            background: "#fff",
-                            minWidth: "100%",
-                            padding: "8px 0"
-                          }}>
-                            {filteredClients.map(client => (
-                              <div
-                                key={client.id}
-                                style={{
-                                  padding: "12px 20px",
-                                  cursor: "pointer",
-                                  background: "#fff",
-                                  color: "#212529",
-                                  transition: "background 0.2s"
-                                }}
-                                onClick={() => handleClientSelect(client)}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                              >
-                                <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "2px", letterSpacing: "0.01em" }}>{client.name}</div>
-                                {(client.phone || client.location) && (
-                                  <div style={{ fontSize: "14px", color: "#6c757d", fontWeight: 400 }}>
-                                    {client.phone}
-                                    {client.phone && client.location && <span style={{ margin: "0 4px" }}>•</span>}
-                                    {client.location}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                            {filteredClients.length === 0 && (
-                              <div style={{ padding: "12px 20px", color: "#495057", fontStyle: "italic", background: "#fff" }}>
-                                No clients found
-                              </div>
-                            )}
-                          </div>
-                        </PortalDropdown>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="col-md-3 col-12 mb-1 mb-md-0">
+                {/* Cabinet Items Section */}
+                <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                    <div className="card-body p-3">
-                      <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
-                        Quotation Number
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={quotationNumber}
-                        readOnly
-                        style={{ borderRadius: "12px", height: "45px", backgroundColor: "#f8f9fa", border: "1px solid #e9ecef" }}
-                      />
+                    <div className="card-body p-4">
+                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <Calculator size={18} className="me-2" />
+                        <EditableSectionHeader
+                          sectionKey="cabinet"
+                          currentName={sectionNames.cabinet}
+                          onEdit={() => handleSectionNameEdit("cabinet")}
+                          onSave={() => handleSectionNameSave("cabinet")}
+                          onCancel={handleSectionNameCancel}
+                          onKeyPress={(e) => handleSectionNameKeyPress(e, "cabinet")}
+                          isEditing={editingSection === "cabinet"}
+                          editingName={editingSectionName}
+                          onEditingNameChange={setEditingSectionName}
+                          isReadOnly={isReadOnly}
+                        />
+                      </h6>
+
+                      {/* Items Section - Div based design */}
+                      <div className="mb-3">
+
+                        {/* Column Headers */}
+                        <div className="d-flex mb-3" style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "white"
+                        }}>
+                          <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                          <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                          <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                          <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                          <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                          {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
+                        </div>
+
+                        {/* Item Rows */}
+                        {cabinetItems.map((item, index) => (
+                          <div key={item.id || `cabinet-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                            <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
+                              <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    updateItem("cabinet", index, "description", e.target.value)
+                                    handleItemSearch(item.id?.toString() || "", e.target.value)
+                                    setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                  }}
+                                  onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                  placeholder="Search and select item"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+
+                                <PortalDropdown
+                                  isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                  triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                  onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                >
+                                  {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                    <li
+                                      key={stockItem.id}
+                                      style={{
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid #f1f3f4",
+                                        background: "#fff",
+                                        color: "#212529"
+                                      }}
+                                      onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                    >
+                                      <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#495057" }}>
+                                        Unit Price: KES {stockItem.unit_price?.toFixed(2)}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </PortalDropdown>
+                              </div>
+                            </div>
+
+                            <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={item.unit}
+                                onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
+                                placeholder="Units"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+
+                            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={
+                                  rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                    ? rawQuantityValues[item.id?.toString() || ""]
+                                    : (item.quantity === 1 ? "" : item.quantity)
+                                }
+                                onFocus={e => {
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                }}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                }}
+                                onBlur={e => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 1 : parseFloat(val);
+                                  updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
+                                  setRawQuantityValues(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[item.id?.toString() || ""];
+                                    return copy;
+                                  });
+                                }}
+                                placeholder="1"
+                                style={{
+                                  width: "auto",
+                                  borderRadius: "12px",
+                                  height: "40px",
+                                  fontSize: "13px",
+                                  background: "transparent",
+                                  color: "#fff",
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={item.unit_price || ""}
+                                onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                placeholder="Unit Price"
+                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                readOnly={isReadOnly}
+                                min="0"
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="item-total col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                              <span className="worktop-total-currency">KES</span>
+                              <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                            </div>
+
+                            {!isReadOnly && (
+                              <div className="item-delete col-delete w-md-auto text-center text-md-left" style={{ flex: "0 0 40px", marginLeft: 'auto' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removeItem("cabinet", index)}
+                                  style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Minimalistic Labour Footer for Cabinet Section */}
+                        {mode !== "view" && (
+                          <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                            <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                              <input
+                                type="number"
+                                value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setCabinetLabourPercentage(0);
+                                }}
+                                onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
+                                placeholder="30"
+                                style={{
+                                  width: "100%",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  background: "transparent",
+                                  color: "#fff",
+                                  border: "none",
+                                  padding: "8px 0",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                            <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                            <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                            {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+                        )}
+
+                        {/* Add Item Button */}
+                        {!isReadOnly && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => addItem("cabinet")}
+                              style={{
+                                borderRadius: "12px",
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "none",
+                                padding: "10px 20px"
+                              }}
+                            >
+                              <Plus size={14} className="me-1" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="col-md-3 col-12 mb-1 mb-md-0">
+                {/* Worktop Section with Animated Toggle */}
+                <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                    <div className="card-body p-3">
-                      <label className="form-label small fw-semibold mb-2" style={{ color: "#ffffff" }}>
-                        Date
-                      </label>
-                      <div className="input-group">
-                        <input
-                          type="date"
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center mb-3">
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center w-100">
+                            {/* Section Title - Hidden when toggle is off */}
+                            <div
+                              style={{
+                                display: includeWorktop ? "flex" : "none",
+                                alignItems: "center",
+                                marginRight: "12px",
+                                transition: "all 0.3s ease",
+                                transform: includeWorktop ? "translateX(0)" : "translateX(-20px)",
+                                opacity: includeWorktop ? 1 : 0
+                              }}
+                            >
+                              <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                              <EditableSectionHeader
+                                sectionKey="worktop"
+                                currentName={sectionNames.worktop}
+                                onEdit={() => handleSectionNameEdit("worktop")}
+                                onSave={() => handleSectionNameSave("worktop")}
+                                onCancel={handleSectionNameCancel}
+                                onKeyPress={(e) => handleSectionNameKeyPress(e, "worktop")}
+                                isEditing={editingSection === "worktop"}
+                                editingName={editingSectionName}
+                                onEditingNameChange={setEditingSectionName}
+                                isReadOnly={isReadOnly}
+                              />
+                            </div>
+
+                            {/* Toggle Text and Switch */}
+                            <div
+                              className="d-flex align-items-center"
+                              style={{
+                                marginLeft: includeWorktop ? "auto" : "0",
+                                transition: "all 0.3s ease",
+                                transform: includeWorktop ? "translateX(0)" : "translateX(0)"
+                              }}
+                            >
+                              <span
+                                className="me-2 small fw-semibold"
+                                style={{
+                                  color: "#ffffff",
+                                  transition: "all 0.3s ease"
+                                }}
+                              >
+                                {includeWorktop ? "Remove Worktop" : "Include Worktop"}
+                              </span>
+                              <div
+                                className="position-relative"
+                                style={{
+                                  width: "44px",
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  background: includeWorktop ? "#667eea" : "#e9ecef",
+                                  cursor: isReadOnly ? "default" : "pointer",
+                                  transition: "background-color 0.2s"
+                                }}
+                                onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    left: includeWorktop ? "22px" : "2px",
+                                    width: "20px",
+                                    height: "20px",
+                                    borderRadius: "50%",
+                                    background: "white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    transition: "left 0.2s"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {includeWorktop && (
+                        <div className="mb-3">
+
+                          {/* Column Headers */}
+                          <div className="d-flex mb-3 worktop-headers" style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "white"
+                          }}>
+                            <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                            <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                            <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                            <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                            <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                            {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+
+                          {/* Item Rows */}
+                          {worktopItems.map((item, index) => (
+                            <div key={item.id || `worktop-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                              <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
+                                <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                  {isMobile ? (
+                                    <textarea
+                                      className="form-control worktop-item-textarea"
+                                      value={item.description}
+                                      onChange={(e) => {
+                                        updateItem("worktop", index, "description", e.target.value)
+                                        handleItemSearch(item.id?.toString() || "", e.target.value)
+                                        setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                      }}
+                                      onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                      placeholder="Search and select item"
+                                      style={{ borderRadius: "12px", fontSize: "13px", minHeight: "40px" }}
+                                      readOnly={isReadOnly}
+                                    />
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      className="form-control"
+                                      value={item.description}
+                                      onChange={(e) => {
+                                        updateItem("worktop", index, "description", e.target.value)
+                                        handleItemSearch(item.id?.toString() || "", e.target.value)
+                                        setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                      }}
+                                      onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                      placeholder="Search and select item"
+                                      style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                      readOnly={isReadOnly}
+                                    />
+                                  )}
+
+                                  <PortalDropdown
+                                    isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                    triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                    onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                  >
+                                    {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                      <li
+                                        key={stockItem.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          cursor: "pointer",
+                                          borderBottom: "1px solid #f1f3f4",
+                                          background: "#fff",
+                                          color: "#212529"
+                                        }}
+                                        onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                      >
+                                        <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                        <div style={{ fontSize: "11px", color: "#495057" }}>
+                                          Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </PortalDropdown>
+                                </div>
+                              </div>
+
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.unit}
+                                  onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
+                                  placeholder="Units"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={
+                                    rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                      ? rawQuantityValues[item.id?.toString() || ""]
+                                      : (item.quantity === 1 ? "" : item.quantity)
+                                  }
+                                  onFocus={e => {
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                  }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                  }}
+                                  onBlur={e => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 1 : parseFloat(val);
+                                    updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
+                                    setRawQuantityValues(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[item.id?.toString() || ""];
+                                      return copy;
+                                    });
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "auto",
+                                    borderRadius: "12px",
+                                    height: "40px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={item.unit_price || ""}
+                                  onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                  placeholder="Unit Price"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#ffffff" }}>
+                                <span className="worktop-total-currency">KES</span>
+                                <span className="worktop-total-value" style={{ fontWeight: 600 }}>{item.total_price.toFixed(2)}</span>
+                              </div>
+
+                              {!isReadOnly && (
+                                <div className="col-delete w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => removeItem("worktop", index)}
+                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Render the Worktop Installation Labor footer row after the item rows: */}
+                          {mode !== "view" && (
+                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
+                                  onFocus={e => setRawWorktopLaborQty(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
+                                  onChange={e => setRawWorktopLaborQty(e.target.value)}
+                                  onBlur={e => {
+                                    const val = rawWorktopLaborQty ?? "";
+                                    const num = val === '' ? 1 : Number(val);
+                                    setWorktopLaborQty(isNaN(num) ? 1 : num);
+                                    setRawWorktopLaborQty(undefined);
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "auto",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none",
+                                    textAlign: "left"
+                                  }}
+                                  min="1"
+                                  step="1"
+                                />
+                              </div>
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000 ? "" : worktopLaborUnitPrice)}
+                                  onFocus={e => setRawWorktopLaborUnitPrice(worktopLaborUnitPrice === 3000 ? "" : String(worktopLaborUnitPrice))}
+                                  onChange={e => setRawWorktopLaborUnitPrice(e.target.value)}
+                                  onBlur={e => {
+                                    const val = rawWorktopLaborUnitPrice ?? "";
+                                    const num = val === '' ? 3000 : Number(val);
+                                    setWorktopLaborUnitPrice(isNaN(num) ? 3000 : num);
+                                    setRawWorktopLaborUnitPrice(undefined);
+                                  }}
+                                  placeholder="3000"
+                                  style={{
+                                    width: "auto",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none",
+                                    textAlign: "left"
+                                  }}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
+                                KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
+                              </div>
+                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                            </div>
+                          )}
+
+                          {/* Move the Add Item button to be the last element: */}
+                          {!isReadOnly && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => addItem("worktop")}
+                                style={{
+                                  borderRadius: "12px",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  border: "none",
+                                  padding: "10px 20px"
+                                }}
+                              >
+                                <Plus size={14} className="me-1" />
+                                Add Item
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accessories Section with Animated Toggle */}
+                <div className="mb-4">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center mb-3">
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center w-100">
+                            {/* Section Title - Hidden when toggle is off */}
+                            <div
+                              style={{
+                                display: includeAccessories ? "flex" : "none",
+                                alignItems: "center",
+                                marginRight: "12px",
+                                transition: "all 0.3s ease",
+                                transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
+                                opacity: includeAccessories ? 1 : 0
+                              }}
+                            >
+                              <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                              <EditableSectionHeader
+                                sectionKey="accessories"
+                                currentName={sectionNames.accessories}
+                                onEdit={() => handleSectionNameEdit("accessories")}
+                                onSave={() => handleSectionNameSave("accessories")}
+                                onCancel={handleSectionNameCancel}
+                                onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
+                                isEditing={editingSection === "accessories"}
+                                editingName={editingSectionName}
+                                onEditingNameChange={setEditingSectionName}
+                                isReadOnly={isReadOnly}
+                              />
+                            </div>
+
+                            {/* Toggle Text and Switch */}
+                            <div
+                              className="d-flex align-items-center"
+                              style={{
+                                marginLeft: includeAccessories ? "auto" : "0",
+                                transition: "all 0.3s ease",
+                                transform: includeAccessories ? "translateX(0)" : "translateX(0)"
+                              }}
+                            >
+                              <span
+                                className="me-2 small fw-semibold"
+                                style={{
+                                  color: "#ffffff",
+                                  transition: "all 0.3s ease"
+                                }}
+                              >
+                                {includeAccessories ? "Remove Accessories" : "Include Accessories"}
+                              </span>
+                              <div
+                                className="position-relative"
+                                style={{
+                                  width: "44px",
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  background: includeAccessories ? "#667eea" : "#e9ecef",
+                                  cursor: isReadOnly ? "default" : "pointer",
+                                  transition: "background-color 0.2s"
+                                }}
+                                onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    left: includeAccessories ? "22px" : "2px",
+                                    width: "20px",
+                                    height: "20px",
+                                    borderRadius: "50%",
+                                    background: "white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    transition: "left 0.2s"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {includeAccessories && (
+                        <div className="mb-3">
+
+                          {/* Column Headers */}
+                          <div className="d-flex mb-3 worktop-headers" style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "white"
+                          }}>
+                            <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                            {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+
+                          {/* Item Rows */}
+                          {accessoriesItems.map((item, index) => (
+                            <div key={item.id || `accessories-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                              <div style={{ flex: "2", marginRight: "16px" }}>
+                                <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={item.description}
+                                    onChange={(e) => {
+                                      updateItem("accessories", index, "description", e.target.value)
+                                      handleItemSearch(item.id?.toString() || "", e.target.value)
+                                      setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                    }}
+                                    onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                    placeholder="Search and select item"
+                                    style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                    readOnly={isReadOnly}
+                                  />
+
+                                  <PortalDropdown
+                                    isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                    triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                    onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                  >
+                                    {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                      <li
+                                        key={stockItem.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          cursor: "pointer",
+                                          borderBottom: "1px solid #f1f3f4",
+                                          background: "#fff",
+                                          color: "#212529"
+                                        }}
+                                        onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                      >
+                                        <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                        <div style={{ fontSize: "11px", color: "#495057" }}>
+                                          Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </PortalDropdown>
+                                </div>
+                              </div>
+
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.unit}
+                                  onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
+                                  placeholder="Units"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={
+                                    rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                      ? rawQuantityValues[item.id?.toString() || ""]
+                                      : (item.quantity === 1 ? "" : item.quantity)
+                                  }
+                                  onFocus={e => {
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                  }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                  }}
+                                  onBlur={e => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 1 : parseFloat(val);
+                                    updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
+                                    setRawQuantityValues(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[item.id?.toString() || ""];
+                                      return copy;
+                                    });
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "12px",
+                                    height: "40px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={item.unit_price || ""}
+                                  onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                  placeholder="Unit Price"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                                <span className="worktop-total-currency">KES</span>
+                                <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                              </div>
+
+                              {!isReadOnly && (
+                                <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => removeItem("accessories", index)}
+                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Minimalistic Labour Footer for Accessories Section */}
+                          {mode !== "view" && (
+                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
+                                  onFocus={e => {
+                                    e.target.value = "";
+                                    setAccessoriesLabourPercentage(0);
+                                  }}
+                                  onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
+                                  onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
+                                  placeholder="30"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
+                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                            </div>
+                          )}
+
+                          {/* Add Item Button */}
+                          {!isReadOnly && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => addItem("accessories")}
+                                style={{
+                                  borderRadius: "12px",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  border: "none",
+                                  padding: "10px 20px"
+                                }}
+                              >
+                                <Plus size={14} className="me-1" />
+                                Add Item
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appliances Section with Animated Toggle */}
+                <div className="mb-4">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center mb-3">
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center w-100">
+                            {/* Section Title - Hidden when toggle is off */}
+                            <div
+                              style={{
+                                display: includeAppliances ? "flex" : "none",
+                                alignItems: "center",
+                                marginRight: "12px",
+                                transition: "all 0.3s ease",
+                                transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
+                                opacity: includeAppliances ? 1 : 0
+                              }}
+                            >
+                              <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                              <EditableSectionHeader
+                                sectionKey="appliances"
+                                currentName={sectionNames.appliances}
+                                onEdit={() => handleSectionNameEdit("appliances")}
+                                onSave={() => handleSectionNameSave("appliances")}
+                                onCancel={handleSectionNameCancel}
+                                onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
+                                isEditing={editingSection === "appliances"}
+                                editingName={editingSectionName}
+                                onEditingNameChange={setEditingSectionName}
+                                isReadOnly={isReadOnly}
+                              />
+                            </div>
+
+                            {/* Toggle Text and Switch */}
+                            <div
+                              className="d-flex align-items-center"
+                              style={{
+                                marginLeft: includeAppliances ? "auto" : "0",
+                                transition: "all 0.3s ease",
+                                transform: includeAppliances ? "translateX(0)" : "translateX(0)"
+                              }}
+                            >
+                              <span
+                                className="me-2 small fw-semibold"
+                                style={{
+                                  color: "#ffffff",
+                                  transition: "all 0.3s ease"
+                                }}
+                              >
+                                {includeAppliances ? "Remove Appliances" : "Include Appliances"}
+                              </span>
+                              <div
+                                className="position-relative"
+                                style={{
+                                  width: "44px",
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  background: includeAppliances ? "#667eea" : "#e9ecef",
+                                  cursor: isReadOnly ? "default" : "pointer",
+                                  transition: "background-color 0.2s"
+                                }}
+                                onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    left: includeAppliances ? "22px" : "2px",
+                                    width: "20px",
+                                    height: "20px",
+                                    borderRadius: "50%",
+                                    background: "white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    transition: "left 0.2s"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {includeAppliances && (
+                        <div className="mb-3">
+
+                          {/* Column Headers */}
+                          <div className="d-flex mb-3 worktop-headers" style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "white"
+                          }}>
+                            <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                            {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+
+                          {/* Item Rows */}
+                          {appliancesItems.map((item, index) => (
+                            <div key={item.id || `appliances-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                              <div style={{ flex: "2", marginRight: "16px" }}>
+                                <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={item.description}
+                                    onChange={(e) => {
+                                      updateItem("appliances", index, "description", e.target.value)
+                                      handleItemSearch(item.id?.toString() || "", e.target.value)
+                                      setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                    }}
+                                    onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                    placeholder="Search and select item"
+                                    style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                    readOnly={isReadOnly}
+                                  />
+
+                                  <PortalDropdown
+                                    isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                    triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                    onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                  >
+                                    {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                      <li
+                                        key={stockItem.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          cursor: "pointer",
+                                          borderBottom: "1px solid #f1f3f4",
+                                          background: "#fff",
+                                          color: "#212529"
+                                        }}
+                                        onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                      >
+                                        <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                        <div style={{ fontSize: "11px", color: "#495057" }}>
+                                          Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </PortalDropdown>
+                                </div>
+                              </div>
+
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.unit}
+                                  onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
+                                  placeholder="Units"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={
+                                    rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                      ? rawQuantityValues[item.id?.toString() || ""]
+                                      : (item.quantity === 1 ? "" : item.quantity)
+                                  }
+                                  onFocus={e => {
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                  }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                  }}
+                                  onBlur={e => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 1 : parseFloat(val);
+                                    updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
+                                    setRawQuantityValues(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[item.id?.toString() || ""];
+                                      return copy;
+                                    });
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "auto",
+                                    borderRadius: "12px",
+                                    height: "40px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={item.unit_price || ""}
+                                  onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                  placeholder="Unit Price"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                                <span className="worktop-total-currency">KES</span>
+                                <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                              </div>
+
+                              {!isReadOnly && (
+                                <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => removeItem("appliances", index)}
+                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Minimalistic Labour Footer for Appliances Section */}
+                          {mode !== "view" && (
+                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
+                                  onFocus={e => {
+                                    e.target.value = "";
+                                    setAppliancesLabourPercentage(0);
+                                  }}
+                                  onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
+                                  onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
+                                  placeholder="30"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
+                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                            </div>
+                          )}
+
+                          {/* Add Item Button */}
+                          {!isReadOnly && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => addItem("appliances")}
+                                style={{
+                                  borderRadius: "12px",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  border: "none",
+                                  padding: "10px 20px"
+                                }}
+                              >
+                                <Plus size={14} className="me-1" />
+                                Add Item
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wardrobes Section with Animated Toggle */}
+                <div className="mb-4">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center mb-3">
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center w-100">
+                            {/* Section Title - Hidden when toggle is off */}
+                            <div
+                              style={{
+                                display: includeWardrobes ? "flex" : "none",
+                                alignItems: "center",
+                                marginRight: "12px",
+                                transition: "all 0.3s ease",
+                                transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
+                                opacity: includeWardrobes ? 1 : 0
+                              }}
+                            >
+                              <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                              <EditableSectionHeader
+                                sectionKey="wardrobes"
+                                currentName={sectionNames.wardrobes}
+                                onEdit={() => handleSectionNameEdit("wardrobes")}
+                                onSave={() => handleSectionNameSave("wardrobes")}
+                                onCancel={handleSectionNameCancel}
+                                onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
+                                isEditing={editingSection === "wardrobes"}
+                                editingName={editingSectionName}
+                                onEditingNameChange={setEditingSectionName}
+                                isReadOnly={isReadOnly}
+                              />
+                            </div>
+
+                            {/* Toggle Text and Switch */}
+                            <div
+                              className="d-flex align-items-center"
+                              style={{
+                                marginLeft: includeWardrobes ? "auto" : "0",
+                                transition: "all 0.3s ease",
+                                transform: includeWardrobes ? "translateX(0)" : "translateX(0)"
+                              }}
+                            >
+                              <span
+                                className="me-2 small fw-semibold"
+                                style={{
+                                  color: "#ffffff",
+                                  transition: "all 0.3s ease"
+                                }}
+                              >
+                                {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
+                              </span>
+                              <div
+                                className="position-relative"
+                                style={{
+                                  width: "44px",
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  background: includeWardrobes ? "#667eea" : "#e9ecef",
+                                  cursor: isReadOnly ? "default" : "pointer",
+                                  transition: "background-color 0.2s"
+                                }}
+                                onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    left: includeWardrobes ? "22px" : "2px",
+                                    width: "20px",
+                                    height: "20px",
+                                    borderRadius: "50%",
+                                    background: "white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    transition: "left 0.2s"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {includeWardrobes && (
+                        <div className="mb-3">
+
+                          {/* Column Headers */}
+                          <div className="d-flex mb-3 worktop-headers" style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "white"
+                          }}>
+                            <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                            {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+
+                          {/* Item Rows */}
+                          {wardrobesItems.map((item, index) => (
+                            <div key={item.id || `wardrobes-${index}`} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row" style={{ flexDirection: 'row' }}>
+                              <div className="" style={{ flex: "2", marginRight: "16px" }}>
+                                <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={item.description}
+                                    onChange={(e) => {
+                                      updateItem("wardrobes", index, "description", e.target.value)
+                                      handleItemSearch(item.id?.toString() || "", e.target.value)
+                                      setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                    }}
+                                    onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                    placeholder="Search and select item"
+                                    style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                    readOnly={isReadOnly}
+                                  />
+
+                                  <PortalDropdown
+                                    isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                    triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                    onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                  >
+                                    {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                      <li
+                                        key={stockItem.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          cursor: "pointer",
+                                          borderBottom: "1px solid #f1f3f4",
+                                          background: "#fff",
+                                          color: "#212529"
+                                        }}
+                                        onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                      >
+                                        <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                        <div style={{ fontSize: "11px", color: "#495057" }}>
+                                          Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </PortalDropdown>
+                                </div>
+                              </div>
+
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.unit}
+                                  onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
+                                  placeholder="Units"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={
+                                    rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                      ? rawQuantityValues[item.id?.toString() || ""]
+                                      : (item.quantity === 1 ? "" : item.quantity)
+                                  }
+                                  onFocus={e => {
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                  }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                  }}
+                                  onBlur={e => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 1 : parseFloat(val);
+                                    updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
+                                    setRawQuantityValues(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[item.id?.toString() || ""];
+                                      return copy;
+                                    });
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "auto",
+                                    borderRadius: "12px",
+                                    height: "40px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={item.unit_price || ""}
+                                  onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                  placeholder="Unit Price"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                                <span className="worktop-total-currency">KES</span>
+                                <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                              </div>
+
+                              {!isReadOnly && (
+                                <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => removeItem("wardrobes", index)}
+                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Minimalistic Labour Footer for Wardrobes Section */}
+                          {mode !== "view" && (
+                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
+                                  onFocus={e => {
+                                    e.target.value = "";
+                                    setWardrobesLabourPercentage(0);
+                                  }}
+                                  onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
+                                  onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
+                                  placeholder="30"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                            </div>
+                          )}
+
+                          {/* Add Item Button */}
+                          {!isReadOnly && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => addItem("wardrobes")}
+                                style={{
+                                  borderRadius: "12px",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  border: "none",
+                                  padding: "10px 20px"
+                                }}
+                              >
+                                <Plus size={14} className="me-1" />
+                                Add Item
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* TV Unit Section with Animated Toggle */}
+                <div className="mb-4">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-4">
+                      <div className="d-flex align-items-center mb-3">
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center w-100">
+                            {/* Section Title - Hidden when toggle is off */}
+                            <div
+                              style={{
+                                display: includeTvUnit ? "flex" : "none",
+                                alignItems: "center",
+                                marginRight: "12px",
+                                transition: "all 0.3s ease",
+                                transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
+                                opacity: includeTvUnit ? 1 : 0
+                              }}
+                            >
+                              <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                              <EditableSectionHeader
+                                sectionKey="tvunit"
+                                currentName={sectionNames.tvunit}
+                                onEdit={() => handleSectionNameEdit("tvunit")}
+                                onSave={() => handleSectionNameSave("tvunit")}
+                                onCancel={handleSectionNameCancel}
+                                onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
+                                isEditing={editingSection === "tvunit"}
+                                editingName={editingSectionName}
+                                onEditingNameChange={setEditingSectionName}
+                                isReadOnly={isReadOnly}
+                              />
+                            </div>
+
+                            {/* Toggle Text and Switch */}
+                            <div
+                              className="d-flex align-items-center"
+                              style={{
+                                marginLeft: includeTvUnit ? "auto" : "0",
+                                transition: "all 0.3s ease",
+                                transform: includeTvUnit ? "translateX(0)" : "translateX(0)"
+                              }}
+                            >
+                              <span
+                                className="me-2 small fw-semibold"
+                                style={{
+                                  color: "#ffffff",
+                                  transition: "all 0.3s ease"
+                                }}
+                              >
+                                {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
+                              </span>
+                              <div
+                                className="position-relative"
+                                style={{
+                                  width: "44px",
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  background: includeTvUnit ? "#667eea" : "#e9ecef",
+                                  cursor: isReadOnly ? "default" : "pointer",
+                                  transition: "background-color 0.2s"
+                                }}
+                                onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "2px",
+                                    left: includeTvUnit ? "22px" : "2px",
+                                    width: "20px",
+                                    height: "20px",
+                                    borderRadius: "50%",
+                                    background: "white",
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                                    transition: "left 0.2s"
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {includeTvUnit && (
+                        <div className="mb-3">
+
+                          {/* Column Headers */}
+                          <div className="d-flex mb-3 worktop-headers" style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "white"
+                          }}>
+                            <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+                            <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+                            {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
+                          </div>
+
+                          {/* Item Rows */}
+                          {tvUnitItems.map((item, index) => (
+                            <div key={item.id || `tvunit-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
+                              <div style={{ flex: "2", marginRight: "16px" }}>
+                                <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={item.description}
+                                    onChange={(e) => {
+                                      updateItem("tvunit", index, "description", e.target.value)
+                                      handleItemSearch(item.id?.toString() || "", e.target.value)
+                                      setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+                                    }}
+                                    onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
+                                    placeholder="Search and select item"
+                                    style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                    readOnly={isReadOnly}
+                                  />
+
+                                  <PortalDropdown
+                                    isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
+                                    triggerRef={getItemInputRef(item.id?.toString() || "")}
+                                    onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
+                                  >
+                                    {getFilteredItems(item.id?.toString() || "").map(stockItem => (
+                                      <li
+                                        key={stockItem.id}
+                                        style={{
+                                          padding: "8px 12px",
+                                          cursor: "pointer",
+                                          borderBottom: "1px solid #f1f3f4",
+                                          background: "#fff",
+                                          color: "#212529"
+                                        }}
+                                        onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
+                                      >
+                                        <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
+                                        <div style={{ fontSize: "11px", color: "#495057" }}>
+                                          Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </PortalDropdown>
+                                </div>
+                              </div>
+
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={item.unit}
+                                  onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
+                                  placeholder="Units"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={
+                                    rawQuantityValues[item.id?.toString() || ""] !== undefined
+                                      ? rawQuantityValues[item.id?.toString() || ""]
+                                      : (item.quantity === 1 ? "" : item.quantity)
+                                  }
+                                  onFocus={e => {
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
+                                  }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
+                                  }}
+                                  onBlur={e => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 1 : parseFloat(val);
+                                    updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
+                                    setRawQuantityValues(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[item.id?.toString() || ""];
+                                      return copy;
+                                    });
+                                  }}
+                                  placeholder="1"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "12px",
+                                    height: "40px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  className="form-control"
+                                  value={item.unit_price || ""}
+                                  onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
+                                  placeholder="Unit Price"
+                                  style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
+                                  readOnly={isReadOnly}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
+                                <span className="worktop-total-currency">KES</span>
+                                <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                              </div>
+
+                              {!isReadOnly && (
+                                <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => removeItem("tvunit", index)}
+                                    style={{ borderRadius: "8px", padding: "4px 8px" }}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Minimalistic Labour Footer for TV Unit Section */}
+                          {mode !== "view" && (
+                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                <input
+                                  type="number"
+                                  value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
+                                  onFocus={e => {
+                                    e.target.value = "";
+                                    setTvUnitLabourPercentage(0);
+                                  }}
+                                  onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
+                                  onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
+                                  placeholder="30"
+                                  style={{
+                                    width: "100%",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    background: "transparent",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 0",
+                                    boxShadow: "none",
+                                    backgroundColor: "transparent",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "textfield",
+                                    outline: "none"
+                                  }}
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
+                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
+                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
+                            </div>
+                          )}
+
+                          {/* Add Item Button */}
+                          {!isReadOnly && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => addItem("tvunit")}
+                                style={{
+                                  borderRadius: "12px",
+                                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                  border: "none",
+                                  padding: "10px 20px"
+                                }}
+                              >
+                                <Plus size={14} className="me-1" />
+                                Add Item
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Totals Section */}
+                <div className="mb-4">
+                  <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                    <div className="card-body p-4">
+                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <Calculator size={18} className="me-2" />
+                        Summary
+                      </h6>
+                      <div className="row">
+                        <div className="col-md-6">
+                          <div className="d-flex justify-content-between mb-2">
+                            <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
+                            <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
+                          </div>
+                          {includeWorktop && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{sectionNames.worktop} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {includeAccessories && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{sectionNames.accessories} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {includeAppliances && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{sectionNames.appliances} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {includeWardrobes && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{sectionNames.wardrobes} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {includeTvUnit && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="col-md-6">
+                          <div className="d-flex justify-content-between mb-2">
+                            <span style={{ color: "#ffffff" }}>Subtotal:</span>
+                            <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="d-flex justify-content-between mb-2">
+                            <div className="d-flex align-items-center">
+                              <span style={{ color: "#ffffff", marginRight: "8px" }}>VAT:</span>
+                              <input
+                                type="number"
+                                value={vatPercentage === 16 ? "" : (vatPercentage === 0 ? "" : vatPercentage)}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setVatPercentage(0);
+                                }}
+                                onChange={e => setVatPercentage(Number(e.target.value) || 0)}
+                                onBlur={e => setVatPercentage(Number(e.target.value) || 16)}
+                                placeholder="16"
+                                style={{
+                                  width: "60px",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  background: "transparent",
+                                  color: "#fff",
+                                  border: "none",
+                                  padding: "4px 8px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none",
+                                  textAlign: "center"
+                                }}
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                readOnly={isReadOnly}
+                              />
+                              <span style={{ color: "#ffffff", marginLeft: "4px" }}>%</span>
+                            </div>
+                            <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="d-flex justify-content-between mb-2">
+                            <div className="d-flex align-items-center">
+                              <span style={{ color: "#ffffff", marginRight: "8px" }}>Discount:</span>
+                              <input
+                                type="number"
+                                value={discountAmount === 0 ? "" : discountAmount}
+                                onFocus={e => {
+                                  e.target.value = "";
+                                  setDiscountAmount(0);
+                                }}
+                                onChange={e => setDiscountAmount(Number(e.target.value) || 0)}
+                                onBlur={e => setDiscountAmount(Number(e.target.value) || 0)}
+                                placeholder="0"
+                                style={{
+                                  width: "80px",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  background: "transparent",
+                                  color: "#fff",
+                                  border: "none",
+                                  padding: "4px 8px",
+                                  boxShadow: "none",
+                                  backgroundColor: "transparent",
+                                  WebkitAppearance: "none",
+                                  MozAppearance: "textfield",
+                                  outline: "none",
+                                  textAlign: "center",
+                                  marginRight: "8px"
+                                }}
+                                min="0"
+                                step="0.01"
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                            <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
+                            <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
+                            <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {(subtotalWithLabour - discountAmount).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes and Terms Section */}
+                <div className="row mb-4">
+                  <div className="col-md-6">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                          Notes
+                        </h6>
+                        <textarea
                           className="form-control"
-                          value={quotationDate}
-                          onChange={e => setQuotationDate(e.target.value)}
-                          style={{ borderRadius: "12px", height: "45px", border: "1px solid #e9ecef" }}
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Additional notes..."
+                          style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
+                          readOnly={isReadOnly}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                          Terms & Conditions
+                        </h6>
+                        <textarea
+                          className="form-control"
+                          value={termsConditions}
+                          onChange={(e) => setTermsConditions(e.target.value)}
+                          placeholder="Terms and conditions..."
+                          style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
                           readOnly={isReadOnly}
                         />
                       </div>
@@ -2146,2038 +4149,63 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </div>
                 </div>
               </div>
+            )}
 
-            {/* Cabinet Items Section */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                    <Calculator size={18} className="me-2" />
-                    <EditableSectionHeader
-                      sectionKey="cabinet"
-                      currentName={sectionNames.cabinet}
-                      onEdit={() => handleSectionNameEdit("cabinet")}
-                      onSave={() => handleSectionNameSave("cabinet")}
-                      onCancel={handleSectionNameCancel}
-                      onKeyPress={(e) => handleSectionNameKeyPress(e, "cabinet")}
-                      isEditing={editingSection === "cabinet"}
-                      editingName={editingSectionName}
-                      onEditingNameChange={setEditingSectionName}
-                      isReadOnly={isReadOnly}
-                    />
-                  </h6>
-                  
-                  {/* Items Section - Div based design */}
-                  <div className="mb-3">
-                    
-                    {/* Column Headers */}
-                    <div className="d-flex mb-3" style={{ 
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "white"
-                    }}>
-                      <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                      <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                      {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
-                </div>
-
-                    {/* Item Rows */}
-                    {cabinetItems.map((item, index) => (
-                      <div key={item.id || `cabinet-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
-                        <div className="w-100 w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
-                          <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                      <input
-                        type="text"
-                              className="form-control"
-                              value={item.description}
-                        onChange={(e) => {
-                                updateItem("cabinet", index, "description", e.target.value)
-                                handleItemSearch(item.id?.toString() || "", e.target.value)
-                                setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
+            {/* Footer */}
+            <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
+              {mode === "view" ? (
+                <>
+                  {/* Mobile layout: Proceed on its own row above; Close + Print/Share on next row, all right-aligned */}
+                  <div className="d-flex d-md-none flex-column w-100 gap-2">
+                    {(() => {
+                      const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                      return showButton ? (
+                        <div className="d-flex justify-content-end">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => onProceedToSalesOrder(quotation)}
+                            style={{
+                              borderRadius: "12px",
+                              padding: "10px 24px",
+                              background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                              border: "none"
+                            }}
+                          >
+                            <CreditCard className="me-2" size={16} />
+                            Proceed to Sales Order
+                          </button>
+                        </div>
+                      ) : null;
+                    })()}
+                    <div className="d-flex justify-content-end gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-light"
+                        onClick={onClose}
+                        style={{ borderRadius: "12px", padding: "10px 24px" }}
+                      >
+                        Close
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-success"
+                        onClick={handlePrintModalOpen}
+                        style={{
+                          borderRadius: "12px",
+                          padding: "10px 24px",
+                          background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                          border: "none"
                         }}
-                              onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                              placeholder="Search and select item"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                        readOnly={isReadOnly}
-                      />
-                            
-                            <PortalDropdown
-                              isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                              triggerRef={getItemInputRef(item.id?.toString() || "")}
-                              onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                            >
-                              {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                <li
-                                  key={stockItem.id}
-                                  style={{
-                                    padding: "8px 12px",
-                                    cursor: "pointer",
-                                    borderBottom: "1px solid #f1f3f4",
-                                    background: "#fff",
-                                    color: "#212529"
-                                  }}
-                                  onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                  onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                >
-                                  <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                  <div style={{ fontSize: "11px", color: "#495057" }}>
-                                    Unit Price: KES {stockItem.unit_price?.toFixed(2)}
-                            </div>
-                                </li>
-                          ))}
-                            </PortalDropdown>
-                        </div>
-                    </div>
-                        
-                        <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={item.unit}
-                            onChange={(e) => updateItem("cabinet", index, "unit", e.target.value)}
-                            placeholder="Units"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                                                                            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("cabinet", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "auto",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                        
-                        <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                        
-                        <div className="item-total col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                          <span className="worktop-total-currency">KES</span>
-                          <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
-                        </div>
-
-                        {!isReadOnly && (
-                          <div className="item-delete col-delete w-md-auto text-center text-md-left" style={{ flex: "0 0 40px", marginLeft: 'auto' }}>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => removeItem("cabinet", index)}
-                              style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Minimalistic Labour Footer for Cabinet Section */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
-                            onFocus={e => {
-                              e.target.value = "";
-                              setCabinetLabourPercentage(0);
-                            }}
-                            onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
-                            onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
-                            placeholder="30"
-                            style={{ 
-                              width: "100%",
-                              borderRadius: "8px", 
-                              fontSize: "13px", 
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 0",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            min="0"
-                            max="100"
-                            step="0.01"
-                          />
-                        </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-                    )}
-
-                    {/* Add Item Button */}
-                    {!isReadOnly && (
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => addItem("cabinet")}
-                          style={{ 
-                            borderRadius: "12px", 
-                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                            border: "none",
-                            padding: "10px 20px"
-                          }}
-                        >
-                          <Plus size={14} className="me-1" />
-                          Add Item
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Worktop Section with Animated Toggle */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center mb-3">
-                    {!isReadOnly && (
-                      <div className="d-flex align-items-center w-100">
-                        {/* Section Title - Hidden when toggle is off */}
-                        <div 
-                          style={{
-                            display: includeWorktop ? "flex" : "none",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            transition: "all 0.3s ease",
-                            transform: includeWorktop ? "translateX(0)" : "translateX(-20px)",
-                            opacity: includeWorktop ? 1 : 0
-                          }}
-                        >
-                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <EditableSectionHeader
-                            sectionKey="worktop"
-                            currentName={sectionNames.worktop}
-                            onEdit={() => handleSectionNameEdit("worktop")}
-                            onSave={() => handleSectionNameSave("worktop")}
-                            onCancel={handleSectionNameCancel}
-                            onKeyPress={(e) => handleSectionNameKeyPress(e, "worktop")}
-                            isEditing={editingSection === "worktop"}
-                            editingName={editingSectionName}
-                            onEditingNameChange={setEditingSectionName}
-                            isReadOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        {/* Toggle Text and Switch */}
-                        <div 
-                          className="d-flex align-items-center"
-                          style={{
-                            marginLeft: includeWorktop ? "auto" : "0",
-                            transition: "all 0.3s ease",
-                            transform: includeWorktop ? "translateX(0)" : "translateX(0)"
-                          }}
-                        >
-                          <span 
-                            className="me-2 small fw-semibold" 
-                            style={{ 
-                              color: "#ffffff",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            {includeWorktop ? "Remove Worktop" : "Include Worktop"}
-                          </span>
-                          <div 
-                            className="position-relative"
-                            style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeWorktop ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
-                            }}
-                            onClick={() => !isReadOnly && setIncludeWorktop(!includeWorktop)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeWorktop ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {includeWorktop && (
-                    <div className="mb-3">
-                      
-                      {/* Column Headers */}
-                      <div className="d-flex mb-3 worktop-headers" style={{ 
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "white"
-                      }}>
-                        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-
-                      {/* Item Rows */}
-                      {worktopItems.map((item, index) => (
-                        <div key={item.id || `worktop-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
-                          <div className="w-md-auto mb-2 mb-md-0" style={{ flex: "2", marginRight: "16px" }}>
-                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                          {isMobile ? (
-                            <textarea
-                              className="form-control worktop-item-textarea"
-                              value={item.description}
-                              onChange={(e) => {
-                                updateItem("worktop", index, "description", e.target.value)
-                                handleItemSearch(item.id?.toString() || "", e.target.value)
-                                setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                              }}
-                              onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                              placeholder="Search and select item"
-                              style={{ borderRadius: "12px", fontSize: "13px", minHeight: "40px" }}
-                              readOnly={isReadOnly}
-                            />
-                          ) : (
-                          <input
-                            type="text"
-                                className="form-control"
-                            value={item.description}
-                                onChange={(e) => {
-                                  updateItem("worktop", index, "description", e.target.value)
-                                  handleItemSearch(item.id?.toString() || "", e.target.value)
-                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                }}
-                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                placeholder="Search and select item"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                          )}
-                              
-                              <PortalDropdown
-                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                              >
-                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                  <li
-                                    key={stockItem.id}
-                                    style={{
-                                      padding: "8px 12px",
-                                      cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4",
-                                      background: "#fff",
-                                      color: "#212529"
-                                    }}
-                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                  >
-                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                    </div>
-                                  </li>
-                                ))}
-                              </PortalDropdown>
-                            </div>
-                          </div>
-                          
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
-                              className="form-control"
-                              value={item.unit}
-                              onChange={(e) => updateItem("worktop", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
-                          </div>
-                          
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={
-                                rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                  ? rawQuantityValues[item.id?.toString() || ""]
-                                  : (item.quantity === 1 ? "" : item.quantity)
-                              }
-                              onFocus={e => {
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                              }}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                              }}
-                              onBlur={e => {
-                                const val = e.target.value;
-                                const num = val === '' ? 1 : parseFloat(val);
-                                updateItem("worktop", index, "quantity", isNaN(num) ? 1 : num);
-                                setRawQuantityValues(prev => {
-                                  const copy = { ...prev };
-                                  delete copy[item.id?.toString() || ""];
-                                  return copy;
-                                });
-                              }}
-                              placeholder="1"
-                              style={{ 
-                                width: "auto",
-                                borderRadius: "12px", 
-                                height: "40px", 
-                                fontSize: "13px",
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 12px",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={item.unit_price || ""}
-                              onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#ffffff" }}>
-                            <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value" style={{ fontWeight: 600 }}>{item.total_price.toFixed(2)}</span>
-                          </div>
-                          
-                        {!isReadOnly && (
-                            <div className="col-delete w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
-                            <button
-                              type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("worktop", index)}
-                                style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                <X size={12} />
-                            </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Render the Worktop Installation Labor footer row after the item rows: */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)}
-                              onFocus={e => setRawWorktopLaborQty(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
-                              onChange={e => setRawWorktopLaborQty(e.target.value)}
-                              onBlur={e => {
-                                const val = rawWorktopLaborQty ?? "";
-                                const num = val === '' ? 1 : Number(val);
-                                setWorktopLaborQty(isNaN(num) ? 1 : num);
-                                setRawWorktopLaborQty(undefined);
-                              }}
-                              placeholder="1"
-                              style={{
-                                width: "auto",
-                                borderRadius: "8px",
-                                fontSize: "13px",
-                                background: "transparent",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none",
-                                textAlign: "left"
-                              }}
-                              min="1"
-                              step="1"
-                            />
-                          </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000? "" : worktopLaborUnitPrice)}
-                              onFocus={e => setRawWorktopLaborUnitPrice(worktopLaborUnitPrice === 3000? "" : String(worktopLaborUnitPrice))}
-                              onChange={e => setRawWorktopLaborUnitPrice(e.target.value)}
-                              onBlur={e => {
-                                const val = rawWorktopLaborUnitPrice ?? "";
-                                const num = val === '' ? 3000: Number(val);
-                                setWorktopLaborUnitPrice(isNaN(num) ? 3000: num);
-                                setRawWorktopLaborUnitPrice(undefined);
-                              }}
-                              placeholder="3000"
-                              style={{
-                                width: "auto",
-                                borderRadius: "8px",
-                                fontSize: "13px",
-                                background: "transparent",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none",
-                                textAlign: "left"
-                              }}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
-                            KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
-                          </div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-                      )}
-
-                      {/* Move the Add Item button to be the last element: */}
-                      {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("worktop")}
-                            style={{
-                              borderRadius: "12px",
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
-                        </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Accessories Section with Animated Toggle */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center mb-3">
-                    {!isReadOnly && (
-                      <div className="d-flex align-items-center w-100">
-                        {/* Section Title - Hidden when toggle is off */}
-                        <div 
-                          style={{
-                            display: includeAccessories ? "flex" : "none",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            transition: "all 0.3s ease",
-                            transform: includeAccessories ? "translateX(0)" : "translateX(-20px)",
-                            opacity: includeAccessories ? 1 : 0
-                          }}
-                        >
-                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <EditableSectionHeader
-                            sectionKey="accessories"
-                            currentName={sectionNames.accessories}
-                            onEdit={() => handleSectionNameEdit("accessories")}
-                            onSave={() => handleSectionNameSave("accessories")}
-                            onCancel={handleSectionNameCancel}
-                            onKeyPress={(e) => handleSectionNameKeyPress(e, "accessories")}
-                            isEditing={editingSection === "accessories"}
-                            editingName={editingSectionName}
-                            onEditingNameChange={setEditingSectionName}
-                            isReadOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        {/* Toggle Text and Switch */}
-                        <div 
-                          className="d-flex align-items-center"
-                          style={{
-                            marginLeft: includeAccessories ? "auto" : "0",
-                            transition: "all 0.3s ease",
-                            transform: includeAccessories ? "translateX(0)" : "translateX(0)"
-                          }}
-                        >
-                          <span 
-                            className="me-2 small fw-semibold" 
-                            style={{ 
-                              color: "#ffffff",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            {includeAccessories ? "Remove Accessories" : "Include Accessories"}
-                          </span>
-                          <div 
-                            className="position-relative"
-                            style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeAccessories ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
-                            }}
-                            onClick={() => !isReadOnly && setIncludeAccessories(!includeAccessories)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeAccessories ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {includeAccessories && (
-                    <div className="mb-3">
-                      
-                      {/* Column Headers */}
-                      <div className="d-flex mb-3 worktop-headers" style={{ 
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "white"
-                      }}>
-                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-
-                      {/* Item Rows */}
-                      {accessoriesItems.map((item, index) => (
-                        <div key={item.id || `accessories-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
-                          <div style={{ flex: "2", marginRight: "16px" }}>
-                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                          <input
-                            type="text"
-                                className="form-control"
-                            value={item.description}
-                                onChange={(e) => {
-                                  updateItem("accessories", index, "description", e.target.value)
-                                  handleItemSearch(item.id?.toString() || "", e.target.value)
-                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                }}
-                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                placeholder="Search and select item"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                              
-                              <PortalDropdown
-                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                              >
-                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                  <li
-                                    key={stockItem.id}
-                                    style={{
-                                      padding: "8px 12px",
-                                      cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4",
-                                      background: "#fff",
-                                      color: "#212529"
-                                    }}
-                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                  >
-                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                    </div>
-                                  </li>
-                                ))}
-                              </PortalDropdown>
-                            </div>
-                          </div>
-                          
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="text"
-                              className="form-control"
-                              value={item.unit}
-                              onChange={(e) => updateItem("accessories", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                            />
-                          </div>
-                          
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={
-                                rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                  ? rawQuantityValues[item.id?.toString() || ""]
-                                  : (item.quantity === 1 ? "" : item.quantity)
-                              }
-                              onFocus={e => {
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                              }}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                              }}
-                              onBlur={e => {
-                                const val = e.target.value;
-                                const num = val === '' ? 1 : parseFloat(val);
-                                updateItem("accessories", index, "quantity", isNaN(num) ? 1 : num);
-                                setRawQuantityValues(prev => {
-                                  const copy = { ...prev };
-                                  delete copy[item.id?.toString() || ""];
-                                  return copy;
-                                });
-                              }}
-                              placeholder="1"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "12px", 
-                                height: "40px", 
-                                fontSize: "13px",
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 12px",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={item.unit_price || ""}
-                              onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
-                              placeholder="Unit Price"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                              readOnly={isReadOnly}
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
-                          </div>
-                          
-                        {!isReadOnly && (
-                            <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
-                            <button
-                              type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("accessories", index)}
-                                style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                <X size={12} />
-                            </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Minimalistic Labour Footer for Accessories Section */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
-                              onFocus={e => {
-                                e.target.value = "";
-                                setAccessoriesLabourPercentage(0);
-                              }}
-                              onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
-                              onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
-                              placeholder="30"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "8px", 
-                                fontSize: "13px", 
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-                      )}
-
-                      {/* Add Item Button */}
-                      {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("accessories")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
-                        </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Appliances Section with Animated Toggle */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center mb-3">
-                {!isReadOnly && (
-                      <div className="d-flex align-items-center w-100">
-                        {/* Section Title - Hidden when toggle is off */}
-                        <div 
-                          style={{
-                            display: includeAppliances ? "flex" : "none",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            transition: "all 0.3s ease",
-                            transform: includeAppliances ? "translateX(0)" : "translateX(-20px)",
-                            opacity: includeAppliances ? 1 : 0
-                          }}
-                        >
-                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <EditableSectionHeader
-                            sectionKey="appliances"
-                            currentName={sectionNames.appliances}
-                            onEdit={() => handleSectionNameEdit("appliances")}
-                            onSave={() => handleSectionNameSave("appliances")}
-                            onCancel={handleSectionNameCancel}
-                            onKeyPress={(e) => handleSectionNameKeyPress(e, "appliances")}
-                            isEditing={editingSection === "appliances"}
-                            editingName={editingSectionName}
-                            onEditingNameChange={setEditingSectionName}
-                            isReadOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        {/* Toggle Text and Switch */}
-                        <div 
-                          className="d-flex align-items-center"
-                          style={{
-                            marginLeft: includeAppliances ? "auto" : "0",
-                            transition: "all 0.3s ease",
-                            transform: includeAppliances ? "translateX(0)" : "translateX(0)"
-                          }}
-                        >
-                          <span 
-                            className="me-2 small fw-semibold" 
-                            style={{ 
-                              color: "#ffffff",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            {includeAppliances ? "Remove Appliances" : "Include Appliances"}
-                          </span>
-                          <div 
-                            className="position-relative"
-                            style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeAppliances ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
-                            }}
-                            onClick={() => !isReadOnly && setIncludeAppliances(!includeAppliances)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeAppliances ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
-                        </div>
-                  </div>
-                )}
-              </div>
-                  
-                  {includeAppliances && (
-                    <div className="mb-3">
-                      
-                      {/* Column Headers */}
-                      <div className="d-flex mb-3 worktop-headers" style={{ 
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "white"
-                      }}>
-                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-
-                      {/* Item Rows */}
-                      {appliancesItems.map((item, index) => (
-                        <div key={item.id || `appliances-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
-                          <div style={{ flex: "2", marginRight: "16px" }}>
-                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                          <input
-                            type="text"
-                                className="form-control"
-                            value={item.description}
-                                onChange={(e) => {
-                                  updateItem("appliances", index, "description", e.target.value)
-                                  handleItemSearch(item.id?.toString() || "", e.target.value)
-                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                }}
-                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                placeholder="Search and select item"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                              
-                              <PortalDropdown
-                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                              >
-                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                  <li
-                                    key={stockItem.id}
-                                    style={{
-                                      padding: "8px 12px",
-                                      cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4",
-                                      background: "#fff",
-                                      color: "#212529"
-                                    }}
-                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                  >
-                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                    </div>
-                                  </li>
-                                ))}
-                              </PortalDropdown>
-                            </div>
-                          </div>
-                          
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
-                              className="form-control"
-                            value={item.unit}
-                              onChange={(e) => updateItem("appliances", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                          </div>
-                          
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("appliances", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "auto",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                              className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
-                          </div>
-                          
-                        {!isReadOnly && (
-                            <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
-                            <button
-                              type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("appliances", index)}
-                                style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                <X size={12} />
-                            </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Minimalistic Labour Footer for Appliances Section */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
-                              onFocus={e => {
-                                e.target.value = "";
-                                setAppliancesLabourPercentage(0);
-                              }}
-                              onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
-                              onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
-                              placeholder="30"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "8px", 
-                                fontSize: "13px", 
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-                      )}
-
-                      {/* Add Item Button */}
-                      {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("appliances")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
-                        </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Wardrobes Section with Animated Toggle */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center mb-3">
-                {!isReadOnly && (
-                      <div className="d-flex align-items-center w-100">
-                        {/* Section Title - Hidden when toggle is off */}
-                        <div 
-                          style={{
-                            display: includeWardrobes ? "flex" : "none",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            transition: "all 0.3s ease",
-                            transform: includeWardrobes ? "translateX(0)" : "translateX(-20px)",
-                            opacity: includeWardrobes ? 1 : 0
-                          }}
-                        >
-                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <EditableSectionHeader
-                            sectionKey="wardrobes"
-                            currentName={sectionNames.wardrobes}
-                            onEdit={() => handleSectionNameEdit("wardrobes")}
-                            onSave={() => handleSectionNameSave("wardrobes")}
-                            onCancel={handleSectionNameCancel}
-                            onKeyPress={(e) => handleSectionNameKeyPress(e, "wardrobes")}
-                            isEditing={editingSection === "wardrobes"}
-                            editingName={editingSectionName}
-                            onEditingNameChange={setEditingSectionName}
-                            isReadOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        {/* Toggle Text and Switch */}
-                        <div 
-                          className="d-flex align-items-center"
-                          style={{
-                            marginLeft: includeWardrobes ? "auto" : "0",
-                            transition: "all 0.3s ease",
-                            transform: includeWardrobes ? "translateX(0)" : "translateX(0)"
-                          }}
-                        >
-                          <span 
-                            className="me-2 small fw-semibold" 
-                            style={{ 
-                              color: "#ffffff",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            {includeWardrobes ? "Remove Wardrobes" : "Include Wardrobes"}
-                          </span>
-                          <div 
-                            className="position-relative"
-                            style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeWardrobes ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
-                            }}
-                            onClick={() => !isReadOnly && setIncludeWardrobes(!includeWardrobes)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeWardrobes ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
-                        </div>
-                  </div>
-                )}
-              </div>
-                  
-                  {includeWardrobes && (
-                    <div className="mb-3">
-                      
-                      {/* Column Headers */}
-                      <div className="d-flex mb-3 worktop-headers" style={{ 
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "white"
-                      }}>
-                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-
-                      {/* Item Rows */}
-                      {wardrobesItems.map((item, index) => (
-                        <div key={item.id || `wardrobes-${index}`} className="d-flex flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row" style={{ flexDirection: 'row' }}>
-                          <div className="" style={{ flex: "2", marginRight: "16px" }}>
-                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                          <input
-                            type="text"
-                                className="form-control"
-                            value={item.description}
-                                onChange={(e) => {
-                                  updateItem("wardrobes", index, "description", e.target.value)
-                                  handleItemSearch(item.id?.toString() || "", e.target.value)
-                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                }}
-                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                placeholder="Search and select item"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                              
-                              <PortalDropdown
-                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                              >
-                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                  <li
-                                    key={stockItem.id}
-                                    style={{
-                                      padding: "8px 12px",
-                                      cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4",
-                                      background: "#fff",
-                                      color: "#212529"
-                                    }}
-                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                  >
-                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                    </div>
-                                  </li>
-                                ))}
-                              </PortalDropdown>
-                            </div>
-                          </div>
-                          
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
-                              className="form-control"
-                            value={item.unit}
-                              onChange={(e) => updateItem("wardrobes", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                          </div>
-                          
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("wardrobes", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "auto",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                              className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("wardrobes", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
-                          </div>
-                          
-                        {!isReadOnly && (
-                            <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
-                            <button
-                              type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("wardrobes", index)}
-                                style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                <X size={12} />
-                            </button>
-                            </div>
-                          )}
-                        </div>
-                      )                      )}
-
-                      {/* Minimalistic Labour Footer for Wardrobes Section */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
-                              onFocus={e => {
-                                e.target.value = "";
-                                setWardrobesLabourPercentage(0);
-                              }}
-                              onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
-                              onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
-                              placeholder="30"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "8px", 
-                                fontSize: "13px", 
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-                      )}
-
-                      {/* Add Item Button */}
-                      {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("wardrobes")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
-                        </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* TV Unit Section with Animated Toggle */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center mb-3">
-                {!isReadOnly && (
-                      <div className="d-flex align-items-center w-100">
-                        {/* Section Title - Hidden when toggle is off */}
-                        <div 
-                          style={{
-                            display: includeTvUnit ? "flex" : "none",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            transition: "all 0.3s ease",
-                            transform: includeTvUnit ? "translateX(0)" : "translateX(-20px)",
-                            opacity: includeTvUnit ? 1 : 0
-                          }}
-                        >
-                          <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                          <EditableSectionHeader
-                            sectionKey="tvunit"
-                            currentName={sectionNames.tvunit}
-                            onEdit={() => handleSectionNameEdit("tvunit")}
-                            onSave={() => handleSectionNameSave("tvunit")}
-                            onCancel={handleSectionNameCancel}
-                            onKeyPress={(e) => handleSectionNameKeyPress(e, "tvunit")}
-                            isEditing={editingSection === "tvunit"}
-                            editingName={editingSectionName}
-                            onEditingNameChange={setEditingSectionName}
-                            isReadOnly={isReadOnly}
-                          />
-                        </div>
-                        
-                        {/* Toggle Text and Switch */}
-                        <div 
-                          className="d-flex align-items-center"
-                          style={{
-                            marginLeft: includeTvUnit ? "auto" : "0",
-                            transition: "all 0.3s ease",
-                            transform: includeTvUnit ? "translateX(0)" : "translateX(0)"
-                          }}
-                        >
-                          <span 
-                            className="me-2 small fw-semibold" 
-                            style={{ 
-                              color: "#ffffff",
-                              transition: "all 0.3s ease"
-                            }}
-                          >
-                            {includeTvUnit ? "Remove TV Unit" : "Include TV Unit"}
-                          </span>
-                          <div 
-                            className="position-relative"
-                            style={{
-                              width: "44px",
-                              height: "24px",
-                              borderRadius: "12px",
-                              background: includeTvUnit ? "#667eea" : "#e9ecef",
-                              cursor: isReadOnly ? "default" : "pointer",
-                              transition: "background-color 0.2s"
-                            }}
-                            onClick={() => !isReadOnly && setIncludeTvUnit(!includeTvUnit)}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                left: includeTvUnit ? "22px" : "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "white",
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                                transition: "left 0.2s"
-                              }}
-                            />
-                          </div>
-                        </div>
-                  </div>
-                )}
-              </div>
-                  
-                  {includeTvUnit && (
-                    <div className="mb-3">
-                      
-                      {/* Column Headers */}
-                      <div className="d-flex mb-3 worktop-headers" style={{ 
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "white"
-                      }}>
-                        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-                        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
-                        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }}></div>}
-                      </div>
-
-                      {/* Item Rows */}
-                      {tvUnitItems.map((item, index) => (
-                        <div key={item.id || `tvunit-${index}`} className="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-3 mb-md-2 quotation-item-row worktop-row">
-                          <div style={{ flex: "2", marginRight: "16px" }}>
-                            <div className="position-relative" ref={getItemInputRef(item.id?.toString() || "")}>
-                          <input
-                            type="text"
-                                className="form-control"
-                            value={item.description}
-                                onChange={(e) => {
-                                  updateItem("tvunit", index, "description", e.target.value)
-                                  handleItemSearch(item.id?.toString() || "", e.target.value)
-                                  setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))
-                                }}
-                                onFocus={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: true }))}
-                                placeholder="Search and select item"
-                                style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                              
-                              <PortalDropdown
-                                isVisible={itemDropdownVisible[item.id?.toString() || ""] && !isReadOnly}
-                                triggerRef={getItemInputRef(item.id?.toString() || "")}
-                                onClose={() => setItemDropdownVisible(prev => ({ ...prev, [item.id?.toString() || ""]: false }))}
-                              >
-                                {getFilteredItems(item.id?.toString() || "").map(stockItem => (
-                                  <li
-                                    key={stockItem.id}
-                                    style={{
-                                      padding: "8px 12px",
-                                      cursor: "pointer",
-                                      borderBottom: "1px solid #f1f3f4",
-                                      background: "#fff",
-                                      color: "#212529"
-                                    }}
-                                    onClick={() => selectStockItem(item.id?.toString() || "", stockItem)}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8f9fa"}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "#fff"}
-                                  >
-                                    <div style={{ fontWeight: "600", fontSize: "13px", color: "#212529" }}>{stockItem.name}</div>
-                                    <div style={{ fontSize: "11px", color: "#495057" }}>
-                                      Unit Price: KES {stockItem.unit_price?.toFixed(2) || stockItem.unit_price?.toFixed(2)}
-                                    </div>
-                                  </li>
-                                ))}
-                              </PortalDropdown>
-                            </div>
-                          </div>
-                          
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="text"
-                              className="form-control"
-                            value={item.unit}
-                              onChange={(e) => updateItem("tvunit", index, "unit", e.target.value)}
-                              placeholder="Units"
-                              style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                          />
-                          </div>
-                          
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                            value={
-                              rawQuantityValues[item.id?.toString() || ""] !== undefined
-                                ? rawQuantityValues[item.id?.toString() || ""]
-                                : (item.quantity === 1 ? "" : item.quantity)
-                            }
-                            onFocus={e => {
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: prev[item.id?.toString() || ""] ?? (item.quantity === 1 ? "" : String(item.quantity)) }));
-                            }}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setRawQuantityValues(prev => ({ ...prev, [item.id?.toString() || ""]: val }));
-                            }}
-                            onBlur={e => {
-                              const val = e.target.value;
-                              const num = val === '' ? 1 : parseFloat(val);
-                              updateItem("tvunit", index, "quantity", isNaN(num) ? 1 : num);
-                              setRawQuantityValues(prev => {
-                                const copy = { ...prev };
-                                delete copy[item.id?.toString() || ""];
-                                return copy;
-                              });
-                            }}
-                            placeholder="1"
-                            style={{ 
-                              width: "100%",
-                              borderRadius: "12px", 
-                              height: "40px", 
-                              fontSize: "13px",
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "8px 12px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none"
-                            }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
-                              className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("tvunit", index, "unit_price", parseFloat(e.target.value) || 0)}
-                            placeholder="Unit Price"
-                            style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
-                            readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
-                          />
-                          </div>
-                          
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
-                            <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
-                          </div>
-                          
-                        {!isReadOnly && (
-                            <div className="col-delete w-100 w-md-auto text-center text-md-left" style={{ flex: "0 0 40px" }}>
-                            <button
-                              type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => removeItem("tvunit", index)}
-                                style={{ borderRadius: "8px", padding: "4px 8px" }}
-                            >
-                                <X size={12} />
-                            </button>
-                            </div>
-                          )}
-                        </div>
-                      )                      )}
-
-                      {/* Minimalistic Labour Footer for TV Unit Section */}
-                      {mode !== "view" && (
-                        <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                          <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                          <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                          <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
-                              value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
-                              onFocus={e => {
-                                e.target.value = "";
-                                setTvUnitLabourPercentage(0);
-                              }}
-                              onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
-                              onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
-                              placeholder="30"
-                              style={{ 
-                                width: "100%",
-                                borderRadius: "8px", 
-                                fontSize: "13px", 
-                                background: "transparent", 
-                                color: "#fff", 
-                                border: "none",
-                                padding: "8px 0",
-                                boxShadow: "none",
-                                backgroundColor: "transparent",
-                                WebkitAppearance: "none",
-                                MozAppearance: "textfield",
-                                outline: "none"
-                              }}
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                          <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
-                          {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                        </div>
-                      )}
-
-                      {/* Add Item Button */}
-                      {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("tvunit")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
-                        </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Totals Section */}
-            <div className="mb-4">
-              <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                <div className="card-body p-4">
-                  <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                    <Calculator size={18} className="me-2" />
-                    Summary
-                  </h6>
-                  <div className="row">
-                    <div className="col-md-6">
-                      <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
-                      </div>
-                      {includeWorktop && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>{sectionNames.worktop} Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {includeAccessories && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>{sectionNames.accessories} Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {includeAppliances && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>{sectionNames.appliances} Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {includeWardrobes && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>{sectionNames.wardrobes} Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {includeTvUnit && (
-                        <div className="d-flex justify-content-between mb-2">
-                          <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
-                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-md-6">
-                      <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>Subtotal:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {originalAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between mb-2">
-                        <div className="d-flex align-items-center">
-                          <span style={{ color: "#ffffff", marginRight: "8px" }}>VAT:</span>
-                      <input
-                        type="number"
-                            value={vatPercentage === 16 ? "" : (vatPercentage === 0 ? "" : vatPercentage)}
-                            onFocus={e => {
-                              e.target.value = "";
-                              setVatPercentage(0);
-                            }}
-                            onChange={e => setVatPercentage(Number(e.target.value) || 0)}
-                            onBlur={e => setVatPercentage(Number(e.target.value) || 16)}
-                            placeholder="16"
-                            style={{ 
-                              width: "60px",
-                              borderRadius: "8px", 
-                              fontSize: "13px", 
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "4px 8px",
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none",
-                              textAlign: "center"
-                            }}
-                            min="0"
-                            max="100"
-                            step="0.01"
-                        readOnly={isReadOnly}
-                      />
-                          <span style={{ color: "#ffffff", marginLeft: "4px" }}>%</span>
-                        </div>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between mb-2">
-                        <div className="d-flex align-items-center">
-                          <span style={{ color: "#ffffff", marginRight: "8px" }}>Discount:</span>
-                          <input
-                            type="number"
-                            value={discountAmount === 0 ? "" : discountAmount}
-                            onFocus={e => {
-                              e.target.value = "";
-                              setDiscountAmount(0);
-                            }}
-                            onChange={e => setDiscountAmount(Number(e.target.value) || 0)}
-                            onBlur={e => setDiscountAmount(Number(e.target.value) || 0)}
-                            placeholder="0"
-                            style={{ 
-                              width: "80px",
-                              borderRadius: "8px", 
-                              fontSize: "13px", 
-                              background: "transparent", 
-                              color: "#fff", 
-                              border: "none",
-                              padding: "4px 8px", 
-                              boxShadow: "none",
-                              backgroundColor: "transparent",
-                              WebkitAppearance: "none",
-                              MozAppearance: "textfield",
-                              outline: "none",
-                              textAlign: "center",
-                              marginRight: "8px"
-                            }}
-                            min="0"
-                            step="0.01"
-                            readOnly={isReadOnly}
-                          />
-                        </div>
-                        <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
-                        <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {(subtotalWithLabour - discountAmount).toFixed(2)}</span>
-                      </div>
+                      >
+                        {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
+                        {isMobile ? "Print/Share" : "Download"}
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Notes and Terms Section */}
-            <div className="row mb-4">
-              <div className="col-md-6">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      Notes
-                    </h6>
-              <textarea
-                className="form-control"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Additional notes..."
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                readOnly={isReadOnly}
-              />
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-6">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      Terms & Conditions
-                    </h6>
-              <textarea
-                className="form-control"
-                      value={termsConditions}
-                      onChange={(e) => setTermsConditions(e.target.value)}
-                      placeholder="Terms and conditions..."
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                readOnly={isReadOnly}
-              />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          )}
-
-          {/* Footer */}
-          <div className="modal-footer border-0" style={{ padding: "16px 24px 16px" }}>
-            {mode === "view" ? (
-              <>
-                {/* Mobile layout: Proceed on its own row above; Close + Print/Share on next row, all right-aligned */}
-                <div className="d-flex d-md-none flex-column w-100 gap-2">
-                  {(() => {
-                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                    return showButton ? (
-                      <div className="d-flex justify-content-end">
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => onProceedToSalesOrder(quotation)}
-                          style={{ 
-                            borderRadius: "12px", 
-                            padding: "10px 24px",
-                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                            border: "none"
-                          }}
-                        >
-                          <CreditCard className="me-2" size={16} />
-                          Proceed to Sales Order
-                        </button>
-                      </div>
-                    ) : null;
-                  })()}
-                  <div className="d-flex justify-content-end gap-2">
+                  {/* Desktop layout: all inline, right-aligned */}
+                  <div className="d-none d-md-flex w-100 justify-content-end gap-2">
                     <button
                       type="button"
                       className="btn btn-light"
@@ -4186,12 +4214,31 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     >
                       Close
                     </button>
+                    {(() => {
+                      const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                      return showButton ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onProceedToSalesOrder(quotation)}
+                          style={{
+                            borderRadius: "12px",
+                            padding: "10px 24px",
+                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                            border: "none"
+                          }}
+                        >
+                          <CreditCard className="me-2" size={16} />
+                          Proceed to Sales Order
+                        </button>
+                      ) : null;
+                    })()}
                     <button
                       type="button"
                       className="btn btn-success"
                       onClick={handlePrintModalOpen}
-                      style={{ 
-                        borderRadius: "12px", 
+                      style={{
+                        borderRadius: "12px",
                         padding: "10px 24px",
                         background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
                         border: "none"
@@ -4201,170 +4248,124 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                       {isMobile ? "Print/Share" : "Download"}
                     </button>
                   </div>
-                </div>
+                </>
+              ) : (
+                <>
+                  {/* Mobile: single row, right-aligned */}
+                  <div className="d-flex d-md-none w-100 justify-content-end gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      onClick={onClose}
+                      style={{ borderRadius: "12px", padding: "10px 24px" }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                    {(() => {
+                      const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                      return showButton ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onProceedToSalesOrder(quotation)}
+                          style={{
+                            borderRadius: "12px",
+                            padding: "10px 24px",
+                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                            border: "none"
+                          }}
+                          disabled={loading}
+                        >
+                          <CreditCard className="me-2" size={16} />
+                          Proceed to Sales Order
+                        </button>
+                      ) : null;
+                    })()}
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSave}
+                      style={{
+                        borderRadius: "12px",
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        border: "none"
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Quotation"
+                      )}
+                    </button>
+                  </div>
 
-                {/* Desktop layout: all inline, right-aligned */}
-                <div className="d-none d-md-flex w-100 justify-content-end gap-2">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "10px 24px" }}
-                >
-                  Close
-                </button>
-                {(() => {
-                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                  return showButton ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => onProceedToSalesOrder(quotation)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
-                  </button>
-                  ) : null;
-                })()}
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={handlePrintModalOpen}
-                  style={{ 
-                    borderRadius: "12px", 
-                    padding: "10px 24px",
-                    background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
-                    border: "none"
-                  }}
-                >
-                  {isMobile ? <Printer className="me-2" size={16} /> : <Download className="me-2" size={16} />}
-                  {isMobile ? "Print/Share" : "Download"}
-                </button>
-              </div>
-              </>
-            ) : (
-              <>
-                {/* Mobile: single row, right-aligned */}
-                <div className="d-flex d-md-none w-100 justify-content-end gap-2">
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  onClick={onClose}
-                  style={{ borderRadius: "12px", padding: "10px 24px" }}
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                {(() => {
-                  const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                    return showButton ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onProceedToSalesOrder(quotation)}
-                        style={{ 
-                          borderRadius: "12px", 
-                          padding: "10px 24px",
-                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                          border: "none"
-                        }}
-                        disabled={loading}
-                      >
-                        <CreditCard className="me-2" size={16} />
-                        Proceed to Sales Order
-                      </button>
-                    ) : null;
-                  })()}
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleSave}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      border: "none"
-                    }}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Quotation"
-                    )}
-                  </button>
-                </div>
-
-                {/* Desktop: inline, right-aligned */}
-                <div className="d-none d-md-flex w-100 justify-content-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    onClick={onClose}
-                    style={{ borderRadius: "12px", padding: "10px 24px" }}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  {(() => {
-                    const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
-                  return showButton ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => onProceedToSalesOrder(quotation)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                    disabled={loading}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                    Proceed to Sales Order
-                  </button>
-                  ) : null;
-                })()}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSave}
-                  style={{ 
-                    borderRadius: "12px", 
-                    padding: "10px 24px",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    border: "none"
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Quotation"
-                  )}
-                </button>
-              </div>
-              </>
-            )}
+                  {/* Desktop: inline, right-aligned */}
+                  <div className="d-none d-md-flex w-100 justify-content-end gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-light"
+                      onClick={onClose}
+                      style={{ borderRadius: "12px", padding: "10px 24px" }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                    {(() => {
+                      const showButton = hasPayments && quotation?.status !== "converted_to_sales_order" && onProceedToSalesOrder;
+                      return showButton ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onProceedToSalesOrder(quotation)}
+                          style={{
+                            borderRadius: "12px",
+                            padding: "10px 24px",
+                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
+                            border: "none"
+                          }}
+                          disabled={loading}
+                        >
+                          <CreditCard className="me-2" size={16} />
+                          Proceed to Sales Order
+                        </button>
+                      ) : null;
+                    })()}
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSave}
+                      style={{
+                        borderRadius: "12px",
+                        padding: "10px 24px",
+                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        border: "none"
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Quotation"
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      </div>
-      
-{/* Print Modal for Mobile */}
+
+      {/* Print Modal for Mobile */}
       <PrintModal
         isOpen={showPrintModal}
         onClose={handlePrintModalClose}
