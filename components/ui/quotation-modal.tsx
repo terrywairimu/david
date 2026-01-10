@@ -931,7 +931,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add worktop section header and items
-      if (worktopItems.length > 0) {
+      if (includeWorktop && worktopItems.length > 0) {
         if (totals.worktopTotal > 0) {
           items.push({
             isSection: true,
@@ -963,7 +963,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add accessories section header and items
-      if (accessoriesItems.length > 0) {
+      if (includeAccessories && accessoriesItems.length > 0) {
         const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
         if (accessoriesTotalWithLabour > 0) {
           items.push({
@@ -996,7 +996,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add appliances section header and items
-      if (appliancesItems.length > 0) {
+      if (includeAppliances && appliancesItems.length > 0) {
         const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
         if (appliancesTotalWithLabour > 0) {
           items.push({
@@ -1029,7 +1029,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add wardrobes section header and items
-      if (wardrobesItems.length > 0) {
+      if (includeWardrobes && wardrobesItems.length > 0) {
         const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
         if (wardrobesTotalWithLabour > 0) {
           items.push({
@@ -1062,7 +1062,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add TV Unit section header and items
-      if (tvUnitItems.length > 0) {
+      if (includeTvUnit && tvUnitItems.length > 0) {
         const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
         if (tvUnitTotalWithLabour > 0) {
           items.push({
@@ -1285,7 +1285,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Process sections in the defined order
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
-        if (itemsInCategory.length === 0) return; // Skip empty sections
+
+        // Check if section is included based on quotation data
+        let isIncluded = true;
+        if (category === 'worktop') isIncluded = quotation.include_worktop !== false;
+        else if (category === 'accessories') isIncluded = quotation.include_accessories !== false;
+        else if (category === 'appliances') isIncluded = quotation.include_appliances !== false;
+        else if (category === 'wardrobes') isIncluded = quotation.include_wardrobes !== false;
+        else if (category === 'tvunit') isIncluded = quotation.include_tvunit !== false;
+
+        if (!isIncluded || itemsInCategory.length === 0) return; // Skip excluded or empty sections
 
         // Calculate section total first to determine if we should include this section
         let currentSectionTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
