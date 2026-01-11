@@ -931,7 +931,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add worktop section header and items
-      if (includeWorktop && worktopItems.length > 0) {
+      if (worktopItems.length > 0) {
         if (totals.worktopTotal > 0) {
           items.push({
             isSection: true,
@@ -963,7 +963,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add accessories section header and items
-      if (includeAccessories && accessoriesItems.length > 0) {
+      if (accessoriesItems.length > 0) {
         const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
         if (accessoriesTotalWithLabour > 0) {
           items.push({
@@ -996,7 +996,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add appliances section header and items
-      if (includeAppliances && appliancesItems.length > 0) {
+      if (appliancesItems.length > 0) {
         const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
         if (appliancesTotalWithLabour > 0) {
           items.push({
@@ -1029,7 +1029,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add wardrobes section header and items
-      if (includeWardrobes && wardrobesItems.length > 0) {
+      if (wardrobesItems.length > 0) {
         const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
         if (wardrobesTotalWithLabour > 0) {
           items.push({
@@ -1062,7 +1062,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Add TV Unit section header and items
-      if (includeTvUnit && tvUnitItems.length > 0) {
+      if (tvUnitItems.length > 0) {
         const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
         if (tvUnitTotalWithLabour > 0) {
           items.push({
