@@ -534,6 +534,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setNotes("")
     setItemSearches({})
     setItemDropdownVisible({})
+    // Reset discount amount
+    setDiscountAmount(0)
     // Reset section names to defaults
     setSectionNames({
       cabinet: "General",
@@ -626,10 +628,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setVatPercentage(salesOrder.vat_percentage)
     }
     
-    // Load discount amount from database
-    if (salesOrder.discount_amount) {
-      setDiscountAmount(salesOrder.discount_amount)
-    }
+    // Load discount amount from database (reset to 0 if not present)
+    setDiscountAmount(salesOrder.discount_amount || 0)
     
     // Load items by category
     if (salesOrder.items) {

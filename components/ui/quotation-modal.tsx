@@ -652,10 +652,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       setVatPercentage(quotation.vat_percentage)
     }
 
-    // Load discount amount from database
-    if (quotation.discount_amount) {
-      setDiscountAmount(quotation.discount_amount)
-    }
+    // Load discount amount from database (reset to 0 if not present)
+    setDiscountAmount(quotation.discount_amount || 0)
 
     // Load items by category
     if (quotation.items) {
