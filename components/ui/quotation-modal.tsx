@@ -877,13 +877,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
 
       // Use the same calculation as the UI display for consistency
+      // Only include labour for visible sections
       const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-      const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-      const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-      const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+      const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
       // Calculate subtotal with all labour included (consistent with UI display)
+      // Only include labour for visible sections
       const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
 
       // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
@@ -962,8 +964,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
 
-      // Add accessories section header and items
-      if (accessoriesItems.length > 0) {
+      // Add accessories section header and items (only if section is visible)
+      if (includeAccessories && accessoriesItems.length > 0) {
         const accessoriesTotalWithLabour = totals.accessoriesTotal + accessoriesLabour;
         if (accessoriesTotalWithLabour > 0) {
           items.push({
@@ -995,8 +997,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
 
-      // Add appliances section header and items
-      if (appliancesItems.length > 0) {
+      // Add appliances section header and items (only if section is visible)
+      if (includeAppliances && appliancesItems.length > 0) {
         const appliancesTotalWithLabour = totals.appliancesTotal + appliancesLabour;
         if (appliancesTotalWithLabour > 0) {
           items.push({
@@ -1028,8 +1030,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
 
-      // Add wardrobes section header and items
-      if (wardrobesItems.length > 0) {
+      // Add wardrobes section header and items (only if section is visible)
+      if (includeWardrobes && wardrobesItems.length > 0) {
         const wardrobesTotalWithLabour = totals.wardrobesTotal + wardrobesLabour;
         if (wardrobesTotalWithLabour > 0) {
           items.push({
@@ -1061,8 +1063,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
 
-      // Add TV Unit section header and items
-      if (tvUnitItems.length > 0) {
+      // Add TV Unit section header and items (only if section is visible)
+      if (includeTvUnit && tvUnitItems.length > 0) {
         const tvUnitTotalWithLabour = totals.tvUnitTotal + tvUnitLabour;
         if (tvUnitTotalWithLabour > 0) {
           items.push({
@@ -1576,11 +1578,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Calculate totals with VAT (consistent with UI display and PDF generation)
+      // Only include labour for visible sections
       const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-      const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-      const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-      const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+      const saveAccessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const saveAppliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const saveWardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const saveTvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
       const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
       const saveVatPercentageNum = Number(vatPercentage);
@@ -1905,13 +1908,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   if (!isOpen) return null
 
   // Calculate section totals with labour included (consistent with PDF generation)
+  // Only include labour for visible sections
   const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-  const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-  const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-  const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-  const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+  const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+  const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+  const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+  const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
   // Calculate subtotal with all labour included (consistent with PDF generation)
+  // Only include labour for visible sections
   const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
 
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)

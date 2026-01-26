@@ -516,6 +516,32 @@ const QuotationsView = () => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
         
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = quotation.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = quotation.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = quotation.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = quotation.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = quotation.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
+        
         // Use dynamic section name if available, type-safe
         const allowedKeys = [
           'cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'
@@ -678,6 +704,32 @@ const QuotationsView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return;
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = quotation.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = quotation.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = quotation.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = quotation.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = quotation.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         
         // Get section name
         const allowedKeys = [
@@ -847,6 +899,32 @@ const QuotationsView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = quotation.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = quotation.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = quotation.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = quotation.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = quotation.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         
         // Calculate section total first to determine if we should include this section
         let sectionTotal3 = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
@@ -1054,6 +1132,32 @@ const QuotationsView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return;
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = quotation.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = quotation.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = quotation.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = quotation.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = quotation.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         
         // Get section name
         const allowedKeys = [
