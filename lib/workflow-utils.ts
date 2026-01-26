@@ -1193,6 +1193,7 @@ export interface SalesOrderData {
   grand_total: number
   vat_percentage: number
   vat_amount: number
+  discount_amount?: number
   include_accessories: boolean
   include_worktop?: boolean
   include_appliances?: boolean
@@ -1420,6 +1421,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       grand_total: quotation.grand_total,
       vat_percentage: quotation.vat_percentage,
       vat_amount: quotation.vat_amount,
+      discount_amount: quotation.discount_amount || 0, // Copy discount from quotation
       include_accessories: quotation.include_accessories,
       include_worktop: quotation.include_worktop,
       include_appliances: quotation.include_appliances,
@@ -1461,6 +1463,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         grand_total: salesOrderData.grand_total,
         vat_percentage: salesOrderData.vat_percentage,
         vat_amount: salesOrderData.vat_amount,
+        discount_amount: salesOrderData.discount_amount, // Include discount amount
         include_accessories: salesOrderData.include_accessories,
         include_worktop: salesOrderData.include_worktop,
         include_appliances: salesOrderData.include_appliances,
