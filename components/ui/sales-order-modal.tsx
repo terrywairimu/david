@@ -626,6 +626,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setVatPercentage(salesOrder.vat_percentage)
     }
     
+    // Load discount amount from database
+    if (salesOrder.discount_amount) {
+      setDiscountAmount(salesOrder.discount_amount)
+    }
+    
     // Load items by category
     if (salesOrder.items) {
       const cabinet = salesOrder.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
@@ -1526,9 +1531,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       labour_percentage: labourPercentage,
       labour_total: totals.labourAmount,
       total_amount: saveOriginalAmount, // Amount before VAT
-      grand_total: saveSubtotalWithLabour, // Total amount including VAT
+      grand_total: saveSubtotalWithLabour - discountAmount, // Total amount including VAT and discount
       vat_amount: saveVatAmount, // VAT amount
       vat_percentage: saveVatPercentageNum, // VAT percentage
+      discount_amount: discountAmount, // Discount amount
       include_worktop: includeWorktop,
       include_accessories: includeAccessories,
       include_appliances: includeAppliances,
@@ -1765,6 +1771,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
 
+  // Add discount state
+  const [discountAmount, setDiscountAmount] = useState(0);
+
   // Memoize expensive calculations to prevent performance issues (after all dependencies are declared)
   const totals = useMemo(() => {
     const cabinetTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0)
@@ -1828,7 +1837,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
   const vatAmount = subtotalWithLabour - originalAmount;
-  const grandTotal = subtotalWithLabour; // Grand total remains the same
+  const grandTotal = subtotalWithLabour - discountAmount; // Grand total after discount
 
   return (
     <>
@@ -3947,9 +3956,45 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                         </div>
                         <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {vatAmount.toFixed(2)}</span>
                       </div>
+                      <div className="d-flex justify-content-between mb-2">
+                        <div className="d-flex align-items-center">
+                          <span style={{ color: "#ffffff", marginRight: "8px" }}>Discount:</span>
+                          <input
+                            type="number"
+                            value={discountAmount === 0 ? "" : discountAmount}
+                            onFocus={e => {
+                              e.target.value = "";
+                              setDiscountAmount(0);
+                            }}
+                            onChange={e => setDiscountAmount(Number(e.target.value) || 0)}
+                            onBlur={e => {
+                              const value = Number(e.target.value) || 0;
+                              setDiscountAmount(value);
+                            }}
+                            placeholder="0"
+                            style={{
+                              width: "80px",
+                              background: "transparent",
+                              color: "#fff",
+                              border: "none",
+                              padding: "4px 8px",
+                              boxShadow: "none",
+                              backgroundColor: "transparent",
+                              WebkitAppearance: "none",
+                              MozAppearance: "textfield",
+                              outline: "none",
+                              textAlign: "right"
+                            }}
+                            min="0"
+                            step="0.01"
+                            readOnly={isReadOnly}
+                          />
+                        </div>
+                        <span style={{ color: "#ffffff", fontWeight: "600" }}>KES {discountAmount.toFixed(2)}</span>
+                      </div>
                       <div className="d-flex justify-content-between" style={{ borderTop: "2px solid #e9ecef", paddingTop: "8px" }}>
                         <span style={{ fontWeight: "700", color: "#ffffff" }}>Grand Total:</span>
-                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {subtotalWithLabour.toFixed(2)}</span>
+                        <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "18px" }}>KES {(subtotalWithLabour - discountAmount).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

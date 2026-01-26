@@ -1421,7 +1421,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       grand_total: quotation.grand_total,
       vat_percentage: quotation.vat_percentage,
       vat_amount: quotation.vat_amount,
-      discount_amount: quotation.discount_amount || 0, // Copy discount from quotation
+      discount_amount: quotation.discount_amount,
       include_accessories: quotation.include_accessories,
       include_worktop: quotation.include_worktop,
       include_appliances: quotation.include_appliances,
@@ -1463,7 +1463,7 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         grand_total: salesOrderData.grand_total,
         vat_percentage: salesOrderData.vat_percentage,
         vat_amount: salesOrderData.vat_amount,
-        discount_amount: salesOrderData.discount_amount, // Include discount amount
+        discount_amount: salesOrderData.discount_amount,
         include_accessories: salesOrderData.include_accessories,
         include_worktop: salesOrderData.include_worktop,
         include_appliances: salesOrderData.include_appliances,
@@ -1573,6 +1573,7 @@ export const proceedToInvoice = async (salesOrderId: number): Promise<InvoiceDat
       labour_total: salesOrder.labour_total,
       total_amount: salesOrder.total_amount,
       grand_total: salesOrder.grand_total,
+      discount_amount: salesOrder.discount_amount,
       paid_amount: paymentInfo.totalPaid,
       balance_amount: salesOrder.grand_total - paymentInfo.totalPaid,
       include_accessories: salesOrder.include_accessories,
@@ -1686,6 +1687,7 @@ export const proceedToCashSale = async (quotationId: number): Promise<any> => {
       labour_total: quotation.labour_total,
       total_amount: quotation.total_amount,
       grand_total: quotation.grand_total,
+      discount_amount: quotation.discount_amount,
       amount_paid: quotation.grand_total, // Full payment for cash sale
       change_amount: 0,
       balance_amount: 0,
@@ -1798,6 +1800,7 @@ export const proceedToCashSaleFromSalesOrder = async (salesOrderId: number): Pro
       labour_total: salesOrder.labour_total || 0,
       total_amount: salesOrder.total_amount || 0,
       grand_total: salesOrder.grand_total || 0,
+      discount_amount: salesOrder.discount_amount || 0,
       amount_paid: salesOrder.grand_total || 0, // Full payment for cash sale
       change_amount: 0,
       balance_amount: 0,
@@ -1918,6 +1921,7 @@ export const proceedToCashSaleFromInvoice = async (invoiceId: number): Promise<a
       labour_total: invoice.labour_total,
       total_amount: invoice.total_amount,
       grand_total: invoice.grand_total,
+      discount_amount: invoice.discount_amount,
       amount_paid: invoice.grand_total, // Full payment for cash sale
       change_amount: 0,
       balance_amount: 0,

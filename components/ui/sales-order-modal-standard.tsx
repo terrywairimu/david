@@ -446,7 +446,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         resetForm()
         setOrderDate(new Date().toISOString().split('T')[0])
       } else if (salesOrder) {
-        loadSalesOrderData().catch(console.error)
+        loadSalesOrderData()
         fetchPaymentInfo() // Fetch payment info when viewing/editing salesOrder
         if (salesOrder.date_created) {
           setOrderDate(salesOrder.date_created.split('T')[0])
@@ -621,7 +621,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
   }
 
-  const loadSalesOrderData = async () => {
+  const loadSalesOrderData = () => {
     if (!salesOrder) return
     
     setOrderNumber(salesOrder.order_number || salesOrder.salesOrder_number || "")
@@ -649,24 +649,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setVatPercentage(salesOrder.vat_percentage)
     }
     
-    // Load discount amount from database or quotation
+    // Load discount amount from database
     if (salesOrder.discount_amount) {
       setDiscountAmount(salesOrder.discount_amount)
-    } else if (salesOrder.quotation_id) {
-      // If no discount_amount but has quotation_id, fetch from quotation
-      try {
-        const { data: quotation, error } = await supabase
-          .from("quotations")
-          .select("discount_amount")
-          .eq("id", salesOrder.quotation_id)
-          .single()
-        
-        if (!error && quotation?.discount_amount) {
-          setDiscountAmount(quotation.discount_amount)
-        }
-      } catch (error) {
-        console.error("Error fetching discount from quotation:", error)
-      }
     }
     
     // Load items by category

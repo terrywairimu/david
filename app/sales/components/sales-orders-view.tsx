@@ -271,6 +271,7 @@ const SalesOrdersView = () => {
             labour_total: salesOrderData.labour_total,
             total_amount: salesOrderData.total_amount,
             grand_total: salesOrderData.grand_total,
+            discount_amount: salesOrderData.discount_amount,
             include_worktop: salesOrderData.include_worktop,
             include_accessories: salesOrderData.include_accessories,
             include_appliances: salesOrderData.include_appliances,
