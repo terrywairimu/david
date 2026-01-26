@@ -848,13 +848,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
       
       // Use the same calculation as the UI display for consistency
+      // Only include labour for visible sections
       const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-      const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-      const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-      const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+      const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
       
       // Calculate subtotal with all labour included (consistent with UI display)
+      // Only include labour for visible sections
       const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
       
       // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
@@ -900,8 +902,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
       }
       
-      // Add worktop section header and items
-      if (worktopItems.length > 0) {
+      // Add worktop section header and items (only if section is visible)
+      if (includeWorktop && worktopItems.length > 0) {
         items.push({
           isSection: true,
           description: sectionNames.worktop,
@@ -932,8 +934,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
       }
       
-      // Add accessories section header and items
-      if (accessoriesItems.length > 0) {
+      // Add accessories section header and items (only if section is visible)
+      if (includeAccessories && accessoriesItems.length > 0) {
         items.push({
           isSection: true,
           description: sectionNames.accessories,
@@ -964,8 +966,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
       }
       
-      // Add appliances section header and items
-      if (appliancesItems.length > 0) {
+      // Add appliances section header and items (only if section is visible)
+      if (includeAppliances && appliancesItems.length > 0) {
         items.push({
           isSection: true,
           description: sectionNames.appliances,
@@ -996,8 +998,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
       }
       
-      // Add wardrobes section header and items
-      if (wardrobesItems.length > 0) {
+      // Add wardrobes section header and items (only if section is visible)
+      if (includeWardrobes && wardrobesItems.length > 0) {
         items.push({
           isSection: true,
           description: sectionNames.wardrobes,
@@ -1028,8 +1030,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         }
       }
       
-      // Add TV Unit section header and items
-      if (tvUnitItems.length > 0) {
+      // Add TV Unit section header and items (only if section is visible)
+      if (includeTvUnit && tvUnitItems.length > 0) {
         items.push({
           isSection: true,
           description: sectionNames.tvunit,
@@ -1812,13 +1814,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   if (!isOpen) return null
 
   // Calculate section totals with labour included (consistent with PDF generation)
+  // Only include labour for visible sections
   const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-  const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-  const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-  const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-  const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+  const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+  const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+  const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+  const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
   
   // Calculate subtotal with all labour included (consistent with PDF generation)
+  // Only include labour for visible sections
   const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
   
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)

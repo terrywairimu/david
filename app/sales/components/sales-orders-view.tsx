@@ -409,6 +409,32 @@ const SalesOrdersView = () => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
         
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = salesOrder.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = salesOrder.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = salesOrder.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = salesOrder.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = salesOrder.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
+        
         // Calculate section total first to determine if we should include this section
         let sectionPrintTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
@@ -706,6 +732,32 @@ const SalesOrdersView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = salesOrder.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = salesOrder.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = salesOrder.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = salesOrder.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = salesOrder.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         
         // Calculate section total first to determine if we should include this section
         let sectionDownloadTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);

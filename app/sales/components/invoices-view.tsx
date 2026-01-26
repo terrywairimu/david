@@ -457,6 +457,32 @@ const InvoicesView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = invoice.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = invoice.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = invoice.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = invoice.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = invoice.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: invoice.section_names?.cabinet || "General",
@@ -713,6 +739,32 @@ const InvoicesView = () => {
       sectionOrder.forEach((category) => {
         const itemsInCategory = grouped[category] || [];
         if (itemsInCategory.length === 0) return; // Skip empty sections
+        
+        // Check if section is visible based on include flags
+        let isSectionVisible = true;
+        switch (category) {
+          case 'worktop':
+            isSectionVisible = invoice.include_worktop || false;
+            break;
+          case 'accessories':
+            isSectionVisible = invoice.include_accessories || false;
+            break;
+          case 'appliances':
+            isSectionVisible = invoice.include_appliances || false;
+            break;
+          case 'wardrobes':
+            isSectionVisible = invoice.include_wardrobes || false;
+            break;
+          case 'tvunit':
+            isSectionVisible = invoice.include_tvunit || false;
+            break;
+          case 'cabinet':
+            // Cabinet is always visible
+            isSectionVisible = true;
+            break;
+        }
+        
+        if (!isSectionVisible) return; // Skip hidden sections
         // Section mapping
         const sectionLabels: { [key: string]: string } = {
           cabinet: invoice.section_names?.cabinet || "General",
