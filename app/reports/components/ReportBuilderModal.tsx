@@ -45,8 +45,8 @@ const reportTitles: Record<ReportType, string> = {
   custom: 'Custom Reports'
 }
 
-// Label style - white text for visibility on gradient backgrounds
-const labelStyle = { color: '#333333', fontWeight: 600 }
+// Label style - white text for visibility on dark/gradient backgrounds
+const labelStyle = { color: '#ffffff', fontWeight: 600 }
 
 // Dropdown style with proper text color
 const dropdownStyle = { 
@@ -1036,7 +1036,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           </div>
 
           {/* Modal Body */}
-          <div className="modal-body p-4" style={{ maxHeight: '60vh', overflowY: 'auto', backgroundColor: '#f9fafb' }}>
+          <div className="modal-body p-4" style={{ maxHeight: '60vh', overflowY: 'auto', backgroundColor: 'rgba(30, 41, 59, 0.95)' }}>
             {/* Date Range Selection */}
             <div className="row g-3 mb-4">
               <div className="col-md-4">
@@ -1203,7 +1203,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                   <div className="col-md-6 d-flex align-items-end gap-3">
                     <div className="form-check">
                       <input className="form-check-input" type="checkbox" checked={showPercentages} onChange={e => setShowPercentages(e.target.checked)} id="showPercentages" />
-                      <label className="form-check-label" htmlFor="showPercentages" style={{ color: '#333333' }}>Show Percentages</label>
+                      <label className="form-check-label" htmlFor="showPercentages" style={{ color: '#ffffff' }}>Show Percentages</label>
                     </div>
                   </div>
                 </div>
@@ -1255,19 +1255,19 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                     <div className="d-flex flex-wrap gap-3 mt-2">
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" checked={includeQuotations} onChange={e => setIncludeQuotations(e.target.checked)} id="includeQuotations" />
-                        <label className="form-check-label" htmlFor="includeQuotations" style={{ color: '#333333' }}>Quotations</label>
+                        <label className="form-check-label" htmlFor="includeQuotations" style={{ color: '#ffffff' }}>Quotations</label>
                       </div>
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" checked={includeSalesOrders} onChange={e => setIncludeSalesOrders(e.target.checked)} id="includeSalesOrders" />
-                        <label className="form-check-label" htmlFor="includeSalesOrders" style={{ color: '#333333' }}>Sales Orders</label>
+                        <label className="form-check-label" htmlFor="includeSalesOrders" style={{ color: '#ffffff' }}>Sales Orders</label>
                       </div>
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" checked={includeInvoices} onChange={e => setIncludeInvoices(e.target.checked)} id="includeInvoices" />
-                        <label className="form-check-label" htmlFor="includeInvoices" style={{ color: '#333333' }}>Invoices</label>
+                        <label className="form-check-label" htmlFor="includeInvoices" style={{ color: '#ffffff' }}>Invoices</label>
                       </div>
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" checked={includeCashSales} onChange={e => setIncludeCashSales(e.target.checked)} id="includeCashSales" />
-                        <label className="form-check-label" htmlFor="includeCashSales" style={{ color: '#333333' }}>Cash Sales</label>
+                        <label className="form-check-label" htmlFor="includeCashSales" style={{ color: '#ffffff' }}>Cash Sales</label>
                       </div>
                     </div>
                   </div>
@@ -1294,7 +1294,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 <div className="col-md-4 d-flex align-items-end">
                   <div className="form-check">
                     <input className="form-check-input" type="checkbox" checked={includeZeroStock} onChange={e => setIncludeZeroStock(e.target.checked)} id="includeZeroStock" />
-                    <label className="form-check-label" htmlFor="includeZeroStock" style={{ color: '#333333' }}>Include Zero Stock</label>
+                    <label className="form-check-label" htmlFor="includeZeroStock" style={{ color: '#ffffff' }}>Include Zero Stock</label>
                   </div>
                 </div>
               </div>
@@ -1357,10 +1357,10 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
             {/* Preview Section */}
             {previewData && previewData.length > 0 && (
-              <div className="mt-4 p-3 bg-white rounded-3 shadow-sm">
-                <h6 className="fw-bold mb-3" style={{ color: '#333333' }}>Preview ({previewData.length} records)</h6>
-                <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                  <table className="table table-sm table-hover">
+              <div className="mt-4 p-3 rounded-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                <h6 className="fw-bold mb-3" style={{ color: '#ffffff' }}>Preview ({previewData.length} records)</h6>
+                <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px' }}>
+                  <table className="table table-sm table-hover mb-0">
                     <thead className="table-light sticky-top">
                       <tr>
                         {previewColumns.map(col => (
