@@ -57,8 +57,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
   }, [isOpen, dateFrom, dateTo, reportType])
 
   const fetchFinancialData = async () => {
-    setLoading(true)
-    try {
+      setLoading(true)
+      try {
       const start = dateFrom ? new Date(dateFrom) : new Date(2020, 0, 1)
       const end = dateTo ? new Date(dateTo + 'T23:59:59') : new Date()
       
@@ -389,7 +389,7 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
               ${columns.map(c => `<th style="border: 1px solid #ddd; padding: 10px; text-align: ${c.align || 'left'};">${c.label}</th>`).join('')}
             </tr>
           </thead>
-          <tbody>
+        <tbody>
             ${rows.map((r, idx) => {
               const isHeader = r.type === 'header' || r.type === 'subheader'
               const isTotal = r.type === 'subtotal' || r.type === 'grandtotal'
@@ -405,7 +405,7 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
                 </tr>
               `
             }).join('')}
-          </tbody>
+        </tbody>
         </table>
         <div style="margin-top: 30px; display: flex; justify-content: space-between;">
           <div>
@@ -516,7 +516,7 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
                         </td>
                       )
                     })}
-                  </tr>
+                </tr>
                 )
               })
             )}

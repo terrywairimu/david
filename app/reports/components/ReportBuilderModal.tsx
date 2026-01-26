@@ -45,6 +45,32 @@ const reportTitles: Record<ReportType, string> = {
   custom: 'Custom Reports'
 }
 
+// Label style - white text for visibility on gradient backgrounds
+const labelStyle = { color: '#333333', fontWeight: 600 }
+
+// Dropdown style with proper text color
+const dropdownStyle = { 
+  borderRadius: '12px', 
+  height: '45px',
+  backgroundColor: '#ffffff',
+  color: '#333333',
+  border: '1px solid #e5e7eb'
+}
+
+// Client dropdown item style
+const dropdownItemStyle = {
+  padding: '10px 12px',
+  cursor: 'pointer',
+  borderBottom: '1px solid #f3f4f6',
+  color: '#333333',
+  backgroundColor: '#ffffff'
+}
+
+const dropdownItemHoverStyle = {
+  ...dropdownItemStyle,
+  backgroundColor: '#f0f9ff'
+}
+
 // Currency formatting function
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-KE', {
@@ -145,6 +171,10 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [includeInvoices, setIncludeInvoices] = useState(true)
   const [includeQuotations, setIncludeQuotations] = useState(true)
   const [includeSalesOrders, setIncludeSalesOrders] = useState(true)
+  const [salesFilterType, setSalesFilterType] = useState<'all'|'specific'>('all')
+  const [salesClientId, setSalesClientId] = useState<string>('')
+  const [salesClientSearch, setSalesClientSearch] = useState('')
+  const [showSalesClientDropdown, setShowSalesClientDropdown] = useState(false)
   
   // Expenses
   const [expensesGroupBy, setExpensesGroupBy] = useState<'none'|'day'|'week'|'month'|'category'|'department'>('none')
@@ -161,11 +191,18 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   
   // Financial - Professional Report Types
   const [financialReportType, setFinancialReportType] = useState<'summary'|'profitLoss'|'balanceSheet'|'cashFlow'|'cashBook'|'incomeStatement'|'trialBalance'>('summary')
+  const [financialFilterType, setFinancialFilterType] = useState<'all'|'company'|'specific'>('all')
+  const [financialClientId, setFinancialClientId] = useState<string>('')
+  const [financialClientSearch, setFinancialClientSearch] = useState('')
+  const [showFinancialClientDropdown, setShowFinancialClientDropdown] = useState(false)
   const [includeComparisons, setIncludeComparisons] = useState(false)
   const [showPercentages, setShowPercentages] = useState(true)
   
   // Clients
+  const [clientFilterType, setClientFilterType] = useState<'all'|'specific'>('all')
   const [clientFilter, setClientFilter] = useState<string>('')
+  const [clientSearchFilter, setClientSearchFilter] = useState('')
+  const [showClientFilterDropdown, setShowClientFilterDropdown] = useState(false)
   const [clientReportType, setClientReportType] = useState<'list'|'statement'|'aging'|'activity'>('list')
   
   // Custom
@@ -174,9 +211,9 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [includeInventoryData, setIncludeInventoryData] = useState(true)
   const [customGroupBy, setCustomGroupBy] = useState<'none'|'day'|'week'|'month'|'client'|'category'>('none')
 
-  // Load client options for all report types that need it
+  // Load client options for all report types
   useEffect(() => {
-    if (isOpen && (type === 'clients' || type === 'expenses' || type === 'sales')) {
+    if (isOpen) {
       supabase.from('registered_entities')
         .select('id, name')
         .eq('type', 'client')
@@ -186,7 +223,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           setClientOptions((data || []).map(c => ({ id: c.id, name: c.name })))
         })
     }
-  }, [isOpen, type])
+  }, [isOpen])
 
   // Load expense categories
   useEffect(() => {
@@ -200,13 +237,37 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
     }
   }, [isOpen, type])
 
-  // Filter clients by search term
+  // Filter clients by search term for expenses
   const filteredClients = useMemo(() => {
     if (!clientSearchTerm) return clientOptions
     return clientOptions.filter(c => 
       c.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
     )
   }, [clientOptions, clientSearchTerm])
+
+  // Filter clients for sales
+  const filteredSalesClients = useMemo(() => {
+    if (!salesClientSearch) return clientOptions
+    return clientOptions.filter(c => 
+      c.name.toLowerCase().includes(salesClientSearch.toLowerCase())
+    )
+  }, [clientOptions, salesClientSearch])
+
+  // Filter clients for financial
+  const filteredFinancialClients = useMemo(() => {
+    if (!financialClientSearch) return clientOptions
+    return clientOptions.filter(c => 
+      c.name.toLowerCase().includes(financialClientSearch.toLowerCase())
+    )
+  }, [clientOptions, financialClientSearch])
+
+  // Filter clients for client reports
+  const filteredClientFilterOptions = useMemo(() => {
+    if (!clientSearchFilter) return clientOptions
+    return clientOptions.filter(c => 
+      c.name.toLowerCase().includes(clientSearchFilter.toLowerCase())
+    )
+  }, [clientOptions, clientSearchFilter])
 
   if (!isOpen) return null
 
@@ -299,17 +360,30 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       } else if (financialReportType === 'profitLoss' || financialReportType === 'incomeStatement') {
         title = financialReportType === 'profitLoss' ? 'PROFIT & LOSS STATEMENT' : 'INCOME STATEMENT'
         
+        // Build queries based on filter type
+        let salesQuery = supabase.from('sales_orders').select('grand_total, client_id')
+          .gte('date_created', start.toISOString())
+          .lte('date_created', end.toISOString())
+        let expensesQuery = supabase.from('expenses').select('amount, category, expense_type, client_id')
+          .gte('date_created', start.toISOString())
+          .lte('date_created', end.toISOString())
+        let paymentsQuery = supabase.from('payments').select('amount, client_id')
+          .eq('status', 'completed')
+          .gte('date_paid', start.toISOString())
+          .lte('date_paid', end.toISOString())
+        
+        if (financialFilterType === 'company') {
+          expensesQuery = expensesQuery.eq('expense_type', 'company')
+        } else if (financialFilterType === 'specific' && financialClientId) {
+          salesQuery = salesQuery.eq('client_id', parseInt(financialClientId))
+          expensesQuery = expensesQuery.eq('client_id', parseInt(financialClientId))
+          paymentsQuery = paymentsQuery.eq('client_id', parseInt(financialClientId))
+          const clientName = clientOptions.find(c => c.id.toString() === financialClientId)?.name
+          if (clientName) title = `${title} - ${clientName.toUpperCase()}`
+        }
+        
         const [salesRes, expensesRes, paymentsRes] = await Promise.all([
-          supabase.from('sales_orders').select('grand_total')
-            .gte('date_created', start.toISOString())
-            .lte('date_created', end.toISOString()),
-          supabase.from('expenses').select('amount, category, expense_type')
-            .gte('date_created', start.toISOString())
-            .lte('date_created', end.toISOString()),
-          supabase.from('payments').select('amount')
-            .eq('status', 'completed')
-            .gte('date_paid', start.toISOString())
-            .lte('date_paid', end.toISOString())
+          salesQuery, expensesQuery, paymentsQuery
         ])
         
         const totalRevenue = (salesRes.data || []).reduce((s, r) => s + parseFloat(r.grand_total || 0), 0)
@@ -406,11 +480,27 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       } else {
         // Financial Summary
         title = 'FINANCIAL SUMMARY'
+        if (financialFilterType === 'specific' && financialClientId) {
+          const clientName = clientOptions.find(c => c.id.toString() === financialClientId)?.name
+          if (clientName) title = `FINANCIAL SUMMARY - ${clientName.toUpperCase()}`
+        }
+        
+        let salesQuery = supabase.from('sales_orders').select('grand_total')
+        let expensesQuery = supabase.from('expenses').select('amount')
+        let paymentsQuery = supabase.from('payments').select('amount').eq('status', 'completed')
+        
+        if (financialFilterType === 'company') {
+          expensesQuery = expensesQuery.eq('expense_type', 'company')
+        } else if (financialFilterType === 'specific' && financialClientId) {
+          salesQuery = salesQuery.eq('client_id', parseInt(financialClientId))
+          expensesQuery = expensesQuery.eq('client_id', parseInt(financialClientId))
+          paymentsQuery = paymentsQuery.eq('client_id', parseInt(financialClientId))
+        }
         
         const [salesRes, expensesRes, paymentsRes, balancesRes] = await Promise.all([
-          supabase.from('sales_orders').select('grand_total'),
-          supabase.from('expenses').select('amount'),
-          supabase.from('payments').select('amount').eq('status', 'completed'),
+          salesQuery,
+          expensesQuery,
+          paymentsQuery,
           supabase.from('account_balances').select('*')
         ])
         
@@ -435,15 +525,25 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       
     } else if (type === 'sales') {
       title = 'SALES REPORT'
+      if (salesFilterType === 'specific' && salesClientId) {
+        const clientName = clientOptions.find(c => c.id.toString() === salesClientId)?.name
+        if (clientName) title = `SALES REPORT - ${clientName.toUpperCase()}`
+      }
       
       const allRows: any[] = []
       
       if (includeQuotations) {
-        const { data } = await supabase.from('quotations')
-          .select('quotation_number, date_created, grand_total, status, client:registered_entities(name)')
+        let query = supabase.from('quotations')
+          .select('quotation_number, date_created, grand_total, status, client_id, client:registered_entities(name)')
           .gte('date_created', start.toISOString())
           .lte('date_created', end.toISOString())
-        ;(data || []).forEach(r => allRows.push({
+        
+        if (salesFilterType === 'specific' && salesClientId) {
+          query = query.eq('client_id', parseInt(salesClientId))
+        }
+        
+        const { data } = await query
+        ;(data || []).forEach((r: any) => allRows.push({
           date: new Date(r.date_created).toLocaleDateString(),
           type: 'Quotation',
           reference: r.quotation_number || '-',
@@ -454,11 +554,17 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       }
       
       if (includeSalesOrders) {
-        const { data } = await supabase.from('sales_orders')
-          .select('order_number, date_created, grand_total, status, client:registered_entities(name)')
+        let query = supabase.from('sales_orders')
+          .select('order_number, date_created, grand_total, status, client_id, client:registered_entities(name)')
           .gte('date_created', start.toISOString())
           .lte('date_created', end.toISOString())
-        ;(data || []).forEach(r => allRows.push({
+        
+        if (salesFilterType === 'specific' && salesClientId) {
+          query = query.eq('client_id', parseInt(salesClientId))
+        }
+        
+        const { data } = await query
+        ;(data || []).forEach((r: any) => allRows.push({
           date: new Date(r.date_created).toLocaleDateString(),
           type: 'Sales Order',
           reference: r.order_number || '-',
@@ -469,11 +575,17 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       }
       
       if (includeInvoices) {
-        const { data } = await supabase.from('invoices')
-          .select('invoice_number, date_created, grand_total, status, client:registered_entities(name)')
+        let query = supabase.from('invoices')
+          .select('invoice_number, date_created, grand_total, status, client_id, client:registered_entities(name)')
           .gte('date_created', start.toISOString())
           .lte('date_created', end.toISOString())
-        ;(data || []).forEach(r => allRows.push({
+        
+        if (salesFilterType === 'specific' && salesClientId) {
+          query = query.eq('client_id', parseInt(salesClientId))
+        }
+        
+        const { data } = await query
+        ;(data || []).forEach((r: any) => allRows.push({
           date: new Date(r.date_created).toLocaleDateString(),
           type: 'Invoice',
           reference: r.invoice_number || '-',
@@ -484,11 +596,17 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       }
       
       if (includeCashSales) {
-        const { data } = await supabase.from('cash_sales')
-          .select('sale_number, date_created, grand_total, status, client:registered_entities(name)')
+        let query = supabase.from('cash_sales')
+          .select('sale_number, date_created, grand_total, status, client_id, client:registered_entities(name)')
           .gte('date_created', start.toISOString())
           .lte('date_created', end.toISOString())
-        ;(data || []).forEach(r => allRows.push({
+        
+        if (salesFilterType === 'specific' && salesClientId) {
+          query = query.eq('client_id', parseInt(salesClientId))
+        }
+        
+        const { data } = await query
+        ;(data || []).forEach((r: any) => allRows.push({
           date: new Date(r.date_created).toLocaleDateString(),
           type: 'Cash Sale',
           reference: r.sale_number || '-',
@@ -542,7 +660,11 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         .eq('status', 'active')
         .order('name')
       
-      if (clientFilter) query = query.eq('id', parseInt(clientFilter))
+      if (clientFilterType === 'specific' && clientFilter) {
+        query = query.eq('id', parseInt(clientFilter))
+        const clientName = clientOptions.find(c => c.id.toString() === clientFilter)?.name
+        if (clientName) title = `CLIENT REPORT - ${clientName.toUpperCase()}`
+      }
       
       const { data: clients } = await query
       
@@ -661,12 +783,6 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       // Determine if landscape (for cash book)
       const isLandscape = financialReportType === 'cashBook'
       
-      const total = totals ? Object.values(totals).reduce((a, b) => a + b, 0) : 
-                    rows.reduce((sum, row) => {
-                      const amountKey = columns.find(c => c.key === 'amount' || c.key === 'value' || c.key === 'total')?.key
-                      return sum + (amountKey ? (parseFloat(row[amountKey]) || 0) : 0)
-                    }, 0)
-      
       const html = `
         <!DOCTYPE html>
         <html>
@@ -776,14 +892,117 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
     }
   }
 
+  // Client search dropdown component
+  const ClientSearchDropdown = ({ 
+    searchTerm, 
+    setSearchTerm, 
+    selectedId, 
+    setSelectedId, 
+    showDropdown, 
+    setShowDropdown, 
+    filteredList,
+    placeholder = "Search client..."
+  }: {
+    searchTerm: string
+    setSearchTerm: (v: string) => void
+    selectedId: string
+    setSelectedId: (v: string) => void
+    showDropdown: boolean
+    setShowDropdown: (v: boolean) => void
+    filteredList: Array<{id: number, name: string}>
+    placeholder?: string
+  }) => (
+    <div className="position-relative">
+      <div className="input-group">
+        <span className="input-group-text" style={{ borderRadius: '12px 0 0 12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+          <Search size={16} style={{ color: '#6b7280' }} />
+        </span>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value)
+            setShowDropdown(true)
+          }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder={placeholder}
+          style={{ 
+            borderRadius: '0 12px 12px 0', 
+            height: '45px',
+            backgroundColor: '#ffffff',
+            color: '#333333',
+            border: '1px solid #e5e7eb',
+            borderLeft: 'none'
+          }}
+        />
+      </div>
+      
+      {showDropdown && (
+        <div 
+          className="position-absolute w-100 shadow-lg rounded-3 mt-1" 
+          style={{ 
+            zIndex: 1000, 
+            maxHeight: '200px', 
+            overflowY: 'auto', 
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb'
+          }}
+        >
+          <div 
+            className="border-bottom"
+            onClick={() => { setSelectedId(''); setSearchTerm(''); setShowDropdown(false) }}
+            style={{ ...dropdownItemStyle, color: '#6b7280', fontSize: '0.875rem' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+          >
+            All Clients
+          </div>
+          {filteredList.map(client => (
+            <div 
+              key={client.id}
+              onClick={() => {
+                setSelectedId(client.id.toString())
+                setSearchTerm(client.name)
+                setShowDropdown(false)
+              }}
+              style={{ 
+                ...dropdownItemStyle, 
+                backgroundColor: selectedId === client.id.toString() ? '#eff6ff' : '#ffffff',
+                color: '#1f2937'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === client.id.toString() ? '#eff6ff' : '#ffffff'}
+            >
+              {client.name}
+            </div>
+          ))}
+          {filteredList.length === 0 && (
+            <div style={{ ...dropdownItemStyle, color: '#9ca3af', fontStyle: 'italic' }}>
+              No clients found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
+    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }} onClick={(e) => {
+      // Close dropdowns when clicking outside
+      if ((e.target as HTMLElement).classList.contains('modal')) {
+        setShowClientDropdown(false)
+        setShowSalesClientDropdown(false)
+        setShowFinancialClientDropdown(false)
+        setShowClientFilterDropdown(false)
+      }
+    }}>
       <div className="modal-dialog modal-xl modal-dialog-scrollable">
         <div className="modal-content" style={{ 
           borderRadius: '24px', 
           border: 'none', 
           overflow: 'hidden',
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(10px)',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)'
         }}>
@@ -817,16 +1036,16 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           </div>
 
           {/* Modal Body */}
-          <div className="modal-body p-4" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+          <div className="modal-body p-4" style={{ maxHeight: '60vh', overflowY: 'auto', backgroundColor: '#f9fafb' }}>
             {/* Date Range Selection */}
             <div className="row g-3 mb-4">
               <div className="col-md-4">
-                <label className="form-label fw-semibold text-dark">Date Range</label>
+                <label className="form-label fw-semibold" style={labelStyle}>Date Range</label>
                 <select 
-                  className="form-select border-0 shadow-sm" 
+                  className="form-select" 
                   value={datePreset} 
                   onChange={e => setDatePreset(e.target.value as DateRangeKey)}
-                  style={{ borderRadius: '16px', height: '45px' }}
+                  style={dropdownStyle}
                 >
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
@@ -844,23 +1063,23 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               {datePreset === 'custom' && (
                 <>
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold text-dark">Start Date</label>
+                    <label className="form-label fw-semibold" style={labelStyle}>Start Date</label>
                     <input 
                       type="date" 
-                      className="form-control border-0 shadow-sm" 
+                      className="form-control" 
                       value={startDate} 
                       onChange={e => setStartDate(e.target.value)}
-                      style={{ borderRadius: '16px', height: '45px' }}
+                      style={dropdownStyle}
                     />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold text-dark">End Date</label>
+                    <label className="form-label fw-semibold" style={labelStyle}>End Date</label>
                     <input 
                       type="date" 
-                      className="form-control border-0 shadow-sm" 
+                      className="form-control" 
                       value={endDate} 
                       onChange={e => setEndDate(e.target.value)}
-                      style={{ borderRadius: '16px', height: '45px' }}
+                      style={dropdownStyle}
                     />
                   </div>
                 </>
@@ -871,12 +1090,12 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             {type === 'expenses' && (
               <div className="row g-3 mb-4">
                 <div className="col-md-4">
-                  <label className="form-label fw-semibold text-dark">Group By</label>
+                  <label className="form-label fw-semibold" style={labelStyle}>Group By</label>
                   <select 
-                    className="form-select border-0 shadow-sm" 
+                    className="form-select" 
                     value={expensesGroupBy} 
                     onChange={e => setExpensesGroupBy(e.target.value as any)}
-                    style={{ borderRadius: '16px', height: '45px' }}
+                    style={dropdownStyle}
                   >
                     <option value="none">No Grouping (Detail)</option>
                     <option value="day">Day</option>
@@ -887,9 +1106,9 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label fw-semibold text-dark">Expense Type</label>
+                  <label className="form-label fw-semibold" style={labelStyle}>Expense Type</label>
                   <select 
-                    className="form-select border-0 shadow-sm" 
+                    className="form-select" 
                     value={expenseType} 
                     onChange={e => {
                       setExpenseType(e.target.value as any)
@@ -898,7 +1117,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                         setClientSearchTerm('')
                       }
                     }}
-                    style={{ borderRadius: '16px', height: '45px' }}
+                    style={dropdownStyle}
                   >
                     <option value="all">All Expenses</option>
                     <option value="company">Company Only</option>
@@ -909,55 +1128,16 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 {/* Client Selection - Only shown when expense type is 'client' */}
                 {expenseType === 'client' && (
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold text-dark">Select Client</label>
-                    <div className="position-relative">
-                      <div className="input-group">
-                        <span className="input-group-text border-0 bg-white" style={{ borderRadius: '16px 0 0 16px' }}>
-                          <Search size={16} className="text-muted" />
-                        </span>
-                        <input 
-                          type="text" 
-                          className="form-control border-0 shadow-sm" 
-                          value={clientSearchTerm}
-                          onChange={e => {
-                            setClientSearchTerm(e.target.value)
-                            setShowClientDropdown(true)
-                          }}
-                          onFocus={() => setShowClientDropdown(true)}
-                          placeholder="Search client..."
-                          style={{ borderRadius: '0 16px 16px 0', height: '45px' }}
-                        />
-                      </div>
-                      
-                      {showClientDropdown && filteredClients.length > 0 && (
-                        <div 
-                          className="position-absolute w-100 bg-white shadow-lg rounded-3 mt-1" 
-                          style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto', border: '1px solid #e9ecef' }}
-                        >
-                          <div 
-                            className="p-2 border-bottom text-muted small"
-                            onClick={() => { setSelectedClientId(''); setClientSearchTerm(''); setShowClientDropdown(false) }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            All Clients
-                          </div>
-                          {filteredClients.map(client => (
-                            <div 
-                              key={client.id}
-                              className="p-2 border-bottom"
-                              onClick={() => {
-                                setSelectedClientId(client.id.toString())
-                                setClientSearchTerm(client.name)
-                                setShowClientDropdown(false)
-                              }}
-                              style={{ cursor: 'pointer', backgroundColor: selectedClientId === client.id.toString() ? '#f0f9ff' : 'transparent' }}
-                            >
-                              {client.name}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
+                    <ClientSearchDropdown 
+                      searchTerm={clientSearchTerm}
+                      setSearchTerm={setClientSearchTerm}
+                      selectedId={selectedClientId}
+                      setSelectedId={setSelectedClientId}
+                      showDropdown={showClientDropdown}
+                      setShowDropdown={setShowClientDropdown}
+                      filteredList={filteredClients}
+                    />
                   </div>
                 )}
               </div>
@@ -965,69 +1145,146 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
             {/* Financial Report Options */}
             {type === 'financial' && (
-              <div className="row g-3 mb-4">
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold text-dark">Report Type</label>
-                  <select 
-                    className="form-select border-0 shadow-sm" 
-                    value={financialReportType} 
-                    onChange={e => setFinancialReportType(e.target.value as any)}
-                    style={{ borderRadius: '16px', height: '45px' }}
-                  >
-                    <option value="summary">Financial Summary</option>
-                    <option value="profitLoss">Profit & Loss Statement</option>
-                    <option value="incomeStatement">Income Statement</option>
-                    <option value="balanceSheet">Balance Sheet</option>
-                    <option value="cashFlow">Cash Flow Statement</option>
-                    <option value="cashBook">Three-Column Cash Book (Landscape)</option>
-                  </select>
+              <>
+                <div className="row g-3 mb-4">
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold" style={labelStyle}>Filter By</label>
+                    <select 
+                      className="form-select" 
+                      value={financialFilterType} 
+                      onChange={e => {
+                        setFinancialFilterType(e.target.value as any)
+                        if (e.target.value !== 'specific') {
+                          setFinancialClientId('')
+                          setFinancialClientSearch('')
+                        }
+                      }}
+                      style={dropdownStyle}
+                    >
+                      <option value="all">All</option>
+                      <option value="company">Company Only</option>
+                      <option value="specific">Specific Client</option>
+                    </select>
+                  </div>
+                  
+                  {financialFilterType === 'specific' && (
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
+                      <ClientSearchDropdown 
+                        searchTerm={financialClientSearch}
+                        setSearchTerm={setFinancialClientSearch}
+                        selectedId={financialClientId}
+                        setSelectedId={setFinancialClientId}
+                        showDropdown={showFinancialClientDropdown}
+                        setShowDropdown={setShowFinancialClientDropdown}
+                        filteredList={filteredFinancialClients}
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="col-md-6 d-flex align-items-end gap-3">
-                  <div className="form-check">
-                    <input className="form-check-input" type="checkbox" checked={showPercentages} onChange={e => setShowPercentages(e.target.checked)} />
-                    <label className="form-check-label">Show Percentages</label>
+                
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={labelStyle}>Report Type</label>
+                    <select 
+                      className="form-select" 
+                      value={financialReportType} 
+                      onChange={e => setFinancialReportType(e.target.value as any)}
+                      style={dropdownStyle}
+                    >
+                      <option value="summary">Financial Summary</option>
+                      <option value="profitLoss">Profit & Loss Statement</option>
+                      <option value="incomeStatement">Income Statement</option>
+                      <option value="balanceSheet">Balance Sheet</option>
+                      <option value="cashFlow">Cash Flow Statement</option>
+                      <option value="cashBook">Three-Column Cash Book (Landscape)</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6 d-flex align-items-end gap-3">
+                    <div className="form-check">
+                      <input className="form-check-input" type="checkbox" checked={showPercentages} onChange={e => setShowPercentages(e.target.checked)} id="showPercentages" />
+                      <label className="form-check-label" htmlFor="showPercentages" style={{ color: '#333333' }}>Show Percentages</label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Sales Report Options */}
             {type === 'sales' && (
-              <div className="row g-3 mb-4">
-                <div className="col-md-12">
-                  <label className="form-label fw-semibold text-dark">Include Documents</label>
-                  <div className="d-flex flex-wrap gap-3 mt-2">
-                    <div className="form-check">
-                      <input className="form-check-input" type="checkbox" checked={includeQuotations} onChange={e => setIncludeQuotations(e.target.checked)} />
-                      <label className="form-check-label">Quotations</label>
+              <>
+                <div className="row g-3 mb-4">
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold" style={labelStyle}>Filter By</label>
+                    <select 
+                      className="form-select" 
+                      value={salesFilterType} 
+                      onChange={e => {
+                        setSalesFilterType(e.target.value as any)
+                        if (e.target.value !== 'specific') {
+                          setSalesClientId('')
+                          setSalesClientSearch('')
+                        }
+                      }}
+                      style={dropdownStyle}
+                    >
+                      <option value="all">All Clients</option>
+                      <option value="specific">Specific Client</option>
+                    </select>
+                  </div>
+                  
+                  {salesFilterType === 'specific' && (
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
+                      <ClientSearchDropdown 
+                        searchTerm={salesClientSearch}
+                        setSearchTerm={setSalesClientSearch}
+                        selectedId={salesClientId}
+                        setSelectedId={setSalesClientId}
+                        showDropdown={showSalesClientDropdown}
+                        setShowDropdown={setShowSalesClientDropdown}
+                        filteredList={filteredSalesClients}
+                      />
                     </div>
-                    <div className="form-check">
-                      <input className="form-check-input" type="checkbox" checked={includeSalesOrders} onChange={e => setIncludeSalesOrders(e.target.checked)} />
-                      <label className="form-check-label">Sales Orders</label>
-                    </div>
-                    <div className="form-check">
-                      <input className="form-check-input" type="checkbox" checked={includeInvoices} onChange={e => setIncludeInvoices(e.target.checked)} />
-                      <label className="form-check-label">Invoices</label>
-                    </div>
-                    <div className="form-check">
-                      <input className="form-check-input" type="checkbox" checked={includeCashSales} onChange={e => setIncludeCashSales(e.target.checked)} />
-                      <label className="form-check-label">Cash Sales</label>
+                  )}
+                </div>
+                
+                <div className="row g-3 mb-4">
+                  <div className="col-md-12">
+                    <label className="form-label fw-semibold" style={labelStyle}>Include Documents</label>
+                    <div className="d-flex flex-wrap gap-3 mt-2">
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" checked={includeQuotations} onChange={e => setIncludeQuotations(e.target.checked)} id="includeQuotations" />
+                        <label className="form-check-label" htmlFor="includeQuotations" style={{ color: '#333333' }}>Quotations</label>
+                      </div>
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" checked={includeSalesOrders} onChange={e => setIncludeSalesOrders(e.target.checked)} id="includeSalesOrders" />
+                        <label className="form-check-label" htmlFor="includeSalesOrders" style={{ color: '#333333' }}>Sales Orders</label>
+                      </div>
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" checked={includeInvoices} onChange={e => setIncludeInvoices(e.target.checked)} id="includeInvoices" />
+                        <label className="form-check-label" htmlFor="includeInvoices" style={{ color: '#333333' }}>Invoices</label>
+                      </div>
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" checked={includeCashSales} onChange={e => setIncludeCashSales(e.target.checked)} id="includeCashSales" />
+                        <label className="form-check-label" htmlFor="includeCashSales" style={{ color: '#333333' }}>Cash Sales</label>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Inventory Report Options */}
             {type === 'inventory' && (
               <div className="row g-3 mb-4">
                 <div className="col-md-4">
-                  <label className="form-label fw-semibold text-dark">Report Type</label>
+                  <label className="form-label fw-semibold" style={labelStyle}>Report Type</label>
                   <select 
-                    className="form-select border-0 shadow-sm" 
+                    className="form-select" 
                     value={inventoryReportType} 
                     onChange={e => setInventoryReportType(e.target.value as any)}
-                    style={{ borderRadius: '16px', height: '45px' }}
+                    style={dropdownStyle}
                   >
                     <option value="all">All Items</option>
                     <option value="low_stock">Low Stock Items</option>
@@ -1036,8 +1293,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 </div>
                 <div className="col-md-4 d-flex align-items-end">
                   <div className="form-check">
-                    <input className="form-check-input" type="checkbox" checked={includeZeroStock} onChange={e => setIncludeZeroStock(e.target.checked)} />
-                    <label className="form-check-label">Include Zero Stock</label>
+                    <input className="form-check-input" type="checkbox" checked={includeZeroStock} onChange={e => setIncludeZeroStock(e.target.checked)} id="includeZeroStock" />
+                    <label className="form-check-label" htmlFor="includeZeroStock" style={{ color: '#333333' }}>Include Zero Stock</label>
                   </div>
                 </div>
               </div>
@@ -1046,32 +1303,51 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             {/* Client Report Options */}
             {type === 'clients' && (
               <div className="row g-3 mb-4">
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold text-dark">Filter by Client</label>
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold" style={labelStyle}>Filter by Client</label>
                   <select 
-                    className="form-select border-0 shadow-sm" 
-                    value={clientFilter} 
-                    onChange={e => setClientFilter(e.target.value)}
-                    style={{ borderRadius: '16px', height: '45px' }}
+                    className="form-select" 
+                    value={clientFilterType} 
+                    onChange={e => {
+                      setClientFilterType(e.target.value as any)
+                      if (e.target.value !== 'specific') {
+                        setClientFilter('')
+                        setClientSearchFilter('')
+                      }
+                    }}
+                    style={dropdownStyle}
                   >
-                    <option value="">All Clients</option>
-                    {clientOptions.map(client => (
-                      <option key={client.id} value={client.id}>{client.name}</option>
-                    ))}
+                    <option value="all">All Clients</option>
+                    <option value="specific">Specific Client</option>
                   </select>
                 </div>
+                
+                {clientFilterType === 'specific' && (
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
+                    <ClientSearchDropdown 
+                      searchTerm={clientSearchFilter}
+                      setSearchTerm={setClientSearchFilter}
+                      selectedId={clientFilter}
+                      setSelectedId={setClientFilter}
+                      showDropdown={showClientFilterDropdown}
+                      setShowDropdown={setShowClientFilterDropdown}
+                      filteredList={filteredClientFilterOptions}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
             {/* Output Format */}
             <div className="row g-3 mb-4">
               <div className="col-md-4">
-                <label className="form-label fw-semibold text-dark">Output Format</label>
+                <label className="form-label fw-semibold" style={labelStyle}>Output Format</label>
                 <select 
-                  className="form-select border-0 shadow-sm" 
+                  className="form-select" 
                   value={format} 
                   onChange={e => setFormat(e.target.value as any)}
-                  style={{ borderRadius: '16px', height: '45px' }}
+                  style={dropdownStyle}
                 >
                   <option value="pdf">PDF Document</option>
                   <option value="csv">CSV File</option>
@@ -1081,14 +1357,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
             {/* Preview Section */}
             {previewData && previewData.length > 0 && (
-              <div className="mt-4">
-                <h6 className="fw-bold mb-3">Preview ({previewData.length} records)</h6>
+              <div className="mt-4 p-3 bg-white rounded-3 shadow-sm">
+                <h6 className="fw-bold mb-3" style={{ color: '#333333' }}>Preview ({previewData.length} records)</h6>
                 <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto' }}>
                   <table className="table table-sm table-hover">
                     <thead className="table-light sticky-top">
                       <tr>
                         {previewColumns.map(col => (
-                          <th key={col.key} className={col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : ''}>{col.label}</th>
+                          <th key={col.key} className={col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : ''} style={{ color: '#333333' }}>{col.label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -1096,7 +1372,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       {previewData.slice(0, 15).map((row, idx) => (
                         <tr key={idx}>
                           {previewColumns.map(col => (
-                            <td key={col.key} className={col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : ''}>
+                            <td key={col.key} className={col.align === 'right' ? 'text-end' : col.align === 'center' ? 'text-center' : ''} style={{ color: '#333333' }}>
                               {typeof row[col.key] === 'number' && !col.key.includes('quantity') ? formatCurrency(row[col.key]) : (row[col.key] || '-')}
                             </td>
                           ))}
@@ -1113,11 +1389,11 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           </div>
 
           {/* Footer with all buttons */}
-          <div className="modal-footer border-0 p-4" style={{ background: 'rgba(248, 250, 252, 0.8)' }}>
+          <div className="modal-footer border-0 p-4" style={{ background: 'rgba(248, 250, 252, 0.95)' }}>
             <div className="d-flex justify-content-between w-100">
               <button 
                 type="button" 
-                className="btn btn-outline-secondary border-0 shadow-sm" 
+                className="btn btn-outline-secondary" 
                 onClick={onClose}
                 style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
               >
@@ -1127,7 +1403,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
               <div className="d-flex gap-3">
                 <button 
                   type="button" 
-                  className="btn btn-outline-primary border-0 shadow-sm" 
+                  className="btn btn-outline-primary" 
                   onClick={generatePreview}
                   disabled={loading}
                   style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
@@ -1137,7 +1413,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 </button>
                 <button 
                   type="button" 
-                  className="btn btn-outline-secondary border-0 shadow-sm" 
+                  className="btn btn-outline-secondary" 
                   onClick={handlePrint}
                   disabled={loading}
                   style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
@@ -1147,7 +1423,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                 </button>
                 <button 
                   type="button" 
-                  className="btn btn-primary border-0 shadow-sm" 
+                  className="btn btn-primary" 
                   onClick={runAndExport}
                   disabled={loading}
                   style={{ borderRadius: '12px', height: '45px', padding: '0 1.5rem' }}
