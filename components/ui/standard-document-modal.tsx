@@ -172,7 +172,7 @@ const StandardDocumentModal: React.FC<StandardDocumentModalProps> = ({
           title: "Quotation",
           icon: FileText,
           color: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          defaultTerms: "1. All work to be completed within agreed timeframe.\n2. Client to provide necessary measurements and specifications.\n3. Final payment due upon completion.\n4. Any changes to the original design may incur additional charges."
+          defaultTerms: "1. The quotation is based on the approved design and therefore any changes to the original design may attract additional charges.\n2. The project will take maximum of 21 days from the day the initial deposit is made.\n3. A Deposit of 70% of the project cost is required as the initial depost, 20% is payable upon delivery of all materials and commencement of the project on site, then the balance 10% is payable upon completion and approval of the project.\n           PAYMENT DETAILS\nPAY BILL: 400200, ACCOUNT NUMBER: 845763\n          OR\nCOOPPERATIVE BANK, KAMAKIS BRANCH\nACCOUNT NUMBER: 011007200115001\nACCOUNT NAME: Cabinet Master Styles and finishes ltd\n4. The cost of transportation of materials to site is not included in the above quote"
         }
       case "sales_order":
         return {

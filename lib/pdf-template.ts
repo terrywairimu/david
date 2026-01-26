@@ -199,10 +199,16 @@ export const defaultValues: QuotationData = {
   notes: "",
 
   terms: [
-    "1. All work to be completed within agreed timeframe.",
-    "2. Client to provide necessary measurements and specifications.",
-    "3. Final payment due upon completion.",
-    "4. Any changes to the original design may incur additional charges."
+    "1. The quotation is based on the approved design and therefore any changes to the original design may attract additional charges.",
+    "2. The project will take maximum of 21 days from the day the initial deposit is made.",
+    "3. A Deposit of 70% of the project cost is required as the initial depost, 20% is payable upon delivery of all materials and commencement of the project on site, then the balance 10% is payable upon completion and approval of the project.",
+    "           PAYMENT DETAILS",
+    "PAY BILL: 400200, ACCOUNT NUMBER: 845763",
+    "          OR",
+    "COOPPERATIVE BANK, KAMAKIS BRANCH",
+    "ACCOUNT NUMBER: 011007200115001",
+    "ACCOUNT NAME: Cabinet Master Styles and finishes ltd",
+    "4. The cost of transportation of materials to site is not included in the above quote"
   ],
 
   preparedBy: "",
