@@ -11,6 +11,7 @@ import ClientPurchaseModal from "@/components/ui/client-purchase-modal"
 import { RegisteredEntity } from "@/lib/types"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPurchasesReport, generateSupplierPaymentNumber, adjustStockForPurchaseEdit } from "@/lib/workflow-utils"
+import { generateReportPDF, ReportData, ReportColumn } from "@/lib/dynamic-report-pdf"
 
 interface Purchase {
   id: number
@@ -789,35 +790,41 @@ const PurchasesPage = () => {
     }
   }
 
-  const handleDownload = (purchase: Purchase) => {
-    const csvContent = [
-      ['Purchase Order', purchase.purchase_order_number],
-      ['Date', formatDate(purchase.purchase_date)],
-      ['Supplier', purchase.supplier?.name || ''],
-      ['Client', purchase.client?.name || ''],
-      ['Paid To', purchase.paid_to || ''],
-      ['Payment Method', purchase.payment_method],
-      [''],
-      ['Item Description', 'Unit', 'Quantity', 'Unit Price', 'Total'],
-      ...(purchase.items?.map(item => [
-        item.stock_item?.description || 'N/A',
-        item.stock_item?.unit || 'N/A',
-        item.quantity.toString(),
-        item.unit_price.toFixed(2),
-        item.total_price.toFixed(2)
-      ]) || []),
-      [''],
-      ['Total Amount', '', '', '', purchase.total_amount.toFixed(2)]
-    ]
-
-    const csvString = csvContent.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvString], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `purchase_${purchase.purchase_order_number}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+  const handleDownload = async (purchase: Purchase) => {
+    try {
+      const columns: ReportColumn[] = [
+        { key: 'description', label: 'Description', width: 35, align: 'left' },
+        { key: 'unit', label: 'Unit', width: 10, align: 'center' },
+        { key: 'quantity', label: 'Qty', width: 10, align: 'right' },
+        { key: 'unit_price', label: 'Unit Price', width: 20, align: 'right' },
+        { key: 'total_price', label: 'Total', width: 25, align: 'right' }
+      ]
+      
+      const rows = (purchase.items || []).map(item => ({
+        description: item.stock_item?.description || item.stock_item?.name || 'N/A',
+        unit: item.stock_item?.unit || 'N/A',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price
+      }))
+      
+      const reportData: ReportData = {
+        title: `PURCHASE ORDER - ${purchase.purchase_order_number}`,
+        subtitle: purchase.client ? `Client: ${purchase.client.name}` : undefined,
+        period: `Date: ${formatDate(purchase.purchase_date)} | Supplier: ${purchase.supplier?.name || 'N/A'}`,
+        generatedDate: new Date().toLocaleString(),
+        columns,
+        rows,
+        totals: { total_price: purchase.total_amount },
+        summary: `Payment Method: ${purchase.payment_method} | Status: ${purchase.payment_status || 'N/A'}`
+      }
+      
+      await generateReportPDF(reportData, 'portrait', `purchase_${purchase.purchase_order_number}`)
+      toast.success('Purchase order downloaded as PDF')
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      toast.error('Failed to download PDF')
+    }
   }
 
   // Export function

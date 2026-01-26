@@ -372,22 +372,34 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           .gte('date_paid', start.toISOString())
           .lte('date_paid', end.toISOString())
         
+        // COGS Query - purchases for resale (client purchases = COGS)
+        let cogsQuery: any = supabase.from('purchases').select('total_amount, client_id')
+          .not('client_id', 'is', null) // Only client purchases count as COGS
+          .gte('purchase_date', start.toISOString())
+          .lte('purchase_date', end.toISOString())
+        
         if (financialFilterType === 'company') {
           expensesQuery = expensesQuery.eq('expense_type', 'company')
+          // Company filter = general/company purchases (no client attached)
+          cogsQuery = supabase.from('purchases').select('total_amount, client_id').is('client_id', null)
+            .gte('purchase_date', start.toISOString())
+            .lte('purchase_date', end.toISOString())
         } else if (financialFilterType === 'specific' && financialClientId) {
           salesQuery = salesQuery.eq('client_id', parseInt(financialClientId))
           expensesQuery = expensesQuery.eq('client_id', parseInt(financialClientId))
           paymentsQuery = paymentsQuery.eq('client_id', parseInt(financialClientId))
+          cogsQuery = cogsQuery.eq('client_id', parseInt(financialClientId))
           const clientName = clientOptions.find(c => c.id.toString() === financialClientId)?.name
           if (clientName) title = `${title} - ${clientName.toUpperCase()}`
         }
         
-        const [salesRes, expensesRes, paymentsRes] = await Promise.all([
-          salesQuery, expensesQuery, paymentsQuery
+        const [salesRes, expensesRes, paymentsRes, cogsRes] = await Promise.all([
+          salesQuery, expensesQuery, paymentsQuery, cogsQuery
         ])
         
         const totalRevenue = (salesRes.data || []).reduce((s, r) => s + parseFloat(r.grand_total || 0), 0)
         const totalPayments = (paymentsRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
+        const totalCOGS = (cogsRes.data || []).reduce((s: number, r: any) => s + parseFloat(r.total_amount || 0), 0)
         
         const expensesByCategory = (expensesRes.data || []).reduce((acc: any, exp: any) => {
           const cat = exp.category || 'Other'
@@ -396,25 +408,30 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         }, {})
         
         const totalExpenses = Object.values(expensesByCategory).reduce((s: number, v: any) => s + v, 0)
-        const grossProfit = totalRevenue - totalExpenses
-        const netIncome = totalPayments - totalExpenses
+        const grossProfit = totalRevenue - totalCOGS
+        const operatingProfit = grossProfit - totalExpenses
+        const netIncome = totalPayments - totalCOGS - totalExpenses
         
         rows = [
-          { account: 'REVENUE', type: 'Header', amount: null, percentage: '' },
+          { account: 'REVENUE', type: '', amount: null, percentage: '' },
           { account: 'Sales Revenue', type: 'Revenue', amount: totalRevenue, percentage: '100.0%' },
           { account: 'Payments Received', type: 'Revenue', amount: totalPayments, percentage: showPercentages && totalRevenue > 0 ? `${((totalPayments/totalRevenue)*100).toFixed(1)}%` : '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
-          { account: 'EXPENSES', type: 'Header', amount: null, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'COST OF GOODS SOLD (COGS)', type: '', amount: null, percentage: '' },
+          { account: 'Purchases for Resale', type: 'COGS', amount: totalCOGS, percentage: showPercentages && totalRevenue > 0 ? `${((totalCOGS/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'GROSS PROFIT', type: 'Subtotal', amount: grossProfit, percentage: showPercentages && totalRevenue > 0 ? `${((grossProfit/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'OPERATING EXPENSES', type: '', amount: null, percentage: '' },
           ...Object.entries(expensesByCategory).map(([cat, amt]: [string, any]) => ({
             account: `  ${cat.charAt(0).toUpperCase() + cat.slice(1)}`,
             type: 'Expense',
             amount: amt,
             percentage: showPercentages && totalRevenue > 0 ? `${((amt/totalRevenue)*100).toFixed(1)}%` : ''
           })),
-          { account: 'Total Expenses', type: 'Subtotal', amount: totalExpenses, percentage: showPercentages && totalRevenue > 0 ? `${((totalExpenses/totalRevenue)*100).toFixed(1)}%` : '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
-          { account: 'PROFIT/LOSS', type: 'Header', amount: null, percentage: '' },
-          { account: 'Gross Profit', type: 'Total', amount: grossProfit, percentage: showPercentages && totalRevenue > 0 ? `${((grossProfit/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: 'Total Operating Expenses', type: 'Subtotal', amount: totalExpenses, percentage: showPercentages && totalRevenue > 0 ? `${((totalExpenses/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'OPERATING PROFIT', type: 'Total', amount: operatingProfit, percentage: showPercentages && totalRevenue > 0 ? `${((operatingProfit/totalRevenue)*100).toFixed(1)}%` : '' },
           { account: 'NET INCOME', type: 'GrandTotal', amount: netIncome, percentage: showPercentages && totalRevenue > 0 ? `${((netIncome/totalRevenue)*100).toFixed(1)}%` : '' }
         ]
         
@@ -434,15 +451,15 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         const totalAssets = cashBalance + bankBalance + receivables + inventoryValue
         
         rows = [
-          { account: 'ASSETS', type: 'Header', amount: null, percentage: '' },
-          { account: 'Current Assets', type: 'SubHeader', amount: null, percentage: '' },
+          { account: 'ASSETS', type: '', amount: null, percentage: '' },
+          { account: 'Current Assets', type: '', amount: null, percentage: '' },
           { account: '  Cash in Hand', type: 'Asset', amount: cashBalance, percentage: '' },
           { account: '  Bank (Cooperative)', type: 'Asset', amount: bankBalance, percentage: '' },
           { account: '  Accounts Receivable', type: 'Asset', amount: receivables, percentage: '' },
           { account: '  Inventory', type: 'Asset', amount: inventoryValue, percentage: '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
           { account: 'Total Current Assets', type: 'Subtotal', amount: totalAssets, percentage: '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
           { account: 'TOTAL ASSETS', type: 'GrandTotal', amount: totalAssets, percentage: '' }
         ]
         
@@ -466,12 +483,12 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         const netCashFlow = totalInflows - totalOutflows
         
         rows = [
-          { account: 'OPERATING ACTIVITIES', type: 'Header', amount: null, percentage: '' },
+          { account: 'OPERATING ACTIVITIES', type: '', amount: null, percentage: '' },
           { account: 'Cash Receipts from Customers', type: 'Inflow', amount: totalInflows, percentage: '' },
           { account: 'Cash Paid for Expenses', type: 'Outflow', amount: -totalOutflows, percentage: '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
           { account: 'Net Cash from Operations', type: 'Subtotal', amount: netCashFlow, percentage: '' },
-          { account: '', type: 'Spacer', amount: null, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
           { account: 'NET CHANGE IN CASH', type: 'GrandTotal', amount: netCashFlow, percentage: '' }
         ]
         
@@ -485,36 +502,50 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
           if (clientName) title = `FINANCIAL SUMMARY - ${clientName.toUpperCase()}`
         }
         
-        let salesQuery = supabase.from('sales_orders').select('grand_total')
+        let salesQuery = supabase.from('sales_orders').select('grand_total, client_id')
         let expensesQuery = supabase.from('expenses').select('amount')
         let paymentsQuery = supabase.from('payments').select('amount').eq('status', 'completed')
         
+        // COGS Query - purchases for resale (client purchases)
+        let cogsQuery: any = supabase.from('purchases').select('total_amount, client_id')
+          .not('client_id', 'is', null)
+        
         if (financialFilterType === 'company') {
           expensesQuery = expensesQuery.eq('expense_type', 'company')
+          cogsQuery = supabase.from('purchases').select('total_amount, client_id').is('client_id', null)
         } else if (financialFilterType === 'specific' && financialClientId) {
           salesQuery = salesQuery.eq('client_id', parseInt(financialClientId))
           expensesQuery = expensesQuery.eq('client_id', parseInt(financialClientId))
           paymentsQuery = paymentsQuery.eq('client_id', parseInt(financialClientId))
+          cogsQuery = cogsQuery.eq('client_id', parseInt(financialClientId))
         }
         
-        const [salesRes, expensesRes, paymentsRes, balancesRes] = await Promise.all([
+        const [salesRes, expensesRes, paymentsRes, balancesRes, cogsRes] = await Promise.all([
           salesQuery,
           expensesQuery,
           paymentsQuery,
-          supabase.from('account_balances').select('*')
+          supabase.from('account_balances').select('*'),
+          cogsQuery
         ])
         
         const totalSales = (salesRes.data || []).reduce((s, r) => s + parseFloat(r.grand_total || 0), 0)
         const totalExpenses = (expensesRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
         const totalPayments = (paymentsRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
+        const totalCOGS = (cogsRes.data || []).reduce((s: number, r: any) => s + parseFloat(r.total_amount || 0), 0)
         const cashBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'cash')?.current_balance || 0)
         const bankBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'cooperative_bank')?.current_balance || 0)
         
+        const grossProfit = totalSales - totalCOGS
+        const netProfit = grossProfit - totalExpenses
+        
         rows = [
-          { account: 'Total Sales (Orders)', type: 'Revenue', amount: totalSales, percentage: '' },
+          { account: 'Total Sales (Revenue)', type: 'Revenue', amount: totalSales, percentage: '' },
           { account: 'Total Payments Received', type: 'Revenue', amount: totalPayments, percentage: '' },
-          { account: 'Total Expenses', type: 'Expense', amount: totalExpenses, percentage: '' },
-          { account: 'Net Profit', type: 'Total', amount: totalSales - totalExpenses, percentage: '' },
+          { account: 'Cost of Goods Sold (COGS)', type: 'COGS', amount: totalCOGS, percentage: '' },
+          { account: 'Gross Profit', type: 'Subtotal', amount: grossProfit, percentage: '' },
+          { account: 'Operating Expenses', type: 'Expense', amount: totalExpenses, percentage: '' },
+          { account: 'Net Profit', type: 'Total', amount: netProfit, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
           { account: 'Cash Balance', type: 'Asset', amount: cashBalance, percentage: '' },
           { account: 'Bank Balance', type: 'Asset', amount: bankBalance, percentage: '' },
           { account: 'Total Liquid Assets', type: 'GrandTotal', amount: cashBalance + bankBalance, percentage: '' }
