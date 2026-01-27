@@ -413,6 +413,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Reset discount first to prevent carry-over from previous sales orders
+      setDiscountAmount(0)
+      
       fetchClients()
       fetchStockItems()
       if (salesOrder) {
@@ -421,6 +424,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         if (salesOrder.date_created) {
           setOrderDate(salesOrder.date_created.split('T')[0])
         }
+      } else {
+        // If no sales order, ensure discount is reset
+        setDiscountAmount(0)
       }
     }
     // Real-time subscription for stock_items and payments
@@ -603,6 +609,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const loadSalesOrderData = () => {
     if (!salesOrder) return
     
+    // Reset discount first to prevent carry-over from previous sales orders
+    setDiscountAmount(0)
+    
     setOrderNumber(salesOrder.order_number || "")
     setSelectedClient(salesOrder.client || null)
     setClientSearchTerm(salesOrder.client?.name || "")
@@ -623,13 +632,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }))
     }
     
-    // Load VAT percentage from database
-    if (salesOrder.vat_percentage) {
-      setVatPercentage(salesOrder.vat_percentage)
-    }
+    // Load VAT percentage from database (reset to default if not present)
+    setVatPercentage(salesOrder.vat_percentage || 16)
     
-    // Load discount amount from database (reset to 0 if not present)
-    setDiscountAmount(salesOrder.discount_amount || 0)
+    // Load discount amount from database (explicitly handle null/undefined)
+    const discountValue = salesOrder.discount_amount != null ? Number(salesOrder.discount_amount) : 0
+    setDiscountAmount(discountValue)
     
     // Load items by category
     if (salesOrder.items) {
