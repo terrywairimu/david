@@ -206,7 +206,7 @@ export const defaultValues: QuotationData = {
     "PAY BILL: 400200, ACCOUNT NUMBER: 845763",
     "          OR",
     "COOPPERATIVE BANK, KAMAKIS BRANCH",
-    "ACCOUNT NUMBER: 011007200115001",
+    "ACCOUNT NUMBER: 01100720015001",
     "ACCOUNT NAME: Cabinet Master Styles and finishes ltd",
     "4. The cost of transportation of materials to site is not included in the above quote"
   ],
