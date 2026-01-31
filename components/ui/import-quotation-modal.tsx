@@ -498,12 +498,13 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       return
     }
 
-    // Prepare data for each section
+    // Prepare data for each section using user's allocation (selectedSections)
     const importData: {[key: string]: any[]} = {}
     Object.entries(mappedData).forEach(([section, items]) => {
       if (items.length > 0) {
-        importData[section] = items.map(row => ({
-          category: section,
+        const targetSection = selectedSections[section] || section
+        const mappedItems = items.map(row => ({
+          category: targetSection,
           description: String(row.description || '').trim(),
           unit: String(row.unit || 'pcs').trim(),
           quantity: parseFloat(row.quantity) || 1,
@@ -512,6 +513,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
           specifications: '',
           notes: ''
         }))
+        if (!importData[targetSection]) importData[targetSection] = []
+        importData[targetSection].push(...mappedItems)
       }
     })
 
@@ -762,34 +765,35 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </p>
                 </div>
 
-                {/* Section Selection */}
-                {parsedData.sections.length > 1 && (
-                  <div className="mb-4">
-                    <h6 className="mb-3">Detected Sections:</h6>
-                    <div className="row g-2">
-                      {parsedData.sections.map((section, index) => (
-                        <div key={section.value} className={`col-md-${12 / Math.min(parsedData.sections.length, 3)}`}>
-                          <label className="form-label fw-semibold">{section.label}</label>
-                          <select 
-                            className="form-select"
-                            value={selectedSections[section.value] || section.value}
-                            onChange={(e) => setSelectedSections(prev => ({
-                              ...prev,
-                              [section.value]: e.target.value
-                            }))}
-                          >
-                            {sections.map(s => (
-                              <option key={s.value} value={s.value}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
-                          <small className="text-muted">{section.count} items</small>
-                        </div>
-                      ))}
-                    </div>
+                {/* Section Selection - always show so user can choose where to allocate items */}
+                <div className="mb-4">
+                  <h6 className="mb-3">Allocate to section:</h6>
+                  <p className="text-muted small mb-3">Choose where each group of items should go in the quotation.</p>
+                  <div className="row g-2">
+                    {parsedData.sections.map((section, index) => (
+                      <div key={section.value} className={`col-md-${12 / Math.min(parsedData.sections.length, 3)}`}>
+                        <label className="form-label fw-semibold">
+                          {parsedData.sections.length === 1 ? 'Import items to' : section.label}
+                        </label>
+                        <select 
+                          className="form-select"
+                          value={selectedSections[section.value] || section.value}
+                          onChange={(e) => setSelectedSections(prev => ({
+                            ...prev,
+                            [section.value]: e.target.value
+                          }))}
+                        >
+                          {sections.map(s => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted">{section.count} items</small>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
 
                 {/* Data Preview */}
                 <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
