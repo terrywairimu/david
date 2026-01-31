@@ -522,13 +522,13 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     
     // Create success message
     const sectionMessages = Object.entries(importData).map(([section, items]) => 
-      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label}`
+      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label} section. To allocate another section use the dropdown below.`
     )
     
     if (sectionMessages.length === 1) {
       toast.success(`Auto-Mapping Successful: ${sectionMessages[0]}`)
     } else {
-      toast.success(`Auto-Mapping Successful: ${sectionMessages.join(' & ')}`)
+      toast.success(`Auto-Mapping Successful: ${sectionMessages.join(' ')}`)
     }
     
     // Reset modal state before closing
@@ -760,15 +760,13 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                   </h6>
                   <p className="mb-0">
                     {Object.entries(mappedData).map(([section, items]) => 
-                      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label}`
-                    ).join(' & ')}
+                      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label} section. To allocate another section use the dropdown below.`
+                    ).join(' ')}
                   </p>
                 </div>
 
                 {/* Section Selection - always show so user can choose where to allocate items */}
                 <div className="mb-4">
-                  <h6 className="mb-3">Allocate to section:</h6>
-                  <p className="text-muted small mb-3">Choose where each group of items should go in the quotation.</p>
                   <div className="row g-2">
                     {parsedData.sections.map((section, index) => (
                       <div key={section.value} className={`col-md-${12 / Math.min(parsedData.sections.length, 3)}`}>
