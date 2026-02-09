@@ -551,6 +551,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setIncludeAppliances(false)
     setIncludeWardrobes(false)
     setIncludeTvUnit(false)
+    setIncludeLabourCabinet(true)
+    setIncludeLabourAccessories(true)
+    setIncludeLabourAppliances(true)
+    setIncludeLabourWardrobes(true)
+    setIncludeLabourTvUnit(true)
     setWardrobesLabourPercentage(30)
     setTvUnitLabourPercentage(30)
     setNotes("")
@@ -677,6 +682,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setTvUnitLabourPercentage(Number(salesOrder.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
+    // Infer include labour from saved items (cabinet has Labour Charge line when labour was included)
+    const hasCabinetLabour = salesOrder.items?.some((i: any) => i.category === "cabinet" && i.description?.includes?.("Labour Charge")) ?? true;
+    setIncludeLabourCabinet(hasCabinetLabour);
+    setIncludeLabourAccessories(true);
+    setIncludeLabourAppliances(true);
+    setIncludeLabourWardrobes(true);
+    setIncludeLabourTvUnit(true);
   }
 
   const handleClientSelect = (client: Client) => {
@@ -874,11 +886,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       const { generateSalesOrderPDF } = await import('@/lib/pdf-template');
       
       // Use the same calculation as the UI display for consistency
-      const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-      const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-      const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-      const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+      const cabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+      const accessoriesLabour = includeLabourAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const appliancesLabour = includeLabourAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const wardrobesLabour = includeLabourWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const tvUnitLabour = includeLabourTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
       
       // Calculate subtotal with all labour included (consistent with UI display)
       const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
@@ -1613,9 +1625,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       let finalCabinetItems = [...cabinetItems].filter(item => !item.description.includes("Labour Charge"));
       
       const cabinetSectionTotal = cabinetItems.reduce((sum, item) => sum + item.total_price, 0);
-      const cabinetLabour = (cabinetSectionTotal * cabinetLabourPercentage) / 100;
+      const cabinetLabour = includeLabourCabinet ? (cabinetSectionTotal * cabinetLabourPercentage) / 100 : 0;
       
       if (
+        includeLabourCabinet &&
         !finalCabinetItems.some(item => item.description.includes("Labour Charge")) &&
         cabinetItems.length > 0 &&
         cabinetSectionTotal > 0 &&
@@ -1634,11 +1647,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }
 
     // Calculate totals with VAT (consistent with UI display and PDF generation)
-    const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-    const saveAccessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-    const saveAppliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-    const saveWardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-    const saveTvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+    const saveCabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+    const saveAccessoriesLabour = includeLabourAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+    const saveAppliancesLabour = includeLabourAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+    const saveWardrobesLabour = includeLabourWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+    const saveTvUnitLabour = includeLabourTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
     
     const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
     const saveVatPercentageNum = Number(vatPercentage);
@@ -1714,6 +1727,13 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
   const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
   
+  // Include labour toggle per section (except Worktop); default on
+  const [includeLabourCabinet, setIncludeLabourCabinet] = useState(true);
+  const [includeLabourAccessories, setIncludeLabourAccessories] = useState(true);
+  const [includeLabourAppliances, setIncludeLabourAppliances] = useState(true);
+  const [includeLabourWardrobes, setIncludeLabourWardrobes] = useState(true);
+  const [includeLabourTvUnit, setIncludeLabourTvUnit] = useState(true);
+  
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
 
@@ -1731,12 +1751,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
     
-    // Calculate individual labour amounts (no worktopLabour)
-    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
-    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
-    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
-    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
-    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
+    // Calculate individual labour amounts (no worktopLabour); respect include labour toggles
+    const cabinetLabour = includeLabourCabinet ? (cabinetTotal * cabinetLabourPercentage) / 100 : 0
+    const accessoriesLabour = includeLabourAccessories ? (accessoriesTotal * accessoriesLabourPercentage) / 100 : 0
+    const appliancesLabour = includeLabourAppliances ? (appliancesTotal * appliancesLabourPercentage) / 100 : 0
+    const wardrobesLabour = includeLabourWardrobes ? (wardrobesTotal * wardrobesLabourPercentage) / 100 : 0
+    const tvUnitLabour = includeLabourTvUnit ? (tvUnitTotal * tvUnitLabourPercentage) / 100 : 0
     
     const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
     const grandTotal = subtotal + totalLabour
@@ -1759,7 +1779,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     }
   }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
       includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
-      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
+      accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage,
+      includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit])
   
   // Legacy function for backward compatibility - now just returns memoized values
   const calculateTotals = () => totals
@@ -1769,11 +1790,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   if (!isOpen) return null
 
   // Calculate section totals with labour included (consistent with PDF generation)
-  const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-  const accessoriesLabour = (totals.accessoriesTotal * accessoriesLabourPercentage) / 100;
-  const appliancesLabour = (totals.appliancesTotal * appliancesLabourPercentage) / 100;
-  const wardrobesLabour = (totals.wardrobesTotal * wardrobesLabourPercentage) / 100;
-  const tvUnitLabour = (totals.tvUnitTotal * tvUnitLabourPercentage) / 100;
+  const cabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+  const accessoriesLabour = includeLabourAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+  const appliancesLabour = includeLabourAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+  const wardrobesLabour = includeLabourWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+  const tvUnitLabour = includeLabourTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
   
   // Calculate subtotal with all labour included (consistent with PDF generation)
   const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;

@@ -572,6 +572,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setEditingSectionName("")
     setFilteredStockItems({})
     setDiscountAmount(0)
+    setIncludeLabourCabinet(true)
+    setIncludeLabourAccessories(true)
+    setIncludeLabourAppliances(true)
+    setIncludeLabourWardrobes(true)
+    setIncludeLabourTvUnit(true)
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
@@ -678,6 +683,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setTvUnitLabourPercentage(Number(quotation.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
+    // Restore include labour toggles: cabinet from presence of Labour Charge item; others default on
+    setIncludeLabourCabinet(!!quotation.items?.some((item: any) => item.category === 'cabinet' && String(item.description || '').includes('Labour Charge')))
   }
 
   const handleClientSelect = (client: Client) => {
@@ -875,12 +882,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       const { generateQuotationPDF } = await import('@/lib/pdf-template');
 
       // Use the same calculation as the UI display for consistency
-      // Only include labour for visible sections
-      const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
-      const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
-      const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
-      const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
+      // Only include labour for visible sections and when include labour toggle is on
+      const cabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+      const accessoriesLabour = includeLabourAccessories && includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const appliancesLabour = includeLabourAppliances && includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const wardrobesLabour = includeLabourWardrobes && includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const tvUnitLabour = includeLabourTvUnit && includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
       // Calculate subtotal with all labour included (consistent with UI display)
       // Only include labour for visible sections
@@ -1558,6 +1565,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       const cabinetLabour = (cabinetSectionTotal * cabinetLabourPercentage) / 100;
 
       if (
+        includeLabourCabinet &&
         !finalCabinetItems.some(item => item.description.includes("Labour Charge")) &&
         cabinetItems.length > 0 &&
         cabinetSectionTotal > 0 &&
@@ -1576,12 +1584,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
 
       // Calculate totals with VAT (consistent with UI display and PDF generation)
-      // Only include labour for visible sections
-      const saveCabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-      const saveAccessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
-      const saveAppliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
-      const saveWardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
-      const saveTvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
+      // Only include labour for visible sections and when include labour toggle is on
+      const saveCabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+      const saveAccessoriesLabour = includeLabourAccessories && includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+      const saveAppliancesLabour = includeLabourAppliances && includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+      const saveWardrobesLabour = includeLabourWardrobes && includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+      const saveTvUnitLabour = includeLabourTvUnit && includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
       const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
       const saveVatPercentageNum = Number(vatPercentage);
@@ -1850,6 +1858,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [wardrobesLabourPercentage, setWardrobesLabourPercentage] = useState(30);
   const [tvUnitLabourPercentage, setTvUnitLabourPercentage] = useState(30);
 
+  // Include labour toggle for each section (except Worktop) - when off, no labour row or calculations for that section
+  const [includeLabourCabinet, setIncludeLabourCabinet] = useState(true);
+  const [includeLabourAccessories, setIncludeLabourAccessories] = useState(true);
+  const [includeLabourAppliances, setIncludeLabourAppliances] = useState(true);
+  const [includeLabourWardrobes, setIncludeLabourWardrobes] = useState(true);
+  const [includeLabourTvUnit, setIncludeLabourTvUnit] = useState(true);
+
   // Add VAT percentage state
   const [vatPercentage, setVatPercentage] = useState(16);
 
@@ -1867,12 +1882,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
 
-    // Calculate individual labour amounts (no worktopLabour)
-    const cabinetLabour = (cabinetTotal * cabinetLabourPercentage) / 100
-    const accessoriesLabour = (accessoriesTotal * accessoriesLabourPercentage) / 100
-    const appliancesLabour = (appliancesTotal * appliancesLabourPercentage) / 100
-    const wardrobesLabour = (wardrobesTotal * wardrobesLabourPercentage) / 100
-    const tvUnitLabour = (tvUnitTotal * tvUnitLabourPercentage) / 100
+    // Calculate individual labour amounts (only when include labour is on for that section; no worktopLabour)
+    const cabinetLabour = includeLabourCabinet ? (cabinetTotal * cabinetLabourPercentage) / 100 : 0
+    const accessoriesLabour = includeLabourAccessories && includeAccessories ? (accessoriesTotal * accessoriesLabourPercentage) / 100 : 0
+    const appliancesLabour = includeLabourAppliances && includeAppliances ? (appliancesTotal * appliancesLabourPercentage) / 100 : 0
+    const wardrobesLabour = includeLabourWardrobes && includeWardrobes ? (wardrobesTotal * wardrobesLabourPercentage) / 100 : 0
+    const tvUnitLabour = includeLabourTvUnit && includeTvUnit ? (tvUnitTotal * tvUnitLabourPercentage) / 100 : 0
 
     const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
     const grandTotal = subtotal + totalLabour
@@ -1895,6 +1910,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }
   }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems,
     includeWorktop, includeAccessories, includeAppliances, includeWardrobes, includeTvUnit,
+    includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit,
     worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage,
     accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
 
@@ -1906,12 +1922,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   if (!isOpen) return null
 
   // Calculate section totals with labour included (consistent with PDF generation)
-  // Only include labour for visible sections
-  const cabinetLabour = (totals.cabinetTotal * cabinetLabourPercentage) / 100;
-  const accessoriesLabour = includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
-  const appliancesLabour = includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
-  const wardrobesLabour = includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
-  const tvUnitLabour = includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
+  // Only include labour for visible sections and when include labour toggle is on
+  const cabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
+  const accessoriesLabour = includeLabourAccessories && includeAccessories ? (totals.accessoriesTotal * accessoriesLabourPercentage) / 100 : 0;
+  const appliancesLabour = includeLabourAppliances && includeAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
+  const wardrobesLabour = includeLabourWardrobes && includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
+  const tvUnitLabour = includeLabourTvUnit && includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
   // Calculate subtotal with all labour included (consistent with PDF generation)
   // Only include labour for visible sections
@@ -2330,45 +2346,47 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           </div>
                         ))}
 
-                        {/* Minimalistic Labour Footer for Cabinet Section */}
+                        {/* Labour row for Cabinet: full row when include labour on, toggle-only when off */}
                         {mode !== "view" && (
-                          <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                            <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                              <input
-                                type="number"
-                                value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
-                                onFocus={e => {
-                                  e.target.value = "";
-                                  setCabinetLabourPercentage(0);
-                                }}
-                                onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
-                                onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
-                                placeholder="30"
-                                style={{
-                                  width: "100%",
-                                  borderRadius: "8px",
-                                  fontSize: "13px",
-                                  background: "transparent",
-                                  color: "#fff",
-                                  border: "none",
-                                  padding: "8px 0",
-                                  boxShadow: "none",
-                                  backgroundColor: "transparent",
-                                  WebkitAppearance: "none",
-                                  MozAppearance: "textfield",
-                                  outline: "none"
-                                }}
-                                min="0"
-                                max="100"
-                                step="0.01"
-                              />
-                            </div>
-                            <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
-                            <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
-                            {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                          </div>
+                          <>
+                            {includeLabourCabinet ? (
+                              <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                                <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                                <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                  <input
+                                    type="number"
+                                    value={cabinetLabourPercentage === 30 ? "" : (cabinetLabourPercentage === 0 ? "" : cabinetLabourPercentage)}
+                                    onFocus={e => { e.target.value = ""; setCabinetLabourPercentage(0); }}
+                                    onChange={e => setCabinetLabourPercentage(Number(e.target.value) || 0)}
+                                    onBlur={e => setCabinetLabourPercentage(Number(e.target.value) || 30)}
+                                    placeholder="30"
+                                    style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }}
+                                    min="0"
+                                    max="100"
+                                    step="0.01"
+                                  />
+                                </div>
+                                <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                                <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
+                                {!isReadOnly && (
+                                  <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}>
+                                    <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                    <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourCabinet ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourCabinet(!includeLabourCabinet)}>
+                                      <div style={{ position: "absolute", top: "2px", left: includeLabourCabinet ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourCabinet ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourCabinet(!includeLabourCabinet)}>
+                                  <div style={{ position: "absolute", top: "2px", left: includeLabourCabinet ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {/* Add Item Button */}
@@ -2994,45 +3012,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           ))}
 
-                          {/* Minimalistic Labour Footer for Accessories Section */}
+                          {/* Labour row for Accessories: full row when include labour on, toggle-only when off */}
                           {mode !== "view" && (
-                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                                <input
-                                  type="number"
-                                  value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)}
-                                  onFocus={e => {
-                                    e.target.value = "";
-                                    setAccessoriesLabourPercentage(0);
-                                  }}
-                                  onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)}
-                                  onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)}
-                                  placeholder="30"
-                                  style={{
-                                    width: "100%",
-                                    borderRadius: "8px",
-                                    fontSize: "13px",
-                                    background: "transparent",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "8px 0",
-                                    boxShadow: "none",
-                                    backgroundColor: "transparent",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "textfield",
-                                    outline: "none"
-                                  }}
-                                  min="0"
-                                  max="100"
-                                  step="0.01"
-                                />
-                              </div>
-                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
-                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                            </div>
+                            <>
+                              {includeLabourAccessories ? (
+                                <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                  <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                                  <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                                  <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                    <input type="number" value={accessoriesLabourPercentage === 30 ? "" : (accessoriesLabourPercentage === 0 ? "" : accessoriesLabourPercentage)} onFocus={e => { e.target.value = ""; setAccessoriesLabourPercentage(0); }} onChange={e => setAccessoriesLabourPercentage(Number(e.target.value) || 0)} onBlur={e => setAccessoriesLabourPercentage(Number(e.target.value) || 30)} placeholder="30" style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }} min="0" max="100" step="0.01" />
+                                  </div>
+                                  <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                                  <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
+                                  {!isReadOnly && <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAccessories ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAccessories(!includeLabourAccessories)}><div style={{ position: "absolute", top: "2px", left: includeLabourAccessories ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>}
+                                </div>
+                              ) : (
+                                <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAccessories ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAccessories(!includeLabourAccessories)}><div style={{ position: "absolute", top: "2px", left: includeLabourAccessories ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>
+                              )}
+                            </>
                           )}
 
                           {/* Add Item Button */}
@@ -3301,45 +3298,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           ))}
 
-                          {/* Minimalistic Labour Footer for Appliances Section */}
+                          {/* Labour row for Appliances: full row when include labour on, toggle-only when off */}
                           {mode !== "view" && (
-                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                                <input
-                                  type="number"
-                                  value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)}
-                                  onFocus={e => {
-                                    e.target.value = "";
-                                    setAppliancesLabourPercentage(0);
-                                  }}
-                                  onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)}
-                                  onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)}
-                                  placeholder="30"
-                                  style={{
-                                    width: "100%",
-                                    borderRadius: "8px",
-                                    fontSize: "13px",
-                                    background: "transparent",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "8px 0",
-                                    boxShadow: "none",
-                                    backgroundColor: "transparent",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "textfield",
-                                    outline: "none"
-                                  }}
-                                  min="0"
-                                  max="100"
-                                  step="0.01"
-                                />
-                              </div>
-                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
-                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                            </div>
+                            <>
+                              {includeLabourAppliances ? (
+                                <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                  <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                                  <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                                  <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                    <input type="number" value={appliancesLabourPercentage === 30 ? "" : (appliancesLabourPercentage === 0 ? "" : appliancesLabourPercentage)} onFocus={e => { e.target.value = ""; setAppliancesLabourPercentage(0); }} onChange={e => setAppliancesLabourPercentage(Number(e.target.value) || 0)} onBlur={e => setAppliancesLabourPercentage(Number(e.target.value) || 30)} placeholder="30" style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }} min="0" max="100" step="0.01" />
+                                  </div>
+                                  <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                                  <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
+                                  {!isReadOnly && <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAppliances ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAppliances(!includeLabourAppliances)}><div style={{ position: "absolute", top: "2px", left: includeLabourAppliances ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>}
+                                </div>
+                              ) : (
+                                <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAppliances ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAppliances(!includeLabourAppliances)}><div style={{ position: "absolute", top: "2px", left: includeLabourAppliances ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>
+                              )}
+                            </>
                           )}
 
                           {/* Add Item Button */}
@@ -3608,45 +3584,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           ))}
 
-                          {/* Minimalistic Labour Footer for Wardrobes Section */}
+                          {/* Labour row for Wardrobes: full row when include labour on, toggle-only when off */}
                           {mode !== "view" && (
-                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                                <input
-                                  type="number"
-                                  value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)}
-                                  onFocus={e => {
-                                    e.target.value = "";
-                                    setWardrobesLabourPercentage(0);
-                                  }}
-                                  onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)}
-                                  onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)}
-                                  placeholder="30"
-                                  style={{
-                                    width: "100%",
-                                    borderRadius: "8px",
-                                    fontSize: "13px",
-                                    background: "transparent",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "8px 0",
-                                    boxShadow: "none",
-                                    backgroundColor: "transparent",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "textfield",
-                                    outline: "none"
-                                  }}
-                                  min="0"
-                                  max="100"
-                                  step="0.01"
-                                />
-                              </div>
-                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
-                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                            </div>
+                            <>
+                              {includeLabourWardrobes ? (
+                                <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                  <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                                  <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                                  <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                    <input type="number" value={wardrobesLabourPercentage === 30 ? "" : (wardrobesLabourPercentage === 0 ? "" : wardrobesLabourPercentage)} onFocus={e => { e.target.value = ""; setWardrobesLabourPercentage(0); }} onChange={e => setWardrobesLabourPercentage(Number(e.target.value) || 0)} onBlur={e => setWardrobesLabourPercentage(Number(e.target.value) || 30)} placeholder="30" style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }} min="0" max="100" step="0.01" />
+                                  </div>
+                                  <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                                  <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
+                                  {!isReadOnly && <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourWardrobes ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourWardrobes(!includeLabourWardrobes)}><div style={{ position: "absolute", top: "2px", left: includeLabourWardrobes ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>}
+                                </div>
+                              ) : (
+                                <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourWardrobes ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourWardrobes(!includeLabourWardrobes)}><div style={{ position: "absolute", top: "2px", left: includeLabourWardrobes ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>
+                              )}
+                            </>
                           )}
 
                           {/* Add Item Button */}
@@ -3915,45 +3870,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             </div>
                           ))}
 
-                          {/* Minimalistic Labour Footer for TV Unit Section */}
+                          {/* Labour row for TV Unit: full row when include labour on, toggle-only when off */}
                           {mode !== "view" && (
-                            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-                              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
-                              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
-                              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
-                                <input
-                                  type="number"
-                                  value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)}
-                                  onFocus={e => {
-                                    e.target.value = "";
-                                    setTvUnitLabourPercentage(0);
-                                  }}
-                                  onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)}
-                                  onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)}
-                                  placeholder="30"
-                                  style={{
-                                    width: "100%",
-                                    borderRadius: "8px",
-                                    fontSize: "13px",
-                                    background: "transparent",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "8px 0",
-                                    boxShadow: "none",
-                                    backgroundColor: "transparent",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "textfield",
-                                    outline: "none"
-                                  }}
-                                  min="0"
-                                  max="100"
-                                  step="0.01"
-                                />
-                              </div>
-                              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}></div>
-                              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
-                              {!isReadOnly && <div className="col-delete" style={{ flex: "0 0 40px" }}></div>}
-                            </div>
+                            <>
+                              {includeLabourTvUnit ? (
+                                <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+                                  <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+                                  <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+                                  <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                                    <input type="number" value={tvUnitLabourPercentage === 30 ? "" : (tvUnitLabourPercentage === 0 ? "" : tvUnitLabourPercentage)} onFocus={e => { e.target.value = ""; setTvUnitLabourPercentage(0); }} onChange={e => setTvUnitLabourPercentage(Number(e.target.value) || 0)} onBlur={e => setTvUnitLabourPercentage(Number(e.target.value) || 30)} placeholder="30" style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }} min="0" max="100" step="0.01" />
+                                  </div>
+                                  <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+                                  <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
+                                  {!isReadOnly && <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourTvUnit ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourTvUnit(!includeLabourTvUnit)}><div style={{ position: "absolute", top: "2px", left: includeLabourTvUnit ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>}
+                                </div>
+                              ) : (
+                                <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}><span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span><div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourTvUnit ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourTvUnit(!includeLabourTvUnit)}><div style={{ position: "absolute", top: "2px", left: includeLabourTvUnit ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} /></div></div>
+                              )}
+                            </>
                           )}
 
                           {/* Add Item Button */}
