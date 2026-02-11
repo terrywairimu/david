@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Sidebar from "@/components/sidebar"
 import { useAuth } from "@/lib/auth-context"
-import { UserX } from "lucide-react"
+import { UserX, Loader2 } from "lucide-react"
 
 const PATH_TO_SECTION: Record<string, string> = {
   "/": "register",
@@ -28,11 +28,22 @@ function getSectionForPath(pathname: string | null): string | null {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { needsAdminApproval, canAccessSection } = useAuth()
+  const { needsAdminApproval, canAccessSection, loading } = useAuth()
   const isAuthRoute = pathname?.startsWith("/login") || pathname?.startsWith("/auth")
 
   if (isAuthRoute) {
     return <>{children}</>
+  }
+
+  if (loading) {
+    return (
+      <div className="app-container">
+        <Sidebar />
+        <div className="content flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        </div>
+      </div>
+    )
   }
 
   if (needsAdminApproval) {
