@@ -918,9 +918,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
             unitPrice: 0,
             total: 0
           });
-          cabinetItems
-            .filter(item => includeLabourCabinet || !String(item.description || '').toLowerCase().includes('labour charge'))
-            .forEach(item => {
+          cabinetItems.forEach(item => {
             items.push({
               quantity: item.quantity,
               unit: item.unit,
@@ -1396,14 +1394,52 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           itemNumber++;
         }
 
-        // In view mode only show Labour Charge rows that were saved; never add one (when toggle was off at save, no row was saved)
+        // Add labour charge for each section that has items (except worktop which has its own labor)
         if (itemsInCategory.length > 0 && category !== 'worktop') {
-          const hasExistingLabourCharge = itemsInCategory.some((item: any) =>
+          // Check if labour charge items already exist in this category
+          const hasExistingLabourCharge = itemsInCategory.some((item: any) => 
             item.description && item.description.toLowerCase().includes('labour charge')
           );
-          // When !hasExistingLabourCharge labour was off when saved - do not add a Labour Charge row
-          if (hasExistingLabourCharge) {
-            // Already pushed in forEach above; no-op here
+          
+          // Only calculate labour charge if no labour charge items exist
+          if (!hasExistingLabourCharge) {
+            const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
+            
+            // Get the correct labour percentage for this specific section from database
+            let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
+            switch (category) {
+              case 'cabinet':
+                labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'accessories':
+                labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'appliances':
+                labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'wardrobes':
+                labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              case 'tvunit':
+                labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
+                break;
+              default:
+                labourPercentage = salesOrder.labour_percentage || 30;
+            }
+            
+            const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+            
+            if (labourCharge > 0) {
+              items.push({
+                itemNumber: String(itemNumber),
+                quantity: 1,
+                unit: "sum",
+                description: `Labour Charge (${labourPercentage}%)`,
+                unitPrice: labourCharge.toFixed(2),
+                total: labourCharge.toFixed(2)
+              });
+              itemNumber++;
+            }
           }
         }
 
