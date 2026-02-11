@@ -117,8 +117,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, fetchProfile])
 
   useEffect(() => {
-    refreshProfile().finally(() => setLoading(false))
-
+    let mounted = true
+    const done = () => { if (mounted) setLoading(false) }
+    refreshProfile().finally(done)
+    const t = setTimeout(done, 10000) // prevent infinite loading if profile fetch hangs
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -145,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     document.addEventListener("visibilitychange", handleVisibility)
     return () => {
+      mounted = false
+      clearTimeout(t)
       subscription.unsubscribe()
       document.removeEventListener("visibilitychange", handleVisibility)
     }

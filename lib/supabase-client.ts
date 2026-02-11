@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/client"
 import {
   RegisteredEntity,
   StockItem,
@@ -26,11 +26,8 @@ import {
   PaginationInfo
 } from "./types"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co"
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key"
-
-// Create a mock supabase client if no real configuration is provided
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Use same client as auth (lib/supabase/client) so session from cookies is shared - critical for RLS
+export const supabase = createClient()
 
 // Helper function to handle database responses
 function handleDatabaseResponse<T>(data: any, error: any): DatabaseResult<T> {
