@@ -437,14 +437,15 @@ const SalesOrdersView = () => {
         if (!isSectionVisible) return; // Skip hidden sections
         
         // Calculate section total first to determine if we should include this section
+        // Labour is in items when saved with include labour on
         let sectionPrintTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
           sectionPrintTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
-
-        // Only include section if total is greater than 0 (section total = sum of saved items only)
+        
+        // Only include section if total is greater than 0
         if (sectionPrintTotal <= 0) return;
         
         // Section mapping
@@ -497,9 +498,9 @@ const SalesOrdersView = () => {
           itemNumber++;
         }
 
-        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
 
-        // Insert section summary row (sum of saved items only)
+        // Insert section summary row - section total = sum of items (Labour Charge included when in items)
         let sectionSummaryTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
@@ -654,14 +655,15 @@ const SalesOrdersView = () => {
         if (!isSectionVisible) return; // Skip hidden sections
         
         // Calculate section total first to determine if we should include this section
+        // Labour is in items when saved with include labour on
         let sectionDownloadTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
           sectionDownloadTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
-
-        // Only include section if total is greater than 0 (section total = sum of saved items only)
+        
+        // Only include section if total is greater than 0
         if (sectionDownloadTotal <= 0) return;
         
         // Section mapping
@@ -714,9 +716,9 @@ const SalesOrdersView = () => {
           itemNumber++;
         }
 
-        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
 
-        // Insert section summary row (sum of saved items only)
+        // Insert section summary row - section total = sum of items (Labour Charge included when in items)
         let sectionSummaryTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {

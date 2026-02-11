@@ -660,20 +660,20 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     // Load discount amount from database (reset to 0 if not present)
     setDiscountAmount(quotation.discount_amount || 0)
 
-    // Load items by category
+    // Load items by category (filter out Labour Charge - it's managed by include labour toggle)
     if (quotation.items) {
-      const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description.includes("Labour Charge"));
+      const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description?.includes("Labour Charge"));
       const worktop = quotation.items.filter((item: any) => item.category === "worktop");
-      const accessories = quotation.items.filter((item: any) => item.category === "accessories");
-      const appliances = quotation.items.filter((item: any) => item.category === "appliances");
-      const wardrobes = quotation.items.filter((item: any) => item.category === "wardrobes");
-      const tvunit = quotation.items.filter((item: any) => item.category === "tvunit");
+      const accessories = quotation.items.filter((item: any) => item.category === "accessories" && !item.description?.includes("Labour Charge"));
+      const appliances = quotation.items.filter((item: any) => item.category === "appliances" && !item.description?.includes("Labour Charge"));
+      const wardrobes = quotation.items.filter((item: any) => item.category === "wardrobes" && !item.description?.includes("Labour Charge"));
+      const tvunit = quotation.items.filter((item: any) => item.category === "tvunit" && !item.description?.includes("Labour Charge"));
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
-      setAccessoriesItems(accessories);
-      setAppliancesItems(appliances);
-      setWardrobesItems(wardrobes);
-      setTvUnitItems(tvunit);
+      setAccessoriesItems(accessories.length > 0 ? accessories : []);
+      setAppliancesItems(appliances.length > 0 ? appliances : []);
+      setWardrobesItems(wardrobes.length > 0 ? wardrobes : []);
+      setTvUnitItems(tvunit.length > 0 ? tvunit : []);
     }
 
     setCabinetLabourPercentage(Number(quotation.cabinet_labour_percentage) || 30)
@@ -683,8 +683,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setTvUnitLabourPercentage(Number(quotation.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(quotation.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(quotation.worktop_labor_unit_price ?? 3000)
-    // Restore include labour toggles: cabinet from presence of Labour Charge item; others default on
+    // Restore include labour toggles from presence of Labour Charge in saved items
     setIncludeLabourCabinet(!!quotation.items?.some((item: any) => item.category === 'cabinet' && String(item.description || '').includes('Labour Charge')))
+    setIncludeLabourAccessories(!!quotation.items?.some((item: any) => item.category === 'accessories' && String(item.description || '').includes('Labour Charge')))
+    setIncludeLabourAppliances(!!quotation.items?.some((item: any) => item.category === 'appliances' && String(item.description || '').includes('Labour Charge')))
+    setIncludeLabourWardrobes(!!quotation.items?.some((item: any) => item.category === 'wardrobes' && String(item.description || '').includes('Labour Charge')))
+    setIncludeLabourTvUnit(!!quotation.items?.some((item: any) => item.category === 'tvunit' && String(item.description || '').includes('Labour Charge')))
   }
 
   const handleClientSelect = (client: Client) => {
@@ -1583,6 +1587,30 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         });
       }
 
+      // Add Labour Charge to accessories, appliances, wardrobes, tvunit when include labour is on (for action column PDF to show/hide correctly)
+      const addLabourToSection = (items: typeof cabinetItems, category: string, includeLabour: boolean, labourPct: number) => {
+        const filtered = items.filter(item => !item.description?.includes("Labour Charge"));
+        if (!includeLabour || filtered.length === 0) return filtered;
+        const sectionTotal = filtered.reduce((sum, item) => sum + item.total_price, 0);
+        if (sectionTotal <= 0) return filtered;
+        const labour = (sectionTotal * labourPct) / 100;
+        if (labour <= 0) return filtered;
+        return [...filtered, {
+          id: Date.now() + Math.random(),
+          category,
+          description: `Labour Charge (${labourPct}%)`,
+          unit: "sum",
+          quantity: 1,
+          unit_price: labour,
+          total_price: labour,
+          stock_item_id: undefined
+        }];
+      };
+      const finalAccessoriesItems = addLabourToSection(accessoriesItems, "accessories", includeLabourAccessories && !!includeAccessories, accessoriesLabourPercentage);
+      const finalAppliancesItems = addLabourToSection(appliancesItems, "appliances", includeLabourAppliances && !!includeAppliances, appliancesLabourPercentage);
+      const finalWardrobesItems = addLabourToSection(wardrobesItems, "wardrobes", includeLabourWardrobes && !!includeWardrobes, wardrobesLabourPercentage);
+      const finalTvUnitItems = addLabourToSection(tvUnitItems, "tvunit", includeLabourTvUnit && !!includeTvUnit, tvUnitLabourPercentage);
+
       // Calculate totals with VAT (consistent with UI display and PDF generation)
       // Only include labour for visible sections and when include labour toggle is on
       const saveCabinetLabour = includeLabourCabinet ? (totals.cabinetTotal * cabinetLabourPercentage) / 100 : 0;
@@ -1627,7 +1655,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         status: "pending",
         notes,
         terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...accessoriesItems, ...appliancesItems, ...wardrobesItems, ...tvUnitItems],
+        items: [...finalCabinetItems, ...worktopItems, ...finalAccessoriesItems, ...finalAppliancesItems, ...finalWardrobesItems, ...finalTvUnitItems],
         cabinet_labour_percentage: cabinetLabourPercentage,
         accessories_labour_percentage: accessoriesLabourPercentage,
         appliances_labour_percentage: appliancesLabourPercentage,

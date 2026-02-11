@@ -595,9 +595,10 @@ const QuotationsView = () => {
           // Worktop labor item added
         }
 
-        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
-        
-        // Insert section summary row after all items in this section (sum of saved items only)
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
+        // We never add it here - it's stored in items when the toggle was on. When off, it's not in items.
+
+        // Insert section summary row - section total = sum of items (Labour Charge included when in items)
         let sectionTotal1 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
@@ -664,12 +665,44 @@ const QuotationsView = () => {
           ? quotation.section_names[safeCategory]
           : category.charAt(0).toUpperCase() + category.slice(1);
         
-        // Calculate section total (sum of saved items only - labour only if present in items)
+        // Calculate section total
         let sectionTotal2 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+
+        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
+        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
+          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
+          
+          // Get the correct labour percentage for this specific section
+          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
+          switch (category) {
+            case 'cabinet':
+              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'accessories':
+              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'appliances':
+              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'wardrobes':
+              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            case 'tvunit':
+              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
+              break;
+            default:
+              labourPercentage = quotation.labour_percentage || 30;
+          }
+          
+          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
+          if (labourCharge > 0) {
+            sectionTotal2 += labourCharge;
+          }
         }
         
         // Only add section total if it's greater than 0
@@ -818,14 +851,15 @@ const QuotationsView = () => {
         if (!isSectionVisible) return; // Skip hidden sections
         
         // Calculate section total first to determine if we should include this section
+        // Labour is in items when saved with include labour on
         let sectionTotal3 = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal3 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
-
-        // Only include section if total is greater than 0 (sectionTotal3 is sum of items only here)
+        
+        // Only include section if total is greater than 0
         if (sectionTotal3 <= 0) return;
         // Debug: Log each category and its items
         // Use dynamic section name if available, type-safe
@@ -882,9 +916,8 @@ const QuotationsView = () => {
           // Worktop labor item added
         }
 
-        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
-        
-        // Insert section summary row after all items in this section (sum of saved items only)
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
+        // Insert section summary row - section total = sum of items (Labour Charge included when in items)
         let sectionTotal4 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
@@ -897,7 +930,7 @@ const QuotationsView = () => {
           itemNumber: "",
           quantity: "",
           unit: "",
-          description: `${sectionLabel} Total`,
+          description: `${sectionLabel} Total`, // FIX: set the label here!
           unitPrice: "",
           total: sectionTotal4.toFixed(2) // Always show total, even if 0.00
         };
@@ -951,14 +984,15 @@ const QuotationsView = () => {
           ? quotation.section_names[safeCategory]
           : category.charAt(0).toUpperCase() + category.slice(1);
         
-        // Calculate section total (sum of saved items only - labour only if present in items)
+        // Calculate section total
         let sectionTotal5 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal5 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
-        
+
+        // Labour is in items when saved with include labour on - section total = sum of items
         // Only add section total if it's greater than 0
         if (sectionTotal5 > 0) {
           sectionTotals.push({
