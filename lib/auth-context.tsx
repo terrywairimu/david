@@ -69,27 +69,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(
     async (userId: string, userData?: { email?: string; full_name?: string; avatar_url?: string; provider?: string }) => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("app_user_profiles")
         .select("*")
         .eq("id", userId)
         .single()
       if (data) return data as AppUserProfile
-      if (userData) {
+      if (userData && error?.code === "PGRST116") {
         const provider = (userData.provider === "google" ? "google" : "email") as "email" | "google"
-        await supabase.from("app_user_profiles").insert({
+        const { error: insertError } = await supabase.from("app_user_profiles").insert({
           id: userId,
           email: userData.email ?? "",
           full_name: userData.full_name ?? null,
           avatar_url: userData.avatar_url ?? null,
           provider,
         })
-        const { data: created } = await supabase
-          .from("app_user_profiles")
-          .select("*")
-          .eq("id", userId)
-          .single()
-        return created as AppUserProfile
+        if (!insertError || insertError.code === "23505") {
+          const { data: created } = await supabase
+            .from("app_user_profiles")
+            .select("*")
+            .eq("id", userId)
+            .single()
+          return created as AppUserProfile
+        }
       }
       return null
     },
