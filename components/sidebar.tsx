@@ -4,6 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
+import { LogOut } from "lucide-react"
 import FloatingSidebarButton from "./ui/floating-sidebar-button"
 import { useAuth } from "@/lib/auth-context"
 
@@ -21,20 +22,22 @@ function SignOutButton() {
       type="button"
       onClick={handleSignOut}
       disabled={signingOut}
-      className="mt-2 text-white-50 hover:text-white text-xs underline cursor-pointer disabled:opacity-50"
+      className="flex items-center gap-2 text-white-50 hover:text-white text-xs cursor-pointer disabled:opacity-50 transition-colors"
     >
-      {signingOut ? "Signing out..." : "Sign out"}
+      <LogOut className="w-3.5 h-3.5 shrink-0" />
+      <span>{signingOut ? "Signing out..." : "Sign out"}</span>
     </button>
   )
 }
 
 const Sidebar = () => {
-  const { canAccessSettings, profile } = useAuth()
+  const { canAccessSettings, profile, needsAdminApproval } = useAuth()
   const canAccess = (sectionId: string) => {
-    if (!profile) return true
+    if (!profile) return false
     if (canAccessSettings) return true
+    if (needsAdminApproval) return false
     const sections = profile.sections ?? []
-    return sections.length === 0 ? true : sections.includes(sectionId)
+    return sections.includes(sectionId)
   }
   const [activeSection, setActiveSection] = useState("register")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -98,6 +101,11 @@ const Sidebar = () => {
           <i className="fas fa-chart-line me-2"></i>
           Dashboard
         </h3>
+        {needsAdminApproval ? (
+          <p className="text-white-50 text-sm px-2 py-4">
+            Contact the admin to add you.
+          </p>
+        ) : null}
         <nav className="nav flex-column">
           {canAccess("register") && (
           <SidebarLink
@@ -185,9 +193,11 @@ const Sidebar = () => {
             />
           )}
         </nav>
-        <div className="text-center text-white-50 small">
-          <p className="mb-0">© 2026 Business Management</p>
-          <SignOutButton />
+        <div className="text-center text-white-50 small mt-auto pt-4 space-y-2">
+          <div className="flex justify-center">
+            <SignOutButton />
+          </div>
+          <p className="mb-0 text-xs whitespace-nowrap">© 2026 Business Management</p>
         </div>
       </div>
       

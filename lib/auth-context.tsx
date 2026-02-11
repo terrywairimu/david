@@ -50,6 +50,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   canAccessSettings: boolean
   canPerformAction: (actionId: string) => boolean
+  needsAdminApproval: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -58,7 +59,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   canAccessSettings: false,
-  canPerformAction: () => true,
+  canPerformAction: () => false,
+  needsAdminApproval: false,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -161,11 +163,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canAccessSettings =
     !!(profile && isAdmin(profile.role)) || isKnownAdminEmail(user?.email ?? undefined)
+  const needsAdminApproval = !!(
+    user &&
+    profile &&
+    !canAccessSettings &&
+    (!profile.role || (profile.sections?.length ?? 0) === 0)
+  )
   const canPerformAction = (actionId: string) => {
-    if (!profile) return true
+    if (!profile) return false
     if (isAdmin(profile.role)) return true
+    if (needsAdminApproval) return false
     const actions = profile.action_buttons ?? []
-    return actions.length === 0 ? true : actions.includes(actionId)
+    return actions.includes(actionId)
   }
 
   return (
@@ -177,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         canAccessSettings,
         canPerformAction,
+        needsAdminApproval,
       }}
     >
       {children}
@@ -192,6 +202,7 @@ export function useAuth() {
     loading: true,
     signOut: async () => {},
     canAccessSettings: false,
-    canPerformAction: () => true,
+    canPerformAction: () => false,
+    needsAdminApproval: false,
   }
 }
