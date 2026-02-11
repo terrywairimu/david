@@ -218,8 +218,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (!profile.role || (profile.sections?.length ?? 0) === 0)
   )
   const canAccessSection = (sectionId: string) => {
-    if (!profile) return false
     if (canAccessSettings) return true
+    if (!profile) return false
     if (needsAdminApproval) return false
     const sections = profile.sections ?? []
     return sections.includes(sectionId)
@@ -232,6 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return first ?? "register"
   }
   const canPerformAction = (actionId: string) => {
+    if (canAccessSettings) return true
     if (!profile) return false
     if (isAdmin(profile.role)) return true
     if (needsAdminApproval) return false

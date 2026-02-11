@@ -48,8 +48,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // User logged in but profile not loaded yet (fetch failed or pending) - don't show Access denied
-  if (user && !profile) {
+  // User logged in but profile not loaded yet. Admins (canAccessSettings) can proceed without profile.
+  if (user && !profile && !canAccessSettings) {
     return (
       <div className="app-container">
         <Sidebar />
