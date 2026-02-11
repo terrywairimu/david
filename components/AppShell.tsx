@@ -28,7 +28,7 @@ function getSectionForPath(pathname: string | null): string | null {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { needsAdminApproval, canAccessSection, loading } = useAuth()
+  const { needsAdminApproval, canAccessSection, loading, user, profile } = useAuth()
   const isAuthRoute = pathname?.startsWith("/login") || pathname?.startsWith("/auth")
 
   if (isAuthRoute) {
@@ -41,6 +41,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <div className="content flex items-center justify-center min-h-[60vh]">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
+  // User logged in but profile not loaded yet (fetch failed or pending) - don't show Access denied
+  if (user && !profile) {
+    return (
+      <div className="app-container">
+        <Sidebar />
+        <div className="content flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     )

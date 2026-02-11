@@ -102,46 +102,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase]
   )
 
-  const refreshProfile = useCallback(async () => {
-    const {
-      data: { user: u },
-    } = await supabase.auth.getUser()
-    setUser(u)
-    if (u) {
-      const p = await fetchProfile(u.id, {
-        email: u.email,
-        full_name: u.user_metadata?.full_name ?? u.user_metadata?.name,
-        avatar_url: u.user_metadata?.avatar_url,
-        provider: u.app_metadata?.provider,
-      })
-      setProfile(p)
-    } else {
+  const refreshProfile = useCallback(
+    async (userToFetch?: { id: string; email?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }) => {
+      const u = userToFetch ?? (await supabase.auth.getUser()).data.user
+      setUser(u ?? null)
+      if (u) {
+        const p = await fetchProfile(u.id, {
+          email: u.email,
+          full_name: (u.user_metadata?.full_name ?? u.user_metadata?.name) as string | undefined,
+          avatar_url: u.user_metadata?.avatar_url as string | undefined,
+          provider: u.app_metadata?.provider as string | undefined,
+        })
+        setProfile(p)
+        return !!p
+      }
       setProfile(null)
-    }
-  }, [supabase, fetchProfile])
+      return false
+    },
+    [supabase, fetchProfile]
+  )
 
   useEffect(() => {
     let mounted = true
-    const done = () => { if (mounted) setLoading(false) }
-    refreshProfile().finally(done)
-    const t = setTimeout(done, 10000) // prevent infinite loading if profile fetch hangs
+    let initialAuthReceived = false
+
+    const finishLoading = () => {
+      if (mounted && initialAuthReceived) setLoading(false)
+    }
+
+    // getSession reads from cookies immediately (no server call) - use for fast initial restore
+    const initFromSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!mounted) return
+      if (session?.user) {
+        const ok = await refreshProfile(session.user)
+        if (!mounted) return
+        if (!ok) {
+          // User exists but profile fetch failed - retry once after short delay
+          await new Promise((r) => setTimeout(r, 500))
+          if (mounted) await refreshProfile(session.user)
+        }
+      } else {
+        setUser(null)
+        setProfile(null)
+      }
+      initialAuthReceived = true
+      finishLoading()
+    }
+
+    initFromSession()
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+      if (!initialAuthReceived && event === "INITIAL_SESSION") {
+        initialAuthReceived = true
+        // Only handle if initFromSession hasn't already (it runs in parallel)
+        // Already handled by initFromSession, but ensure we have latest
+        if (session?.user) {
+          await refreshProfile(session.user)
+        }
+        finishLoading()
+        return
+      }
       setUser(session?.user ?? null)
       if (session?.user) {
-        const u = session.user
-        const p = await fetchProfile(u.id, {
-          email: u.email,
-          full_name: u.user_metadata?.full_name ?? u.user_metadata?.name,
-          avatar_url: u.user_metadata?.avatar_url,
-          provider: u.app_metadata?.provider,
-        })
-        setProfile(p)
+        await refreshProfile(session.user)
       } else {
         setProfile(null)
       }
     })
+
+    // Fallback: if initFromSession hangs, allow loading to finish after 12s
+    const t = setTimeout(() => {
+      if (mounted && !initialAuthReceived) {
+        initialAuthReceived = true
+        finishLoading()
+      }
+    }, 12000)
 
     // Refetch profile when tab becomes visible (e.g. after role was updated in another tab/dashboard)
     const handleVisibility = () => {
