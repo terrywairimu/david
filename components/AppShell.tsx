@@ -30,7 +30,7 @@ function getSectionForPath(pathname: string | null): string | null {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { needsAdminApproval, canAccessSection, loading, user, profile, getFirstAllowedSection } = useAuth()
+  const { needsAdminApproval, canAccessSection, canAccessSettings, loading, user, profile, getFirstAllowedSection } = useAuth()
   const isAuthRoute = pathname?.startsWith("/login") || pathname?.startsWith("/auth")
 
   if (isAuthRoute) {
