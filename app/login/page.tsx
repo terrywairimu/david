@@ -135,6 +135,7 @@ export default function LoginPage() {
             {!showEmailForm ? (
               <motion.div
                 key="choices"
+                data-login-choices
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
