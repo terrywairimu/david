@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 const GoogleIcon = () => (
-  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
+  <span className="inline-flex items-center justify-center w-5 h-5 shrink-0">
+    <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
     <path
       fill="currentColor"
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -29,6 +30,7 @@ const GoogleIcon = () => (
       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
     />
   </svg>
+  </span>
 )
 
 export default function LoginPage() {
@@ -142,9 +144,11 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowEmailForm(true)}
                   disabled={loading}
-                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-500/25 border-0 gap-3 justify-center"
+                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold !rounded-full shadow-lg shadow-indigo-500/25 border-0 gap-3 inline-flex items-center justify-center"
                 >
-                  <Mail className="w-5 h-5 shrink-0" />
+                  <span className="inline-flex items-center justify-center w-5 h-5 shrink-0">
+                    <Mail className="w-5 h-5" strokeWidth={2} />
+                  </span>
                   <span>Sign in / Sign up with Email</span>
                 </Button>
 
@@ -153,7 +157,7 @@ export default function LoginPage() {
                   variant="outline"
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 text-white rounded-2xl font-medium gap-3 justify-center"
+                  className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 text-white !rounded-full font-medium gap-3 inline-flex items-center justify-center"
                 >
                   <GoogleIcon />
                   <span>Continue with Gmail</span>
@@ -234,7 +238,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-500/25 border-0 gap-3 justify-center"
+                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold !rounded-full shadow-lg shadow-indigo-500/25 border-0 gap-3 inline-flex items-center justify-center"
                 >
                   {loading
                     ? isSignUp
@@ -243,7 +247,9 @@ export default function LoginPage() {
                     : isSignUp
                       ? "Create account"
                       : "Sign in"}
-                  <ArrowRight className="w-5 h-5 shrink-0" />
+                  <span className="inline-flex items-center justify-center w-5 h-5 shrink-0">
+                    <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                  </span>
                 </Button>
                 <button
                   type="button"
