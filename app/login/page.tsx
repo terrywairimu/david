@@ -144,7 +144,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowEmailForm(true)}
                   disabled={loading}
-                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold !rounded-full shadow-lg shadow-indigo-500/25 border-0 gap-3 inline-flex items-center justify-center"
+                  className="w-full h-14 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold !rounded-full shadow-lg shadow-indigo-500/25 border-0 gap-3 inline-flex items-center justify-start pl-6"
                 >
                   <span className="inline-flex items-center justify-center w-5 h-5 shrink-0">
                     <Mail className="w-5 h-5" strokeWidth={2} />
@@ -157,7 +157,7 @@ export default function LoginPage() {
                   variant="outline"
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 text-white !rounded-full font-medium gap-3 inline-flex items-center justify-center"
+                  className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 text-white !rounded-full font-medium gap-3 inline-flex items-center justify-start pl-6"
                 >
                   <GoogleIcon />
                   <span>Continue with Gmail</span>

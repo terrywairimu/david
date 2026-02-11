@@ -37,7 +37,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthRoute) {
+  // Let /auth/signout run so session can be cleared before redirect
+  if (user && isAuthRoute && !request.nextUrl.pathname.startsWith("/auth/signout")) {
     const url = request.nextUrl.clone()
     url.pathname = "/register"
     return NextResponse.redirect(url)

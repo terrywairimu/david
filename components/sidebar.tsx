@@ -31,14 +31,8 @@ function SignOutButton() {
 }
 
 const Sidebar = () => {
-  const { canAccessSettings, profile, needsAdminApproval } = useAuth()
-  const canAccess = (sectionId: string) => {
-    if (!profile) return false
-    if (canAccessSettings) return true
-    if (needsAdminApproval) return false
-    const sections = profile.sections ?? []
-    return sections.includes(sectionId)
-  }
+  const { canAccessSettings, canAccessSection, needsAdminApproval } = useAuth()
+  const canAccess = canAccessSection
   const [activeSection, setActiveSection] = useState("register")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showPurchaseAccordion, setShowPurchaseAccordion] = useState(false)

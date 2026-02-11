@@ -49,6 +49,7 @@ interface AuthContextType {
   loading: boolean
   signOut: () => Promise<void>
   canAccessSettings: boolean
+  canAccessSection: (sectionId: string) => boolean
   canPerformAction: (actionId: string) => boolean
   needsAdminApproval: boolean
 }
@@ -59,6 +60,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   canAccessSettings: false,
+  canAccessSection: () => false,
   canPerformAction: () => false,
   needsAdminApproval: false,
 })
@@ -169,6 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     !canAccessSettings &&
     (!profile.role || (profile.sections?.length ?? 0) === 0)
   )
+  const canAccessSection = (sectionId: string) => {
+    if (!profile) return false
+    if (canAccessSettings) return true
+    if (needsAdminApproval) return false
+    const sections = profile.sections ?? []
+    return sections.includes(sectionId)
+  }
   const canPerformAction = (actionId: string) => {
     if (!profile) return false
     if (isAdmin(profile.role)) return true
@@ -185,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signOut,
         canAccessSettings,
+        canAccessSection,
         canPerformAction,
         needsAdminApproval,
       }}
@@ -202,6 +212,7 @@ export function useAuth() {
     loading: true,
     signOut: async () => {},
     canAccessSettings: false,
+    canAccessSection: () => false,
     canPerformAction: () => false,
     needsAdminApproval: false,
   }
