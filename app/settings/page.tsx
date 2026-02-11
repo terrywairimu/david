@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Loader2,
   Settings as SettingsIcon,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +32,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 
@@ -51,6 +62,8 @@ export default function SettingsPage() {
   const [profiles, setProfiles] = useState<UserProfileRow[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -132,6 +145,25 @@ export default function SettingsPage() {
       ? (hasAll ? ALL_ACTION_IDS.filter((a) => a !== actionId) : actions.filter((a) => a !== actionId))
       : [...actions, actionId]
     handleUpdateProfile(userId, { action_buttons: next })
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return
+    setDeleting(true)
+    try {
+      const { error } = await supabase
+        .from("app_user_profiles")
+        .delete()
+        .eq("id", deleteUserId)
+      if (error) throw error
+      setProfiles((p) => p.filter((x) => x.id !== deleteUserId))
+      toast.success("User removed")
+      setDeleteUserId(null)
+    } catch {
+      toast.error("Failed to remove user")
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (authLoading || loading) {
@@ -220,6 +252,16 @@ export default function SettingsPage() {
 
                   {/* Role & expand */}
                   <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteUserId(p.id)}
+                      disabled={p.id === profile?.id}
+                      title={p.id === profile?.id ? "Cannot remove yourself" : "Remove user"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                     <div className="w-40">
                       <Select
                         value={p.role ?? "none"}
@@ -338,6 +380,37 @@ export default function SettingsPage() {
           </div>
         )}
       </motion.div>
+
+      <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove registered user</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the user profile and access. They can sign in again to create a new profile. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDeleteUser()
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Removing…
+                </>
+              ) : (
+                "Remove"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
