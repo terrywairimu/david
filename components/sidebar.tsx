@@ -9,14 +9,21 @@ import { useAuth } from "@/lib/auth-context"
 
 function SignOutButton() {
   const { user, signOut } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
   if (!user) return null
+  const handleSignOut = () => {
+    if (signingOut) return
+    setSigningOut(true)
+    signOut()
+  }
   return (
     <button
       type="button"
-      onClick={signOut}
-      className="mt-2 text-white-50 hover:text-white text-xs underline"
+      onClick={handleSignOut}
+      disabled={signingOut}
+      className="mt-2 text-white-50 hover:text-white text-xs underline cursor-pointer disabled:opacity-50"
     >
-      Sign out
+      {signingOut ? "Signing out..." : "Sign out"}
     </button>
   )
 }

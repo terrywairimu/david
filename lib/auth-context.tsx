@@ -142,8 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, fetchProfile, refreshProfile])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = "/login"
+    // Use server route to properly clear auth cookies (Supabase SSR)
+    window.location.assign("/auth/signout")
   }
 
   const canAccessSettings = !!(profile && isAdmin(profile.role))
