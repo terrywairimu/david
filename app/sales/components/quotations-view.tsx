@@ -564,9 +564,8 @@ const QuotationsView = () => {
         
 
         
-        // Insert all items in this category, numbering starts from 1 (exclude Labour Charge line items - labour is in section total only)
-        const itemsToShow = itemsInCategory.filter(item => !item.description?.toLowerCase().includes('labour charge'));
-        itemsToShow.forEach((item, idx) => {
+        // Insert all items in this category, numbering starts from 1
+        itemsInCategory.forEach((item, idx) => {
           items.push({
             isSection: false,
             itemNumber: String(idx + 1),
@@ -578,11 +577,14 @@ const QuotationsView = () => {
           });
         });
         
+        // Debug: Log items added for this category
+
+        
         // Special handling for worktop category: add worktop labor item if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           const worktopLaborItem = {
             isSection: false,
-            itemNumber: String(itemsToShow.length + 1),
+            itemNumber: String(itemsInCategory.length + 1),
             quantity: quotation.worktop_labor_qty,
             unit: "per slab",
             description: "Worktop Installation Labor",
@@ -590,46 +592,17 @@ const QuotationsView = () => {
             total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
           };
           items.push(worktopLaborItem);
+          // Worktop labor item added
         }
 
-        // Insert section summary row after all items in this section (labour is included in total, not as a line item)
+        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
+        
+        // Insert section summary row after all items in this section (sum of saved items only)
         let sectionTotal1 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal1 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total (for all non-worktop sections; no Labour Charge line item in PDF)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal1 += labourCharge;
-          }
         }
         
         const summaryRow = {
@@ -691,44 +664,12 @@ const QuotationsView = () => {
           ? quotation.section_names[safeCategory]
           : category.charAt(0).toUpperCase() + category.slice(1);
         
-        // Calculate section total
+        // Calculate section total (sum of saved items only - labour only if present in items)
         let sectionTotal2 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal2 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal2 += labourCharge;
-          }
         }
         
         // Only add section total if it's greater than 0
@@ -884,39 +825,7 @@ const QuotationsView = () => {
           sectionTotal3 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal3 += labourCharge;
-          }
-        }
-        
-        // Only include section if total is greater than 0
+        // Only include section if total is greater than 0 (sectionTotal3 is sum of items only here)
         if (sectionTotal3 <= 0) return;
         // Debug: Log each category and its items
         // Use dynamic section name if available, type-safe
@@ -942,9 +851,8 @@ const QuotationsView = () => {
         // Debug: Log section heading added
         // Section heading added
         
-        // Insert all items in this category, numbering starts from 1 (exclude Labour Charge line items - labour is in section total only)
-        const itemsToShow2 = itemsInCategory.filter(item => !item.description?.toLowerCase().includes('labour charge'));
-        itemsToShow2.forEach((item, idx) => {
+        // Insert all items in this category, numbering starts from 1
+        itemsInCategory.forEach((item, idx) => {
           items.push({
             isSection: false,
             itemNumber: String(idx + 1),
@@ -956,11 +864,14 @@ const QuotationsView = () => {
           });
         });
         
+        // Debug: Log items added for this category
+
+        
         // Special handling for worktop category: add worktop labor item if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           const worktopLaborItem = {
             isSection: false,
-            itemNumber: String(itemsToShow2.length + 1),
+            itemNumber: String(itemsInCategory.length + 1),
             quantity: quotation.worktop_labor_qty,
             unit: "per slab",
             description: "Worktop Installation Labor",
@@ -968,46 +879,17 @@ const QuotationsView = () => {
             total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price
           };
           items.push(worktopLaborItem);
+          // Worktop labor item added
         }
 
-        // Insert section summary row after all items in this section (labour is included in total, not as a line item)
+        // Do not add a synthetic Labour Charge row - only show labour if it exists in saved items (add labour was toggled on when saved)
+        
+        // Insert section summary row after all items in this section (sum of saved items only)
         let sectionTotal4 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal4 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total (for all non-worktop sections; no Labour Charge line item in PDF)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30;
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal4 += labourCharge;
-          }
         }
         
         const summaryRow = {
@@ -1069,44 +951,12 @@ const QuotationsView = () => {
           ? quotation.section_names[safeCategory]
           : category.charAt(0).toUpperCase() + category.slice(1);
         
-        // Calculate section total
+        // Calculate section total (sum of saved items only - labour only if present in items)
         let sectionTotal5 = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
         // Add worktop labor to section total if it exists
         if (category === 'worktop' && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
           sectionTotal5 += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total if it exists (for non-worktop and non-cabinet sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = quotation.labour_percentage || 30;
-          switch (category) {
-            case 'cabinet':
-              labourPercentage = quotation.cabinet_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'accessories':
-              labourPercentage = quotation.accessories_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = quotation.appliances_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = quotation.wardrobes_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = quotation.tvunit_labour_percentage || quotation.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = quotation.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal5 += labourCharge;
-          }
         }
         
         // Only add section total if it's greater than 0
