@@ -2244,7 +2244,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.cabinetLabour.toFixed(2)}</div>
                               {!isReadOnly && (
                                 <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 auto" }}>
-                                  <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                  {!includeLabourCabinet && <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>}
                                   <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourCabinet ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourCabinet(!includeLabourCabinet)}>
                                     <div style={{ position: "absolute", top: "2px", left: includeLabourCabinet ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                   </div>
@@ -2910,7 +2910,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.accessoriesLabour.toFixed(2)}</div>
                               {!isReadOnly && (
                                 <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 auto" }}>
-                                  <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                  {!includeLabourAccessories && <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>}
                                   <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAccessories ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAccessories(!includeLabourAccessories)}>
                                     <div style={{ position: "absolute", top: "2px", left: includeLabourAccessories ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                   </div>
@@ -3219,7 +3219,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.appliancesLabour.toFixed(2)}</div>
                               {!isReadOnly && (
                                 <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 auto" }}>
-                                  <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                  {!includeLabourAppliances && <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>}
                                   <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourAppliances ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourAppliances(!includeLabourAppliances)}>
                                     <div style={{ position: "absolute", top: "2px", left: includeLabourAppliances ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                   </div>
@@ -3528,7 +3528,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.wardrobesLabour.toFixed(2)}</div>
                               {!isReadOnly && (
                                 <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 auto" }}>
-                                  <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                  {!includeLabourWardrobes && <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>}
                                   <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourWardrobes ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourWardrobes(!includeLabourWardrobes)}>
                                     <div style={{ position: "absolute", top: "2px", left: includeLabourWardrobes ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                   </div>
@@ -3837,7 +3837,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {totals.tvUnitLabour.toFixed(2)}</div>
                               {!isReadOnly && (
                                 <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 auto" }}>
-                                  <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+                                  {!includeLabourTvUnit && <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>}
                                   <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourTvUnit ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourTvUnit(!includeLabourTvUnit)}>
                                     <div style={{ position: "absolute", top: "2px", left: includeLabourTvUnit ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                   </div>
