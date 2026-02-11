@@ -1,6 +1,7 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
 import Sidebar from "@/components/sidebar"
 import { useAuth } from "@/lib/auth-context"
 import { UserX, Loader2 } from "lucide-react"
@@ -28,7 +29,8 @@ function getSectionForPath(pathname: string | null): string | null {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { needsAdminApproval, canAccessSection, loading, user, profile } = useAuth()
+  const router = useRouter()
+  const { needsAdminApproval, canAccessSection, loading, user, profile, getFirstAllowedSection } = useAuth()
   const isAuthRoute = pathname?.startsWith("/login") || pathname?.startsWith("/auth")
 
   if (isAuthRoute) {
@@ -80,6 +82,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hasAccess = !section || canAccessSection(section)
 
   const showNoAccess = section && !hasAccess
+
+  // When user lacks access to current section, redirect to their first allowed section
+  useEffect(() => {
+    if (!showNoAccess) return
+    const first = getFirstAllowedSection()
+    const path = first === "register" ? "/register" : `/${first}`
+    router.replace(path)
+  }, [showNoAccess, router, getFirstAllowedSection])
+
   if (showNoAccess) {
     return (
       <div className="app-container">

@@ -43,6 +43,11 @@ function isKnownAdminEmail(email: string | undefined): boolean {
   return !!email && ADMIN_EMAILS.includes(email.toLowerCase())
 }
 
+// Section order for "first allowed" redirect (must match PATH_TO_SECTION keys)
+const SECTION_ORDER = [
+  "register", "sales", "payments", "expenses", "purchases", "stock", "reports", "analytics", "settings",
+] as const
+
 interface AuthContextType {
   user: User | null
   profile: AppUserProfile | null
@@ -52,6 +57,7 @@ interface AuthContextType {
   canAccessSection: (sectionId: string) => boolean
   canPerformAction: (actionId: string) => boolean
   needsAdminApproval: boolean
+  getFirstAllowedSection: () => string
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -63,6 +69,7 @@ const AuthContext = createContext<AuthContextType>({
   canAccessSection: () => false,
   canPerformAction: () => false,
   needsAdminApproval: false,
+  getFirstAllowedSection: () => "register",
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -217,6 +224,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sections = profile.sections ?? []
     return sections.includes(sectionId)
   }
+  const getFirstAllowedSection = () => {
+    if (!profile || needsAdminApproval) return "register"
+    if (canAccessSettings) return "register"
+    const sections = profile.sections ?? []
+    const first = SECTION_ORDER.find((s) => sections.includes(s))
+    return first ?? "register"
+  }
   const canPerformAction = (actionId: string) => {
     if (!profile) return false
     if (isAdmin(profile.role)) return true
@@ -236,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         canAccessSection,
         canPerformAction,
         needsAdminApproval,
+        getFirstAllowedSection,
       }}
     >
       {children}
@@ -254,5 +269,6 @@ export function useAuth() {
     canAccessSection: () => false,
     canPerformAction: () => false,
     needsAdminApproval: false,
+    getFirstAllowedSection: () => "register",
   }
 }

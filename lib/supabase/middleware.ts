@@ -50,9 +50,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Let /auth/signout run so session can be cleared before redirect
+  // Redirect to / so client can route to user's first allowed section (avoids sending to register if they lack access)
   if (user && isAuthRoute && !request.nextUrl.pathname.startsWith("/auth/signout")) {
     const url = request.nextUrl.clone()
-    url.pathname = "/register"
+    url.pathname = "/"
     return forwardAuthCookies(supabaseResponse, NextResponse.redirect(url))
   }
 

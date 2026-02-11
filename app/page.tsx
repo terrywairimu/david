@@ -2,14 +2,18 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 
 const HomePage = () => {
   const router = useRouter()
+  const { loading, getFirstAllowedSection } = useAuth()
 
   useEffect(() => {
-    // Redirect to register page as it's the default active section in the HTML
-    router.push("/register")
-  }, [router])
+    if (loading) return
+    const first = getFirstAllowedSection()
+    const path = first === "register" ? "/register" : `/${first}`
+    router.replace(path)
+  }, [router, loading, getFirstAllowedSection])
 
   return null
 }

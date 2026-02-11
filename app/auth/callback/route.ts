@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/register"
+  const next = searchParams.get("next") ?? "/"
 
   // Use explicit site URL to avoid malformed redirects from Supabase config
   const siteUrl =

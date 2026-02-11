@@ -58,7 +58,7 @@ export default function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        router.push("/register")
+        router.push("/")
         router.refresh()
       }
     } catch (err) {
