@@ -5,8 +5,30 @@ import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import FloatingSidebarButton from "./ui/floating-sidebar-button"
+import { useAuth } from "@/lib/auth-context"
+
+function SignOutButton() {
+  const { user, signOut } = useAuth()
+  if (!user) return null
+  return (
+    <button
+      type="button"
+      onClick={signOut}
+      className="mt-2 text-white-50 hover:text-white text-xs underline"
+    >
+      Sign out
+    </button>
+  )
+}
 
 const Sidebar = () => {
+  const { canAccessSettings, profile } = useAuth()
+  const canAccess = (sectionId: string) => {
+    if (!profile) return true
+    if (canAccessSettings) return true
+    const sections = profile.sections ?? []
+    return sections.length === 0 ? true : sections.includes(sectionId)
+  }
   const [activeSection, setActiveSection] = useState("register")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showPurchaseAccordion, setShowPurchaseAccordion] = useState(false)
@@ -70,6 +92,7 @@ const Sidebar = () => {
           Dashboard
         </h3>
         <nav className="nav flex-column">
+          {canAccess("register") && (
           <SidebarLink
             href="/register"
             label="Register"
@@ -77,6 +100,8 @@ const Sidebar = () => {
             isActive={activeSection === "register" || pathname === "/"}
             onClick={() => handleSectionClick("register")}
           />
+          )}
+          {canAccess("sales") && (
           <SidebarLink
             href="/sales"
             label="Sales"
@@ -84,6 +109,8 @@ const Sidebar = () => {
             isActive={activeSection === "sales"}
             onClick={() => handleSectionClick("sales")}
           />
+          )}
+          {canAccess("payments") && (
           <SidebarLink
             href="/payments"
             label="Payments"
@@ -91,6 +118,8 @@ const Sidebar = () => {
             isActive={activeSection === "payments"}
             onClick={() => handleSectionClick("payments")}
           />
+          )}
+          {canAccess("expenses") && (
           <SidebarLink
             href="/expenses"
             label="Expenses"
@@ -98,6 +127,8 @@ const Sidebar = () => {
             isActive={activeSection === "expenses"}
             onClick={() => handleSectionClick("expenses")}
           />
+          )}
+          {canAccess("purchases") && (
           <PurchaseSidebarLink
             href="/purchases"
             label="Purchases"
@@ -109,6 +140,8 @@ const Sidebar = () => {
             ref={purchaseLinkRef}
             showAccordion={showPurchaseAccordion}
           />
+          )}
+          {canAccess("stock") && (
           <SidebarLink
             href="/stock"
             label="Stock"
@@ -116,6 +149,8 @@ const Sidebar = () => {
             isActive={activeSection === "stock"}
             onClick={() => handleSectionClick("stock")}
           />
+          )}
+          {canAccess("reports") && (
           <SidebarLink
             href="/reports"
             label="Reports"
@@ -123,6 +158,8 @@ const Sidebar = () => {
             isActive={activeSection === "reports"}
             onClick={() => handleSectionClick("reports")}
           />
+          )}
+          {canAccess("analytics") && (
           <SidebarLink
             href="/analytics"
             label="Analytics"
@@ -130,9 +167,20 @@ const Sidebar = () => {
             isActive={activeSection === "analytics"}
             onClick={() => handleSectionClick("analytics")}
           />
+          )}
+          {canAccessSettings && (
+            <SidebarLink
+              href="/settings"
+              label="Settings"
+              icon="fas fa-cog"
+              isActive={activeSection === "settings"}
+              onClick={() => handleSectionClick("settings")}
+            />
+          )}
         </nav>
         <div className="text-center text-white-50 small">
-          <p className="mb-0">© 2025 Client Management</p>
+          <p className="mb-0">© 2026 Business Management</p>
+          <SignOutButton />
         </div>
       </div>
       

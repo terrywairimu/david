@@ -4,7 +4,8 @@ import "../styles/globals.css"
 import "bootstrap/dist/css/bootstrap.min.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-import Sidebar from "@/components/sidebar"
+import AppShell from "@/components/AppShell"
+import { AuthProvider } from "@/lib/auth-context"
 import { ProgressProvider } from "@/components/GlobalProgressManager"
 import PaymentMonitor from "@/components/PaymentMonitor"
 
@@ -34,15 +35,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AuthProvider>
           <ProgressProvider>
             <PaymentMonitor />
-            <div className="app-container">
-              <Sidebar />
-              <div className="content">
-                {children}
-              </div>
-            </div>
+            <AppShell>{children}</AppShell>
           </ProgressProvider>
+        </AuthProvider>
           <Toaster />
         </ThemeProvider>
       </body>
