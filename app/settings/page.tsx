@@ -11,7 +11,6 @@ import {
   Mail,
   Globe,
   ChevronDown,
-  Save,
   Loader2,
   Settings as SettingsIcon,
 } from "lucide-react"
@@ -20,6 +19,10 @@ import {
   APP_SECTIONS,
   ACTION_BUTTONS,
   ROLES,
+  ALL_SECTION_IDS,
+  ALL_ACTION_IDS,
+  getDefaultsForAdminRole,
+  isAdminRole,
 } from "@/lib/settings-constants"
 import {
   Select,
@@ -29,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
 
 interface UserProfileRow {
   id: string
@@ -46,7 +50,6 @@ export default function SettingsPage() {
   const { profile, loading: authLoading } = useAuth()
   const [profiles, setProfiles] = useState<UserProfileRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -71,8 +74,28 @@ export default function SettingsPage() {
     }
   }, [profile, supabase])
 
-  const handleUpdateProfile = async (userId: string, updates: Partial<UserProfileRow>) => {
-    setSaving(userId)
+  const handleUpdateProfile = async (
+    userId: string,
+    updates: Partial<UserProfileRow>,
+    { optimistic = true }: { optimistic?: boolean } = {}
+  ) => {
+    const prev = profiles.find((p) => p.id === userId)
+    if (!prev) return
+
+    // When role changes to admin, apply defaults for sections/action_buttons if empty
+    if (updates.role !== undefined && isAdminRole(updates.role)) {
+      const defaults = getDefaultsForAdminRole()
+      if (!updates.sections && (!prev.sections || prev.sections.length === 0))
+        updates.sections = defaults.sections
+      if (!updates.action_buttons && (!prev.action_buttons || prev.action_buttons.length === 0))
+        updates.action_buttons = defaults.action_buttons
+    }
+
+    const merged = { ...prev, ...updates }
+    if (optimistic) {
+      setProfiles((p) => p.map((x) => (x.id === userId ? merged : x)))
+    }
+
     const { error } = await supabase
       .from("app_user_profiles")
       .update({
@@ -80,21 +103,21 @@ export default function SettingsPage() {
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId)
-    if (!error) {
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === userId ? { ...p, ...updates } : p))
-      )
-      setExpandedUser(null)
+
+    if (error) {
+      if (optimistic) setProfiles((p) => p.map((x) => (x.id === userId ? prev : x)))
+      toast.error("Failed to save")
     }
-    setSaving(null)
   }
 
   const toggleSection = (userId: string, sectionId: string) => {
     const p = profiles.find((x) => x.id === userId)
     if (!p) return
     const sections = p.sections || []
-    const next = sections.includes(sectionId)
-      ? sections.filter((s) => s !== sectionId)
+    const hasAll = isAdminRole(p.role) && sections.length === 0
+    const currentlyChecked = hasAll || sections.includes(sectionId)
+    const next = currentlyChecked
+      ? (hasAll ? ALL_SECTION_IDS.filter((s) => s !== sectionId) : sections.filter((s) => s !== sectionId))
       : [...sections, sectionId]
     handleUpdateProfile(userId, { sections: next })
   }
@@ -103,8 +126,10 @@ export default function SettingsPage() {
     const p = profiles.find((x) => x.id === userId)
     if (!p) return
     const actions = p.action_buttons || []
-    const next = actions.includes(actionId)
-      ? actions.filter((a) => a !== actionId)
+    const hasAll = isAdminRole(p.role) && actions.length === 0
+    const currentlyChecked = hasAll || actions.includes(actionId)
+    const next = currentlyChecked
+      ? (hasAll ? ALL_ACTION_IDS.filter((a) => a !== actionId) : actions.filter((a) => a !== actionId))
       : [...actions, actionId]
     handleUpdateProfile(userId, { action_buttons: next })
   }
@@ -204,7 +229,6 @@ export default function SettingsPage() {
                               v === "none" ? null : (v as AppRole),
                           })
                         }
-                        disabled={saving === p.id}
                       >
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="Role" />
@@ -234,9 +258,6 @@ export default function SettingsPage() {
                         }`}
                       />
                     </Button>
-                    {saving === p.id && (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    )}
                   </div>
                 </div>
 
@@ -262,11 +283,14 @@ export default function SettingsPage() {
                                 className="flex items-center gap-2 cursor-pointer"
                               >
                                 <Checkbox
-                                  checked={(p.sections || []).includes(s.id)}
+                                  checked={
+                                    isAdminRole(p.role)
+                                      ? (p.sections?.length ?? 0) === 0 || (p.sections || []).includes(s.id)
+                                      : (p.sections || []).includes(s.id)
+                                  }
                                   onCheckedChange={() =>
                                     toggleSection(p.id, s.id)
                                   }
-                                  disabled={saving === p.id}
                                 />
                                 <span className="text-sm">{s.label}</span>
                               </label>
@@ -285,11 +309,14 @@ export default function SettingsPage() {
                                 className="flex items-center gap-2 cursor-pointer"
                               >
                                 <Checkbox
-                                  checked={(p.action_buttons || []).includes(a.id)}
+                                  checked={
+                                    isAdminRole(p.role)
+                                      ? (p.action_buttons?.length ?? 0) === 0 || (p.action_buttons || []).includes(a.id)
+                                      : (p.action_buttons || []).includes(a.id)
+                                  }
                                   onCheckedChange={() =>
                                     toggleAction(p.id, a.id)
                                   }
-                                  disabled={saving === p.id}
                                 />
                                 <span className="text-sm">{a.label}</span>
                               </label>

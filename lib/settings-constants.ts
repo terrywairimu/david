@@ -20,6 +20,18 @@ export const ACTION_BUTTONS = [
   { id: "view", label: "View" },
 ] as const
 
+// Default: all sections and actions for superadmin, ceo, deputy_ceo (overridable per user)
+export const ALL_SECTION_IDS = APP_SECTIONS.map((s) => s.id)
+export const ALL_ACTION_IDS = ACTION_BUTTONS.map((a) => a.id)
+
+const ADMIN_ROLES = ["superadmin", "ceo", "deputy_ceo"] as const
+export function getDefaultsForAdminRole(): { sections: string[]; action_buttons: string[] } {
+  return { sections: [...ALL_SECTION_IDS], action_buttons: [...ALL_ACTION_IDS] }
+}
+export function isAdminRole(role: string | null): role is (typeof ADMIN_ROLES)[number] {
+  return !!role && ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number])
+}
+
 export const ROLES = [
   { id: "none", label: "No role" },
   { id: "superadmin", label: "Super Admin" },
