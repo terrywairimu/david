@@ -89,26 +89,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase]
   )
 
-  useEffect(() => {
-    const init = async () => {
-      const {
-        data: { user: u },
-      } = await supabase.auth.getUser()
-      setUser(u)
-      if (u) {
-        const p = await fetchProfile(u.id, {
-          email: u.email,
-          full_name: u.user_metadata?.full_name ?? u.user_metadata?.name,
-          avatar_url: u.user_metadata?.avatar_url,
-          provider: u.app_metadata?.provider,
-        })
-        setProfile(p)
-      } else {
-        setProfile(null)
-      }
-      setLoading(false)
+  const refreshProfile = useCallback(async () => {
+    const {
+      data: { user: u },
+    } = await supabase.auth.getUser()
+    setUser(u)
+    if (u) {
+      const p = await fetchProfile(u.id, {
+        email: u.email,
+        full_name: u.user_metadata?.full_name ?? u.user_metadata?.name,
+        avatar_url: u.user_metadata?.avatar_url,
+        provider: u.app_metadata?.provider,
+      })
+      setProfile(p)
+    } else {
+      setProfile(null)
     }
-    init()
+  }, [supabase, fetchProfile])
+
+  useEffect(() => {
+    refreshProfile().finally(() => setLoading(false))
 
     const {
       data: { subscription },
@@ -127,8 +127,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null)
       }
     })
-    return () => subscription.unsubscribe()
-  }, [supabase, fetchProfile])
+
+    // Refetch profile when tab becomes visible (e.g. after role was updated in another tab/dashboard)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && supabase) {
+        refreshProfile()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
+  }, [supabase, fetchProfile, refreshProfile])
 
   const signOut = async () => {
     await supabase.auth.signOut()
