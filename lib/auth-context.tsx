@@ -32,8 +32,15 @@ export interface AppUserProfile {
 
 const ADMIN_ROLES: AppRole[] = ["superadmin", "ceo", "deputy_ceo"]
 
+// Fallback: known admin emails (in case profile fetch fails or is stale)
+const ADMIN_EMAILS = ["allanmwangin@gmail.com", "cabinetmasters2024@gmail.com"]
+
 export function isAdmin(role: AppRole) {
   return role && ADMIN_ROLES.includes(role)
+}
+
+function isKnownAdminEmail(email: string | undefined): boolean {
+  return !!email && ADMIN_EMAILS.includes(email.toLowerCase())
 }
 
 interface AuthContextType {
@@ -146,7 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.assign("/auth/signout")
   }
 
-  const canAccessSettings = !!(profile && isAdmin(profile.role))
+  const canAccessSettings =
+    !!(profile && isAdmin(profile.role)) || isKnownAdminEmail(user?.email ?? undefined)
   const canPerformAction = (actionId: string) => {
     if (!profile) return true
     if (isAdmin(profile.role)) return true
