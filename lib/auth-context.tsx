@@ -139,15 +139,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // getSession reads from cookies immediately (no server call) - use for fast initial restore
     const initFromSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      let { data: { session } } = await supabase.auth.getSession()
+      let userToLoad = session?.user
+      // Fallback: if getSession returns null on reload, try getUser() (validates with server)
+      if (!userToLoad) {
+        const { data: { user } } = await supabase.auth.getUser()
+        userToLoad = user ?? undefined
+      }
       if (!mounted) return
-      if (session?.user) {
-        const ok = await refreshProfile(session.user)
+      if (userToLoad) {
+        const u = userToLoad
+        let ok = await refreshProfile(u)
         if (!mounted) return
         if (!ok) {
-          // User exists but profile fetch failed - retry once after short delay
-          await new Promise((r) => setTimeout(r, 500))
-          if (mounted) await refreshProfile(session.user)
+          // Profile fetch failed - retry with backoff (500ms, 1s, 2s) for reload edge cases
+          const delays = [500, 1000, 2000]
+          for (const d of delays) {
+            await new Promise((r) => setTimeout(r, d))
+            if (!mounted) break
+            ok = await refreshProfile(u)
+            if (ok) break
+          }
         }
       } else {
         setUser(null)
@@ -165,10 +177,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return
       if (!initialAuthReceived && event === "INITIAL_SESSION") {
         initialAuthReceived = true
-        // Only handle if initFromSession hasn't already (it runs in parallel)
-        // Already handled by initFromSession, but ensure we have latest
         if (session?.user) {
-          await refreshProfile(session.user)
+          let ok = await refreshProfile(session.user)
+          if (!ok) {
+            const delays = [500, 1000, 2000]
+            for (const d of delays) {
+              await new Promise((r) => setTimeout(r, d))
+              if (!mounted) break
+              ok = await refreshProfile(session.user)
+              if (ok) break
+            }
+          }
         }
         finishLoading()
         return
