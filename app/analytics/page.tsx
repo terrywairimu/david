@@ -35,7 +35,11 @@ import {
 // Fallback chart color when CSS variables may not resolve (e.g. SSR or theme loading)
 const CHART_PRIMARY = '#6366f1'
 
-// Analytics chart renderer - picks best chart type per metric
+// Fixed dimensions for Cartesian charts - avoids ResponsiveContainer grid issues
+const CHART_WIDTH = 600
+const CHART_HEIGHT = 318
+
+// Analytics chart renderer - picks best chart type per metric (uses fixed size, no ResponsiveContainer)
 const AnalyticsChartByType: React.FC<{
   data: { date: string; [key: string]: string | number | undefined }[]
   dataKey: string
@@ -50,6 +54,8 @@ const AnalyticsChartByType: React.FC<{
   }
   const commonProps = {
     data,
+    width: CHART_WIDTH,
+    height: CHART_HEIGHT,
     margin: { top: 16, right: 16, left: 16, bottom: 16 },
   }
   const tooltipProps = {
@@ -551,7 +557,7 @@ export default function AnalyticsPage() {
         <div className="bg-primary rounded-2xl p-8 text-primary-foreground relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-black/20" />
-            <motion.div className="absolute -top-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity }} />
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -699,26 +705,18 @@ export default function AnalyticsPage() {
                 <p className="text-sm">No data for this period. Try a different time range or section.</p>
               </div>
             ) : (
-              <div className="w-full min-w-0 overflow-visible" style={{ height: 350, minHeight: 350 }}>
-                <ResponsiveContainer
-                  width="100%"
-                  height={350}
-                  minWidth={400}
-                  initialDimension={{ width: 600, height: 350 }}
-                  debounce={1}
-                >
-                  <AnalyticsChartByType
-                    data={comprehensiveChartData}
-                    dataKey={(() => {
-                      const dk = metrics.find((m) => m.id === analyticsMetric)?.dataKey ?? 'amount'
-                      const first = comprehensiveChartData[0] as Record<string, unknown> | undefined
-                      return first && dk in first ? dk : 'amount'
-                    })()}
-                    chartType={getChartTypeForMetric(section, analyticsMetric)}
-                    format={metrics.find((m) => m.id === analyticsMetric)?.format ?? 'currency'}
-                    showPrediction={showPrediction}
-                  />
-                </ResponsiveContainer>
+              <div className="w-full overflow-x-auto" style={{ minHeight: 350 }}>
+                <AnalyticsChartByType
+                  data={comprehensiveChartData}
+                  dataKey={(() => {
+                    const dk = metrics.find((m) => m.id === analyticsMetric)?.dataKey ?? 'amount'
+                    const first = comprehensiveChartData[0] as Record<string, unknown> | undefined
+                    return first && dk in first ? dk : 'amount'
+                  })()}
+                  chartType={getChartTypeForMetric(section, analyticsMetric)}
+                  format={metrics.find((m) => m.id === analyticsMetric)?.format ?? 'currency'}
+                  showPrediction={showPrediction}
+                />
               </div>
             )}
           </ChartCard>
