@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import QuotationModal from "@/components/ui/quotation-modal"
 import { 
@@ -83,6 +84,7 @@ interface Quotation {
 const QuotationsView = () => {
   const router = useRouter()
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -761,6 +763,7 @@ const QuotationsView = () => {
 
 
   const handleDownload = async (quotation: Quotation) => {
+    startDownload(`quotation-${quotation.quotation_number}`, 'pdf')
     try {
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
@@ -1013,8 +1016,11 @@ const QuotationsView = () => {
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      completeDownload();
+      toast.success("Quotation downloaded successfully.");
     } catch (error) {
       console.error('Error downloading quotation:', error);
+      setError("Failed to download quotation");
       toast.error("Failed to download quotation. Please try again.");
     }
   };
@@ -1026,9 +1032,16 @@ const QuotationsView = () => {
   };
 
   // Export function
-  const exportQuotations = (format: 'pdf' | 'csv') => {
+  const exportQuotations = async (format: 'pdf' | 'csv') => {
     const filteredQuotations = getFilteredQuotations()
-    exportQuotationsReport(filteredQuotations, format)
+    startDownload(`quotations_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportQuotationsReport(filteredQuotations, format)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export quotations')
+      toast.error('Failed to export quotations')
+    }
   }
 
   // Parse terms and conditions from database

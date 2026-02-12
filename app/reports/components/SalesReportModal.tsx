@@ -5,6 +5,7 @@ import { X, Download, Printer, FileText, Calendar, Search, Eye } from "lucide-re
 import { supabase } from "@/lib/supabase-client"
 import { FormModal } from "@/components/ui/modal"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface SalesReportModalProps {
   isOpen: boolean
@@ -35,6 +36,7 @@ const formatCurrency = (amount: number): string => {
 }
 
 export default function SalesReportModal({ isOpen, onClose, dateFrom, dateTo }: SalesReportModalProps) {
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<SalesRow[]>([])
   
@@ -212,7 +214,15 @@ export default function SalesReportModal({ isOpen, onClose, dateFrom, dateTo }: 
 
   const total = rows.reduce((sum, r) => sum + (r.amount || 0), 0)
 
-  const handleExport = () => exportToCSV('sales-report', columns, rows)
+  const handleExport = () => {
+    startDownload('sales-report', 'csv')
+    try {
+      exportToCSV('sales-report', columns, rows)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export report')
+    }
+  }
 
   const handlePrint = () => {
     const html = `

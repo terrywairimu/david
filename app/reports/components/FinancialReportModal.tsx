@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase-client"
 import { FormModal } from "@/components/ui/modal"
 import { DollarSign, Download, Printer, Eye, TrendingUp, TrendingDown } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface FinancialReportModalProps {
   isOpen: boolean
@@ -31,6 +32,7 @@ const formatPercentage = (value: number, total: number): string => {
 }
 
 export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo }: FinancialReportModalProps) {
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [loading, setLoading] = useState(false)
   const [reportType, setReportType] = useState<FinancialReportType>('summary')
   const [showPercentages, setShowPercentages] = useState(true)
@@ -365,7 +367,15 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
     setColumns(newColumns)
   }
 
-  const handleExport = () => exportToCSV(`financial-${reportType}`, columns, rows)
+  const handleExport = () => {
+    startDownload(`financial-${reportType}`, 'csv')
+    try {
+      exportToCSV(`financial-${reportType}`, columns, rows)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export report')
+    }
+  }
   
   const handlePrint = () => {
     const reportTitle = reportType === 'profitLoss' ? 'PROFIT & LOSS STATEMENT' :

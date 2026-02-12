@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "l
 import { supabase } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import SalesOrderModal from "@/components/ui/sales-order-modal-standard"
 import { 
@@ -74,6 +75,7 @@ interface SalesOrder {
 
 const SalesOrdersView = () => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -592,6 +594,7 @@ const SalesOrdersView = () => {
   }
 
   const handleDownload = async (salesOrder: SalesOrder) => {
+    startDownload(`sales-order-${salesOrder.order_number}`, 'pdf')
     try {
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
@@ -773,9 +776,11 @@ const SalesOrdersView = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
+      completeDownload();
       toast.success("Sales order downloaded successfully!");
     } catch (error) {
       console.error('Error downloading sales order:', error);
+      setError("Failed to download sales order");
       toast.error("Failed to download sales order. Please try again.");
     }
   }
@@ -783,9 +788,16 @@ const SalesOrdersView = () => {
 
 
   // Export function
-  const exportSalesOrders = (format: 'pdf' | 'csv') => {
+  const exportSalesOrders = async (format: 'pdf' | 'csv') => {
     const filteredSalesOrders = getFilteredSalesOrders()
-    exportSalesOrdersReport(filteredSalesOrders, format)
+    startDownload(`sales_orders_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportSalesOrdersReport(filteredSalesOrders, format)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export sales orders')
+      toast.error('Failed to export sales orders')
+    }
   }
 
   return (

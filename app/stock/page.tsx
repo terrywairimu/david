@@ -5,6 +5,7 @@ import { Package, Plus, Edit, Trash2, Search, Download, Eye } from "lucide-react
 import { supabase } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportStockReport } from "@/lib/workflow-utils"
@@ -13,6 +14,7 @@ import { SectionHeader } from "@/components/ui/section-header"
 
 const StockPage = () => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -391,9 +393,16 @@ const StockPage = () => {
   }
 
   // Export function
-  const exportStock = (format: 'pdf' | 'csv') => {
+  const exportStock = async (format: 'pdf' | 'csv') => {
     const filteredItems = getFilteredItems()
-    exportStockReport(filteredItems, format)
+    startDownload(`stock_report_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportStockReport(filteredItems, format)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export stock report')
+      toast.error('Failed to export stock report')
+    }
   }
 
   const exportToCSV = () => {

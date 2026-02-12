@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase-client"
 import { FormModal } from "@/components/ui/modal"
 import { Download, Printer, Package } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface InventoryReportModalProps {
   isOpen: boolean
@@ -22,6 +23,7 @@ type InvRow = {
 }
 
 export default function InventoryReportModal({ isOpen, onClose }: InventoryReportModalProps) {
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [rows, setRows] = useState<InvRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -60,7 +62,15 @@ export default function InventoryReportModal({ isOpen, onClose }: InventoryRepor
 
   const totals = rows.reduce((a, r) => a + (r.value || 0), 0)
 
-  const handleExport = () => exportToCSV('inventory-report', columns, rows)
+  const handleExport = () => {
+    startDownload('inventory-report', 'csv')
+    try {
+      exportToCSV('inventory-report', columns, rows)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export report')
+    }
+  }
   const handlePrint = () => {
     const html = `
       <h3>Inventory Report</h3>

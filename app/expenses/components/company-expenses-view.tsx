@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportExpensesReport } from "@/lib/workflow-utils"
@@ -16,6 +17,7 @@ interface CompanyExpensesViewProps {
 
 const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [expenseItems, setExpenseItems] = useState<{[key: number]: any[]}>({}) // Store items by expense_id
   const [loading, setLoading] = useState(true)
@@ -231,9 +233,16 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
     }
   }
 
-  const handleExport = (format: 'pdf' | 'csv') => {
+  const handleExport = async (format: 'pdf' | 'csv') => {
     const filteredExpenses = getFilteredExpenses()
-    exportExpensesReport(filteredExpenses, format, 'company')
+    startDownload(`company_expenses_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportExpensesReport(filteredExpenses, format, 'company')
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export company expenses')
+      toast.error('Failed to export company expenses')
+    }
   }
 
   const handleSaveExpense = (expense: any) => {

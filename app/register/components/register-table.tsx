@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ConfirmDialog from "@/components/ui/confirm-dialog"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 
 interface RegisteredEntity {
   id: number
@@ -46,6 +47,7 @@ const RegisterTable = ({
   onEditEmployee, 
   refreshTrigger 
 }: RegisterTableProps) => {
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [entities, setEntities] = useState<RegisteredEntity[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
@@ -204,30 +206,37 @@ const RegisterTable = ({
   }
 
   const exportToCSV = () => {
-    const filteredData = getFilteredData()
-    const csvContent = [
-      ["Name", "Type", "Phone", "Email", "Position", "Department/Location", "PIN Number", "Date Added"],
-      ...filteredData.map(item => [
-        item.name,
-        item.displayType === "employee" ? "Employee" : item.displayType.charAt(0).toUpperCase() + item.displayType.slice(1),
-        item.phone || "",
-        (item as any).email || "",
-        (item as any).position || "",
-        item.location || "",
-        (item as any).pin || "",
-        new Date(item.date_added).toLocaleDateString(),
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
+    startDownload("register_data", "csv")
+    try {
+      const filteredData = getFilteredData()
+      const csvContent = [
+        ["Name", "Type", "Phone", "Email", "Position", "Department/Location", "PIN Number", "Date Added"],
+        ...filteredData.map(item => [
+          item.name,
+          item.displayType === "employee" ? "Employee" : item.displayType.charAt(0).toUpperCase() + item.displayType.slice(1),
+          item.phone || "",
+          (item as any).email || "",
+          (item as any).position || "",
+          item.location || "",
+          (item as any).pin || "",
+          new Date(item.date_added).toLocaleDateString(),
+        ]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "register_data.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+      const blob = new Blob([csvContent], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "register_data.csv"
+      a.click()
+      window.URL.revokeObjectURL(url)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError("Failed to export register data")
+      toast.error("Failed to export register data")
+    }
   }
 
   const getTypeStyle = (type: string) => {

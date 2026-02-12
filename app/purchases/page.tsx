@@ -6,6 +6,7 @@ import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer, Edit } fr
 import { SectionHeader } from "@/components/ui/section-header"
 import { ActionGuard } from "@/components/ActionGuard"
 import { useAuth } from "@/lib/auth-context"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import PurchaseModal from "@/components/ui/purchase-modal"
@@ -45,6 +46,7 @@ interface Purchase {
 const PurchasesPage = () => {
   const searchParams = useSearchParams()
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -762,6 +764,7 @@ const PurchasesPage = () => {
   }
 
   const handleDownload = async (purchase: Purchase) => {
+    startDownload(`purchase_${purchase.purchase_order_number}`, 'pdf')
     try {
       const columns: ReportColumn[] = [
         { key: 'description', label: 'Description', width: 35, align: 'left' },
@@ -791,17 +794,26 @@ const PurchasesPage = () => {
       }
       
       await generateReportPDF(reportData, 'portrait', `purchase_${purchase.purchase_order_number}`)
+      completeDownload()
       toast.success('Purchase order downloaded as PDF')
     } catch (error) {
       console.error('Error generating PDF:', error)
+      setError('Failed to download PDF')
       toast.error('Failed to download PDF')
     }
   }
 
   // Export function
-  const exportPurchases = (format: 'pdf' | 'csv') => {
+  const exportPurchases = async (format: 'pdf' | 'csv') => {
     const filteredPurchases = getFilteredPurchases()
-    exportPurchasesReport(filteredPurchases, format, currentView)
+    startDownload(`purchases_${currentView}_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportPurchasesReport(filteredPurchases, format, currentView)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export purchases')
+      toast.error('Failed to export purchases')
+    }
   }
 
   const exportPurchasesOld = () => {

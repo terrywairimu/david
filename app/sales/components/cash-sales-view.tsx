@@ -12,11 +12,13 @@ import {
   downloadDocument,
   exportCashSales as exportCashSalesReport
 } from "@/lib/workflow-utils"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import ExportDropdown from "@/components/ui/export-dropdown"
 import { CashSale } from "@/lib/types"
 
 const CashSalesView: React.FC = () => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [cashSales, setCashSales] = useState<CashSale[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -310,8 +312,15 @@ const CashSalesView: React.FC = () => {
   }
 
   // Export function
-  const exportCashSales = (format: 'pdf' | 'csv') => {
-    exportCashSalesReport(cashSales, format)
+  const exportCashSales = async (format: 'pdf' | 'csv') => {
+    startDownload(`cash_sales_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      await exportCashSalesReport(cashSales, format)
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export cash sales')
+      toast.error('Failed to export cash sales')
+    }
   }
 
   const handleDelete = async (cashSale: CashSale) => {
@@ -337,8 +346,15 @@ const CashSalesView: React.FC = () => {
     printDocument(`cash-sale-${cashSale.id}`, `CashSale-${cashSale.sale_number}`)
   }
 
-  const handleDownload = (cashSale: CashSale) => {
-    downloadDocument(`cash-sale-${cashSale.id}`, `CashSale-${cashSale.sale_number}`)
+  const handleDownload = async (cashSale: CashSale) => {
+    startDownload(`CashSale-${cashSale.sale_number}`, 'pdf')
+    try {
+      await downloadDocument(`cash-sale-${cashSale.id}`, `CashSale-${cashSale.sale_number}`)
+      completeDownload()
+    } catch (error) {
+      setError('Failed to download cash sale')
+      toast.error('Failed to download cash sale')
+    }
   }
 
   return (

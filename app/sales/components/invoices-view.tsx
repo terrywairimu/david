@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "l
 import { supabase } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import InvoiceModal from "@/components/ui/invoice-modal-standard"
 import { 
@@ -80,6 +81,7 @@ interface Invoice {
 
 const InvoicesView = () => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -710,6 +712,7 @@ const InvoicesView = () => {
   }
 
   const handleDownload = async (invoice: Invoice) => {
+    startDownload(`invoice-${invoice.invoice_number}`, 'pdf')
     try {
       const { generate } = await import('@pdfme/generator');
       const { text, rectangle, line, image } = await import('@pdfme/schemas');
@@ -954,19 +957,23 @@ const InvoicesView = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
+      completeDownload();
       toast.success("Invoice downloaded successfully");
     } catch (error) {
       console.error("Error downloading invoice:", error);
+      setError("Failed to download invoice");
       toast.error("Failed to download invoice");
     }
   }
 
-  const exportInvoices = (format: 'pdf' | 'csv') => {
+  const exportInvoices = async (format: 'pdf' | 'csv') => {
+    const filteredInvoices = getFilteredInvoices()
+    startDownload(`invoices_${new Date().toISOString().split('T')[0]}`, format)
     try {
-      const filteredInvoices = getFilteredInvoices()
-      exportInvoicesReport(filteredInvoices, format)
+      await exportInvoicesReport(filteredInvoices, format)
+      setTimeout(() => completeDownload(), 500)
     } catch (error) {
-      console.error("Error exporting invoices:", error)
+      setError('Failed to export invoices')
       toast.error("Failed to export invoices")
     }
   }

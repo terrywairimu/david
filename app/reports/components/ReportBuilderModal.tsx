@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase-client"
 import { Calendar, Download, Printer, X, BarChart3, TrendingUp, Users, Package, Wallet, Settings, FileText, Search, Eye } from "lucide-react"
 import { exportToCSV, printTableHtml, TableColumn } from "./ReportUtils"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { getNairobiDayBoundaries, getNairobiWeekBoundaries, getNairobiMonthBoundaries } from "@/lib/timezone"
 import { generateReportPDF, REPORT_COLUMNS, ReportData, ReportColumn } from "@/lib/dynamic-report-pdf"
 
@@ -145,7 +146,7 @@ const computeDateRange = (preset: DateRangeKey, start?: string, end?: string) =>
 }
 
 export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuilderModalProps){
-  
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [loading, setLoading] = useState(false)
   const [previewData, setPreviewData] = useState<any[] | null>(null)
   const [previewColumns, setPreviewColumns] = useState<ReportColumn[]>([])
@@ -764,6 +765,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       }
       
       const filenameBase = `${type}_report_${new Date().toISOString().slice(0,10)}`
+      const fileType = format === 'pdf' ? 'pdf' as const : 'csv' as const
+      startDownload(filenameBase, fileType)
       
       if (format === 'pdf') {
         // Determine orientation (landscape for cash book)
@@ -795,9 +798,11 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         exportToCSV(filenameBase, tableColumns, rows)
       }
       
+      setTimeout(() => completeDownload(), 500)
       onClose()
     } catch (error) {
       console.error('Error generating report:', error)
+      setError('Failed to generate report')
       alert('Failed to generate report. Please try again.')
     } finally {
       setLoading(false)

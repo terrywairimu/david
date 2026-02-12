@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText, RefreshCw } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
+import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
@@ -44,6 +45,7 @@ interface AccountTransaction {
 
 const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSummaryViewProps) => {
   const { canPerformAction } = useAuth()
+  const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("") // Default to empty string (all dates)
@@ -1277,26 +1279,32 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   }
 
   // Export function for SearchFilterRow
-  const exportTransactions = (format: 'pdf' | 'csv') => {
+  const exportTransactions = async (format: 'pdf' | 'csv') => {
     const filteredData = getFilteredTransactions()
-    if (format === 'csv') {
-      handleExport() // Use existing CSV export
-    } else {
-      // For PDF, we'll use a simplified payments export since this is account transactions
-      const paymentsData = filteredData.map(transaction => ({
-        payment_number: transaction.transaction_number,
-        client: { name: transaction.client_name || 'System' },
-        date_created: transaction.transaction_date,
-        paid_to: transaction.account_type,
-        description: transaction.description,
-        amount: transaction.amount,
-        account_credited: transaction.account_type
-      }))
-      exportPaymentsReport(paymentsData, format)
+    startDownload(`account_transactions_${new Date().toISOString().split('T')[0]}`, format)
+    try {
+      if (format === 'csv') {
+        await handleExport()
+      } else {
+        const paymentsData = filteredData.map(transaction => ({
+          payment_number: transaction.transaction_number,
+          client: { name: transaction.client_name || 'System' },
+          date_created: transaction.transaction_date,
+          paid_to: transaction.account_type,
+          description: transaction.description,
+          amount: transaction.amount,
+          account_credited: transaction.account_type
+        }))
+        await exportPaymentsReport(paymentsData, format)
+      }
+      setTimeout(() => completeDownload(), 500)
+    } catch (error) {
+      setError('Failed to export account transactions')
+      toast.error('Export failed')
     }
   }
 
-  const handleExport = async () => {
+  const handleExport = async (): Promise<void> => {
     try {
       const filteredData = getFilteredTransactions()
       
