@@ -26,18 +26,21 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value)
+          })
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
             supabaseResponse.cookies.set(name, value, options)
-          )
+          })
         },
       },
     }
   )
 
-  // getUser() triggers token refresh when needed; refreshed tokens are written to supabaseResponse
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims() validates JWT and triggers refresh; critical for session sync with browser
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims ?? null
 
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
