@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useComprehensiveAnalytics } from '@/hooks/useComprehensiveAnalytics'
+import { useSegmentationData } from '@/hooks/useSegmentationData'
 import {
   SECTIONS,
   getSubTypes,
@@ -11,6 +12,7 @@ import {
   TIME_RANGE_LABELS,
   getChartTypeForMetric,
   getHeaderStatsConfig,
+  getSegmentationTitle,
   type SectionId,
   type TimeRangeKey,
   type ChartTypeKey,
@@ -437,6 +439,14 @@ export default function AnalyticsPage() {
     customEndDate: timeRange === 'custom' ? customEndDate : undefined,
   })
 
+  const { segments: segmentationSegments, loading: segmentationLoading, error: segmentationError, subtitle: segmentationSubtitle } = useSegmentationData({
+    section,
+    subType: subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'sales_orders',
+    timeRange,
+    customStartDate: timeRange === 'custom' ? customStartDate : undefined,
+    customEndDate: timeRange === 'custom' ? customEndDate : undefined,
+  })
+
   // Keep subType in sync when section changes
   useEffect(() => {
     const ids = subTypes.map((s) => s.id)
@@ -514,12 +524,6 @@ export default function AnalyticsPage() {
     { metric: 'Velocity', value: 78, target: performanceSettings.orderFulfillment }
   ]
 
-  const customerSegments = [
-    { name: 'VIP', value: 15, revenue: 45000, color: '#6366f1' },
-    { name: 'Loyal', value: 35, revenue: 32000, color: '#8b5cf6' },
-    { name: 'Regular', value: 40, revenue: 12000, color: '#cfcfcf' },
-    { name: 'At Risk', value: 10, revenue: 3500, color: '#f59e0b' }
-  ]
 
   return (
     <>
@@ -738,25 +742,49 @@ export default function AnalyticsPage() {
           </ChartCard>
         </div>
 
-        <ChartCard title="Segmentation" subtitle="Customer tier distribution">
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={customerSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {customerSegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2 mt-4">
-            {customerSegments.map(s => (
-              <div key={s.name} className="flex justify-between items-center text-xs">
-                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} /> {s.name}</div>
-                <div className="font-bold">{s.value}%</div>
+        <ChartCard title={getSegmentationTitle(section, subType)} subtitle={`${timeLabel} · ${segmentationSubtitle}`}>
+          {segmentationError && (
+            <div className="p-2 text-destructive text-xs flex items-center gap-2">
+              <AlertCircle className="w-3 h-3" />
+              {segmentationError}
+            </div>
+          )}
+          {segmentationLoading ? (
+            <div className="h-[200px] flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : segmentationSegments.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+              No data for this period
+            </div>
+          ) : (
+            <>
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={segmentationSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                      {segmentationSegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number, name: string, props: any) => {
+                        const rev = props.payload?.revenue ?? 0
+                        const fmt = section === 'stock' && subType === 'movements' ? rev.toLocaleString() : `KES ${Number(rev).toLocaleString()}`
+                        return [`${value}% · ${fmt}`, name]
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
+              <div className="space-y-2 mt-4">
+                {segmentationSegments.map(s => (
+                  <div key={s.name} className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} /> <span className="truncate">{s.name}</span></div>
+                    <div className="font-bold shrink-0">{s.value}%</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </ChartCard>
 
         <div className="lg:col-span-3">

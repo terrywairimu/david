@@ -222,3 +222,15 @@ export function getHeaderStatsConfig(section: SectionId, subType: string): Heade
       ]
   }
 }
+
+export function getSegmentationTitle(section: SectionId, subType: string): string {
+  const subLabel = subType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  switch (section) {
+    case 'sales': return `${subLabel} by status`
+    case 'expenses': return `${subLabel} by category`
+    case 'payments': return `${subLabel} by method`
+    case 'purchases': return `${subLabel} by status`
+    case 'stock': return subType === 'movements' ? 'Movements by type' : `${subLabel} by category`
+    default: return 'Distribution'
+  }
+}
