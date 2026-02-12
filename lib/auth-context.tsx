@@ -87,7 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
       if (data) return data as AppUserProfile
       if (userData && error?.code === "PGRST116") {
-        const provider = (userData.provider === "google" ? "google" : "email") as "email" | "google"
+        const prov = userData.provider?.toLowerCase()
+        const provider = (prov === "google" ? "google" : "email") as "email" | "google"
         const { error: insertError } = await supabase.from("app_user_profiles").insert({
           id: userId,
           email: userData.email ?? "",
@@ -109,24 +110,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase]
   )
 
+  const getProviderFromUser = useCallback(
+    (u: { app_metadata?: Record<string, unknown>; identities?: Array<{ provider?: string }> }): string | undefined => {
+      const provider = u.app_metadata?.provider
+      if (typeof provider === "string" && provider) return provider
+      const providers = u.app_metadata?.providers
+      if (Array.isArray(providers) && providers[0]) return String(providers[0])
+      const identityProvider = u.identities?.[0]?.provider
+      if (typeof identityProvider === "string" && identityProvider) return identityProvider
+      return undefined
+    },
+    []
+  )
+
   const refreshProfile = useCallback(
-    async (userToFetch?: { id: string; email?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }) => {
+    async (userToFetch?: { id: string; email?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown>; identities?: Array<{ provider?: string }> }) => {
       const u = userToFetch ?? (await supabase.auth.getUser()).data.user
       setUser(u ?? null)
       if (u) {
+        const provider = getProviderFromUser(u)
         const p = await fetchProfile(u.id, {
-          email: u.email,
+          email: u.email ?? undefined,
           full_name: (u.user_metadata?.full_name ?? u.user_metadata?.name) as string | undefined,
           avatar_url: u.user_metadata?.avatar_url as string | undefined,
-          provider: u.app_metadata?.provider as string | undefined,
+          provider,
         })
         setProfile(p)
         return !!p
       }
-      setProfile(null)
+        setProfile(null)
       return false
     },
-    [supabase, fetchProfile]
+    [supabase, fetchProfile, getProviderFromUser]
   )
 
   useEffect(() => {

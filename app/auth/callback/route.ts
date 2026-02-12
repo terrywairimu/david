@@ -2,20 +2,25 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
+  const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/"
+  let next = searchParams.get("next") ?? "/"
+  if (!next.startsWith("/")) next = "/"
 
-  // Use explicit site URL to avoid malformed redirects from Supabase config
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    origin
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${siteUrl}${next}`)
+      const isLocalEnv = process.env.NODE_ENV === "development"
+      const forwardedHost = request.headers.get("x-forwarded-host")
+      const redirectBase =
+        isLocalEnv ? origin : forwardedHost ? `https://${forwardedHost}` : siteUrl
+      return NextResponse.redirect(`${redirectBase}${next}`)
     }
   }
 

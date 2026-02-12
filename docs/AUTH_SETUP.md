@@ -4,6 +4,14 @@
 
 The app uses **Supabase Auth** with email/password and Google OAuth. Role-based access is stored in `app_user_profiles`.
 
+## Google Sign-In / Profile Loading
+
+If Google sign-ups or sign-ins don't load user data (profile is null):
+
+1. **PKCE flow**: The client is configured with `flowType: "pkce"` for OAuth. Ensure the redirect URL in Supabase Dashboard → Authentication → URL Configuration includes `https://your-domain.com/auth/callback` (and `http://localhost:3000/auth/callback` for dev).
+
+2. **Auto-create profiles (recommended)**: Run the migration in `scripts/create-app-user-profiles-trigger.sql` in the Supabase SQL Editor. This creates a trigger that auto-inserts into `app_user_profiles` when a new user signs up (email or Google), avoiding RLS/timing issues.
+
 ## Environment Variables
 
 Ensure `.env.local` has:
