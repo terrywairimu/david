@@ -4,6 +4,7 @@ import { useState } from "react"
 import RegisterTable from "./components/register-table"
 import RegisterModals from "@/components/ui/register-modals"
 import { SectionHeader } from "@/components/ui/section-header"
+import { ActionGuard } from "@/components/ActionGuard"
 import { UserPlus, Truck, Users } from "lucide-react"
 
 interface RegisteredEntity {
@@ -72,18 +73,24 @@ const RegisterPage = () => {
     <>
       <div id="registerSection" className="card">
         <SectionHeader title="Register Management">
-          <button className="btn btn-add" onClick={handleShowClientModal}>
-            <UserPlus className="me-2" size={16} />
-            Add New Client
-          </button>
-          <button className="btn btn-add" onClick={handleShowSupplierModal}>
-            <Truck className="me-2" size={16} />
-            Add New Supplier
-          </button>
-          <button className="btn btn-add" onClick={handleShowEmployeeModal}>
-            <Users className="me-2" size={16} />
-            Add New Employee
-          </button>
+          <ActionGuard actionId="add">
+            <button className="btn btn-add" onClick={handleShowClientModal}>
+              <UserPlus className="me-2" size={16} />
+              Add New Client
+            </button>
+          </ActionGuard>
+          <ActionGuard actionId="add">
+            <button className="btn btn-add" onClick={handleShowSupplierModal}>
+              <Truck className="me-2" size={16} />
+              Add New Supplier
+            </button>
+          </ActionGuard>
+          <ActionGuard actionId="add">
+            <button className="btn btn-add" onClick={handleShowEmployeeModal}>
+              <Users className="me-2" size={16} />
+              Add New Employee
+            </button>
+          </ActionGuard>
         </SectionHeader>
         
         <div className="card-body p-0">

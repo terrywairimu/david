@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import InvoiceModal from "@/components/ui/invoice-modal-standard"
 import { 
@@ -77,6 +79,7 @@ interface Invoice {
 }
 
 const InvoicesView = () => {
+  const { canPerformAction } = useAuth()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -999,7 +1002,7 @@ const InvoicesView = () => {
             periodStartDate,
             periodEndDate
           }}
-          onExport={exportInvoices}
+          onExport={canPerformAction("export") ? exportInvoices : undefined}
           exportLabel="Export Invoices"
         />
 
@@ -1052,34 +1055,42 @@ const InvoicesView = () => {
                       </td>
                       <td>
                         <div className="d-flex gap-1">
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleView(invoice)}
-                            title="View"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleDelete(invoice)}
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handlePrint(invoice)}
-                            title="Print"
-                          >
-                            <Printer size={14} />
-                          </button>
-                          <button 
-                            className="action-btn"
-                            onClick={() => handleDownload(invoice)}
-                            title="Download"
-                          >
-                            <Download size={14} />
-                          </button>
+                          <ActionGuard actionId="view">
+                            <button 
+                              className="action-btn"
+                              onClick={() => handleView(invoice)}
+                              title="View"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="delete">
+                            <button 
+                              className="action-btn"
+                              onClick={() => handleDelete(invoice)}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="view">
+                            <button 
+                              className="action-btn"
+                              onClick={() => handlePrint(invoice)}
+                              title="Print"
+                            >
+                              <Printer size={14} />
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="export">
+                            <button 
+                              className="action-btn"
+                              onClick={() => handleDownload(invoice)}
+                              title="Download"
+                            >
+                              <Download size={14} />
+                            </button>
+                          </ActionGuard>
                         </div>
                       </td>
                     </tr>

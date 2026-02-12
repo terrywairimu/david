@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer, Edit } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
+import { ActionGuard } from "@/components/ActionGuard"
+import { useAuth } from "@/lib/auth-context"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import PurchaseModal from "@/components/ui/purchase-modal"
@@ -42,6 +44,7 @@ interface Purchase {
 
 const PurchasesPage = () => {
   const searchParams = useSearchParams()
+  const { canPerformAction } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -850,31 +853,33 @@ const PurchasesPage = () => {
       <div className="card-body p-0">
         {/* Add New Button */}
         <div className="d-flex mb-3">
-          {currentView === "client" ? (
-            <button
-              className="btn-add"
-              onClick={() => {
-                setSelectedPurchase(undefined)
-                setModalMode("create")
-                setShowClientModal(true)
-              }}
-            >
-              <Plus size={16} className="me-2" />
-              Add New Client Purchase
-            </button>
-          ) : (
-            <button
-              className="btn-add"
-              onClick={() => {
-                setSelectedPurchase(undefined)
-                setModalMode("create")
-                setShowGeneralModal(true)
-              }}
-            >
-              <Plus size={16} className="me-2" />
-              Add New General Purchase
-            </button>
-          )}
+          <ActionGuard actionId="add">
+            {currentView === "client" ? (
+              <button
+                className="btn-add"
+                onClick={() => {
+                  setSelectedPurchase(undefined)
+                  setModalMode("create")
+                  setShowClientModal(true)
+                }}
+              >
+                <Plus size={16} className="me-2" />
+                Add New Client Purchase
+              </button>
+            ) : (
+              <button
+                className="btn-add"
+                onClick={() => {
+                  setSelectedPurchase(undefined)
+                  setModalMode("create")
+                  setShowGeneralModal(true)
+                }}
+              >
+                <Plus size={16} className="me-2" />
+                Add New General Purchase
+              </button>
+            )}
+          </ActionGuard>
         </div>
 
       {/* Search and Filter Controls */}
@@ -901,7 +906,7 @@ const PurchasesPage = () => {
           periodStartDate,
           periodEndDate
         }}
-        onExport={exportPurchases}
+        onExport={canPerformAction("export") ? exportPurchases : undefined}
         exportLabel="Export Purchases"
       />
 
@@ -968,34 +973,42 @@ const PurchasesPage = () => {
                     <td>KES {purchase.total_amount.toFixed(2)}</td>
                     <td>
                       <div className="btn-group" role="group">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleView(purchase)}
-                          title="View"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEdit(purchase)}
-                          title="Edit"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handlePrint(purchase)}
-                          title="Print"
-                        >
-                          <Printer size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDownload(purchase)}
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
+                        <ActionGuard actionId="view">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleView(purchase)}
+                            title="View"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="edit">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleEdit(purchase)}
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="view">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handlePrint(purchase)}
+                            title="Print"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="export">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDownload(purchase)}
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </ActionGuard>
                       </div>
                     </td>
                   </tr>

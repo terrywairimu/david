@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react"
 import { Package, Plus, Edit, Trash2, Search, Download, Eye } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportStockReport } from "@/lib/workflow-utils"
@@ -10,6 +12,7 @@ import { StockItem } from "@/lib/types"
 import { SectionHeader } from "@/components/ui/section-header"
 
 const StockPage = () => {
+  const { canPerformAction } = useAuth()
   const [stockItems, setStockItems] = useState<StockItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -437,13 +440,15 @@ const StockPage = () => {
           title="Stock Management" 
           icon={<Package size={20} />}
         >
-          <button
-            className="btn btn-add"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus size={16} className="me-2" />
-            Add New Item
-          </button>
+          <ActionGuard actionId="add">
+            <button
+              className="btn btn-add"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={16} className="me-2" />
+              Add New Item
+            </button>
+          </ActionGuard>
         </SectionHeader>
         
         <div className="card-body p-0">
@@ -475,7 +480,7 @@ const StockPage = () => {
               periodStartDate,
               periodEndDate
             }}
-            onExport={exportStock}
+            onExport={canPerformAction("export") ? exportStock : undefined}
             exportLabel="Export Stock"
           />
 
@@ -622,27 +627,33 @@ const StockPage = () => {
                           {getStockStatus(item)}
                         </td>
                         <td>
-                          <button
-                            onClick={() => openEditModal(item)}
-                            className="action-btn me-2"
-                            title="Edit Stock Item"
-                          >
-                            <i className="fas fa-edit text-primary"></i>
-                          </button>
-                          <button
-                            onClick={() => openStockInModal(item)}
-                            className="action-btn me-2"
-                            title="Stock In Entry"
-                          >
-                            <i className="fas fa-arrow-up text-success"></i>
-                          </button>
-                          <button
-                            onClick={() => openStockOutModal(item)}
-                            className="action-btn"
-                            title="Stock Out Entry"
-                          >
-                            <i className="fas fa-arrow-down text-danger"></i>
-                          </button>
+                          <ActionGuard actionId="edit">
+                            <button
+                              onClick={() => openEditModal(item)}
+                              className="action-btn me-2"
+                              title="Edit Stock Item"
+                            >
+                              <i className="fas fa-edit text-primary"></i>
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="add">
+                            <button
+                              onClick={() => openStockInModal(item)}
+                              className="action-btn me-2"
+                              title="Stock In Entry"
+                            >
+                              <i className="fas fa-arrow-up text-success"></i>
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="edit">
+                            <button
+                              onClick={() => openStockOutModal(item)}
+                              className="action-btn"
+                              title="Stock Out Entry"
+                            >
+                              <i className="fas fa-arrow-down text-danger"></i>
+                            </button>
+                          </ActionGuard>
                         </td>
                       </tr>
                     ))

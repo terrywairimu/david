@@ -5,6 +5,7 @@ import { Edit, Trash2, Download, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import ConfirmDialog from "@/components/ui/confirm-dialog"
+import { ActionGuard } from "@/components/ActionGuard"
 
 interface RegisteredEntity {
   id: number
@@ -313,14 +314,16 @@ const RegisterTable = ({
               </select>
             </div>
             <div className="col-md-2">
-              <button
-                className="btn w-100 shadow-sm export-btn"
-                onClick={exportToCSV}
-                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-              >
-                <Download className="me-2" size={16} />
-                Export
-              </button>
+              <ActionGuard actionId="export">
+                <button
+                  className="btn w-100 shadow-sm export-btn"
+                  onClick={exportToCSV}
+                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+                >
+                  <Download className="me-2" size={16} />
+                  Export
+                </button>
+              </ActionGuard>
             </div>
           </div>
         </div>
@@ -375,14 +378,16 @@ const RegisterTable = ({
               </select>
             </div>
             <div className="flex-fill">
-              <button
-                className="btn w-100 shadow-sm export-btn"
-                onClick={exportToCSV}
-                style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
-              >
-                <Download className="me-2" size={16} />
-                Export
-              </button>
+              <ActionGuard actionId="export">
+                <button
+                  className="btn w-100 shadow-sm export-btn"
+                  onClick={exportToCSV}
+                  style={{ borderRadius: "16px", height: "45px", transition: "all 0.3s ease" }}
+                >
+                  <Download className="me-2" size={16} />
+                  Export
+                </button>
+              </ActionGuard>
             </div>
           </div>
         </div>
@@ -437,20 +442,24 @@ const RegisterTable = ({
                     <td>{formatDate(item.date_added)}</td>
                     <td>
                       <div className="d-flex gap-1">
-                        <button 
-                          className="action-btn" 
-                          onClick={() => item.isEmployee ? handleEditEmployee(item as Employee) : handleEdit(item as RegisteredEntity)} 
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          className="action-btn" 
-                          onClick={() => handleDelete(item.id, item.isEmployee ? "employee" : "entity")} 
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <ActionGuard actionId="edit">
+                          <button 
+                            className="action-btn" 
+                            onClick={() => item.isEmployee ? handleEditEmployee(item as Employee) : handleEdit(item as RegisteredEntity)} 
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="delete">
+                          <button 
+                            className="action-btn" 
+                            onClick={() => handleDelete(item.id, item.isEmployee ? "employee" : "entity")} 
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </ActionGuard>
                       </div>
                     </td>
                   </tr>

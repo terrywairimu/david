@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Eye, Download, CreditCard } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity, type Invoice } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
@@ -19,6 +21,7 @@ interface ReceivePaymentViewProps {
 }
 
 const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }: ReceivePaymentViewProps) => {
+  const { canPerformAction } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("")
@@ -213,10 +216,12 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
       <div>
         {/* Add New Payment Button */}
         <div className="d-flex mb-3">
-          <button className="btn-add" onClick={() => setShowPaymentModal(true)}>
-            <Plus size={16} className="me-2" />
-            Add New Received Payment
-          </button>
+          <ActionGuard actionId="add">
+            <button className="btn-add" onClick={() => setShowPaymentModal(true)}>
+              <Plus size={16} className="me-2" />
+              Add New Received Payment
+            </button>
+          </ActionGuard>
         </div>
 
         {/* Enhanced Search and Filter Row */}
@@ -240,7 +245,7 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
             periodStartDate,
             periodEndDate
           }}
-          onExport={handleExport}
+          onExport={canPerformAction("export") ? handleExport : undefined}
           exportLabel="Export"
         />
 
@@ -290,34 +295,42 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
                     <td>{payment.account_credited || "-"}</td>
                     <td>
                       <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleViewPayment(payment)}
-                          title="View"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleEditPayment(payment)}
-                          title="Edit"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn text-danger"
-                          onClick={() => handleDeletePayment(payment)}
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleExportSinglePayment(payment)}
-                          title="Download Receipt"
-                        >
-                          <Download size={14} />
-                        </button>
+                        <ActionGuard actionId="view">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleViewPayment(payment)}
+                            title="View"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="edit">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleEditPayment(payment)}
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="delete">
+                          <button
+                            className="btn btn-sm action-btn text-danger"
+                            onClick={() => handleDeletePayment(payment)}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="export">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleExportSinglePayment(payment)}
+                            title="Download Receipt"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </ActionGuard>
                       </div>
                     </td>
                   </tr>

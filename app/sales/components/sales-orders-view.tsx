@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, Printer } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import SalesOrderModal from "@/components/ui/sales-order-modal-standard"
 import { 
@@ -71,6 +73,7 @@ interface SalesOrder {
 }
 
 const SalesOrdersView = () => {
+  const { canPerformAction } = useAuth()
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -814,7 +817,7 @@ const SalesOrdersView = () => {
             periodStartDate,
             periodEndDate
           }}
-          onExport={exportSalesOrders}
+          onExport={canPerformAction("export") ? exportSalesOrders : undefined}
           exportLabel="Export Sales Orders"
         />
 
@@ -861,43 +864,53 @@ const SalesOrdersView = () => {
                   </td>
                   <td>
                       <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleView(salesOrder)}
-                          title="View"
-                        >
-                      <Eye size={14} />
-                    </button>
-                        {salesOrder.status !== "converted_to_invoice" && salesOrder.status !== "completed" && (
+                        <ActionGuard actionId="view">
                           <button
                             className="btn btn-sm action-btn"
-                            onClick={() => handleEdit(salesOrder)}
-                            title="Edit"
+                            onClick={() => handleView(salesOrder)}
+                            title="View"
                           >
-                            <Edit size={14} />
+                            <Eye size={14} />
                           </button>
-                        )}
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDelete(salesOrder)}
-                          title="Delete"
-                        >
-                      <Trash2 size={14} />
-                    </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handlePrint(salesOrder)}
-                          title="Print"
-                        >
-                          <Printer size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDownload(salesOrder)}
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="edit">
+                          {salesOrder.status !== "converted_to_invoice" && salesOrder.status !== "completed" && (
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleEdit(salesOrder)}
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                        </ActionGuard>
+                        <ActionGuard actionId="delete">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDelete(salesOrder)}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="view">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handlePrint(salesOrder)}
+                            title="Print"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="export">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDownload(salesOrder)}
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </ActionGuard>
                       </div>
                   </td>
                 </tr>

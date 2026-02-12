@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, CreditCard, Receipt, Printer } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import QuotationModal from "@/components/ui/quotation-modal"
 import { 
@@ -80,6 +82,7 @@ interface Quotation {
 
 const QuotationsView = () => {
   const router = useRouter()
+  const { canPerformAction } = useAuth()
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -1039,10 +1042,12 @@ const QuotationsView = () => {
         {/* Add New Quotation Button */}
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5>Quotations</h5>
-          <button className="btn-add" onClick={handleNewQuotation}>
-            <Plus size={16} />
-            Add New Quotation
-          </button>
+          <ActionGuard actionId="add">
+            <button className="btn-add" onClick={handleNewQuotation}>
+              <Plus size={16} />
+              Add New Quotation
+            </button>
+          </ActionGuard>
         </div>
 
 
@@ -1067,7 +1072,7 @@ const QuotationsView = () => {
             periodStartDate,
             periodEndDate
           }}
-          onExport={exportQuotations}
+          onExport={canPerformAction("export") ? exportQuotations : undefined}
           exportLabel="Export Quotations"
         />
 
@@ -1114,63 +1119,74 @@ const QuotationsView = () => {
                   </td>
                   <td>
                       <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleView(quotation)}
-                          title="View"
-                        >
-                      <Eye size={14} />
-                    </button>
-                        {quotation.status === "pending" && (
+                        <ActionGuard actionId="view">
                           <button
                             className="btn btn-sm action-btn"
-                            onClick={() => handleEdit(quotation)}
-                            title="Edit"
+                            onClick={() => handleView(quotation)}
+                            title="View"
                           >
-                        <Edit size={14} />
-                      </button>
-                        )}
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDelete(quotation)}
-                          title="Delete"
-                        >
-                      <Trash2 size={14} />
-                    </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handlePrint(quotation)}
-                          title="Print"
-                        >
-                          <Printer size={14} />
-                        </button>
-                        <button
-                          className="btn btn-sm action-btn"
-                          onClick={() => handleDownload(quotation)}
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
+                            <Eye size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="edit">
+                          {quotation.status === "pending" && (
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleEdit(quotation)}
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                        </ActionGuard>
+                        <ActionGuard actionId="delete">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDelete(quotation)}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="view">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handlePrint(quotation)}
+                            title="Print"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="export">
+                          <button
+                            className="btn btn-sm action-btn"
+                            onClick={() => handleDownload(quotation)}
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </ActionGuard>
 
-                        
-                        {quotation.status === "accepted" && (
-                          <>
-                            <button
-                              className="btn btn-sm action-btn"
-                              onClick={() => handleProceedToSalesOrder(quotation)}
-                              title="Create Sales Order"
-                            >
-                              <CreditCard size={14} />
-                            </button>
-                            <button
-                              className="btn btn-sm action-btn"
-                              onClick={() => handleProceedToCashSale(quotation)}
-                              title="Create Cash Sale"
-                            >
-                              <Receipt size={14} />
-                            </button>
-                          </>
-                        )}
+                        <ActionGuard actionId="add">
+                          {quotation.status === "accepted" && (
+                            <>
+                              <button
+                                className="btn btn-sm action-btn"
+                                onClick={() => handleProceedToSalesOrder(quotation)}
+                                title="Create Sales Order"
+                              >
+                                <CreditCard size={14} />
+                              </button>
+                              <button
+                                className="btn btn-sm action-btn"
+                                onClick={() => handleProceedToCashSale(quotation)}
+                                title="Create Cash Sale"
+                              >
+                                <Receipt size={14} />
+                              </button>
+                            </>
+                          )}
+                        </ActionGuard>
                       </div>
                   </td>
                 </tr>

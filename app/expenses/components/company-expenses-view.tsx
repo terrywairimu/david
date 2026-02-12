@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { Plus, Edit, Trash2, Eye, Download } from "lucide-react"
 import { supabase, type Expense, type RegisteredEntity } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportExpensesReport } from "@/lib/workflow-utils"
@@ -13,6 +15,7 @@ interface CompanyExpensesViewProps {
 }
 
 const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
+  const { canPerformAction } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [expenseItems, setExpenseItems] = useState<{[key: number]: any[]}>({}) // Store items by expense_id
   const [loading, setLoading] = useState(true)
@@ -245,10 +248,12 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
       <div>
         {/* Add New Company Expense Button */}
         <div className="d-flex mb-3">
-          <button className="btn-add" onClick={handleNewExpense}>
-          <Plus size={16} className="me-2" />
-            Add New Company Expense
-          </button>
+          <ActionGuard actionId="add">
+            <button className="btn-add" onClick={handleNewExpense}>
+              <Plus size={16} className="me-2" />
+              Add New Company Expense
+            </button>
+          </ActionGuard>
         </div>
 
         {/* Enhanced Search and Filter Row */}
@@ -272,7 +277,7 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
             periodStartDate,
             periodEndDate
           }}
-          onExport={handleExport}
+          onExport={canPerformAction("export") ? handleExport : undefined}
           exportLabel="Export Company Expenses"
         />
 
@@ -325,27 +330,33 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
                       <td>{expense.account_debited || "-"}</td>
                       <td>
                         <div className="d-flex gap-1">
-                          <button
-                            className="btn btn-sm action-btn"
-                            onClick={() => handleViewExpense(expense)}
-                            title="View"
-                          >
-                        <Eye size={14} />
-                      </button>
-                          <button
-                            className="btn btn-sm action-btn"
-                            onClick={() => handleEditExpense(expense)}
-                            title="Edit"
-                          >
-                        <Edit size={14} />
-                      </button>
-                          <button
-                            className="btn btn-sm action-btn"
-                            onClick={() => handleDeleteExpense(expense)}
-                            title="Delete"
-                          >
-                        <Trash2 size={14} />
-                      </button>
+                          <ActionGuard actionId="view">
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleViewExpense(expense)}
+                              title="View"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="edit">
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleEditExpense(expense)}
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          </ActionGuard>
+                          <ActionGuard actionId="delete">
+                            <button
+                              className="btn btn-sm action-btn"
+                              onClick={() => handleDeleteExpense(expense)}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </ActionGuard>
                         </div>
                     </td>
                   </tr>

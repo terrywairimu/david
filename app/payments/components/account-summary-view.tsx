@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText, RefreshCw } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
@@ -42,6 +43,7 @@ interface AccountTransaction {
 }
 
 const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSummaryViewProps) => {
+  const { canPerformAction } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [clientFilter, setClientFilter] = useState("")
   const [dateFilter, setDateFilter] = useState("") // Default to empty string (all dates)
@@ -1617,13 +1619,13 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           periodStartDate,
           periodEndDate
         }}
-        onExport={exportTransactions}
+        onExport={canPerformAction("export") ? exportTransactions : undefined}
         exportLabel="Export Transactions"
         compactLayout={true}
-        transferButton={{
+        transferButton={canPerformAction("add") ? {
           onClick: () => setShowTransferModal(true),
           label: "Transfer"
-        }}
+        } : undefined}
       />
 
       {/* Account Transactions Table */}

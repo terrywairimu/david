@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react"
 import { Plus, Edit, Trash2, Eye, Download, FileText, Receipt, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import { useAuth } from "@/lib/auth-context"
+import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import CashSaleModal from "@/components/ui/cash-sale-modal-standard"
 import { 
@@ -14,6 +16,7 @@ import ExportDropdown from "@/components/ui/export-dropdown"
 import { CashSale } from "@/lib/types"
 
 const CashSalesView: React.FC = () => {
+  const { canPerformAction } = useAuth()
   const [cashSales, setCashSales] = useState<CashSale[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -432,11 +435,13 @@ const CashSalesView: React.FC = () => {
               </div>
               
               <div className="col-md-3">
-                <ExportDropdown
-                  onExport={exportCashSales}
-                  exportLabel="Export"
-                  className="w-100"
-                />
+                {canPerformAction("export") && (
+                  <ExportDropdown
+                    onExport={exportCashSales}
+                    exportLabel="Export"
+                    className="w-100"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -493,11 +498,13 @@ const CashSalesView: React.FC = () => {
                 </select>
               </div>
               <div className="flex-fill">
-                <ExportDropdown
-                  onExport={exportCashSales}
-                  exportLabel="Export"
-                  className="w-100"
-                />
+                {canPerformAction("export") && (
+                  <ExportDropdown
+                    onExport={exportCashSales}
+                    exportLabel="Export"
+                    className="w-100"
+                  />
+                )}
               </div>
             </div>
 
@@ -578,27 +585,33 @@ const CashSalesView: React.FC = () => {
                     <td>KES {sale.grand_total.toFixed(2)}</td>
                     <td>
                       <div className="d-flex gap-1">
-                        <button 
-                          className="action-btn"
-                          onClick={() => handleView(sale)}
-                          title="View"
-                        >
-                      <Eye size={14} />
-                    </button>
-                        <button 
-                          className="action-btn"
-                          onClick={() => handleDelete(sale)}
-                          title="Delete"
-                        >
-                      <Trash2 size={14} />
-                    </button>
-                        <button 
-                          className="action-btn"
-                          onClick={() => handlePrint(sale)}
-                          title="Print"
-                        >
-                          <Download size={14} />
-                        </button>
+                        <ActionGuard actionId="view">
+                          <button 
+                            className="action-btn"
+                            onClick={() => handleView(sale)}
+                            title="View"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="delete">
+                          <button 
+                            className="action-btn"
+                            onClick={() => handleDelete(sale)}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </ActionGuard>
+                        <ActionGuard actionId="view">
+                          <button 
+                            className="action-btn"
+                            onClick={() => handlePrint(sale)}
+                            title="Print"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </ActionGuard>
                       </div>
                   </td>
                 </tr>
