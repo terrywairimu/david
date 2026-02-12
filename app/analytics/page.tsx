@@ -32,6 +32,9 @@ import {
   Funnel, LabelList
 } from 'recharts'
 
+// Fallback chart color when CSS variables may not resolve (e.g. SSR or theme loading)
+const CHART_PRIMARY = '#6366f1'
+
 // Analytics chart renderer - picks best chart type per metric
 const AnalyticsChartByType: React.FC<{
   data: { date: string; [key: string]: string | number | undefined }[]
@@ -47,26 +50,28 @@ const AnalyticsChartByType: React.FC<{
   }
   const commonProps = {
     data,
-    margin: { top: 10, right: 10, left: 0, bottom: 0 },
+    margin: { top: 16, right: 16, left: 16, bottom: 16 },
   }
   const tooltipProps = {
     contentStyle: { borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' } as const,
     formatter: (value: number) => formatValue(value),
   }
+  const yAxisProps = { domain: [0, 'auto' as const], hide: true }
 
   if (chartType === 'bar' || chartType === 'barHorizontal') {
     return (
       <BarChart {...commonProps}>
         <defs>
-          <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
-            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
+          <linearGradient id="colorBarAnalytics" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={CHART_PRIMARY} stopOpacity={0.9} />
+            <stop offset="95%" stopColor={CHART_PRIMARY} stopOpacity={0.6} />
           </linearGradient>
         </defs>
-        <XAxis dataKey="date" hide />
-        <YAxis hide />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+        <YAxis {...yAxisProps} />
         <Tooltip {...tooltipProps} />
-        <Bar dataKey={dataKey} fill="url(#colorBar)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey={dataKey} fill="url(#colorBarAnalytics)" radius={[4, 4, 0, 0]} />
         {showPrediction && <Bar dataKey="predicted" fill="#f59e0b" fillOpacity={0.4} radius={[4, 4, 0, 0]} />}
       </BarChart>
     )
@@ -75,10 +80,11 @@ const AnalyticsChartByType: React.FC<{
   if (chartType === 'line') {
     return (
       <LineChart {...commonProps}>
-        <XAxis dataKey="date" hide />
-        <YAxis hide />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+        <YAxis {...yAxisProps} />
         <Tooltip {...tooltipProps} />
-        <Line type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey={dataKey} stroke={CHART_PRIMARY} strokeWidth={3} dot={{ r: 3 }} />
         {showPrediction && <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" dot={false} />}
       </LineChart>
     )
@@ -88,15 +94,16 @@ const AnalyticsChartByType: React.FC<{
   return (
     <AreaChart {...commonProps}>
       <defs>
-        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+        <linearGradient id="colorRevAnalytics" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor={CHART_PRIMARY} stopOpacity={0.4} />
+          <stop offset="95%" stopColor={CHART_PRIMARY} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <XAxis dataKey="date" hide />
-      <YAxis hide />
+      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+      <YAxis {...yAxisProps} />
       <Tooltip {...tooltipProps} />
-      <Area type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#colorRev)" />
+      <Area type="monotone" dataKey={dataKey} stroke={CHART_PRIMARY} strokeWidth={3} fill="url(#colorRevAnalytics)" />
       {showPrediction && <Area type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" fill="none" />}
     </AreaChart>
   )
@@ -687,9 +694,13 @@ export default function AnalyticsPage() {
               <div className="h-[350px] flex items-center justify-center">
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
               </div>
+            ) : comprehensiveChartData.length === 0 ? (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                <p className="text-sm">No data for this period. Try a different time range or section.</p>
+              </div>
             ) : (
-              <div className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="w-full min-h-[350px]" style={{ height: 350 }}>
+                <ResponsiveContainer width="100%" height={350}>
                   <AnalyticsChartByType
                     data={comprehensiveChartData}
                     dataKey={(() => {
@@ -708,8 +719,8 @@ export default function AnalyticsPage() {
         </div>
 
         <ChartCard title="Performance Radar" subtitle="Metric targets vs actual" className="lg:col-span-1">
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full" style={{ height: 300 }}>
+            <ResponsiveContainer width="100%" height={300}>
               <RadarChart data={performanceMetrics}>
                 <PolarGrid strokeOpacity={0.1} />
                 <PolarAngleAxis dataKey="metric" fontSize={10} />
@@ -759,8 +770,8 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="w-full" style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie data={segmentationSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                       {segmentationSegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}

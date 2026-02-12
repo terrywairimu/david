@@ -161,8 +161,8 @@ export function useComprehensiveAnalytics({
         const records = rows || []
 
         records.forEach((r: any) => {
-          const dateStr = r[dateField] || r.date_created || r.purchase_date || r.payment_date
-          if (!dateStr) return
+          const dateStr = String(r[dateField] || r.date_created || r.purchase_date || r.payment_date || '')
+          if (!dateStr || dateStr === 'undefined') return
           const k = getAggKey(dateStr)
           const current = aggregationMap.get(k) || { amount: 0, count: 0 }
           const amt = Number(r[amountField] || r.total_amount || r.grand_total || r.amount || 0)
