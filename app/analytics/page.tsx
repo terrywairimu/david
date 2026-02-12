@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useComprehensiveAnalytics } from '@/hooks/useComprehensiveAnalytics'
@@ -362,18 +362,36 @@ const CustomerSettingsModal = ({ isOpen, onClose, currentSettings, onApply }: an
   )
 }
 
-const CustomDropdown = ({ options, value, onChange, className = "" }: any) => {
+const CustomDropdown = ({ options, value, onChange, className = "", placement = "bottom" }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; className?: string; placement?: "top" | "bottom" }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   const selected = options.find((opt: any) => opt.value === value)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener("mousedown", onOutside)
+    return () => document.removeEventListener("mousedown", onOutside)
+  }, [isOpen])
+
   return (
-    <div className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className}`}>
       <button onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-2 bg-muted border border-border rounded-xl flex justify-between items-center">
         <span>{selected?.label || 'Select...'}</span>
-        <ChevronDown className="w-4 h-4" />
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: placement === "top" ? 4 : -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: placement === "top" ? 4 : -4 }}
+            className={`absolute left-0 right-0 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden ${
+              placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
+            }`}
+          >
             {options.map((opt: any) => (
               <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className="w-full px-4 py-2 text-left hover:bg-muted transition-colors">
                 {opt.label}
@@ -386,10 +404,106 @@ const CustomDropdown = ({ options, value, onChange, className = "" }: any) => {
   )
 }
 
+const CustomDateRangeDropdown = ({
+  isActive,
+  startDate,
+  endDate,
+  onStartChange,
+  onEndChange,
+  onSelect,
+}: {
+  isActive: boolean
+  startDate: string
+  endDate: string
+  onStartChange: (v: string) => void
+  onEndChange: (v: string) => void
+  onSelect: () => void
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener("mousedown", onOutside)
+    return () => document.removeEventListener("mousedown", onOutside)
+  }, [isOpen])
+
+  const handleOpen = () => {
+    if (!isOpen && !startDate && !endDate) {
+      const end = new Date()
+      const start = new Date(end)
+      start.setDate(start.getDate() - 30)
+      onEndChange(end.toISOString().slice(0, 10))
+      onStartChange(start.toISOString().slice(0, 10))
+      onSelect()
+    }
+    setIsOpen(!isOpen)
+  }
+
+  const label = isActive && startDate && endDate
+    ? `${new Date(startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+    : "Custom"
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={handleOpen}
+        className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium flex items-center gap-1 ${isActive ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-muted'}`}
+      >
+        {label}
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute left-0 top-full mt-2 bg-card border border-border rounded-xl shadow-xl z-50 p-3 min-w-[200px]"
+          >
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Start</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { onStartChange(e.target.value); onSelect() }}
+                  className="w-full px-2 py-1.5 bg-muted border border-border rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">End</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { onEndChange(e.target.value); onSelect() }}
+                  className="w-full px-2 py-1.5 bg-muted border border-border rounded-lg text-xs"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 const CardMenu = ({ onExport, onFullscreen, onSettings }: any) => {
   const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!isOpen) return
+    const onOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener("mousedown", onOutside)
+    return () => document.removeEventListener("mousedown", onOutside)
+  }, [isOpen])
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-muted/50"><MoreVertical className="w-5 h-5" /></button>
       <AnimatePresence>
         {isOpen && (
@@ -601,61 +715,37 @@ export default function AnalyticsPage() {
             value={section}
             onChange={(v) => setSection(v as SectionId)}
             className="min-w-[120px] shrink-0"
+            placement="top"
           />
           <CustomDropdown
             options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
             value={subType}
             onChange={setSubType}
             className="min-w-[140px] shrink-0"
+            placement="top"
           />
           <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
             <input type="checkbox" checked={showPrediction} onChange={(e) => setShowPrediction(e.target.checked)} className="rounded" />
             AI Predictions
           </label>
           <div className="h-5 w-px bg-border shrink-0" aria-hidden />
-          {(['7d', '30d', '3m', '6m', '12m', 'custom'] as const).map((r) => (
+          {(['7d', '30d', '3m', '6m', '12m'] as const).map((r) => (
             <button
               key={r}
-              onClick={() => {
-                setTimeRange(r)
-                if (r === 'custom' && !customStartDate && !customEndDate) {
-                  const end = new Date()
-                  const start = new Date(end)
-                  start.setDate(start.getDate() - 30)
-                  setCustomEndDate(end.toISOString().slice(0, 10))
-                  setCustomStartDate(start.toISOString().slice(0, 10))
-                }
-              }}
+              onClick={() => setTimeRange(r)}
               className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium shrink-0 ${timeRange === r ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-muted'}`}
             >
               {TIME_RANGE_LABELS[r]}
             </button>
           ))}
-          <AnimatePresence>
-            {timeRange === 'custom' && (
-              <motion.div
-                key="custom-dates"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-2 shrink-0"
-              >
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-2 py-1.5 bg-muted border border-border rounded-lg text-xs w-32"
-                />
-                <span className="text-muted-foreground text-xs">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-2 py-1.5 bg-muted border border-border rounded-lg text-xs w-32"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <CustomDateRangeDropdown
+            isActive={timeRange === 'custom'}
+            startDate={customStartDate}
+            endDate={customEndDate}
+            onStartChange={setCustomStartDate}
+            onEndChange={setCustomEndDate}
+            onSelect={() => setTimeRange('custom')}
+          />
         </div>
       </div>
 
