@@ -593,82 +593,69 @@ export default function AnalyticsPage() {
         </div>
       </motion.div>
 
-      {/* Filters */}
+      {/* Filters - single row */}
       <div className="bg-card border border-border rounded-2xl p-4 mb-6">
-        <div className="flex flex-wrap gap-4 items-center justify-between">
-          {/* Left: Section, Sub-type, AI Predictions */}
-          <div className="flex flex-wrap items-center gap-3">
-            <CustomDropdown
-              options={SECTIONS.map((s) => ({ value: s.id, label: `${s.icon || ''} ${s.label}` }))}
-              value={section}
-              onChange={(v) => setSection(v as SectionId)}
-              className="min-w-[140px]"
-            />
-            <CustomDropdown
-              options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
-              value={subType}
-              onChange={setSubType}
-              className="min-w-[160px]"
-            />
-            <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
-              <input type="checkbox" checked={showPrediction} onChange={(e) => setShowPrediction(e.target.checked)} className="rounded" />
-              AI Predictions
-            </label>
-          </div>
-
-          {/* Right: Time range + Specific period dates */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2 flex-wrap">
-              {(['7d', '30d', '3m', '6m', '12m', 'custom'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => {
-                    setTimeRange(r)
-                    if (r === 'custom' && !customStartDate && !customEndDate) {
-                      const end = new Date()
-                      const start = new Date(end)
-                      start.setDate(start.getDate() - 30)
-                      setCustomEndDate(end.toISOString().slice(0, 10))
-                      setCustomStartDate(start.toISOString().slice(0, 10))
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-xl transition-all text-sm font-medium ${timeRange === r ? 'bg-primary text-primary-foreground shadow-lg' : 'hover:bg-muted'}`}
-                >
-                  {TIME_RANGE_LABELS[r]}
-                </button>
-              ))}
-            </div>
-            <AnimatePresence>
-              {timeRange === 'custom' && (
-                <motion.div
-                  key="custom-dates"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="flex flex-wrap items-center gap-3 overflow-hidden"
-                >
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">Start</label>
-                  <input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    className="px-3 py-2 bg-muted border border-border rounded-xl text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">End</label>
-                  <input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    className="px-3 py-2 bg-muted border border-border rounded-xl text-sm"
-                  />
-                </div>
+        <div className="flex flex-nowrap items-center gap-3 overflow-x-auto">
+          <CustomDropdown
+            options={SECTIONS.map((s) => ({ value: s.id, label: `${s.icon || ''} ${s.label}` }))}
+            value={section}
+            onChange={(v) => setSection(v as SectionId)}
+            className="min-w-[120px] shrink-0"
+          />
+          <CustomDropdown
+            options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
+            value={subType}
+            onChange={setSubType}
+            className="min-w-[140px] shrink-0"
+          />
+          <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+            <input type="checkbox" checked={showPrediction} onChange={(e) => setShowPrediction(e.target.checked)} className="rounded" />
+            AI Predictions
+          </label>
+          <div className="h-5 w-px bg-border shrink-0" aria-hidden />
+          {(['7d', '30d', '3m', '6m', '12m', 'custom'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => {
+                setTimeRange(r)
+                if (r === 'custom' && !customStartDate && !customEndDate) {
+                  const end = new Date()
+                  const start = new Date(end)
+                  start.setDate(start.getDate() - 30)
+                  setCustomEndDate(end.toISOString().slice(0, 10))
+                  setCustomStartDate(start.toISOString().slice(0, 10))
+                }
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium shrink-0 ${timeRange === r ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-muted'}`}
+            >
+              {TIME_RANGE_LABELS[r]}
+            </button>
+          ))}
+          <AnimatePresence>
+            {timeRange === 'custom' && (
+              <motion.div
+                key="custom-dates"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-2 shrink-0"
+              >
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-2 py-1.5 bg-muted border border-border rounded-lg text-xs w-32"
+                />
+                <span className="text-muted-foreground text-xs">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-2 py-1.5 bg-muted border border-border rounded-lg text-xs w-32"
+                />
               </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

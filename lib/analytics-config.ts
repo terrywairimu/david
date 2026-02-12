@@ -136,12 +136,12 @@ export function getAnalyticsMetrics(section: SectionId): AnalyticsMetricOption[]
 }
 
 export const TIME_RANGE_LABELS: Record<TimeRangeKey, string> = {
-  '7d': '7 Days',
-  '30d': '30 Days',
-  '3m': '3 Months',
-  '6m': '6 Months',
-  '12m': '12 Months',
-  custom: 'Specific Period',
+  '7d': '7D',
+  '30d': '30D',
+  '3m': '3M',
+  '6m': '6M',
+  '12m': '12M',
+  custom: 'Custom',
 }
 
 export function getTimeRangeSubtitle(timeRange: TimeRangeKey, start?: string, end?: string): string {
