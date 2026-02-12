@@ -3,12 +3,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import { useComprehensiveAnalytics } from '@/hooks/useComprehensiveAnalytics'
+import {
+  SECTIONS,
+  getSubTypes,
+  getAnalyticsMetrics,
+  TIME_RANGE_LABELS,
+  type SectionId,
+  type TimeRangeKey,
+} from '@/lib/analytics-config'
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Package,
   Calendar, Filter, Download, Share, RefreshCw, Zap, Eye,
   ArrowUpRight, ArrowDownRight, Target, Award, Clock, Star,
   MoreVertical, ChevronDown, Settings, Maximize2, Minimize2,
-  AlertCircle, CheckCircle, Info, X, Sparkles, Brain
+  AlertCircle, CheckCircle, Info, X, Sparkles, Brain, Loader2
 } from 'lucide-react'
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -323,11 +332,45 @@ const ConnectionStatus = ({ analytics }: any) => (
 )
 
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState('12m')
+  const [timeRange, setTimeRange] = useState<TimeRangeKey>('12m')
   const [isRealTime, setIsRealTime] = useState(false)
-  const [selectedMetric, setSelectedMetric] = useState('revenue')
   const [showPrediction, setShowPrediction] = useState(true)
   const [notification, setNotification] = useState<any>(null)
+
+  // Comprehensive analytics state
+  const [section, setSection] = useState<SectionId>('sales')
+  const [subType, setSubType] = useState('sales_orders')
+  const [analyticsMetric, setAnalyticsMetric] = useState('total_amount')
+  const [customStartDate, setCustomStartDate] = useState('')
+  const [customEndDate, setCustomEndDate] = useState('')
+
+  const subTypes = getSubTypes(section)
+  const metrics = getAnalyticsMetrics(section)
+
+  const {
+    chartData: comprehensiveChartData,
+    summary: comprehensiveSummary,
+    loading: comprehensiveLoading,
+    error: comprehensiveError,
+    refetch: refetchComprehensive,
+    chartTitle,
+    timeLabel,
+  } = useComprehensiveAnalytics({
+    section,
+    subType: subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'sales_orders',
+    analyticsMetric,
+    timeRange,
+    customStartDate: timeRange === 'custom' ? customStartDate : undefined,
+    customEndDate: timeRange === 'custom' ? customEndDate : undefined,
+  })
+
+  // Keep subType in sync when section changes
+  useEffect(() => {
+    const ids = subTypes.map((s) => s.id)
+    if (!ids.includes(subType)) {
+      setSubType(ids[0] ?? '')
+    }
+  }, [section, subTypes, subType])
 
   // Modal states
   const [chartSettingsOpen, setChartSettingsOpen] = useState(false)
@@ -372,7 +415,6 @@ export default function AnalyticsPage() {
     aiAnalysis,
     aiLoading: isAIAnalysisLoading,
     generateAIInsights,
-    salesData: chartData
   } = useAnalytics(timeRange as any)
 
   const handleExport = (type: string) => {
@@ -456,39 +498,149 @@ export default function AnalyticsPage() {
       </motion.div>
 
       {/* Filters */}
-      <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex gap-2">
-          {['7d', '30d', '3m', '6m', '12m'].map(r => (
-            <button key={r} onClick={() => setTimeRange(r)} className={`px-4 py-2 rounded-xl transition-all ${timeRange === r ? 'bg-primary text-white shadow-lg' : 'hover:bg-muted'}`}>{r}</button>
-          ))}
-        </div>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={showPrediction} onChange={e => setShowPrediction(e.target.checked)} className="rounded" /> AI Predictions</label>
-          <CustomDropdown options={[{ value: 'revenue', label: 'Revenue' }, { value: 'orders', label: 'Orders' }]} value={selectedMetric} onChange={setSelectedMetric} className="w-[150px]" />
+      <div className="bg-card border border-border rounded-2xl p-4 mb-6">
+        <div className="flex flex-wrap gap-4 items-center justify-between">
+          {/* Left: Section, Sub-type, AI Predictions */}
+          <div className="flex flex-wrap items-center gap-3">
+            <CustomDropdown
+              options={SECTIONS.map((s) => ({ value: s.id, label: `${s.icon || ''} ${s.label}` }))}
+              value={section}
+              onChange={(v) => setSection(v as SectionId)}
+              className="min-w-[140px]"
+            />
+            <CustomDropdown
+              options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
+              value={subType}
+              onChange={setSubType}
+              className="min-w-[160px]"
+            />
+            <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+              <input type="checkbox" checked={showPrediction} onChange={(e) => setShowPrediction(e.target.checked)} className="rounded" />
+              AI Predictions
+            </label>
+          </div>
+
+          {/* Right: Time range + Specific period dates */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-2 flex-wrap">
+              {(['7d', '30d', '3m', '6m', '12m', 'custom'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => {
+                    setTimeRange(r)
+                    if (r === 'custom' && !customStartDate && !customEndDate) {
+                      const end = new Date()
+                      const start = new Date(end)
+                      start.setDate(start.getDate() - 30)
+                      setCustomEndDate(end.toISOString().slice(0, 10))
+                      setCustomStartDate(start.toISOString().slice(0, 10))
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl transition-all text-sm font-medium ${timeRange === r ? 'bg-primary text-primary-foreground shadow-lg' : 'hover:bg-muted'}`}
+                >
+                  {TIME_RANGE_LABELS[r]}
+                </button>
+              ))}
+            </div>
+            <AnimatePresence>
+              {timeRange === 'custom' && (
+                <motion.div
+                  key="custom-dates"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="flex flex-wrap items-center gap-3 overflow-hidden"
+                >
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">Start</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="px-3 py-2 bg-muted border border-border rounded-xl text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">End</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="px-3 py-2 bg-muted border border-border rounded-xl text-sm"
+                  />
+                </div>
+              </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <ChartCard title="Revenue Trends" subtitle="Monthly performance analysis" action={<CardMenu onExport={() => handleExport('revenue')} onSettings={() => handleSettings('chart')} />}>
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" hide />
-                  <YAxis hide />
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                  <Area type="monotone" dataKey={selectedMetric} stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#colorRev)" />
-                  {showPrediction && <Area type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" fill="none" />}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+          <ChartCard
+            title={chartTitle}
+            subtitle={`${timeLabel} performance analysis`}
+            action={
+              <div className="flex items-center gap-2">
+                <CustomDropdown
+                  options={metrics.map((m) => ({ value: m.id, label: m.label }))}
+                  value={analyticsMetric}
+                  onChange={setAnalyticsMetric}
+                  className="min-w-[180px]"
+                />
+                <CardMenu onExport={() => handleExport('analytics')} onSettings={() => handleSettings('chart')} />
+              </div>
+            }
+          >
+            {comprehensiveError && (
+              <div className="p-4 text-destructive text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {comprehensiveError}
+              </div>
+            )}
+            {comprehensiveLoading ? (
+              <div className="h-[350px] flex items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={comprehensiveChartData}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" hide />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                      formatter={(value: number) => {
+                        const m = metrics.find((x) => x.id === analyticsMetric)
+                        if (m?.format === 'currency') return `KES ${Number(value).toLocaleString()}`
+                        if (m?.format === 'percent') return `${value}%`
+                        return String(value)
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey={(() => {
+                        const dk = metrics.find((m) => m.id === analyticsMetric)?.dataKey ?? 'amount'
+                        const first = comprehensiveChartData[0] as Record<string, unknown> | undefined
+                        return first && dk in first ? dk : 'amount'
+                      })()}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      fill="url(#colorRev)"
+                    />
+                    {showPrediction && <Area type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" fill="none" />}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </ChartCard>
         </div>
 
