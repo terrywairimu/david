@@ -38,6 +38,7 @@ export interface UseComprehensiveAnalyticsReturn {
     count: number
     avg: number
     growthRate: number
+    distinctEntities: number
   }
   loading: boolean
   error: string | null
@@ -65,7 +66,7 @@ export function useComprehensiveAnalytics({
   customEndDate,
 }: UseComprehensiveAnalyticsParams): UseComprehensiveAnalyticsReturn {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
-  const [summary, setSummary] = useState({ total: 0, count: 0, avg: 0, growthRate: 0 })
+  const [summary, setSummary] = useState({ total: 0, count: 0, avg: 0, growthRate: 0, distinctEntities: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -126,7 +127,7 @@ export function useComprehensiveAnalytics({
       const config = subTypes.find((s) => s.id === subType)
       if (!config) {
         setChartData([])
-        setSummary({ total: 0, count: 0, avg: 0, growthRate: 0 })
+        setSummary({ total: 0, count: 0, avg: 0, growthRate: 0, distinctEntities: 0 })
         return
       }
 
@@ -226,16 +227,69 @@ export function useComprehensiveAnalytics({
       const prev = series.at(-2)?.amount || last
       const growthRate = prev === 0 ? 0 : ((last - prev) / prev) * 100
 
+      let distinctEntities = 0
+      if (section === "sales") {
+        const { data: rows } = await supabase.from(table).select("client_id")
+          .gte(dateField, startIso).lte(dateField, endIso).not("client_id", "is", null)
+        distinctEntities = new Set((rows || []).map((r: any) => r.client_id)).size
+      } else if (section === "expenses") {
+        if (subType === "client") {
+          const { data: rows } = await supabase.from("expenses").select("client_id")
+            .gte("date_created", startIso).lte("date_created", endIso)
+            .eq("expense_type", "client").not("client_id", "is", null)
+          distinctEntities = new Set((rows || []).map((r: any) => r.client_id)).size
+        } else {
+          let q = supabase.from("expenses").select("expense_category, category")
+            .gte("date_created", startIso).lte("date_created", endIso)
+          if (subType === "company") q = q.eq("expense_type", "company")
+          const { data: rows } = await q
+          distinctEntities = new Set((rows || []).map((r: any) => (r as any).expense_category || (r as any).category || "").filter(Boolean)).size
+        }
+      } else if (section === "payments") {
+        if (subType === "received") {
+          const { data: rows } = await supabase.from("payments").select("client_id")
+            .gte("date_created", startIso).lte("date_created", endIso).not("client_id", "is", null)
+          distinctEntities = new Set((rows || []).map((r: any) => r.client_id)).size
+        } else if (subType === "supplier") {
+          const { data: rows } = await supabase.from("supplier_payments").select("supplier_id")
+            .gte("date_created", startIso).lte("date_created", endIso).not("supplier_id", "is", null)
+          distinctEntities = new Set((rows || []).map((r: any) => r.supplier_id)).size
+        } else if (subType === "employee") {
+          const { data: rows } = await supabase.from("employee_payments").select("employee_id")
+            .gte("date_created", startIso).lte("date_created", endIso).not("employee_id", "is", null)
+          distinctEntities = new Set((rows || []).map((r: any) => r.employee_id)).size
+        }
+      } else if (section === "purchases") {
+        let q = supabase.from("purchases").select("supplier_id, client_id")
+          .gte("purchase_date", startIso).lte("purchase_date", endIso)
+        if (subType === "client") q = q.not("client_id", "is", null)
+        else if (subType === "general") q = q.is("client_id", null)
+        const { data: rows } = await q
+        const ids = (rows || []).map((r: any) => r.supplier_id || r.client_id).filter(Boolean)
+        distinctEntities = new Set(ids).size
+      } else if (section === "stock") {
+        if (subType === "movements") {
+          const { data: rows } = await supabase.from("stock_movements").select("stock_item_id")
+            .gte("date_created", startIso).lte("date_created", endIso)
+          distinctEntities = new Set((rows || []).map((r: any) => r.stock_item_id)).size
+        } else {
+          const { data: rows } = await supabase.from("stock_items").select("category")
+            .gte("date_added", startIso).lte("date_added", endIso)
+          distinctEntities = new Set((rows || []).map((r: any) => r.category || "").filter(Boolean)).size
+        }
+      }
+
       setSummary({
         total,
         count,
         avg: count > 0 ? total / count : 0,
         growthRate,
+        distinctEntities,
       })
     } catch (e: any) {
       setError(e?.message || "Failed to load analytics")
       setChartData([])
-      setSummary({ total: 0, count: 0, avg: 0, growthRate: 0 })
+      setSummary({ total: 0, count: 0, avg: 0, growthRate: 0, distinctEntities: 0 })
     } finally {
       setLoading(false)
     }

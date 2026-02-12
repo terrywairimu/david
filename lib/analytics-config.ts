@@ -163,3 +163,62 @@ export function getChartTypeForMetric(section: SectionId, metricId: string): Cha
   const m = metrics.find(x => x.id === metricId)
   return m?.chartType ?? 'area'
 }
+
+export interface HeaderStatDef {
+  label: string
+  valueKey: 'total' | 'growthRate' | 'distinctEntities' | 'count' | 'avg'
+  format: 'currency' | 'number' | 'percent'
+}
+
+export function getHeaderStatsConfig(section: SectionId, subType: string): HeaderStatDef[] {
+  switch (section) {
+    case 'sales':
+      return [
+        { label: 'Total Value', valueKey: 'total', format: 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: 'Customers', valueKey: 'distinctEntities', format: 'number' },
+        { label: subType === 'quotations' ? 'Quotations' : subType === 'sales_orders' ? 'Orders' : subType === 'invoices' ? 'Invoices' : 'Cash Sales', valueKey: 'count', format: 'number' },
+        { label: 'Avg Value', valueKey: 'avg', format: 'currency' },
+      ]
+    case 'expenses':
+      return [
+        { label: 'Total Amount', valueKey: 'total', format: 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: subType === 'client' ? 'Clients' : 'Categories', valueKey: 'distinctEntities', format: 'number' },
+        { label: 'Expenses', valueKey: 'count', format: 'number' },
+        { label: 'Avg Expense', valueKey: 'avg', format: 'currency' },
+      ]
+    case 'payments':
+      return [
+        { label: 'Total Amount', valueKey: 'total', format: 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: subType === 'received' ? 'Clients' : subType === 'supplier' ? 'Suppliers' : 'Employees', valueKey: 'distinctEntities', format: 'number' },
+        { label: 'Transactions', valueKey: 'count', format: 'number' },
+        { label: 'Avg Payment', valueKey: 'avg', format: 'currency' },
+      ]
+    case 'purchases':
+      return [
+        { label: 'Total Amount', valueKey: 'total', format: 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: 'Suppliers', valueKey: 'distinctEntities', format: 'number' },
+        { label: 'Orders', valueKey: 'count', format: 'number' },
+        { label: 'Avg Order', valueKey: 'avg', format: 'currency' },
+      ]
+    case 'stock':
+      return [
+        { label: subType === 'movements' ? 'Movement Volume' : 'Total Value', valueKey: 'total', format: subType === 'movements' ? 'number' : 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: subType === 'movements' ? 'Items' : 'Categories', valueKey: 'distinctEntities', format: 'number' },
+        { label: subType === 'movements' ? 'Movements' : 'Items', valueKey: 'count', format: 'number' },
+        { label: subType === 'movements' ? 'Avg Volume' : 'Avg Value', valueKey: 'avg', format: subType === 'movements' ? 'number' : 'currency' },
+      ]
+    default:
+      return [
+        { label: 'Total Value', valueKey: 'total', format: 'currency' },
+        { label: 'Growth', valueKey: 'growthRate', format: 'percent' },
+        { label: 'Customers', valueKey: 'distinctEntities', format: 'number' },
+        { label: 'Count', valueKey: 'count', format: 'number' },
+        { label: 'Avg', valueKey: 'avg', format: 'currency' },
+      ]
+  }
+}

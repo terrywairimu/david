@@ -10,6 +10,7 @@ import {
   getAnalyticsMetrics,
   TIME_RANGE_LABELS,
   getChartTypeForMetric,
+  getHeaderStatsConfig,
   type SectionId,
   type TimeRangeKey,
   type ChartTypeKey,
@@ -479,6 +480,7 @@ export default function AnalyticsPage() {
     includePersonalData: false
   })
 
+  const effectiveTimeRangeForLegacy = timeRange === 'custom' ? '12m' : timeRange
   const {
     analytics,
     customers,
@@ -487,7 +489,7 @@ export default function AnalyticsPage() {
     aiAnalysis,
     aiLoading: isAIAnalysisLoading,
     generateAIInsights,
-  } = useAnalytics(timeRange as any)
+  } = useAnalytics(effectiveTimeRangeForLegacy as any)
 
   const handleExport = (type: string) => {
     setNotification({ message: `Exporting ${type} report...` })
@@ -553,18 +555,23 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-8">
-            {[
-              { label: "Revenue", value: `KES ${(analytics.totalRevenue / 1000).toFixed(1)}K`, icon: DollarSign },
-              { label: "Growth", value: `${analytics.growthRate.toFixed(1)}%`, icon: BarChart3 },
-              { label: "Customers", value: customers.length, icon: Users },
-              { label: "Orders", value: analytics.totalOrders, icon: Package },
-              { label: "Avg Sale", value: `KES ${analytics.avgOrderValue.toFixed(0)}`, icon: Target }
-            ].map((stat, i) => (
-              <div key={i} className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
-                <div className="flex items-center gap-2 opacity-70 text-xs mb-1"><stat.icon size={14} /> {stat.label}</div>
-                <div className="text-xl font-bold">{stat.value}</div>
-              </div>
-            ))}
+            {getHeaderStatsConfig(section, subType).map((statDef, i) => {
+              const raw = comprehensiveSummary[statDef.valueKey] ?? 0
+              const num = Number(raw)
+              const value = statDef.format === 'currency'
+                ? `KES ${num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toLocaleString()}`
+                : statDef.format === 'percent'
+                  ? `${num.toFixed(1)}%`
+                  : num.toLocaleString()
+              const icons = [DollarSign, BarChart3, Users, Package, Target]
+              const Icon = icons[i % icons.length]
+              return (
+                <div key={i} className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
+                  <div className="flex items-center gap-2 opacity-70 text-xs mb-1"><Icon size={14} /> {statDef.label}</div>
+                  <div className="text-xl font-bold">{comprehensiveLoading ? '...' : value}</div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </motion.div>
