@@ -81,46 +81,47 @@ export function getSubTypes(section: SectionId): SubTypeOption[] {
   }
 }
 
+// Chart types: area=monetary trends, line=averages/rates, bar=counts/discrete
 // Comprehensive analytics metrics per section/subType combination
 const salesMetrics: AnalyticsMetricOption[] = [
-  { id: 'total_amount', label: 'Total Value', dataKey: 'amount', format: 'currency', description: 'Sum of document amounts' },
-  { id: 'count', label: 'Document Count', dataKey: 'count', format: 'number', description: 'Number of documents' },
-  { id: 'avg_value', label: 'Average Value', dataKey: 'avg', format: 'currency', description: 'Average per document' },
-  { id: 'by_status', label: 'By Status', dataKey: 'by_status', format: 'number', description: 'Breakdown by status' },
-  { id: 'by_client', label: 'By Client', dataKey: 'by_client', format: 'currency', description: 'Breakdown by client' },
-  { id: 'conversion_rate', label: 'Conversion Rate', dataKey: 'conversion', format: 'percent', description: 'Quotation to order conversion' },
+  { id: 'total_amount', label: 'Total Value', dataKey: 'amount', format: 'currency', chartType: 'area', description: 'Sum of document amounts' },
+  { id: 'count', label: 'Document Count', dataKey: 'count', format: 'number', chartType: 'bar', description: 'Number of documents' },
+  { id: 'avg_value', label: 'Average Value', dataKey: 'avg', format: 'currency', chartType: 'line', description: 'Average per document' },
+  { id: 'by_status', label: 'By Status', dataKey: 'by_status', format: 'number', chartType: 'bar', description: 'Breakdown by status' },
+  { id: 'by_client', label: 'By Client', dataKey: 'by_client', format: 'currency', chartType: 'bar', description: 'Breakdown by client' },
+  { id: 'conversion_rate', label: 'Conversion Rate', dataKey: 'conversion', format: 'percent', chartType: 'line', description: 'Quotation to order conversion' },
 ]
 
 const expensesMetrics: AnalyticsMetricOption[] = [
-  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency' },
-  { id: 'count', label: 'Expense Count', dataKey: 'count', format: 'number' },
-  { id: 'by_category', label: 'By Category', dataKey: 'by_category', format: 'currency' },
-  { id: 'by_department', label: 'By Department', dataKey: 'by_department', format: 'currency' },
-  { id: 'avg_expense', label: 'Average per Expense', dataKey: 'avg', format: 'currency' },
+  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency', chartType: 'area' },
+  { id: 'count', label: 'Expense Count', dataKey: 'count', format: 'number', chartType: 'bar' },
+  { id: 'by_category', label: 'By Category', dataKey: 'by_category', format: 'currency', chartType: 'bar' },
+  { id: 'by_department', label: 'By Department', dataKey: 'by_department', format: 'currency', chartType: 'bar' },
+  { id: 'avg_expense', label: 'Average per Expense', dataKey: 'avg', format: 'currency', chartType: 'line' },
 ]
 
 const paymentsMetrics: AnalyticsMetricOption[] = [
-  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency' },
-  { id: 'count', label: 'Transaction Count', dataKey: 'count', format: 'number' },
-  { id: 'by_method', label: 'By Payment Method', dataKey: 'by_method', format: 'currency' },
-  { id: 'by_account', label: 'By Account', dataKey: 'by_account', format: 'currency' },
-  { id: 'avg_payment', label: 'Average per Payment', dataKey: 'avg', format: 'currency' },
+  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency', chartType: 'area' },
+  { id: 'count', label: 'Transaction Count', dataKey: 'count', format: 'number', chartType: 'bar' },
+  { id: 'by_method', label: 'By Payment Method', dataKey: 'by_method', format: 'currency', chartType: 'bar' },
+  { id: 'by_account', label: 'By Account', dataKey: 'by_account', format: 'currency', chartType: 'bar' },
+  { id: 'avg_payment', label: 'Average per Payment', dataKey: 'avg', format: 'currency', chartType: 'line' },
 ]
 
 const purchasesMetrics: AnalyticsMetricOption[] = [
-  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency' },
-  { id: 'count', label: 'Order Count', dataKey: 'count', format: 'number' },
-  { id: 'by_supplier', label: 'By Supplier', dataKey: 'by_supplier', format: 'currency' },
-  { id: 'by_status', label: 'By Status', dataKey: 'by_status', format: 'number' },
-  { id: 'avg_order', label: 'Average Order Value', dataKey: 'avg', format: 'currency' },
+  { id: 'total_amount', label: 'Total Amount', dataKey: 'amount', format: 'currency', chartType: 'area' },
+  { id: 'count', label: 'Order Count', dataKey: 'count', format: 'number', chartType: 'bar' },
+  { id: 'by_supplier', label: 'By Supplier', dataKey: 'by_supplier', format: 'currency', chartType: 'bar' },
+  { id: 'by_status', label: 'By Status', dataKey: 'by_status', format: 'number', chartType: 'bar' },
+  { id: 'avg_order', label: 'Average Order Value', dataKey: 'avg', format: 'currency', chartType: 'line' },
 ]
 
 const stockMetrics: AnalyticsMetricOption[] = [
-  { id: 'total_value', label: 'Total Stock Value', dataKey: 'value', format: 'currency' },
-  { id: 'item_count', label: 'Item Count', dataKey: 'count', format: 'number' },
-  { id: 'by_category', label: 'By Category', dataKey: 'by_category', format: 'currency' },
-  { id: 'low_stock', label: 'Low Stock Items', dataKey: 'low_stock', format: 'number' },
-  { id: 'movements', label: 'Movement Volume', dataKey: 'movements', format: 'number' },
+  { id: 'total_value', label: 'Total Stock Value', dataKey: 'value', format: 'currency', chartType: 'area' },
+  { id: 'item_count', label: 'Item Count', dataKey: 'count', format: 'number', chartType: 'bar' },
+  { id: 'by_category', label: 'By Category', dataKey: 'by_category', format: 'currency', chartType: 'bar' },
+  { id: 'low_stock', label: 'Low Stock Items', dataKey: 'low_stock', format: 'number', chartType: 'bar' },
+  { id: 'movements', label: 'Movement Volume', dataKey: 'movements', format: 'number', chartType: 'bar' },
 ]
 
 export function getAnalyticsMetrics(section: SectionId): AnalyticsMetricOption[] {
@@ -155,4 +156,10 @@ export function getChartTitle(section: string, subType: string, metric: string, 
   const subLabel = subType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   const metricLabel = metric.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   return `${sectionLabel} › ${subLabel} › ${metricLabel}`
+}
+
+export function getChartTypeForMetric(section: SectionId, metricId: string): ChartTypeKey {
+  const metrics = getAnalyticsMetrics(section)
+  const m = metrics.find(x => x.id === metricId)
+  return m?.chartType ?? 'area'
 }

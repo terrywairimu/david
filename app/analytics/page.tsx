@@ -9,8 +9,10 @@ import {
   getSubTypes,
   getAnalyticsMetrics,
   TIME_RANGE_LABELS,
+  getChartTypeForMetric,
   type SectionId,
   type TimeRangeKey,
+  type ChartTypeKey,
 } from '@/lib/analytics-config'
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Package,
@@ -26,6 +28,76 @@ import {
   ScatterChart, Scatter, ComposedChart, ReferenceLine, FunnelChart,
   Funnel, LabelList
 } from 'recharts'
+
+// Analytics chart renderer - picks best chart type per metric
+const AnalyticsChartByType: React.FC<{
+  data: { date: string; [key: string]: string | number | undefined }[]
+  dataKey: string
+  chartType: ChartTypeKey
+  format: 'currency' | 'number' | 'percent'
+  showPrediction?: boolean
+}> = ({ data, dataKey, chartType, format, showPrediction }) => {
+  const formatValue = (value: number) => {
+    if (format === 'currency') return `KES ${Number(value).toLocaleString()}`
+    if (format === 'percent') return `${value}%`
+    return String(value)
+  }
+  const commonProps = {
+    data,
+    margin: { top: 10, right: 10, left: 0, bottom: 0 },
+  }
+  const tooltipProps = {
+    contentStyle: { borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' } as const,
+    formatter: (value: number) => formatValue(value),
+  }
+
+  if (chartType === 'bar' || chartType === 'barHorizontal') {
+    return (
+      <BarChart {...commonProps}>
+        <defs>
+          <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
+            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="date" hide />
+        <YAxis hide />
+        <Tooltip {...tooltipProps} />
+        <Bar dataKey={dataKey} fill="url(#colorBar)" radius={[4, 4, 0, 0]} />
+        {showPrediction && <Bar dataKey="predicted" fill="#f59e0b" fillOpacity={0.4} radius={[4, 4, 0, 0]} />}
+      </BarChart>
+    )
+  }
+
+  if (chartType === 'line') {
+    return (
+      <LineChart {...commonProps}>
+        <XAxis dataKey="date" hide />
+        <YAxis hide />
+        <Tooltip {...tooltipProps} />
+        <Line type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3 }} />
+        {showPrediction && <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" dot={false} />}
+      </LineChart>
+    )
+  }
+
+  // Default: area (monetary trends)
+  return (
+    <AreaChart {...commonProps}>
+      <defs>
+        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <XAxis dataKey="date" hide />
+      <YAxis hide />
+      <Tooltip {...tooltipProps} />
+      <Area type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#colorRev)" />
+      {showPrediction && <Area type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" fill="none" />}
+    </AreaChart>
+  )
+}
 
 // Local Implementation of Dashboard Components to match Tujenge style
 const DashboardCard: React.FC<{
@@ -607,37 +679,17 @@ export default function AnalyticsPage() {
             ) : (
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={comprehensiveChartData}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" hide />
-                    <YAxis hide />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                      formatter={(value: number) => {
-                        const m = metrics.find((x) => x.id === analyticsMetric)
-                        if (m?.format === 'currency') return `KES ${Number(value).toLocaleString()}`
-                        if (m?.format === 'percent') return `${value}%`
-                        return String(value)
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey={(() => {
-                        const dk = metrics.find((m) => m.id === analyticsMetric)?.dataKey ?? 'amount'
-                        const first = comprehensiveChartData[0] as Record<string, unknown> | undefined
-                        return first && dk in first ? dk : 'amount'
-                      })()}
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={3}
-                      fill="url(#colorRev)"
-                    />
-                    {showPrediction && <Area type="monotone" dataKey="predicted" stroke="#f59e0b" strokeDasharray="5 5" fill="none" />}
-                  </AreaChart>
+                  <AnalyticsChartByType
+                    data={comprehensiveChartData}
+                    dataKey={(() => {
+                      const dk = metrics.find((m) => m.id === analyticsMetric)?.dataKey ?? 'amount'
+                      const first = comprehensiveChartData[0] as Record<string, unknown> | undefined
+                      return first && dk in first ? dk : 'amount'
+                    })()}
+                    chartType={getChartTypeForMetric(section, analyticsMetric)}
+                    format={metrics.find((m) => m.id === analyticsMetric)?.format ?? 'currency'}
+                    showPrediction={showPrediction}
+                  />
                 </ResponsiveContainer>
               </div>
             )}
