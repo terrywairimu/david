@@ -666,9 +666,9 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Main Grid - min-w-0 fixes ResponsiveContainer inside grid (recharts/recharts#1423) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <ChartCard
             title={chartTitle}
             subtitle={`${timeLabel} performance analysis`}
@@ -699,8 +699,14 @@ export default function AnalyticsPage() {
                 <p className="text-sm">No data for this period. Try a different time range or section.</p>
               </div>
             ) : (
-              <div className="w-full min-h-[350px]" style={{ height: 350 }}>
-                <ResponsiveContainer width="100%" height={350}>
+              <div className="w-full min-w-0 overflow-visible" style={{ height: 350, minHeight: 350 }}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={350}
+                  minWidth={400}
+                  initialDimension={{ width: 600, height: 350 }}
+                  debounce={1}
+                >
                   <AnalyticsChartByType
                     data={comprehensiveChartData}
                     dataKey={(() => {
