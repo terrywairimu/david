@@ -477,10 +477,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               .single()
 
             if (existingTransaction) {
-              // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
+              // Map payment_method to account_type - use account_credited/account_paid_to if available, otherwise payment_method
               let accountType = 'cash' // default
-              if (payment.account_credited) {
-                const credited = payment.account_credited
+              const creditedField = payment.account_credited || payment.account_paid_to
+              if (creditedField) {
+                const credited = creditedField
                 if (credited === 'Cash') {
                   accountType = 'cash'
                 } else if (credited === 'Cooperative Bank') {
@@ -572,10 +573,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             }
           }
 
-          // Map payment_method to account_type - use account_credited if available, otherwise use payment_method
+          // Map payment_method to account_type - use account_credited/account_paid_to if available, otherwise payment_method
           let accountType = 'cash' // default
-          if (payment.account_credited) {
-            const credited = payment.account_credited
+          const creditedField = payment.account_credited || payment.account_paid_to
+          if (creditedField) {
+            const credited = creditedField
             if (credited === 'Cash') {
               accountType = 'cash'
             } else if (credited === 'Cooperative Bank') {
@@ -596,7 +598,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
             accountType,
             amount: payment.amount,
             payment_method: payment.payment_method,
-            account_credited: payment.account_credited,
+            account_credited: payment.account_credited || payment.account_paid_to,
             payment_date: payment.payment_date || payment.date_paid || payment.date_created,
             description: payment.description
           })
@@ -654,10 +656,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               .single()
 
             if (existingTransaction) {
-              // Map account_debited to proper account_type
+              // Map account_debited/account_paid_from to proper account_type
               let accountType = 'cash' // default
-              if (expense.account_debited) {
-                const debited = expense.account_debited
+              const debitedField = expense.account_debited || expense.account_paid_from
+              if (debitedField) {
+                const debited = debitedField
                 if (debited === 'Cash') {
                   accountType = 'cash'
                 } else if (debited === 'Cooperative Bank') {
@@ -735,7 +738,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       expense_id: expense.id,
                       expense_number: expense.expense_number,
                       account_type: accountType,
-                      account_debited: expense.account_debited
+                      account_debited: expense.account_debited || expense.account_paid_from
                     })
                   }
                 } else {
@@ -766,8 +769,9 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
           // Map account_debited to proper account_type
           let accountType = 'cash' // default
-          if (expense.account_debited) {
-            const debited = expense.account_debited
+          const debitedField = expense.account_debited || expense.account_paid_from
+          if (debitedField) {
+            const debited = debitedField
             if (debited === 'Cash') {
               accountType = 'cash'
             } else if (debited === 'Cooperative Bank') {
@@ -782,7 +786,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           console.log('Creating expense transaction:', {
             accountType,
             amount: expense.amount,
-            account_debited: expense.account_debited,
+            account_debited: expense.account_debited || expense.account_paid_from,
             date_created: expense.date_created
           })
           
@@ -823,7 +827,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               expense_id: expense.id,
               expense_number: expense.expense_number,
               account_type: accountType,
-              account_debited: expense.account_debited
+              account_debited: expense.account_debited || expense.account_paid_from
             })
           }
         } catch (error) {
@@ -1099,6 +1103,12 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       if (error) {
         console.error('Error loading transactions for balance calculation:', error)
+        const msg = error.message?.toLowerCase() || ''
+        if (msg.includes('does not exist') || msg.includes('relation')) {
+          toast.error('Account summary tables not found. Run scripts/create-account-tables.sql in Supabase.')
+        } else {
+          toast.error('Failed to load account balances')
+        }
         return
       }
 
@@ -1153,6 +1163,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       console.log('Account balances updated:', accountBalancesArray)
     } catch (error) {
       console.error('Error loading account balances:', error)
+      toast.error('Failed to load account balances. Check console for details.')
     }
   }
 
@@ -1164,12 +1175,19 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       if (error) {
         console.error('Error loading transactions:', error)
+        const msg = error.message?.toLowerCase() || ''
+        if (msg.includes('does not exist') || msg.includes('relation')) {
+          toast.error('Account transactions view not found. Run scripts/create-account-tables.sql in Supabase.')
+        } else {
+          toast.error('Failed to load transactions')
+        }
         return
       }
 
       setTransactions(transactionsData || [])
     } catch (error) {
       console.error('Error loading transactions:', error)
+      toast.error('Failed to load transactions. Check console for details.')
     }
   }
 
@@ -1412,7 +1430,12 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       if (fromError) {
         console.error('Error creating from transaction:', fromError)
-        toast.error('Transfer failed: Error creating from transaction')
+        const msg = fromError.message?.toLowerCase() || ''
+        if (msg.includes('transfer') && (msg.includes('check') || msg.includes('constraint') || msg.includes('invalid'))) {
+          toast.error('Transfer type not supported. Run scripts/add-transfer-reference-type.sql in Supabase.')
+        } else {
+          toast.error('Transfer failed: Error creating from transaction')
+        }
         return
       }
 
@@ -1423,7 +1446,12 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
       if (toError) {
         console.error('Error creating to transaction:', toError)
-        toast.error('Transfer failed: Error creating to transaction')
+        const msg = toError.message?.toLowerCase() || ''
+        if (msg.includes('transfer') && (msg.includes('check') || msg.includes('constraint') || msg.includes('invalid'))) {
+          toast.error('Transfer type not supported. Run scripts/add-transfer-reference-type.sql in Supabase.')
+        } else {
+          toast.error('Transfer failed: Error creating to transaction')
+        }
         return
       }
 
