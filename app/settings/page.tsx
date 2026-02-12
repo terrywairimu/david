@@ -157,10 +157,14 @@ export default function SettingsPage() {
         .eq("id", deleteUserId)
       if (error) throw error
       setProfiles((p) => p.filter((x) => x.id !== deleteUserId))
-      toast.success("User removed")
+      toast.success("User removed from database")
       setDeleteUserId(null)
-    } catch {
-      toast.error("Failed to remove user")
+    } catch (err: unknown) {
+      console.error("Delete user failed:", err)
+      const msg = err && typeof err === "object" && "message" in err
+        ? (err as { message: string }).message
+        : "Failed to remove user"
+      toast.error(msg)
     } finally {
       setDeleting(false)
     }
@@ -382,22 +386,29 @@ export default function SettingsPage() {
       </motion.div>
 
       <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove registered user</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the user profile and access. They can sign in again to create a new profile. This action cannot be undone.
-            </AlertDialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <AlertDialogTitle>Remove registered user</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the user from the database. They can sign in again to create a new profile. This cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={(e) => {
                 e.preventDefault()
                 handleDeleteUser()
               }}
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? (
                 <>
