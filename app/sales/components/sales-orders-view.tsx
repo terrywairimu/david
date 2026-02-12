@@ -113,17 +113,10 @@ const SalesOrdersView = () => {
   const fetchSalesOrders = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from("sales_orders")
-        .select(`
-          *,
-          client:registered_entities(id, name, phone, location),
-          items:sales_order_items(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) throw error
-      setSalesOrders(data || [])
+      const res = await fetch("/api/sales/orders", { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setSalesOrders(Array.isArray(data) ? data : [])
     } catch (error) {
         console.error("Error fetching sales orders:", error)
       toast.error("Failed to load sales orders")
@@ -134,23 +127,16 @@ const SalesOrdersView = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("id, name")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) throw error
-      
-        const clientOptions = [
-          { value: "", label: "All Clients" },
-        ...(data || []).map(client => ({
-            value: client.id.toString(),
-          label: client.name
-        }))
-        ]
-      
-        setClients(clientOptions)
+      const res = await fetch("/api/sales/clients", { credentials: "include" })
+      if (!res.ok) return
+      const data = await res.json()
+      setClients([
+        { value: "", label: "All Clients" },
+        ...(Array.isArray(data) ? data : []).map((c: { id: number; name: string }) => ({
+          value: c.id.toString(),
+          label: c.name,
+        })),
+      ])
     } catch (error) {
       console.error("Error fetching clients:", error)
     }

@@ -126,39 +126,10 @@ const QuotationsView = () => {
   const fetchQuotations = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("quotations")
-        .select(`
-          *,
-          client:registered_entities(id, name, phone, location),
-          items:quotation_items(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) throw error
-      
-      // Fetch payments for each quotation to determine payment status
-      const quotationsWithPayments = await Promise.all(
-        (data || []).map(async (quotation) => {
-          const { data: payments } = await supabase
-            .from("payments")
-            .select("amount")
-            .eq("quotation_number", quotation.quotation_number)
-            .eq("status", "completed")
-          
-          const totalPaid = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
-          const hasPayments = totalPaid > 0
-          
-          return {
-            ...quotation,
-            total_paid: totalPaid,
-            has_payments: hasPayments,
-            payment_percentage: quotation.grand_total > 0 ? (totalPaid / quotation.grand_total) * 100 : 0
-          }
-        })
-      )
-      
-      setQuotations(quotationsWithPayments)
+      const res = await fetch("/api/sales/quotations", { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setQuotations(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching quotations:", error)
       toast.error("Failed to load quotations")
@@ -169,23 +140,16 @@ const QuotationsView = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("id, name")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) throw error
-      
-        const clientOptions = [
-          { value: "", label: "All Clients" },
-        ...(data || []).map(client => ({
-            value: client.id.toString(),
-          label: client.name
-        }))
-        ]
-      
-        setClients(clientOptions)
+      const res = await fetch("/api/sales/clients", { credentials: "include" })
+      if (!res.ok) return
+      const data = await res.json()
+      setClients([
+        { value: "", label: "All Clients" },
+        ...(Array.isArray(data) ? data : []).map((c: { id: number; name: string }) => ({
+          value: c.id.toString(),
+          label: c.name,
+        })),
+      ])
     } catch (error) {
       console.error("Error fetching clients:", error)
     }

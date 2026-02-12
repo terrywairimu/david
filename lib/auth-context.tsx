@@ -80,6 +80,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(
     async (userId: string, userData?: { email?: string; full_name?: string; avatar_url?: string; provider?: string }) => {
+      // Try server-proxy first (uses request cookies, avoids browser client session issues)
+      try {
+        const res = await fetch("/api/auth/profile", { credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data) return data as AppUserProfile
+        }
+      } catch {
+        // Fall through to direct Supabase
+      }
       const { data, error } = await supabase
         .from("app_user_profiles")
         .select("*")

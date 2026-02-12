@@ -88,18 +88,11 @@ const RegisterTable = ({
 
   const fetchEntities = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("*")
-        .eq("status", "active")
-        .order("date_added", { ascending: false })
-
-      if (error) throw error
-
-      setEntities(data || [])
-      
-      // Extract unique locations
-      const uniqueLocations = [...new Set(data?.map(entity => entity.location).filter(Boolean))] as string[]
+      const res = await fetch("/api/register/entities", { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setEntities(Array.isArray(data) ? data : [])
+      const uniqueLocations = [...new Set(data?.map((e: RegisteredEntity) => e.location).filter(Boolean))] as string[]
       setLocations(uniqueLocations)
     } catch (error) {
       console.error("Error fetching entities:", error)
@@ -109,15 +102,10 @@ const RegisterTable = ({
 
   const fetchEmployees = async () => {
     try {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("status", "active")
-        .order("date_added", { ascending: false })
-
-      if (error) throw error
-
-      setEmployees(data || [])
+      const res = await fetch("/api/register/employees", { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching employees:", error)
       toast.error("Error fetching employees")

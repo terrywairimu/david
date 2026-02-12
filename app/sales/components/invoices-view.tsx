@@ -115,17 +115,10 @@ const InvoicesView = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("invoices")
-        .select(`
-          *,
-          client:registered_entities(id, name, phone, location),
-          items:invoice_items(*)
-        `)
-        .order("date_created", { ascending: false })
-
-      if (error) throw error
-      setInvoices(data || [])
+      const res = await fetch("/api/sales/invoices", { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setInvoices(Array.isArray(data) ? data : [])
     } catch (error) {
         console.error("Error fetching invoices:", error)
       toast.error("Failed to fetch invoices")
@@ -136,14 +129,13 @@ const InvoicesView = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("id, name")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) throw error
-      setClients(data?.map(client => ({ value: client.id.toString(), label: client.name })) || [])
+      const res = await fetch("/api/sales/clients", { credentials: "include" })
+      if (!res.ok) return
+      const data = await res.json()
+      setClients((Array.isArray(data) ? data : []).map((c: { id: number; name: string }) => ({
+        value: c.id.toString(),
+        label: c.name,
+      })))
     } catch (error) {
       console.error("Error fetching clients:", error)
     }

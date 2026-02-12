@@ -99,38 +99,14 @@ const PurchasesPage = () => {
   const fetchPurchases = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from("purchases")
-        .select(`
-          *,
-          supplier:registered_entities!purchases_supplier_id_fkey(id, name, phone, location),
-          client:registered_entities!purchases_client_id_fkey(id, name, phone, location),
-          items:purchase_items(
-            *,
-            stock_item:stock_items(name, description, unit)
-          )
-        `)
-
-      // Filter by payment type if specified
-      if (paymentType !== 'all') {
-        if (paymentType === 'credit') {
-          query = query.in('payment_status', ['not_yet_paid', 'partially_paid'])
-        } else if (paymentType === 'cash') {
-          query = query.eq('payment_status', 'fully_paid')
-        }
-      }
-
-      // Filter by view type (client vs general)
-      if (viewType === 'client') {
-        query = query.not('client_id', 'is', null)
-      } else if (viewType === 'general') {
-        query = query.is('client_id', null)
-      }
-
-      const { data, error } = await query.order("purchase_date", { ascending: false })
-
-      if (error) throw error
-      setPurchases(data || [])
+      const params = new URLSearchParams()
+      if (paymentType !== "all") params.set("type", paymentType)
+      if (viewType !== "general") params.set("view", viewType)
+      const qs = params.toString()
+      const res = await fetch(`/api/purchases${qs ? `?${qs}` : ""}`, { credentials: "include" })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setPurchases(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching purchases:", error)
       toast.error("Failed to load purchases")
@@ -141,14 +117,10 @@ const PurchasesPage = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("id, name, type, date_added, status")
-        .eq("type", "supplier")
-        .order("name")
-
-      if (error) throw error
-      setSuppliers(data || [])
+      const res = await fetch("/api/purchases/suppliers", { credentials: "include" })
+      if (!res.ok) return
+      const data = await res.json()
+      setSuppliers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching suppliers:", error)
     }
@@ -156,14 +128,10 @@ const PurchasesPage = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from("registered_entities")
-        .select("id, name, type, date_added, status")
-        .eq("type", "client")
-        .order("name")
-
-      if (error) throw error
-      setClients(data || [])
+      const res = await fetch("/api/purchases/clients", { credentials: "include" })
+      if (!res.ok) return
+      const data = await res.json()
+      setClients(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching clients:", error)
     }
