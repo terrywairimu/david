@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { useAuth, isAdmin, type AppRole } from "@/lib/auth-context"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -64,7 +63,6 @@ export default function SettingsPage() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
     if (!authLoading && (!profile || !isAdmin(profile.role))) {
@@ -75,17 +73,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchProfiles = async () => {
-      const { data, error } = await supabase
-        .from("app_user_profiles")
-        .select("*")
-        .order("created_at", { ascending: false })
-      if (!error) setProfiles((data as UserProfileRow[]) ?? [])
-      setLoading(false)
+      try {
+        const res = await fetch("/api/settings/profiles", { credentials: "include" })
+        if (!res.ok) return
+        const data = await res.json()
+        setProfiles(Array.isArray(data) ? (data as UserProfileRow[]) : [])
+      } finally {
+        setLoading(false)
+      }
     }
     if (profile && isAdmin(profile.role)) {
       fetchProfiles()
     }
-  }, [profile, supabase])
+  }, [profile])
 
   const handleUpdateProfile = async (
     userId: string,
@@ -109,17 +109,20 @@ export default function SettingsPage() {
       setProfiles((p) => p.map((x) => (x.id === userId ? merged : x)))
     }
 
-    const { error } = await supabase
-      .from("app_user_profiles")
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
+    try {
+      const res = await fetch("/api/settings/profiles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id: userId, ...updates }),
       })
-      .eq("id", userId)
-
-    if (error) {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to save")
+      }
+    } catch (e) {
       if (optimistic) setProfiles((p) => p.map((x) => (x.id === userId ? prev : x)))
-      toast.error("Failed to save")
+      toast.error(e instanceof Error ? e.message : "Failed to save")
     }
   }
 
@@ -151,11 +154,14 @@ export default function SettingsPage() {
     if (!deleteUserId) return
     setDeleting(true)
     try {
-      const { error } = await supabase
-        .from("app_user_profiles")
-        .delete()
-        .eq("id", deleteUserId)
-      if (error) throw error
+      const res = await fetch(`/api/settings/profiles?id=${encodeURIComponent(deleteUserId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to remove user")
+      }
       setProfiles((p) => p.filter((x) => x.id !== deleteUserId))
       toast.success("User removed from database")
       setDeleteUserId(null)
