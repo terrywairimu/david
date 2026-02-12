@@ -20,11 +20,14 @@ export interface SubTypeOption {
   amountField: string
 }
 
+export type ChartTypeKey = 'area' | 'line' | 'bar' | 'barHorizontal'
+
 export interface AnalyticsMetricOption {
   id: string
   label: string
   dataKey: string
   format: 'currency' | 'number' | 'percent'
+  chartType: ChartTypeKey
   description?: string
 }
 
