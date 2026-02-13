@@ -581,11 +581,17 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                     type="text"
                     className="form-control"
                     id="balance"
-                    value={formData.employee_id ? totalBalanceOwed.toLocaleString('en-KE', { minimumFractionDigits: 2 }) : '0.00'}
+                    value={formData.employee_id 
+                      ? Math.max(0, totalBalanceOwed - (parseFloat(formData.amount) || 0)).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                      : '0.00'}
                     readOnly
                     style={{ backgroundColor: "#f8f9fa", fontWeight: 600 }}
                   />
-                  <small className="text-muted">Total unpaid balance we owe this employee</small>
+                  <small className="text-muted">
+                    {formData.amount && parseFloat(formData.amount) > 0 
+                      ? `Remaining after paying KES ${parseFloat(formData.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                      : 'Total unpaid balance we owe this employee'}
+                  </small>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="accountDebited" className="form-label">Account Debited</label>
