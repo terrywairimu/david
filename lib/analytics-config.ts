@@ -3,7 +3,7 @@
  * Maps to database tables: quotations, sales_orders, invoices, cash_sales, payments, supplier_payments, employee_payments, expenses, purchases, stock_items, stock_movements
  */
 
-export type SectionId = 'sales' | 'expenses' | 'payments' | 'purchases' | 'stock'
+export type SectionId = 'profitability' | 'sales' | 'expenses' | 'payments' | 'purchases' | 'stock'
 export type TimeRangeKey = '7d' | '30d' | '3m' | '6m' | '12m' | 'custom'
 
 export interface SectionOption {
@@ -32,11 +32,17 @@ export interface AnalyticsMetricOption {
 }
 
 export const SECTIONS: SectionOption[] = [
+  { id: 'profitability', label: 'Profitability', icon: '📈' },
   { id: 'sales', label: 'Sales', icon: '📊' },
   { id: 'expenses', label: 'Expenses', icon: '💰' },
   { id: 'payments', label: 'Payments', icon: '💳' },
   { id: 'purchases', label: 'Purchases', icon: '🛒' },
   { id: 'stock', label: 'Stock', icon: '📦' },
+]
+
+const profitabilitySubTypes: SubTypeOption[] = [
+  { id: 'general', label: 'General (All Clients)', table: 'profitability', dateField: 'date_created', amountField: 'net_profit' },
+  { id: 'sales_orders', label: 'Sales Orders', table: 'sales_orders', dateField: 'date_created', amountField: 'grand_total' },
 ]
 
 const salesSubTypes: SubTypeOption[] = [
@@ -72,17 +78,24 @@ const stockSubTypes: SubTypeOption[] = [
 
 export function getSubTypes(section: SectionId): SubTypeOption[] {
   switch (section) {
+    case 'profitability': return profitabilitySubTypes
     case 'sales': return salesSubTypes
     case 'expenses': return expensesSubTypes
     case 'payments': return paymentsSubTypes
     case 'purchases': return purchasesSubTypes
     case 'stock': return stockSubTypes
-    default: return salesSubTypes
+    default: return profitabilitySubTypes
   }
 }
 
 // Chart types: area=monetary trends, line=averages/rates, bar=counts/discrete
 // Comprehensive analytics metrics per section/subType combination
+const profitabilityMetrics: AnalyticsMetricOption[] = [
+  { id: 'net_profit', label: 'Net Profit', dataKey: 'net_profit', format: 'currency', chartType: 'area', description: 'Total paid minus total expenses' },
+  { id: 'total_paid', label: 'Total Paid', dataKey: 'total_paid', format: 'currency', chartType: 'area', description: 'Payments received' },
+  { id: 'total_expenses', label: 'Total Expenses', dataKey: 'total_expenses', format: 'currency', chartType: 'area', description: 'Client expenses' },
+]
+
 const salesMetrics: AnalyticsMetricOption[] = [
   { id: 'total_amount', label: 'Total Value', dataKey: 'amount', format: 'currency', chartType: 'area', description: 'Sum of document amounts' },
   { id: 'count', label: 'Document Count', dataKey: 'count', format: 'number', chartType: 'bar', description: 'Number of documents' },
@@ -126,12 +139,13 @@ const stockMetrics: AnalyticsMetricOption[] = [
 
 export function getAnalyticsMetrics(section: SectionId): AnalyticsMetricOption[] {
   switch (section) {
+    case 'profitability': return profitabilityMetrics
     case 'sales': return salesMetrics
     case 'expenses': return expensesMetrics
     case 'payments': return paymentsMetrics
     case 'purchases': return purchasesMetrics
     case 'stock': return stockMetrics
-    default: return salesMetrics
+    default: return profitabilityMetrics
   }
 }
 
@@ -166,12 +180,22 @@ export function getChartTypeForMetric(section: SectionId, metricId: string): Cha
 
 export interface HeaderStatDef {
   label: string
-  valueKey: 'total' | 'growthRate' | 'distinctEntities' | 'count' | 'avg'
+  valueKey: 'total' | 'growthRate' | 'distinctEntities' | 'count' | 'avg' | 'total_paid' | 'total_expenses' | 'net_profit'
   format: 'currency' | 'number' | 'percent'
 }
 
+export type ProfitabilityStatKey = 'total_paid' | 'total_expenses' | 'net_profit'
+
 export function getHeaderStatsConfig(section: SectionId, subType: string): HeaderStatDef[] {
   switch (section) {
+    case 'profitability':
+      return [
+        { label: 'Total Paid', valueKey: 'total_paid', format: 'currency' },
+        { label: 'Total Expenses', valueKey: 'total_expenses', format: 'currency' },
+        { label: 'Net Profit', valueKey: 'net_profit', format: 'currency' },
+        { label: 'Customers', valueKey: 'distinctEntities', format: 'number' },
+        { label: 'Orders', valueKey: 'count', format: 'number' },
+      ]
     case 'sales':
       return [
         { label: 'Total Value', valueKey: 'total', format: 'currency' },
@@ -226,6 +250,7 @@ export function getHeaderStatsConfig(section: SectionId, subType: string): Heade
 export function getSegmentationTitle(section: SectionId, subType: string): string {
   const subLabel = subType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   switch (section) {
+    case 'profitability': return 'Sales Orders by status (profitability)'
     case 'sales': return `${subLabel} by status`
     case 'expenses': return `${subLabel} by category`
     case 'payments': return `${subLabel} by method`

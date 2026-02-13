@@ -11,6 +11,9 @@ export interface SegmentationItem {
   value: number
   revenue: number
   color: string
+  total_paid?: number
+  total_expenses?: number
+  net_profit?: number
 }
 
 export interface UseSegmentationDataParams {
@@ -19,6 +22,7 @@ export interface UseSegmentationDataParams {
   timeRange: TimeRangeKey
   customStartDate?: string
   customEndDate?: string
+  clientId?: string | null
 }
 
 export interface UseSegmentationDataReturn {
@@ -59,6 +63,13 @@ function computeDateWindow(
 
 function getSegmentationConfig(section: SectionId, subType: string): { table: string; dateField: string; groupBy: string; groupByFallback?: string; amountField: string; filter?: { col: string; val: string } } | null {
   switch (section) {
+    case "profitability":
+      return {
+        table: "sales_orders",
+        dateField: "date_created",
+        groupBy: "status",
+        amountField: "grand_total",
+      }
     case "sales": {
       const subTypes = getSubTypes("sales")
       const config = subTypes.find((s) => s.id === subType)
@@ -138,6 +149,7 @@ export function useSegmentationData({
   timeRange,
   customStartDate,
   customEndDate,
+  clientId,
 }: UseSegmentationDataParams): UseSegmentationDataReturn {
   const [segments, setSegments] = useState<SegmentationItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -168,6 +180,9 @@ export function useSegmentationData({
         .gte(config.dateField, startIso)
         .lte(config.dateField, endIso)
 
+      if (section === "profitability" && clientId && clientId !== "general") {
+        query = query.eq("client_id", clientId)
+      }
       if (config.filter) {
         if (config.filter.val === "not_null") {
           query = query.not(config.filter.col, "is", null)
@@ -217,7 +232,7 @@ export function useSegmentationData({
     } finally {
       setLoading(false)
     }
-  }, [section, subType, timeRange, customStartDate, customEndDate])
+  }, [section, subType, timeRange, customStartDate, customEndDate, clientId])
 
   useEffect(() => {
     fetchData()

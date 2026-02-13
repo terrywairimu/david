@@ -18,6 +18,7 @@ import {
   type TimeRangeKey,
   type ChartTypeKey,
 } from '@/lib/analytics-config'
+import { formatNumber } from '@/lib/format-number'
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Package,
   Calendar, Filter, Download, Share, RefreshCw, Zap, Eye,
@@ -437,6 +438,122 @@ const CustomDropdown = ({ options, value, onChange, className = "", placement = 
   )
 }
 
+const ClientSearchDropdown = ({
+  clients,
+  filteredClients,
+  clientSearch,
+  onSearchChange,
+  value,
+  onChange,
+  className = "",
+  placement = "top",
+}: {
+  clients: { id: number; name: string }[]
+  filteredClients: { id: number; name: string }[]
+  clientSearch: string
+  onSearchChange: (v: string) => void
+  value: string
+  onChange: (v: string) => void
+  className?: string
+  placement?: "top" | "bottom"
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
+  const ref = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const selectedLabel = value === "general" ? "General (All Clients)" : clients.find((c) => String(c.id) === value)?.name || value || "General"
+
+  useEffect(() => {
+    if (!isOpen || !ref.current) return
+    const updatePos = () => {
+      if (ref.current) {
+        const r = ref.current.getBoundingClientRect()
+        setPosition({
+          left: r.left,
+          width: Math.max(r.width, 220),
+          top: placement === "top" ? r.top : r.bottom,
+        })
+      }
+    }
+    updatePos()
+    window.addEventListener("scroll", updatePos, true)
+    window.addEventListener("resize", updatePos)
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 50)
+    return () => {
+      window.removeEventListener("scroll", updatePos, true)
+      window.removeEventListener("resize", updatePos)
+    }
+  }, [isOpen, placement])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (ref.current?.contains(target) || menuRef.current?.contains(target)) return
+      setIsOpen(false)
+    }
+    document.addEventListener("mousedown", onOutside)
+    return () => document.removeEventListener("mousedown", onOutside)
+  }, [isOpen])
+
+  const dropdownContent = isOpen && (
+    <AnimatePresence>
+      <motion.div
+        ref={menuRef}
+        initial={{ opacity: 0, y: placement === "top" ? 4 : -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: placement === "top" ? 4 : -4 }}
+        style={{
+          position: "fixed",
+          left: position.left,
+          width: position.width,
+          ...(placement === "top" ? { bottom: window.innerHeight - position.top + 8 } : { top: position.top + 8 }),
+        }}
+        className="bg-card border border-border rounded-xl shadow-xl overflow-hidden z-[9999]"
+      >
+        <div className="p-2 border-b border-border">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search client..."
+            value={clientSearch}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
+          />
+        </div>
+        <div className="max-h-[200px] overflow-y-auto">
+          <button
+            onClick={() => { onChange("general"); setIsOpen(false); onSearchChange(""); }}
+            className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${value === "general" ? "bg-primary/10 font-medium" : ""}`}
+          >
+            General (All Clients)
+          </button>
+          {filteredClients.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => { onChange(String(c.id)); setIsOpen(false); onSearchChange(""); }}
+              className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors ${value === String(c.id) ? "bg-primary/10 font-medium" : ""}`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  )
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-2 bg-muted border border-border rounded-xl flex justify-between items-center">
+        <span className="truncate">{selectedLabel}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 ml-1 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {typeof document !== "undefined" && createPortal(dropdownContent, document.body)}
+    </div>
+  )
+}
+
 const CustomDateRangeDropdown = ({
   isActive,
   startDate,
@@ -646,9 +763,10 @@ export default function AnalyticsPage() {
   const [notification, setNotification] = useState<any>(null)
 
   // Comprehensive analytics state
-  const [section, setSection] = useState<SectionId>('sales')
-  const [subType, setSubType] = useState('sales_orders')
-  const [analyticsMetric, setAnalyticsMetric] = useState('total_amount')
+  const [section, setSection] = useState<SectionId>('profitability')
+  const [subType, setSubType] = useState('general')
+  const [clientFilter, setClientFilter] = useState<string>('general')
+  const [analyticsMetric, setAnalyticsMetric] = useState('net_profit')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
 
@@ -665,28 +783,51 @@ export default function AnalyticsPage() {
     timeLabel,
   } = useComprehensiveAnalytics({
     section,
-    subType: subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'sales_orders',
+    subType: subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'general',
     analyticsMetric,
     timeRange,
     customStartDate: timeRange === 'custom' ? customStartDate : undefined,
     customEndDate: timeRange === 'custom' ? customEndDate : undefined,
+    clientId: section === 'profitability' ? clientFilter : undefined,
   })
 
   const { segments: segmentationSegments, loading: segmentationLoading, error: segmentationError, subtitle: segmentationSubtitle } = useSegmentationData({
     section,
-    subType: subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'sales_orders',
+    subType: section === 'profitability' ? 'sales_orders' : (subTypes.some((s) => s.id === subType) ? subType : subTypes[0]?.id ?? 'sales_orders'),
     timeRange,
     customStartDate: timeRange === 'custom' ? customStartDate : undefined,
     customEndDate: timeRange === 'custom' ? customEndDate : undefined,
+    clientId: section === 'profitability' ? clientFilter : undefined,
   })
 
-  // Keep subType in sync when section changes
+  // Keep subType and analyticsMetric in sync when section changes
   useEffect(() => {
     const ids = subTypes.map((s) => s.id)
     if (!ids.includes(subType)) {
-      setSubType(ids[0] ?? '')
+      setSubType(ids[0] ?? 'general')
     }
   }, [section, subTypes, subType])
+  useEffect(() => {
+    const metricIds = metrics.map((m) => m.id)
+    if (!metricIds.includes(analyticsMetric)) {
+      setAnalyticsMetric(metricIds[0] ?? 'net_profit')
+    }
+  }, [section, metrics, analyticsMetric])
+
+  // Client list for profitability filter
+  const [clients, setClients] = useState<{ id: number; name: string }[]>([])
+  const [clientSearch, setClientSearch] = useState('')
+  useEffect(() => {
+    fetch('/api/sales/clients', { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setClients(Array.isArray(data) ? data : []))
+      .catch(() => setClients([]))
+  }, [])
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return clients.slice(0, 50)
+    const q = clientSearch.toLowerCase()
+    return clients.filter((c) => (c.name || '').toLowerCase().includes(q)).slice(0, 50)
+  }, [clients, clientSearch])
 
   // Modal states
   const [chartSettingsOpen, setChartSettingsOpen] = useState(false)
@@ -793,7 +934,7 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-8">
             {getHeaderStatsConfig(section, subType).map((statDef, i) => {
-              const raw = comprehensiveSummary[statDef.valueKey] ?? 0
+              const raw = comprehensiveSummary[statDef.valueKey as keyof typeof comprehensiveSummary] ?? 0
               const num = Number(raw)
               const value = statDef.format === 'currency'
                 ? `KES ${num >= 1000 ? (num / 1000).toFixed(1) + 'K' : num.toLocaleString()}`
@@ -823,13 +964,26 @@ export default function AnalyticsPage() {
             className="min-w-[120px] shrink-0"
             placement="top"
           />
-          <CustomDropdown
-            options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
-            value={subType}
-            onChange={setSubType}
-            className="min-w-[140px] shrink-0"
-            placement="top"
-          />
+          {section === "profitability" ? (
+            <ClientSearchDropdown
+              clients={clients}
+              filteredClients={filteredClients}
+              clientSearch={clientSearch}
+              onSearchChange={setClientSearch}
+              value={clientFilter}
+              onChange={setClientFilter}
+              className="min-w-[180px] shrink-0"
+              placement="top"
+            />
+          ) : (
+            <CustomDropdown
+              options={subTypes.map((s) => ({ value: s.id, label: s.label }))}
+              value={subType}
+              onChange={setSubType}
+              className="min-w-[140px] shrink-0"
+              placement="top"
+            />
+          )}
           <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
             <input type="checkbox" checked={showPrediction} onChange={(e) => setShowPrediction(e.target.checked)} className="rounded" />
             AI Predictions
@@ -940,7 +1094,10 @@ export default function AnalyticsPage() {
           </ChartCard>
         </div>
 
-        <ChartCard title={getSegmentationTitle(section, subType)} subtitle={`${timeLabel} · ${segmentationSubtitle}`}>
+        <ChartCard
+          title={getSegmentationTitle(section, section === 'profitability' ? 'sales_orders' : subType)}
+          subtitle={`${timeLabel} · ${section === 'profitability' ? 'Sales Orders distribution' : segmentationSubtitle}${section === 'profitability' && comprehensiveSummary ? ` · Paid: KES ${formatNumber(comprehensiveSummary.total_paid ?? 0)} · Expenses: KES ${formatNumber(comprehensiveSummary.total_expenses ?? 0)} · Net: KES ${formatNumber(comprehensiveSummary.net_profit ?? 0)}` : ''}`}
+        >
           {segmentationError && (
             <div className="p-2 text-destructive text-xs flex items-center gap-2">
               <AlertCircle className="w-3 h-3" />
