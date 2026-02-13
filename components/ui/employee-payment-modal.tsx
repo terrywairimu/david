@@ -28,7 +28,6 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
     amount: "",
     paid_to: "",
     account_debited: "",
-    status: "completed",
     category: "wages",
     balance: 0
   })
@@ -39,8 +38,10 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
   const [filteredEmployees, setFilteredEmployees] = useState<any[]>([])
   const [paidToSearch, setPaidToSearch] = useState("")
   const [showPaidToDropdown, setShowPaidToDropdown] = useState(false)
-  const [employeeExpenses, setEmployeeExpenses] = useState<any[]>([])
+  const [employeeExpenses, setEmployeeExpenses] = useState<any[]>([]) // All unpaid expenses for dropdown
+  const [allUnpaidExpenses, setAllUnpaidExpenses] = useState<any[]>([]) // All unpaid for balance calc (no category filter)
   const [filteredEmployeeExpenses, setFilteredEmployeeExpenses] = useState<any[]>([])
+  const [totalBalanceOwed, setTotalBalanceOwed] = useState(0)
 
   const employeeInputGroupRef = useRef<HTMLDivElement>(null);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
@@ -76,26 +77,34 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
 
   const fetchEmployeeExpenses = async (employeeId?: string, category?: string) => {
     try {
-      let query = supabase
+      if (!employeeId) {
+        setEmployeeExpenses([])
+        setAllUnpaidExpenses([])
+        setFilteredEmployeeExpenses([])
+        return
+      }
+
+      // Fetch all unpaid expenses for this employee (for total balance)
+      const { data: allData, error: allError } = await supabase
         .from("expenses")
         .select("*")
         .eq("expense_type", "client")
-        .in("status", ["not_yet_paid", "partially_paid"]) // Only show unpaid and partially paid expenses
-        .order("expense_number", { ascending: false })
+        .eq("employee_id", employeeId)
+        .or("status.eq.not_yet_paid,status.eq.partially_paid")
+        .order("date_created", { ascending: true })
 
-      if (employeeId) {
-        query = query.eq("employee_id", employeeId)
-      }
+      if (allError) throw allError
 
+      const withBalance = (allData || []).filter((e: any) => (parseFloat(e.balance) || 0) > 0)
+      setAllUnpaidExpenses(withBalance)
+
+      // Filter by category for Paid To dropdown
+      let filtered = withBalance
       if (category) {
-        query = query.eq("category", category)
+        filtered = withBalance.filter((e: any) => (e.category || e.expense_category) === category)
       }
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setEmployeeExpenses(data || [])
-      setFilteredEmployeeExpenses(data || [])
+      setEmployeeExpenses(filtered)
+      setFilteredEmployeeExpenses(filtered)
     } catch (error) {
       console.error("Error fetching employee expenses:", error)
     }
@@ -117,6 +126,31 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
     }
   }, [formData.employee_id, formData.category])
 
+  // Compute total balance owed and auto-select category when employee expenses load
+  useEffect(() => {
+    if (!formData.employee_id || allUnpaidExpenses.length === 0) {
+      setTotalBalanceOwed(0)
+      return
+    }
+    const total = allUnpaidExpenses.reduce((sum, e) => sum + (parseFloat(e.balance) || 0), 0)
+    setTotalBalanceOwed(total)
+
+    // Auto-select category with highest balance when employee is first selected
+    if (total > 0) {
+      const byCategory: Record<string, number> = {}
+      allUnpaidExpenses.forEach((e: any) => {
+        const cat = (e.category || e.expense_category || "others").toLowerCase().replace(/\s+/g, " ")
+        byCategory[cat] = (byCategory[cat] || 0) + (parseFloat(e.balance) || 0)
+      })
+      const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]
+      if (topCategory) {
+        const match = paymentCategories.find(pc => pc.value === topCategory[0])
+        const normalizedCat = match ? topCategory[0] : "others"
+        setFormData(prev => prev.category !== normalizedCat ? { ...prev, category: normalizedCat } : prev)
+      }
+    }
+  }, [formData.employee_id, allUnpaidExpenses])
+
   // Filter expenses based on search
   useEffect(() => {
     if (paidToSearch.trim() === "") {
@@ -133,13 +167,12 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
     if (payment && mode !== "create") {
       setFormData({
         payment_number: payment.payment_number || "",
-        employee_id: payment.employee_id || "",
+        employee_id: payment.employee_id?.toString() || "",
         date_created: payment.date_created ? new Date(payment.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         description: payment.description || "",
         amount: payment.amount || "",
         paid_to: payment.paid_to || "",
         account_debited: payment.account_debited || "",
-        status: payment.status || "completed",
         category: payment.category || "wages",
         balance: payment.balance || 0
       })
@@ -202,7 +235,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
   }
 
   const handleEmployeeSelect = (employee: any) => {
-    setFormData(prev => ({ ...prev, employee_id: employee.id, paid_to: "" }))
+    setFormData(prev => ({ ...prev, employee_id: employee.id.toString(), paid_to: "" }))
     setEmployeeSearch(employee.name)
     setPaidToSearch("") // Clear paid to search when employee changes
     setShowEmployeeDropdown(false)
@@ -236,28 +269,78 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
       return
     }
     
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    const amount = parseFloat(formData.amount)
+    if (!formData.amount || amount <= 0) {
       toast.error("Please enter a valid amount")
       return
     }
 
     setLoading(true)
     try {
-      const paymentData = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        date_created: dateInputToDateOnly(formData.date_created).toISOString(),
-        type: "employee_payment"
-      }
-
       if (mode === "create") {
+        // FIFO: Apply payment to oldest unpaid expenses first
+        const orderedExpenses = [...allUnpaidExpenses].sort(
+          (a, b) => new Date(a.date_created).getTime() - new Date(b.date_created).getTime()
+        )
+        let remainingPayment = amount
+        const settledExpenses: string[] = []
+
+        for (const expense of orderedExpenses) {
+          if (remainingPayment <= 0) break
+          const expenseBalance = parseFloat(expense.balance) || 0
+          if (expenseBalance <= 0) continue
+
+          const apply = Math.min(remainingPayment, expenseBalance)
+          const newAmountPaid = (parseFloat(expense.amount_paid) || 0) + apply
+          const newBalance = expenseBalance - apply
+          const newStatus = newBalance <= 0 ? "fully_paid" : "partially_paid"
+
+          const { error: updateError } = await supabase
+            .from("expenses")
+            .update({
+              amount_paid: newAmountPaid,
+              balance: newBalance,
+              status: newStatus
+            })
+            .eq("id", expense.id)
+
+          if (updateError) throw updateError
+          settledExpenses.push(expense.expense_number)
+          remainingPayment -= apply
+        }
+
+        const paidToRef = settledExpenses.length > 0 ? settledExpenses.join(", ") : formData.paid_to || "FIFO allocation"
+        const description = settledExpenses.length > 0
+          ? `Payment for expenses: ${settledExpenses.join(", ")} (oldest first)`
+          : (formData.description || `Employee payment KES ${amount.toFixed(2)}`)
+
+        const paymentData = {
+          payment_number: formData.payment_number,
+          employee_id: parseInt(formData.employee_id),
+          amount,
+          date_created: dateInputToDateOnly(formData.date_created).toISOString(),
+          paid_to: paidToRef,
+          account_debited: formData.account_debited || "cash",
+          category: formData.category,
+          description,
+          balance: Math.max(0, totalBalanceOwed - amount),
+          status: "completed"
+        }
+
         const { error } = await supabase
           .from("employee_payments")
           .insert([paymentData])
 
         if (error) throw error
-        toast.success("Employee payment created successfully")
+        toast.success(`Payment of KES ${amount.toFixed(2)} applied. Settled: ${settledExpenses.length} expense(s)`)
       } else if (mode === "edit") {
+        const paymentData = {
+          ...formData,
+          amount,
+          date_created: dateInputToDateOnly(formData.date_created).toISOString(),
+          employee_id: parseInt(formData.employee_id),
+          status: "completed"
+        }
         const { error } = await supabase
           .from("employee_payments")
           .update(paymentData)
@@ -267,7 +350,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
         toast.success("Employee payment updated successfully")
       }
 
-      onSave(paymentData)
+      onSave({})
     } catch (error) {
       console.error("Error saving employee payment:", error)
       toast.error("Failed to save employee payment")
@@ -438,13 +521,12 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                         type="text"
                         className="form-control border-0" 
                         id="paidTo"
-                        placeholder={formData.employee_id && formData.category ? "Search expense number for this employee and category..." : "Select employee and category first..."}
+                        placeholder={formData.employee_id && formData.category ? "Optional - payment auto-applies to oldest unpaid expenses first" : "Select employee and category first..."}
                         value={paidToSearch}
                         onChange={(e) => handlePaidToSearch(e.target.value)}
                         onFocus={() => setShowPaidToDropdown(true)}
                         style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
                         autoComplete="off"
-                        required
                         readOnly={mode === "view" || !formData.employee_id || !formData.category}
                       />
                       <button
@@ -494,17 +576,16 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
 
               <div className="row mb-3">
                 <div className="col-md-6">
-                  <label htmlFor="balance" className="form-label">Balance (KES)</label>
+                  <label htmlFor="balance" className="form-label">Balance Owed (KES)</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-control"
                     id="balance"
-                    value={formData.balance}
-                    onChange={(e) => handleInputChange("balance", e.target.value)}
-                    min="0"
-                    step="0.01"
-                    readOnly={mode === "view"}
+                    value={formData.employee_id ? totalBalanceOwed.toLocaleString('en-KE', { minimumFractionDigits: 2 }) : '0.00'}
+                    readOnly
+                    style={{ backgroundColor: "#f8f9fa", fontWeight: 600 }}
                   />
+                  <small className="text-muted">Total unpaid balance we owe this employee</small>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="accountDebited" className="form-label">Account Debited</label>
@@ -523,23 +604,6 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                     <option value="cheque">Cheque</option>
                     <option value="mpesa">M-Pesa</option>
                     <option value="petty_cash">Petty Cash</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="row mb-3">
-                <div className="col-md-6">
-                  <label htmlFor="status" className="form-label">Status</label>
-                  <select
-                    className="form-select"
-                    id="status"
-                    value={formData.status}
-                    onChange={(e) => handleInputChange("status", e.target.value)}
-                    disabled={mode === "view"}
-                  >
-                    <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
-                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>
