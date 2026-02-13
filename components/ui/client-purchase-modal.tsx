@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
 import { dateInputToDateOnly } from "@/lib/timezone"
 import { createPortal } from "react-dom"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 
 interface ClientPurchaseModalProps {
   isOpen: boolean
@@ -810,14 +812,12 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                 {/* Amount Paid - Middle Left */}
                 <div className="col-md-3">
                   <label className="form-label">Amount Paid</label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     className="form-control border-0 shadow-sm"
-                    value={amountPaid}
-                    onChange={(e) => {
+                    value={amountPaid === 0 ? '' : amountPaid}
+                    onChange={(v) => {
                       if (paymentStatus === "partially_paid") {
-                        const newAmountPaid = parseFloat(e.target.value) || 0
-                        setAmountPaid(newAmountPaid)
+                        setAmountPaid(parseFormattedNumber(v) || 0)
                       }
                     }}
                     style={{ 
@@ -838,9 +838,9 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                 <div className="col-md-3">
                   <label className="form-label">Balance</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-control border-0 shadow-sm"
-                    value={balance}
+                    value={formatNumber(balance)}
                     style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
                     readOnly
                   />
@@ -857,9 +857,9 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                       KES
                     </span>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control border-0"
-                      value={items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+                      value={formatNumber(items.reduce((sum, item) => sum + item.total_price, 0))}
                       readOnly
                       style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
                     />

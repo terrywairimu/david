@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
 import { dateInputToDateOnly } from "@/lib/timezone"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 import { createPortal } from "react-dom"
 
 interface PurchaseModalProps {
@@ -723,14 +725,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 {/* Amount Paid - Middle Left */}
                 <div className="col-md-3">
                   <label className="form-label">Amount Paid</label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     className="form-control border-0 shadow-sm"
-                    value={amountPaid}
-                    onChange={(e) => {
+                    value={amountPaid === 0 ? '' : amountPaid}
+                    onChange={(v) => {
                       if (paymentStatus === "partially_paid") {
-                        const newAmountPaid = parseFloat(e.target.value) || 0
-                        setAmountPaid(newAmountPaid)
+                        setAmountPaid(parseFormattedNumber(v) || 0)
                       }
                     }}
                     style={{ 
@@ -739,9 +739,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       color: "#000000",
                       backgroundColor: paymentStatus !== "partially_paid" ? "#f8f9fa" : "white"
                     }}
-                    step="0.01"
-                    min="0"
-                    max={total}
                     required={paymentStatus === "partially_paid"}
                     readOnly={mode === "view" || paymentStatus !== "partially_paid"}
                   />
@@ -751,9 +748,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 <div className="col-md-3">
                   <label className="form-label">Balance</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-control border-0 shadow-sm"
-                    value={balance}
+                    value={formatNumber(balance)}
                     style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
                     readOnly
                   />
@@ -770,9 +767,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                       KES
                     </span>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control border-0"
-                      value={total.toFixed(2)}
+                      value={formatNumber(total)}
                       readOnly
                       style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
                     />
@@ -975,7 +972,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                         />
                       </div>
                       <div className="col-md-1">
-                        <span className="fw-bold small">KES {item.total_price.toFixed(2)}</span>
+                        <span className="fw-bold small">KES {formatNumber(item.total_price)}</span>
                       </div>
                       <div className="col-md-1">
                         <button

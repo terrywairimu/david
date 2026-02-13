@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { paymentMonitor } from "@/lib/real-time-payment-monitor"
 import { generatePaymentNumber } from "@/lib/workflow-utils"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { parseFormattedNumber } from "@/lib/format-number"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
 interface PaymentModalProps {
@@ -58,7 +60,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         client_id: payment.client_id?.toString() || "",
         date_created: nairobiDate.toISOString().split('T')[0],
         description: payment.description || "",
-        amount: payment.amount?.toString() || "",
+        amount: (payment.amount != null && payment.amount !== 0) ? String(payment.amount).replace(/,/g, '') : "",
         paid_to: payment.paid_to || "",
         account_credited: payment.account_credited || "",
         status: payment.status || "completed",
@@ -184,7 +186,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         payment_number: formData.payment_number,
         client_id: formData.client_id ? parseInt(formData.client_id) : null,
         description: formData.description,
-        amount: parseFloat(formData.amount),
+        amount: parseFormattedNumber(formData.amount),
         paid_to: formData.paid_to || null,
         account_credited: formData.account_credited,
         status: formData.status,
@@ -445,17 +447,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       >
                         KES
                       </span>
-                      <input 
-                        type="number" 
+                      <FormattedNumberInput
                         className="form-control border-0"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
+                        placeholder=""
                         value={formData.amount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                        onChange={(v) => setFormData(prev => ({ ...prev, amount: v }))}
                         style={{ borderRadius: "0 16px 16px 0", height: "45px", color: "#000000" }}
                         required
-                        disabled={mode === "view"}
+                        readOnly={mode === "view"}
                       />
                     </div>
                   </div>

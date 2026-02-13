@@ -17,6 +17,7 @@ import {
   exportQuotations as exportQuotationsReport
 } from "@/lib/workflow-utils"
 import SearchFilterRow from "@/components/ui/search-filter-row"
+import { formatNumber } from "@/lib/format-number"
 
 interface Quotation {
   id: number
@@ -1124,7 +1125,7 @@ const QuotationsView = () => {
                     <td>{quotation.quotation_number}</td>
                   <td>{new Date(quotation.date_created).toLocaleDateString()}</td>
                     <td>{quotation.client?.name || "Unknown"}</td>
-                    <td>KES {quotation.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>KES {formatNumber(quotation.grand_total ?? 0)}</td>
                   <td>
                       <span className={`badge ${getStatusBadge(quotation.status)}`}>
                       {quotation.status}

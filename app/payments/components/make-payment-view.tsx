@@ -8,6 +8,7 @@ import { ActionGuard } from "@/components/ActionGuard"
 import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
+import { formatNumber } from "@/lib/format-number"
 import { generatePaymentReceiptTemplate } from "@/lib/report-pdf-templates"
 import SupplierPaymentModal from "@/components/ui/supplier-payment-modal"
 import EmployeePaymentModal from "@/components/ui/employee-payment-modal"
@@ -349,12 +350,12 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
                     <td>{payment.paid_to || "-"}</td>
                     <td>
                       <span className="fw-medium text-success">
-                        KES {parseFloat(payment.amount).toLocaleString()}
+                        KES {formatNumber(payment.amount)}
                       </span>
                     </td>
                     <td>
                       <span className="fw-medium text-warning">
-                        KES {parseFloat(payment.balance || 0).toLocaleString()}
+                        KES {formatNumber(payment.balance ?? 0)}
                       </span>
                     </td>
                     <td>

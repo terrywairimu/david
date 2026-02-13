@@ -5,6 +5,8 @@ import { X, Plus, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { CashSale, CashSaleItem } from "@/lib/types"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 
 interface CashSaleModalProps {
   isOpen: boolean
@@ -404,24 +406,23 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.quantity}
-                          onChange={(e) => updateItem("cabinet", index, "quantity", parseFloat(e.target.value) || 0)}
+                          value={item.quantity === 0 ? '' : item.quantity}
+                          onChange={(v) => updateItem("cabinet", index, "quantity", parseFormattedNumber(v) || 0)}
+                          allowDecimals={false}
                           readOnly={isReadOnly}
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.unit_price}
-                          onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                          value={item.unit_price === 0 ? '' : item.unit_price}
+                          onChange={(v) => updateItem("cabinet", index, "unit_price", parseFormattedNumber(v) || 0)}
                           readOnly={isReadOnly}
                         />
                       </td>
-                      <td>KES {item.total_price.toFixed(2)}</td>
+                      <td>KES {formatNumber(item.total_price)}</td>
                       {!isReadOnly && (
                         <td>
                           <button
@@ -450,7 +451,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         </button>
                       )}
                     </td>
-                    <td><strong>KES {totals.cabinetTotal.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(totals.cabinetTotal)}</strong></td>
                   </tr>
                 </tfoot>
               </table>
@@ -490,24 +491,23 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.quantity}
-                          onChange={(e) => updateItem("worktop", index, "quantity", parseFloat(e.target.value) || 0)}
+                          value={item.quantity === 0 ? '' : item.quantity}
+                          onChange={(v) => updateItem("worktop", index, "quantity", parseFormattedNumber(v) || 0)}
+                          allowDecimals={false}
                           readOnly={isReadOnly}
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.unit_price}
-                          onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                          value={item.unit_price === 0 ? '' : item.unit_price}
+                          onChange={(v) => updateItem("worktop", index, "unit_price", parseFormattedNumber(v) || 0)}
                           readOnly={isReadOnly}
                         />
                       </td>
-                      <td>KES {item.total_price.toFixed(2)}</td>
+                      <td>KES {formatNumber(item.total_price)}</td>
                       {!isReadOnly && (
                         <td>
                           <button
@@ -536,7 +536,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         </button>
                       )}
                     </td>
-                    <td><strong>KES {totals.worktopTotal.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(totals.worktopTotal)}</strong></td>
                   </tr>
                 </tfoot>
               </table>
@@ -589,24 +589,23 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.quantity}
-                          onChange={(e) => updateItem("accessories", index, "quantity", parseFloat(e.target.value) || 0)}
+                          value={item.quantity === 0 ? '' : item.quantity}
+                          onChange={(v) => updateItem("accessories", index, "quantity", parseFormattedNumber(v) || 0)}
+                          allowDecimals={false}
                           readOnly={isReadOnly}
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
+                        <FormattedNumberInput
                           className="form-control border-0"
-                          value={item.unit_price}
-                          onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                          value={item.unit_price === 0 ? '' : item.unit_price}
+                          onChange={(v) => updateItem("accessories", index, "unit_price", parseFormattedNumber(v) || 0)}
                           readOnly={isReadOnly}
                         />
                       </td>
-                      <td>KES {item.total_price.toFixed(2)}</td>
+                      <td>KES {formatNumber(item.total_price)}</td>
                       {!isReadOnly && (
                         <td>
                           <button
@@ -635,7 +634,7 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         </button>
                       )}
                     </td>
-                    <td><strong>KES {totals.accessoriesTotal.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(totals.accessoriesTotal)}</strong></td>
                   </tr>
                 </tfoot>
               </table>
@@ -648,16 +647,15 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                     <td><strong>LABOUR</strong></td>
                     <td>%</td>
                     <td>
-                      <input
-                        type="number"
+                      <FormattedNumberInput
                         className="form-control border-0"
-                        value={formData.labour_percentage}
-                        onChange={(e) => setFormData(prev => ({ ...prev, labour_percentage: parseFloat(e.target.value) || 0 }))}
+                        value={formData.labour_percentage === 0 ? '' : formData.labour_percentage}
+                        onChange={(v) => setFormData(prev => ({ ...prev, labour_percentage: parseFormattedNumber(v) || 0 }))}
                         readOnly={isReadOnly}
                       />
                     </td>
                     <td></td>
-                    <td><strong>KES {totals.labourTotal.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(totals.labourTotal)}</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -688,15 +686,14 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                   <tr>
                     <td><strong>Amount Paid</strong></td>
                     <td colSpan={3}>
-                      <input
-                        type="number"
+                      <FormattedNumberInput
                         className="form-control border-0"
-                        value={formData.amount_paid}
-                        onChange={(e) => setFormData(prev => ({ ...prev, amount_paid: parseFloat(e.target.value) || 0 }))}
+                        value={formData.amount_paid === 0 ? '' : formData.amount_paid}
+                        onChange={(v) => setFormData(prev => ({ ...prev, amount_paid: parseFormattedNumber(v) || 0 }))}
                         readOnly={isReadOnly}
                       />
                     </td>
-                    <td><strong>KES {formData.amount_paid.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(formData.amount_paid)}</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -707,22 +704,22 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                 <tbody>
                   <tr>
                     <td colSpan={4}><strong>TOTAL AMOUNT</strong></td>
-                    <td><strong>KES {totals.grandTotal.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(totals.grandTotal)}</strong></td>
                   </tr>
                   <tr>
                     <td colSpan={4}><strong>AMOUNT PAID</strong></td>
-                    <td><strong>KES {formData.amount_paid.toFixed(2)}</strong></td>
+                    <td><strong>KES {formatNumber(formData.amount_paid)}</strong></td>
                   </tr>
                   {totals.changeAmount > 0 && (
                     <tr>
                       <td colSpan={4}><strong>CHANGE</strong></td>
-                      <td><strong>KES {totals.changeAmount.toFixed(2)}</strong></td>
+                      <td><strong>KES {formatNumber(totals.changeAmount)}</strong></td>
                     </tr>
                   )}
                   {totals.balanceAmount > 0 && (
                     <tr>
                       <td colSpan={4}><strong>BALANCE</strong></td>
-                      <td><strong>KES {totals.balanceAmount.toFixed(2)}</strong></td>
+                      <td><strong>KES {formatNumber(totals.balanceAmount)}</strong></td>
                     </tr>
                   )}
                 </tbody>

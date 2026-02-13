@@ -5,6 +5,8 @@ import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generateSupplierPaymentNumber } from "@/lib/workflow-utils"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { parseFormattedNumber, formatNumber } from "@/lib/format-number"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
 interface SupplierPaymentModalProps {
@@ -57,7 +59,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
         supplier_id: payment.supplier_id || "",
         date_created: payment.date_created ? new Date(payment.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         description: payment.description || "",
-        amount: payment.amount || "",
+        amount: (payment.amount != null && payment.amount !== 0) ? String(payment.amount).replace(/,/g, '') : "",
         paid_to: payment.paid_to || "",
         account_debited: payment.account_debited || "",
         status: payment.status || "completed",
@@ -229,7 +231,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
       return
     }
     
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    if (!formData.amount || parseFormattedNumber(formData.amount) <= 0) {
       toast.error("Please enter a valid amount")
       return
     }
@@ -238,7 +240,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     try {
       const paymentData = {
         ...formData,
-        amount: parseFloat(formData.amount),
+        amount: parseFormattedNumber(formData.amount),
         date_created: dateInputToDateOnly(formData.date_created).toISOString(),
         type: "supplier_payment"
       }
@@ -391,15 +393,12 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="amount" className="form-label">Amount (KES)</label>
-                  <input
-                    type="number"
-                    className="form-control"
+                  <FormattedNumberInput
                     id="amount"
+                    className="form-control"
                     value={formData.amount}
-                    onChange={(e) => handleInputChange("amount", e.target.value)}
+                    onChange={(v) => handleInputChange("amount", v)}
                     required
-                    min="0"
-                    step="0.01"
                     readOnly={mode === "view"}
                   />
                 </div>
@@ -458,7 +457,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                           >
                             <strong style={{ color: "#000000" }}>{order.purchase_order_number}</strong>
                             <div className="small" style={{ color: "#6c757d" }}>
-                              Total: KES {parseFloat(order.total_amount).toLocaleString()} • Balance: KES {parseFloat(order.balance || order.total_amount).toLocaleString()} • {new Date(order.purchase_date).toLocaleDateString()}
+                              Total: KES {formatNumber(order.total_amount)} • Balance: KES {formatNumber(order.balance || order.total_amount)} • {new Date(order.purchase_date).toLocaleDateString()}
                             </div>
                           </div>
                         ))}
@@ -490,14 +489,11 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
               <div className="row mb-3">
                 <div className="col-md-6">
                   <label htmlFor="balance" className="form-label">Balance (KES)</label>
-                  <input
-                    type="number"
-                    className="form-control"
+                  <FormattedNumberInput
                     id="balance"
-                    value={formData.balance}
-                    onChange={(e) => handleInputChange("balance", e.target.value)}
-                    min="0"
-                    step="0.01"
+                    className="form-control"
+                    value={formData.balance === 0 ? '' : String(formData.balance)}
+                    onChange={(v) => handleInputChange("balance", parseFormattedNumber(v))}
                     readOnly={mode === "view"}
                   />
                 </div>

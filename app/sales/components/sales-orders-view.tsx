@@ -16,6 +16,7 @@ import {
   exportSalesOrders as exportSalesOrdersReport
 } from "@/lib/workflow-utils"
 import SearchFilterRow from "@/components/ui/search-filter-row"
+import { formatNumber } from "@/lib/format-number"
 
 interface SalesOrder {
   id: number
@@ -868,7 +869,7 @@ const SalesOrdersView = () => {
                     <td>{salesOrder.order_number}</td>
                     <td>{new Date(salesOrder.date_created).toLocaleDateString()}</td>
                     <td>{salesOrder.client?.name || "Unknown"}</td>
-                    <td>KES {salesOrder.grand_total?.toFixed(2) || "0.00"}</td>
+                    <td>KES {formatNumber(salesOrder.grand_total ?? 0)}</td>
                     <td>
                       <span className={`badge ${getStatusBadge(salesOrder.status)}`}>
                         {salesOrder.status.replace(/_/g, " ")}

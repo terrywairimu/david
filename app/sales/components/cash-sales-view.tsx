@@ -15,6 +15,7 @@ import {
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
 import ExportDropdown from "@/components/ui/export-dropdown"
 import { CashSale } from "@/lib/types"
+import { formatNumber } from "@/lib/format-number"
 
 const CashSalesView: React.FC = () => {
   const { canPerformAction } = useAuth()
@@ -598,7 +599,7 @@ const CashSalesView: React.FC = () => {
                         <small className="text-muted">{sale.client.phone}</small>
                       )}
                   </td>
-                    <td>KES {sale.grand_total.toFixed(2)}</td>
+                    <td>KES {formatNumber(sale.grand_total)}</td>
                     <td>
                       <div className="d-flex gap-1">
                         <ActionGuard actionId="view">

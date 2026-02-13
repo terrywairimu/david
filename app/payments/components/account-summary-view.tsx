@@ -9,6 +9,8 @@ import { toast } from "sonner"
 import SearchFilterRow from "@/components/ui/search-filter-row"
 import { exportPaymentsReport } from "@/lib/workflow-utils"
 import { getCurrentNairobiTime } from "@/lib/timezone"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 
 interface AccountSummaryViewProps {
   clients: RegisteredEntity[]
@@ -1351,11 +1353,11 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           getAccountTitle(transaction.account_type),
           new Date(transaction.transaction_date).toLocaleDateString(),
           `"${transaction.description}"`,
-          transaction.amount.toFixed(2),
+          formatNumber(transaction.amount),
           transaction.transaction_type === 'in' ? 'In' : 'Out',
-          transaction.money_in.toFixed(2),
-          transaction.money_out.toFixed(2),
-          transaction.balance_after.toFixed(2)
+          formatNumber(transaction.money_in),
+          formatNumber(transaction.money_out),
+          formatNumber(transaction.balance_after)
         ].join(','))
       ].join('\n')
 
@@ -1379,7 +1381,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
   // Handle transfer between accounts
   const handleTransfer = async () => {
-    if (!transferFromAccount || !transferToAccount || !transferAmount || parseFloat(transferAmount) <= 0) {
+    if (!transferFromAccount || !transferToAccount || !transferAmount || parseFormattedNumber(transferAmount) <= 0) {
       toast.error('Please fill in all fields with valid values')
       return
     }
@@ -1391,7 +1393,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
     try {
       setIsTransferring(true)
-      const amount = parseFloat(transferAmount)
+      const amount = parseFormattedNumber(transferAmount)
       const description = transferDescription || `Transfer from ${transferFromAccount} to ${transferToAccount}`
 
       // Generate unique transaction numbers for both transactions
@@ -1502,7 +1504,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         })
         .eq('account_type', transferToAccount)
 
-      toast.success(`Successfully transferred KES ${amount.toFixed(2)} from ${transferFromAccount} to ${transferToAccount}`)
+      toast.success(`Successfully transferred KES ${formatNumber(amount)} from ${transferFromAccount} to ${transferToAccount}`)
       
       // Reset form and close modal
       setTransferFromAccount("")
@@ -1638,10 +1640,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="flex-grow-1">
                     <div className="small opacity-90">{getAccountTitle(account.account_type)}</div>
-                    <div className="h5 mb-0 fw-bold">KES {account.current_balance.toFixed(2)}</div>
+                    <div className="h5 mb-0 fw-bold">KES {formatNumber(account.current_balance)}</div>
                     <div className="small mt-2 opacity-90">
-                      <div>In: KES {account.total_in.toFixed(2)}</div>
-                      <div>Out: KES {account.total_out.toFixed(2)}</div>
+                      <div>In: KES {formatNumber(account.total_in)}</div>
+                      <div>Out: KES {formatNumber(account.total_out)}</div>
                     </div>
                   </div>
                   <div className="ms-3">
@@ -1761,7 +1763,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       </td>
                       <td className="fw-bold">
                         <span className={transaction.transaction_type === 'in' ? 'text-success' : 'text-danger'}>
-                          {transaction.transaction_type === 'in' ? '+' : '-'}KES {transaction.amount.toFixed(2)}
+                          {transaction.transaction_type === 'in' ? '+' : '-'}KES {formatNumber(transaction.amount)}
                         </span>
                       </td>
                       <td>
@@ -1770,13 +1772,13 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                         </span>
                       </td>
                       <td className="text-success fw-bold">
-                        {transaction.money_in > 0 ? `KES ${transaction.money_in.toFixed(2)}` : '-'}
+                        {transaction.money_in > 0 ? `KES ${formatNumber(transaction.money_in)}` : '-'}
                       </td>
                       <td className="text-danger fw-bold">
-                        {transaction.money_out > 0 ? `KES ${transaction.money_out.toFixed(2)}` : '-'}
+                        {transaction.money_out > 0 ? `KES ${formatNumber(transaction.money_out)}` : '-'}
                       </td>
                       <td className="fw-bold">
-                        KES {transaction.balance_after.toFixed(2)}
+                        KES {formatNumber(transaction.balance_after)}
                       </td>
                     </tr>
                   ))
@@ -1816,7 +1818,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       <option value="">Select Account</option>
                       {accountBalances.map((account) => (
                         <option key={account.account_type} value={account.account_type}>
-                          {getAccountTitle(account.account_type)} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                          {getAccountTitle(account.account_type)} - KES {formatNumber(account.current_balance || 0)}
                         </option>
                       ))}
                     </select>
@@ -1834,7 +1836,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       <option value="">Select Account</option>
                       {accountBalances.map((account) => (
                         <option key={account.account_type} value={account.account_type}>
-                          {getAccountTitle(account.account_type)} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                          {getAccountTitle(account.account_type)} - KES {formatNumber(account.current_balance || 0)}
                         </option>
                       ))}
                     </select>
@@ -1850,17 +1852,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                     >
                       KES
                     </span>
-                    <input
-                      type="number"
+                    <FormattedNumberInput
                       className="form-control border-0"
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
+                      placeholder=""
                       value={transferAmount}
-                      onChange={(e) => setTransferAmount(e.target.value)}
+                      onChange={(v) => setTransferAmount(v)}
                       style={{ borderRadius: "0 16px 16px 0", height: "45px", color: "#000000" }}
                       required
-                      disabled={isTransferring}
+                      readOnly={isTransferring}
                     />
                   </div>
                 </div>
@@ -1879,27 +1878,27 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                 </div>
 
                 {/* Transfer Preview */}
-                {transferFromAccount && transferToAccount && transferAmount && parseFloat(transferAmount) > 0 && (
+                {transferFromAccount && transferToAccount && transferAmount && parseFormattedNumber(transferAmount) > 0 && (
                   <div className="alert alert-info border-0 shadow-sm" style={{ borderRadius: "16px" }}>
                     <div className="row">
                       <div className="col-md-6">
                         <strong>From:</strong> {transferFromAccount}
                         <br />
                         <small className="text-muted">
-                          Current Balance: KES {accountBalances.find(a => a.account_type === transferFromAccount)?.current_balance?.toFixed(2) || '0.00'}
+                          Current Balance: KES {formatNumber(accountBalances.find(a => a.account_type === transferFromAccount)?.current_balance || 0)}
                         </small>
                       </div>
                       <div className="col-md-6">
                         <strong>To:</strong> {transferToAccount}
                         <br />
                         <small className="text-muted">
-                          Current Balance: KES {accountBalances.find(a => a.account_type === transferToAccount)?.current_balance?.toFixed(2) || '0.00'}
+                          Current Balance: KES {formatNumber(accountBalances.find(a => a.account_type === transferToAccount)?.current_balance || 0)}
                         </small>
                       </div>
                     </div>
                     <hr className="my-2" />
                     <div className="text-center">
-                      <strong>Transfer Amount: KES {parseFloat(transferAmount).toFixed(2)}</strong>
+                      <strong>Transfer Amount: KES {formatNumber(parseFormattedNumber(transferAmount))}</strong>
                     </div>
                   </div>
                 )}
@@ -1918,7 +1917,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   type="button"
                   className="btn btn-success"
                   onClick={handleTransfer}
-                  disabled={!transferFromAccount || !transferToAccount || !transferAmount || parseFloat(transferAmount) <= 0 || isTransferring}
+                  disabled={!transferFromAccount || !transferToAccount || !transferAmount || parseFormattedNumber(transferAmount) <= 0 || isTransferring}
                   style={{ borderRadius: "12px", height: "45px" }}
                 >
                   {isTransferring ? (

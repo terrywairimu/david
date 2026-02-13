@@ -15,6 +15,7 @@ import {
   exportInvoices as exportInvoicesReport
 } from "@/lib/workflow-utils"
 import SearchFilterRow from "@/components/ui/search-filter-row"
+import { formatNumber } from "@/lib/format-number"
 
 interface Invoice {
   id: number
@@ -1052,9 +1053,9 @@ const InvoicesView = () => {
                       <td>{new Date(invoice.date_created).toLocaleDateString()}</td>
                       <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
                       <td>{invoice.client?.name || "Unknown"}</td>
-                      <td>KES {invoice.grand_total?.toFixed(2) || "0.00"}</td>
-                      <td>KES {invoice.paid_amount?.toFixed(2) || "0.00"}</td>
-                      <td>KES {invoice.balance_amount?.toFixed(2) || "0.00"}</td>
+                      <td>KES {formatNumber(invoice.grand_total ?? 0)}</td>
+                      <td>KES {formatNumber(invoice.paid_amount ?? 0)}</td>
+                      <td>KES {formatNumber(invoice.balance_amount ?? 0)}</td>
                       <td>
                         <span className={`badge ${getStatusBadge(invoice.status)}`}>
                           {invoice.status.replace(/_/g, " ")}

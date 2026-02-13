@@ -9,6 +9,8 @@ import { createPortal } from "react-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import type { QuotationData } from '@/lib/pdf-template';
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number";
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
 import dynamic from 'next/dynamic'
@@ -2186,22 +2188,19 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                         </div>
                         
                         <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
+                          <FormattedNumberInput
                             className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("cabinet", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            value={item.unit_price === 0 ? '' : item.unit_price}
+                            onChange={(v) => updateItem("cabinet", index, "unit_price", parseFormattedNumber(v) || 0)}
                             placeholder="Unit Price"
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
-                            min="0"
-                            step="0.01"
                           />
                         </div>
                         
                         <div className="item-total col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                           <span className="worktop-total-currency">KES</span>
-                          <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                          <span className="worktop-total-value">{formatNumber(item.total_price)}</span>
                         </div>
 
                         {!isReadOnly && (
@@ -2510,11 +2509,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           </div>
                           
                           <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                            <FormattedNumberInput
                               className="form-control"
-                              value={item.unit_price || ""}
-                              onChange={(e) => updateItem("worktop", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              value={item.unit_price === 0 ? '' : item.unit_price}
+                              onChange={(v) => updateItem("worktop", index, "unit_price", parseFormattedNumber(v) || 0)}
                               placeholder="Unit Price"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                               readOnly={isReadOnly}
@@ -2525,7 +2523,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           
                           <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#ffffff" }}>
                             <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value" style={{ fontWeight: 600 }}>{item.total_price.toFixed(2)}</span>
+                            <span className="worktop-total-value" style={{ fontWeight: 600 }}>{formatNumber(item.total_price)}</span>
                           </div>
                           
                         {!isReadOnly && (
@@ -2852,11 +2850,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           </div>
                           
                           <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                            <input
-                              type="number"
+                            <FormattedNumberInput
                               className="form-control"
-                              value={item.unit_price || ""}
-                              onChange={(e) => updateItem("accessories", index, "unit_price", parseFloat(e.target.value) || 0)}
+                              value={item.unit_price === 0 ? '' : item.unit_price}
+                              onChange={(v) => updateItem("accessories", index, "unit_price", parseFormattedNumber(v) || 0)}
                               placeholder="Unit Price"
                               style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                               readOnly={isReadOnly}
@@ -2867,7 +2864,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           
                           <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                            <span className="worktop-total-value">{formatNumber(item.total_price)}</span>
                           </div>
                           
                         {!isReadOnly && (
@@ -3161,11 +3158,10 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           </div>
                           
                           <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
-                          <input
-                            type="number"
+                          <FormattedNumberInput
                               className="form-control"
-                            value={item.unit_price || ""}
-                            onChange={(e) => updateItem("appliances", index, "unit_price", parseFloat(e.target.value) || 0)}
+                            value={item.unit_price === 0 ? '' : item.unit_price}
+                            onChange={(v) => updateItem("appliances", index, "unit_price", parseFormattedNumber(v) || 0)}
                             placeholder="Unit Price"
                             style={{ borderRadius: "12px", height: "40px", fontSize: "13px" }}
                             readOnly={isReadOnly}
@@ -3176,7 +3172,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           
                           <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                            <span className="worktop-total-value">{formatNumber(item.total_price)}</span>
                           </div>
                           
                         {!isReadOnly && (
@@ -3485,7 +3481,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           
                           <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                            <span className="worktop-total-value">{formatNumber(item.total_price)}</span>
                           </div>
                           
                         {!isReadOnly && (
@@ -3794,7 +3790,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           
                           <div className="col-total" style={{ flex: "1", marginRight: "16px", fontWeight: "600", color: "#ffffff" }}>
                             <span className="worktop-total-currency">KES</span>
-                            <span className="worktop-total-value">{item.total_price.toFixed(2)}</span>
+                            <span className="worktop-total-value">{formatNumber(item.total_price)}</span>
                           </div>
                           
                         {!isReadOnly && (

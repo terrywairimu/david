@@ -5,6 +5,8 @@ import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generateExpenseNumber, generateEmployeePaymentNumber } from "@/lib/workflow-utils"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 import { Expense } from "@/lib/types"
 
@@ -869,19 +871,13 @@ const ExpenseModal = ({
                     </div>
                     <div className="col-md-4">
                       <label className="form-label">Amount</label>
-                      <input
-                        type="number"
+                      <FormattedNumberInput
                         className="form-control border-0 shadow-sm"
-                        value={formData.main_amount}
-                        onChange={(e) => {
-                          const newAmount = parseFloat(e.target.value) || 0
-                          setFormData(prev => ({ ...prev, main_amount: newAmount }))
-                        }}
+                        value={formData.main_amount === 0 ? '' : formData.main_amount}
+                        onChange={(v) => setFormData(prev => ({ ...prev, main_amount: parseFormattedNumber(v) || 0 }))}
                         style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                        step="0.01"
-                        min="0"
                         required
-                        disabled={mode === "view"}
+                        readOnly={mode === "view"}
                       />
                     </div>
                   </div>
@@ -979,7 +975,7 @@ const ExpenseModal = ({
                         </div>
                         <div className="col-md-2">
                           <div className="d-flex align-items-center h-100">
-                            <span className="amount me-2">{item.amount.toFixed(2)}</span>
+                            <span className="amount me-2">{formatNumber(item.amount)}</span>
                             {expenseItems.length > 1 && mode !== "view" && (
                               <button 
                                 type="button" 
@@ -1030,14 +1026,12 @@ const ExpenseModal = ({
                 {/* Amount Paid - Middle Left */}
                 <div className="col-md-3">
                   <label className="form-label">Amount Paid</label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     className="form-control border-0 shadow-sm"
-                    value={formData.amount_paid}
-                    onChange={(e) => {
+                    value={formData.amount_paid === 0 ? '' : formData.amount_paid}
+                    onChange={(v) => {
                       if (formData.status === "partially_paid") {
-                        const newAmountPaid = parseFloat(e.target.value) || 0
-                        setFormData(prev => ({ ...prev, amount_paid: newAmountPaid }))
+                        setFormData(prev => ({ ...prev, amount_paid: parseFormattedNumber(v) || 0 }))
                       }
                     }}
                     style={{ 
@@ -1046,9 +1040,6 @@ const ExpenseModal = ({
                       color: "#000000",
                       backgroundColor: formData.status !== "partially_paid" ? "#f8f9fa" : "white"
                     }}
-                    step="0.01"
-                    min="0"
-                    max={formData.main_amount}
                     required={formData.status === "partially_paid"}
                     readOnly={mode === "view" || formData.status !== "partially_paid"}
                   />
@@ -1058,9 +1049,9 @@ const ExpenseModal = ({
                 <div className="col-md-3">
                   <label className="form-label">Balance</label>
                   <input
-                    type="number"
+                    type="text"
                     className="form-control border-0 shadow-sm"
-                    value={formData.balance}
+                    value={formatNumber(formData.balance)}
                     style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
                     readOnly
                   />
@@ -1077,9 +1068,9 @@ const ExpenseModal = ({
                       KES
                     </span>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control border-0"
-                      value={formData.amount.toFixed(2)}
+                      value={formatNumber(formData.amount)}
                       readOnly
                       style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
                     />

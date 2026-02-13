@@ -5,6 +5,8 @@ import { X, Search, Plus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { generateEmployeePaymentNumber } from "@/lib/workflow-utils"
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
+import { parseFormattedNumber, formatNumber } from "@/lib/format-number"
 import { toNairobiTime, nairobiToUTC, utcToNairobi, dateInputToDateOnly } from "@/lib/timezone"
 
 interface EmployeePaymentModalProps {
@@ -170,7 +172,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
         employee_id: payment.employee_id?.toString() || "",
         date_created: payment.date_created ? new Date(payment.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         description: payment.description || "",
-        amount: payment.amount || "",
+        amount: (payment.amount != null && payment.amount !== 0) ? String(payment.amount).replace(/,/g, '') : "",
         paid_to: payment.paid_to || "",
         account_debited: payment.account_debited || "",
         category: payment.category || "wages",
@@ -269,7 +271,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
       return
     }
     
-    const amount = parseFloat(formData.amount)
+    const amount = parseFormattedNumber(formData.amount)
     if (!formData.amount || amount <= 0) {
       toast.error("Please enter a valid amount")
       return
@@ -481,15 +483,12 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="amount" className="form-label">Amount (KES)</label>
-                  <input
-                    type="number"
-                    className="form-control"
+                  <FormattedNumberInput
                     id="amount"
+                    className="form-control"
                     value={formData.amount}
-                    onChange={(e) => handleInputChange("amount", e.target.value)}
+                    onChange={(v) => handleInputChange("amount", v)}
                     required
-                    min="0"
-                    step="0.01"
                     readOnly={mode === "view"}
                   />
                 </div>
@@ -564,7 +563,7 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                           >
                             <strong style={{ color: "#000000" }}>{expense.expense_number}</strong>
                             <div className="small" style={{ color: "#6c757d" }}>
-                              KES {parseFloat(expense.amount).toLocaleString()} • {new Date(expense.date_created).toLocaleDateString()}
+                              KES {formatNumber(expense.amount)} • {new Date(expense.date_created).toLocaleDateString()}
                             </div>
                           </div>
                         ))}
@@ -582,14 +581,14 @@ const EmployeePaymentModal: React.FC<EmployeePaymentModalProps> = ({
                     className="form-control"
                     id="balance"
                     value={formData.employee_id 
-                      ? Math.max(0, totalBalanceOwed - (parseFloat(formData.amount) || 0)).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                      ? Math.max(0, totalBalanceOwed - (parseFormattedNumber(formData.amount) || 0)).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
                       : '0.00'}
                     readOnly
                     style={{ backgroundColor: "#f8f9fa", fontWeight: 600 }}
                   />
                   <small className="text-muted">
-                    {formData.amount && parseFloat(formData.amount) > 0 
-                      ? `Remaining after paying KES ${parseFloat(formData.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                    {formData.amount && parseFormattedNumber(formData.amount) > 0 
+                      ? `Remaining after paying KES ${parseFormattedNumber(formData.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
                       : 'Total unpaid balance we owe this employee'}
                   </small>
                 </div>
