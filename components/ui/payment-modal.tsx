@@ -497,6 +497,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       <option value="Cooperative Bank">Cooperative Bank</option>
                       <option value="Credit">Credit</option>
                       <option value="Cheque">Cheque</option>
+                      <option value="M-Pesa">M-Pesa</option>
+                      <option value="Petty Cash">Petty Cash</option>
                     </select>
                   </div>
                 </div>

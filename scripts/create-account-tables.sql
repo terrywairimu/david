@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS account_transactions (
     id SERIAL PRIMARY KEY,
     transaction_number VARCHAR(50) UNIQUE NOT NULL,
-    account_type VARCHAR(20) NOT NULL CHECK (account_type IN ('cash', 'cooperative_bank', 'credit', 'cheque')),
+    account_type VARCHAR(20) NOT NULL CHECK (account_type IN ('cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash')),
     transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('in', 'out')),
     amount DECIMAL(10,2) NOT NULL,
     description TEXT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS account_transactions (
 -- Create account_balances table
 CREATE TABLE IF NOT EXISTS account_balances (
     id SERIAL PRIMARY KEY,
-    account_type VARCHAR(20) UNIQUE NOT NULL CHECK (account_type IN ('cash', 'cooperative_bank', 'credit', 'cheque')),
+    account_type VARCHAR(20) UNIQUE NOT NULL CHECK (account_type IN ('cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash')),
     current_balance DECIMAL(10,2) DEFAULT 0,
     last_transaction_date TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -28,7 +28,9 @@ INSERT INTO account_balances (account_type, current_balance) VALUES
     ('cash', 0),
     ('cooperative_bank', 0),
     ('credit', 0),
-    ('cheque', 0)
+    ('cheque', 0),
+    ('mpesa', 0),
+    ('petty_cash', 0)
 ON CONFLICT (account_type) DO NOTHING;
 
 -- Create indexes for better performance
@@ -111,7 +113,7 @@ BEGIN
     END IF;
     
     -- Validate account type
-    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque') THEN
+    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash') THEN
         account_type := 'cash';
     END IF;
     
@@ -155,7 +157,7 @@ BEGIN
     END IF;
     
     -- Validate account type
-    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque') THEN
+    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash') THEN
         account_type := 'cash';
     END IF;
     
@@ -217,7 +219,7 @@ BEGIN
     account_type := LOWER(NEW.payment_method);
     
     -- Validate account type
-    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque') THEN
+    IF account_type NOT IN ('cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash') THEN
         account_type := 'cash';
     END IF;
     

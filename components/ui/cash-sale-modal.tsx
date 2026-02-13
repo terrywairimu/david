@@ -676,8 +676,11 @@ const CashSaleModal: React.FC<CashSaleModalProps> = ({
                         disabled={isReadOnly}
                       >
                         <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="mobile">Mobile Money</option>
+                        <option value="cooperative_bank">Cooperative Bank</option>
+                        <option value="credit">Credit</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="mpesa">M-Pesa</option>
+                        <option value="petty_cash">Petty Cash</option>
                       </select>
                     </td>
                     <td></td>

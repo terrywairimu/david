@@ -2057,7 +2057,7 @@ export const downloadDocument = async (elementId: string, filename: string) => {
 
 // Account Transaction Management
 export const createAccountTransaction = async (
-  accountType: 'cash' | 'cooperative_bank' | 'credit' | 'cheque',
+  accountType: 'cash' | 'cooperative_bank' | 'credit' | 'cheque' | 'mpesa' | 'petty_cash',
   transactionType: 'in' | 'out',
   amount: number,
   description: string,
@@ -2162,13 +2162,13 @@ export const generateTransactionNumber = async (): Promise<string> => {
   }
 }
 
-export const mapPaymentMethodToAccountType = (paymentMethod: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' => {
-  switch (paymentMethod.toLowerCase()) {
+export const mapPaymentMethodToAccountType = (paymentMethod: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' | 'mpesa' | 'petty_cash' => {
+  const m = paymentMethod.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+  switch (m) {
     case 'cash':
       return 'cash'
     case 'cooperative_bank':
     case 'bank':
-    case 'cooperative_bank':
       return 'cooperative_bank'
     case 'credit':
     case 'credit_card':
@@ -2176,13 +2176,18 @@ export const mapPaymentMethodToAccountType = (paymentMethod: string): 'cash' | '
     case 'cheque':
     case 'check':
       return 'cheque'
+    case 'mpesa':
+      return 'mpesa'
+    case 'petty_cash':
+      return 'petty_cash'
     default:
       return 'cash'
   }
 }
 
-export const mapAccountDebitedToAccountType = (accountDebited: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' => {
-  switch (accountDebited.toLowerCase()) {
+export const mapAccountDebitedToAccountType = (accountDebited: string): 'cash' | 'cooperative_bank' | 'credit' | 'cheque' | 'mpesa' | 'petty_cash' => {
+  const m = accountDebited.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+  switch (m) {
     case 'cash':
       return 'cash'
     case 'cooperative_bank':
@@ -2193,6 +2198,10 @@ export const mapAccountDebitedToAccountType = (accountDebited: string): 'cash' |
     case 'cheque':
     case 'check':
       return 'cheque'
+    case 'mpesa':
+      return 'mpesa'
+    case 'petty_cash':
+      return 'petty_cash'
     default:
       return 'cash'
   }

@@ -121,6 +121,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
       // Account balances
       const cashBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'cash')?.current_balance || 0)
       const bankBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'cooperative_bank')?.current_balance || 0)
+      const mpesaBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'mpesa')?.current_balance || 0)
+      const pettyCashBalance = parseFloat(balancesRes.data?.find(b => b.account_type === 'petty_cash')?.current_balance || 0)
       
       // Receivables (unpaid invoices)
       const receivables = (invoicesRes.data || []).reduce((s, i) => 
@@ -138,6 +140,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
         companyExpenses,
         cashBalance,
         bankBalance,
+        mpesaBalance,
+        pettyCashBalance,
         receivables,
         inventoryValue,
         expensesByCategory
@@ -152,6 +156,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
         companyExpenses,
         cashBalance,
         bankBalance,
+        mpesaBalance,
+        pettyCashBalance,
         receivables,
         inventoryValue,
         expensesByCategory,
@@ -210,7 +216,7 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
 
       case 'balanceSheet':
         // Professional Balance Sheet
-        const totalCurrentAssets = data.cashBalance + data.bankBalance + data.receivables + data.inventoryValue
+        const totalCurrentAssets = data.cashBalance + data.bankBalance + (data.mpesaBalance || 0) + (data.pettyCashBalance || 0) + data.receivables + data.inventoryValue
         const totalAssets = totalCurrentAssets
         const netWorth = totalAssets // Simplified - in real scenario would subtract liabilities
         
@@ -220,6 +226,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
           { account: 'Current Assets', type: 'subheader', amount: null },
           { account: '  Cash in Hand', type: 'asset', amount: data.cashBalance },
           { account: '  Bank - Cooperative', type: 'asset', amount: data.bankBalance },
+          { account: '  M-Pesa', type: 'asset', amount: data.mpesaBalance || 0 },
+          { account: '  Petty Cash', type: 'asset', amount: data.pettyCashBalance || 0 },
           { account: '  Accounts Receivable', type: 'asset', amount: data.receivables },
           { account: '  Inventory', type: 'asset', amount: data.inventoryValue },
           { account: '', type: 'spacer', amount: null },
@@ -284,8 +292,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
           { activity: '', type: 'spacer', inflow: null, outflow: null, net: null },
           { activity: 'NET INCREASE IN CASH', type: 'grandtotal', inflow: null, outflow: null, net: netCashFromOperations },
           { activity: '', type: 'spacer', inflow: null, outflow: null, net: null },
-          { activity: 'Cash at Beginning of Period', type: 'info', inflow: null, outflow: null, net: data.cashBalance + data.bankBalance - netCashFromOperations },
-          { activity: 'Cash at End of Period', type: 'grandtotal', inflow: null, outflow: null, net: data.cashBalance + data.bankBalance }
+          { activity: 'Cash at Beginning of Period', type: 'info', inflow: null, outflow: null, net: (data.cashBalance + data.bankBalance + (data.mpesaBalance || 0) + (data.pettyCashBalance || 0)) - netCashFromOperations },
+          { activity: 'Cash at End of Period', type: 'grandtotal', inflow: null, outflow: null, net: data.cashBalance + data.bankBalance + (data.mpesaBalance || 0) + (data.pettyCashBalance || 0) }
         ]
         
         newColumns = [
@@ -329,7 +337,7 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
         // Financial Summary
         const netProfit = data.totalSales - data.totalExpenses
         const profitMargin = data.totalSales > 0 ? (netProfit / data.totalSales) * 100 : 0
-        const totalLiquidity = data.cashBalance + data.bankBalance
+        const totalLiquidity = data.cashBalance + data.bankBalance + (data.mpesaBalance || 0) + (data.pettyCashBalance || 0)
         
         newRows = [
           { metric: 'REVENUE', value: null, trend: '' },
@@ -349,6 +357,8 @@ export default function FinancialReportModal({ isOpen, onClose, dateFrom, dateTo
           { metric: 'LIQUIDITY', value: null, trend: '' },
           { metric: 'Cash Balance', value: data.cashBalance, trend: '' },
           { metric: 'Bank Balance', value: data.bankBalance, trend: '' },
+          { metric: 'M-Pesa', value: data.mpesaBalance || 0, trend: '' },
+          { metric: 'Petty Cash', value: data.pettyCashBalance || 0, trend: '' },
           { metric: 'Total Liquid Assets', value: totalLiquidity, trend: '' },
           { metric: '', value: null, trend: '' },
           { metric: 'OTHER ASSETS', value: null, trend: '' },

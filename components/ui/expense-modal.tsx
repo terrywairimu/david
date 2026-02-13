@@ -141,7 +141,9 @@ const ExpenseModal = ({
           "Cash": "cash",
           "Cooperative Bank": "cooperative_bank", 
           "Credit": "credit",
-          "Cheque": "cheque"
+          "Cheque": "cheque",
+          "M-Pesa": "mpesa",
+          "Petty Cash": "petty_cash"
         }
         mappedAccountDebited = accountMapping[mappedAccountDebited] || mappedAccountDebited
       }
@@ -818,6 +820,8 @@ const ExpenseModal = ({
                         <option value="cooperative_bank">Cooperative Bank</option>
                         <option value="credit">Credit</option>
                         <option value="cheque">Cheque</option>
+                        <option value="mpesa">M-Pesa</option>
+                        <option value="petty_cash">Petty Cash</option>
                       </select>
                   </div>
                 </div>

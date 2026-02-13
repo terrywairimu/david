@@ -2743,6 +2743,14 @@ input:checked + .toggle-slider:before {
     background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%) !important;
 }
 
+.account-summary-card.mpesa {
+    background: linear-gradient(135deg, #00a651 0%, #00c853 100%) !important;
+}
+
+.account-summary-card.petty_cash {
+    background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%) !important;
+}
+
 .account-summary-card h6 {
     color: white;
     font-size: 14px;

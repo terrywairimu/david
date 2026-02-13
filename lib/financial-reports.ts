@@ -353,6 +353,8 @@ export class FinancialCalculator {
       const currentAssets = {
         cash: balances.cash || 0,
         bank: balances.cooperative_bank || 0,
+        mpesa: balances.mpesa || 0,
+        petty_cash: balances.petty_cash || 0,
         accountsReceivable,
         inventory: inventoryValue,
         prepaidExpenses: 0, // Not tracked in current system

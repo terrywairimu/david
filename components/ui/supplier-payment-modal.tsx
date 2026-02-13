@@ -481,6 +481,8 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                     <option value="cooperative_bank">Cooperative Bank</option>
                     <option value="credit">Credit</option>
                     <option value="cheque">Cheque</option>
+                    <option value="mpesa">M-Pesa</option>
+                    <option value="petty_cash">Petty Cash</option>
                   </select>
                 </div>
               </div>

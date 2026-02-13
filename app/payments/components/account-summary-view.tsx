@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText, RefreshCw } from "lucide-react"
+import { Eye, Download, CreditCard, TrendingUp, DollarSign, Calendar, Wallet, Building, CreditCard as CreditIcon, FileText, RefreshCw, Smartphone, Coins } from "lucide-react"
 import { supabase, type Payment, type RegisteredEntity } from "@/lib/supabase-client"
 import { useAuth } from "@/lib/auth-context"
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
@@ -490,10 +490,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   accountType = 'credit'
                 } else if (credited === 'Cheque') {
                   accountType = 'cheque'
+                } else if (credited === 'M-Pesa' || credited === 'mpesa') {
+                  accountType = 'mpesa'
+                } else if (credited === 'Petty Cash' || credited === 'petty_cash') {
+                  accountType = 'petty_cash'
                 }
               } else if (payment.payment_method) {
-                const method = payment.payment_method.toLowerCase()
-                if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+                const method = payment.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+                if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
                   accountType = method
                 }
               }
@@ -586,10 +590,14 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               accountType = 'credit'
             } else if (credited === 'Cheque') {
               accountType = 'cheque'
+            } else if (credited === 'M-Pesa' || credited === 'mpesa') {
+              accountType = 'mpesa'
+            } else if (credited === 'Petty Cash' || credited === 'petty_cash') {
+              accountType = 'petty_cash'
             }
           } else if (payment.payment_method) {
-            const method = payment.payment_method.toLowerCase()
-            if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+            const method = payment.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+            if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
               accountType = method
             }
           }
@@ -669,6 +677,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                   accountType = 'credit'
                 } else if (debited === 'Cheque') {
                   accountType = 'cheque'
+                } else if (debited === 'M-Pesa' || debited === 'mpesa') {
+                  accountType = 'mpesa'
+                } else if (debited === 'Petty Cash' || debited === 'petty_cash') {
+                  accountType = 'petty_cash'
                 }
               }
 
@@ -780,6 +792,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               accountType = 'credit'
             } else if (debited === 'Cheque') {
               accountType = 'cheque'
+            } else if (debited === 'M-Pesa' || debited === 'mpesa') {
+              accountType = 'mpesa'
+            } else if (debited === 'Petty Cash' || debited === 'petty_cash') {
+              accountType = 'petty_cash'
             }
           }
           
@@ -866,8 +882,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               // Map payment_method to account_type
               let accountType = 'cash' // default
               if (purchase.payment_method) {
-                const method = purchase.payment_method.toLowerCase()
-                if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+                const method = purchase.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+                if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
                   accountType = method
                 }
               }
@@ -993,8 +1009,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
           // Map payment_method to account_type
           let accountType = 'cash' // default
           if (purchase.payment_method) {
-            const method = purchase.payment_method.toLowerCase()
-            if (method === 'cash' || method === 'cooperative_bank' || method === 'credit' || method === 'cheque') {
+            const method = purchase.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+            if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
               accountType = method
             }
           }
@@ -1116,7 +1132,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       const balanceMap = new Map<string, { total_in: number; total_out: number; current_balance: number }>()
 
       // Initialize all account types with zero balances
-      const allAccountTypes = ['cash', 'cooperative_bank', 'credit', 'cheque']
+      const allAccountTypes = ['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash']
       allAccountTypes.forEach(accountType => {
         balanceMap.set(accountType, { total_in: 0, total_out: 0, current_balance: 0 })
       })
@@ -1516,6 +1532,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         return <CreditIcon size={24} />
       case 'cheque':
         return <FileText size={24} />
+      case 'mpesa':
+        return <Smartphone size={24} />
+      case 'petty_cash':
+        return <Coins size={24} />
       default:
         return <DollarSign size={24} />
     }
@@ -1531,6 +1551,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         return 'Credit'
       case 'cheque':
         return 'Cheque'
+      case 'mpesa':
+        return 'M-Pesa'
+      case 'petty_cash':
+        return 'Petty Cash'
       default:
         return accountType
     }
@@ -1546,6 +1570,10 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         return 'credit'
       case 'cheque':
         return 'cheque'
+      case 'mpesa':
+        return 'mpesa'
+      case 'petty_cash':
+        return 'petty_cash'
       default:
         return 'cash'
     }
@@ -1788,7 +1816,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       <option value="">Select Account</option>
                       {accountBalances.map((account) => (
                         <option key={account.account_type} value={account.account_type}>
-                          {account.account_type} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                          {getAccountTitle(account.account_type)} - KES {account.current_balance?.toFixed(2) || '0.00'}
                         </option>
                       ))}
                     </select>
@@ -1806,7 +1834,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
                       <option value="">Select Account</option>
                       {accountBalances.map((account) => (
                         <option key={account.account_type} value={account.account_type}>
-                          {account.account_type} - KES {account.current_balance?.toFixed(2) || '0.00'}
+                          {getAccountTitle(account.account_type)} - KES {account.current_balance?.toFixed(2) || '0.00'}
                         </option>
                       ))}
                     </select>

@@ -447,15 +447,19 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         
         const cashBalance = parseFloat(balances?.find(b => b.account_type === 'cash')?.current_balance || 0)
         const bankBalance = parseFloat(balances?.find(b => b.account_type === 'cooperative_bank')?.current_balance || 0)
+        const mpesaBalance = parseFloat(balances?.find(b => b.account_type === 'mpesa')?.current_balance || 0)
+        const pettyCashBalance = parseFloat(balances?.find(b => b.account_type === 'petty_cash')?.current_balance || 0)
         const receivables = (invoices || []).reduce((s, i) => s + (parseFloat(i.grand_total || 0) - parseFloat(i.paid_amount || 0)), 0)
         const inventoryValue = (inventory || []).reduce((s, i) => s + ((i.quantity || 0) * parseFloat(i.unit_price || 0)), 0)
-        const totalAssets = cashBalance + bankBalance + receivables + inventoryValue
+        const totalAssets = cashBalance + bankBalance + mpesaBalance + pettyCashBalance + receivables + inventoryValue
         
         rows = [
           { account: 'ASSETS', type: '', amount: null, percentage: '' },
           { account: 'Current Assets', type: '', amount: null, percentage: '' },
           { account: '  Cash in Hand', type: 'Asset', amount: cashBalance, percentage: '' },
           { account: '  Bank (Cooperative)', type: 'Asset', amount: bankBalance, percentage: '' },
+          { account: '  M-Pesa', type: 'Asset', amount: mpesaBalance, percentage: '' },
+          { account: '  Petty Cash', type: 'Asset', amount: pettyCashBalance, percentage: '' },
           { account: '  Accounts Receivable', type: 'Asset', amount: receivables, percentage: '' },
           { account: '  Inventory', type: 'Asset', amount: inventoryValue, percentage: '' },
           { account: '', type: '', amount: null, percentage: '' },
