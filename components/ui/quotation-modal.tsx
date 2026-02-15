@@ -2215,7 +2215,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   // Calculate subtotal with all labour included (consistent with PDF generation)
   // Only include labour for visible sections
-  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour + (totals.customSectionsLabour ?? 0);
 
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
@@ -2708,13 +2708,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>
@@ -2731,10 +2731,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         ) : (
                           <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         )}
-                      </div>
-                    </div>
                   </div>
-                ))}
+                </div>
+              </div>
+                )})}
 
                 {/* Worktop Section with Animated Toggle */}
                 <div className="mb-4">
@@ -3104,13 +3104,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>
@@ -3426,13 +3426,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>
@@ -3748,13 +3748,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>
@@ -4070,13 +4070,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>
@@ -4392,13 +4392,13 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         <div className="d-flex align-items-center mb-3">
                           {!isReadOnly ? (
                             <div className="d-flex align-items-center w-100">
-                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                              <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px", transition: "all 0.3s ease", transform: included ? "translateX(0)" : "translateX(-20px)", opacity: included ? 1 : 0 }}>
                                 <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
                                 <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
                               </div>
-                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0" }}>
-                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
-                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                              <div className="d-flex align-items-center" style={{ marginLeft: included ? "auto" : "0", transition: "all 0.3s ease" }}>
+                                <span className="me-2 small fw-semibold" style={{ color: "#ffffff", transition: "all 0.3s ease" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeCustomSectionById(sec.id, !included)}>
                                   <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                                 </div>
                               </div>

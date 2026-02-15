@@ -217,7 +217,7 @@ export function CustomNormalSection(props: CustomNormalSectionProps) {
               <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
               <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {sectionLabour.toFixed(2)}</div>
               <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}>
-                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabour(!includeLabour)}>
+                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeLabour(!includeLabour)}>
                   <div style={{ position: "absolute", top: "2px", left: includeLabour ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
                 </div>
               </div>
@@ -225,7 +225,7 @@ export function CustomNormalSection(props: CustomNormalSectionProps) {
           ) : (
             <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
               <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
-              <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabour(!includeLabour)}>
+              <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: isReadOnly ? "default" : "pointer", transition: "background-color 0.2s" }} onClick={() => !isReadOnly && setIncludeLabour(!includeLabour)}>
                 <div style={{ position: "absolute", top: "2px", left: includeLabour ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
               </div>
             </div>
