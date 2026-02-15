@@ -135,8 +135,8 @@ const PortalDropdown: React.FC<{
 
 // Add New Section button with dropdown (Normal section | Worktop section)
 const AddNewSectionButton: React.FC<{
-  anchorKey: string
-  addCustomSection: (type: "normal" | "worktop") => void
+  anchorKey: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
+  addCustomSection: (anchorKey: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", type: "normal" | "worktop") => void
   isOpen: boolean
   onToggle: () => void
 }> = ({ anchorKey, addCustomSection, isOpen, onToggle }) => {
@@ -185,7 +185,7 @@ const AddNewSectionButton: React.FC<{
               type="button"
               className="dropdown-item w-100 text-start px-3 py-2"
               style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
-              onClick={() => addCustomSection("normal")}
+              onClick={() => addCustomSection(anchorKey, "normal")}
             >
               Normal section
             </button>
@@ -195,7 +195,7 @@ const AddNewSectionButton: React.FC<{
               type="button"
               className="dropdown-item w-100 text-start px-3 py-2"
               style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
-              onClick={() => addCustomSection("worktop")}
+              onClick={() => addCustomSection(anchorKey, "worktop")}
             >
               Worktop section
             </button>
@@ -316,7 +316,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   // Custom sections (e.g. Kitchen 2, multiple worktops)
   type CustomSectionType = "normal" | "worktop"
-  type CustomSection = { id: string; name: string; type: CustomSectionType }
+  type AnchorKey = "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
+  type CustomSection = { id: string; name: string; type: CustomSectionType; anchorKey: AnchorKey }
   const [customSections, setCustomSections] = useState<CustomSection[]>([])
   const [customSectionItems, setCustomSectionItems] = useState<Record<string, Record<string, QuotationItem[]>>>({})
   const [addNewSectionDropdownOpen, setAddNewSectionDropdownOpen] = useState<string | null>(null)
@@ -369,20 +370,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const n = customSections.length + 1
     return `New Section ${n}`
   }
-  const addCustomSection = (type: CustomSectionType) => {
+  const addCustomSection = (anchorKey: AnchorKey, type: CustomSectionType) => {
     const id = `cs-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     const name = getNextCustomSectionName()
-    setCustomSections(prev => [...prev, { id, name, type }])
+    setCustomSections(prev => [...prev, { id, name, type, anchorKey }])
     if (type === "normal") {
       setCustomSectionItems(prev => ({
         ...prev,
-        [id]: {
-          cabinet: [createNewItem("cabinet")],
-          accessories: [],
-          appliances: [],
-          wardrobes: [],
-          tvunit: []
-        }
+        [id]: { cabinet: [createNewItem("cabinet")] }
       }))
     } else {
       setCustomSectionItems(prev => ({
@@ -817,20 +812,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeLabourTvUnit(!!quotation.items?.some((item: any) => item.category === 'tvunit' && String(item.description || '').includes('Labour Charge')))
 
     // Load custom sections and their items
-    const customSectionsData = (quotation.custom_sections as Array<{ id: string; name: string; type: string }>) || []
+    const customSectionsData = ((quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || []).map(s => ({
+      ...s,
+      anchorKey: (s.anchorKey || "cabinet") as AnchorKey
+    }))
     setCustomSections(customSectionsData)
     const items = quotation.items || []
     const itemsBySection: Record<string, Record<string, QuotationItem[]>> = {}
     for (const sec of customSectionsData) {
       if (sec.type === "normal") {
         const cabinet = items.filter((i: any) => i.section_group === sec.id && i.category === "cabinet" && !String(i.description || "").includes("Labour Charge"))
-        const accessories = items.filter((i: any) => i.section_group === sec.id && i.category === "accessories" && !String(i.description || "").includes("Labour Charge"))
-        const appliances = items.filter((i: any) => i.section_group === sec.id && i.category === "appliances" && !String(i.description || "").includes("Labour Charge"))
-        const wardrobes = items.filter((i: any) => i.section_group === sec.id && i.category === "wardrobes" && !String(i.description || "").includes("Labour Charge"))
-        const tvunit = items.filter((i: any) => i.section_group === sec.id && i.category === "tvunit" && !String(i.description || "").includes("Labour Charge"))
         itemsBySection[sec.id] = {
-          cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")],
-          accessories, appliances, wardrobes, tvunit
+          cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]
         }
       } else {
         const worktop = items.filter((i: any) => i.section_group === sec.id && i.category === "worktop")
@@ -1860,8 +1853,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           const custom: Array<{ category: string; description: string; unit: string; quantity: number; unit_price: number; total_price: number; stock_item_id?: number; section_group: string }> = []
           for (const sec of customSections) {
             const secItems = customSectionItems[sec.id] || {}
-            if (sec.type === "normal") {
-              for (const cat of ["cabinet", "accessories", "appliances", "wardrobes", "tvunit"] as const) {
+        if (sec.type === "normal") {
+          for (const cat of ["cabinet"] as const) {
                 const arr = (secItems[cat] || []).filter(i => !i.description?.includes("Labour Charge"))
                 for (const item of arr) {
                   custom.push({ ...item, section_group: sec.id })
@@ -1876,7 +1869,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           }
           return [...main, ...custom]
         })(),
-        custom_sections: customSections.map(s => ({ id: s.id, name: s.name, type: s.type })),
+        custom_sections: customSections.map(s => ({ id: s.id, name: s.name, type: s.type, anchorKey: s.anchorKey })),
         cabinet_labour_percentage: cabinetLabourPercentage,
         accessories_labour_percentage: accessoriesLabourPercentage,
         appliances_labour_percentage: appliancesLabourPercentage,
@@ -2138,26 +2131,6 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         const cabSum = cabItems.reduce((s, i) => s + i.total_price, 0)
         customSectionsItemTotal += cabSum
         customSectionsLabour += includeLabourCabinet ? (cabSum * cabinetLabourPercentage) / 100 : 0
-
-        const accItems = (items.accessories || []).filter(i => !i.description?.includes("Labour Charge"))
-        const accSum = accItems.reduce((s, i) => s + i.total_price, 0)
-        customSectionsItemTotal += accSum
-        customSectionsLabour += includeLabourAccessories ? (accSum * accessoriesLabourPercentage) / 100 : 0
-
-        const appItems = (items.appliances || []).filter(i => !i.description?.includes("Labour Charge"))
-        const appSum = appItems.reduce((s, i) => s + i.total_price, 0)
-        customSectionsItemTotal += appSum
-        customSectionsLabour += includeLabourAppliances ? (appSum * appliancesLabourPercentage) / 100 : 0
-
-        const wardItems = (items.wardrobes || []).filter(i => !i.description?.includes("Labour Charge"))
-        const wardSum = wardItems.reduce((s, i) => s + i.total_price, 0)
-        customSectionsItemTotal += wardSum
-        customSectionsLabour += includeLabourWardrobes ? (wardSum * wardrobesLabourPercentage) / 100 : 0
-
-        const tvItems = (items.tvunit || []).filter(i => !i.description?.includes("Labour Charge"))
-        const tvSum = tvItems.reduce((s, i) => s + i.total_price, 0)
-        customSectionsItemTotal += tvSum
-        customSectionsLabour += includeLabourTvUnit ? (tvSum * tvUnitLabourPercentage) / 100 : 0
       } else {
         const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
         customSectionsItemTotal += workSum
@@ -2701,6 +2674,32 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </div>
                 </div>
 
+                {/* Custom sections added below Cabinet */}
+                {customSections.filter(s => s.anchorKey === "cabinet").map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
+                            <Calculator size={18} className="me-2" />
+                            {isReadOnly ? sec.name : (
+                              <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />
+                            )}
+                          </h6>
+                          {!isReadOnly && (
+                            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>
+                          )}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        ) : (
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 {/* Worktop Section with Animated Toggle */}
                 <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -3060,6 +3059,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </div>
                 </div>
 
+                {customSections.filter(s => s.anchorKey === "worktop").map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{isReadOnly ? sec.name : <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />}</h6>
+                          {!isReadOnly && <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        ) : (
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 {/* Accessories Section with Animated Toggle */}
                 <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -3346,6 +3363,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {customSections.filter(s => s.anchorKey === "accessories").map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{isReadOnly ? sec.name : <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />}</h6>
+                          {!isReadOnly && <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        ) : (
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
                 {/* Appliances Section with Animated Toggle */}
                 <div className="mb-4">
@@ -3634,6 +3669,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </div>
                 </div>
 
+                {customSections.filter(s => s.anchorKey === "appliances").map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{isReadOnly ? sec.name : <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />}</h6>
+                          {!isReadOnly && <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        ) : (
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 {/* Wardrobes Section with Animated Toggle */}
                 <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
@@ -3920,6 +3973,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {customSections.filter(s => s.anchorKey === "wardrobes").map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{isReadOnly ? sec.name : <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />}</h6>
+                          {!isReadOnly && <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        ) : (
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
                 {/* TV Unit Section with Animated Toggle */}
                 <div className="mb-4">
@@ -4208,110 +4279,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   </div>
                 </div>
 
-                {/* Custom Sections (e.g. Kitchen 2, multiple worktops) */}
-                {customSections.map((sec) => (
+                {customSections.filter(s => s.anchorKey === "tvunit").map((sec) => (
                   <div key={sec.id} className="mb-4">
                     <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                       <div className="card-body p-4">
                         <div className="d-flex align-items-center justify-content-between mb-3">
-                          <div className="d-flex align-items-center">
-                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
-                            {isReadOnly ? (
-                              <h6 className="mb-0 fw-bold" style={{ color: "#ffffff" }}>{sec.name}</h6>
-                            ) : (
-                              <input
-                                type="text"
-                                value={sec.name}
-                                onChange={(e) => updateCustomSectionName(sec.id, e.target.value)}
-                                style={{
-                                  background: "transparent",
-                                  border: "none",
-                                  color: "#ffffff",
-                                  fontSize: "16px",
-                                  fontWeight: "bold",
-                                  outline: "none",
-                                  borderBottom: "2px solid transparent",
-                                  padding: "2px 4px"
-                                }}
-                              />
-                            )}
-                          </div>
-                          {!isReadOnly && (
-                            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}>
-                              <Trash2 size={14} /> Remove
-                            </button>
-                          )}
+                          <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{isReadOnly ? sec.name : <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px" }} />}</h6>
+                          {!isReadOnly && <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}><Trash2 size={14} /> Remove</button>}
                         </div>
                         {sec.type === "normal" ? (
-                          <CustomNormalSection
-                            sectionId={sec.id}
-                            items={customSectionItems[sec.id] || {}}
-                            addItem={addItem}
-                            removeItem={removeItem}
-                            updateItem={updateItem}
-                            sectionNames={sectionNames}
-                            stockItems={stockItems}
-                            getItemInputRef={getItemInputRef}
-                            itemDropdownVisible={itemDropdownVisible}
-                            setItemDropdownVisible={setItemDropdownVisible}
-                            handleItemSearch={handleItemSearch}
-                            selectStockItem={selectStockItem}
-                            getFilteredItems={getFilteredItems}
-                            includeLabourCabinet={includeLabourCabinet}
-                            setIncludeLabourCabinet={setIncludeLabourCabinet}
-                            cabinetLabourPercentage={cabinetLabourPercentage}
-                            setCabinetLabourPercentage={setCabinetLabourPercentage}
-                            includeLabourAccessories={includeLabourAccessories}
-                            setIncludeLabourAccessories={setIncludeLabourAccessories}
-                            accessoriesLabourPercentage={accessoriesLabourPercentage}
-                            setAccessoriesLabourPercentage={setAccessoriesLabourPercentage}
-                            includeLabourAppliances={includeLabourAppliances}
-                            setIncludeLabourAppliances={setIncludeLabourAppliances}
-                            appliancesLabourPercentage={appliancesLabourPercentage}
-                            setAppliancesLabourPercentage={setAppliancesLabourPercentage}
-                            includeLabourWardrobes={includeLabourWardrobes}
-                            setIncludeLabourWardrobes={setIncludeLabourWardrobes}
-                            wardrobesLabourPercentage={wardrobesLabourPercentage}
-                            setWardrobesLabourPercentage={setWardrobesLabourPercentage}
-                            includeLabourTvUnit={includeLabourTvUnit}
-                            setIncludeLabourTvUnit={setIncludeLabourTvUnit}
-                            tvUnitLabourPercentage={tvUnitLabourPercentage}
-                            setTvUnitLabourPercentage={setTvUnitLabourPercentage}
-                            rawQuantityValues={rawQuantityValues}
-                            setRawQuantityValues={setRawQuantityValues}
-                            rawPriceValues={rawPriceValues}
-                            setRawPriceValues={setRawPriceValues}
-                            isReadOnly={isReadOnly}
-                            isMobile={isMobile}
-                            PortalDropdown={PortalDropdown}
-                          />
+                          <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabourCabinet={includeLabourCabinet} setIncludeLabourCabinet={setIncludeLabourCabinet} cabinetLabourPercentage={cabinetLabourPercentage} setCabinetLabourPercentage={setCabinetLabourPercentage} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection
-                            sectionId={sec.id}
-                            items={(customSectionItems[sec.id] || {}).worktop || []}
-                            addItem={addItem}
-                            removeItem={removeItem}
-                            updateItem={updateItem}
-                            sectionNames={sectionNames}
-                            stockItems={stockItems}
-                            getItemInputRef={getItemInputRef}
-                            itemDropdownVisible={itemDropdownVisible}
-                            setItemDropdownVisible={setItemDropdownVisible}
-                            handleItemSearch={handleItemSearch}
-                            selectStockItem={selectStockItem}
-                            getFilteredItems={getFilteredItems}
-                            worktopLaborQty={worktopLaborQty}
-                            setWorktopLaborQty={setWorktopLaborQty}
-                            worktopLaborUnitPrice={worktopLaborUnitPrice}
-                            setWorktopLaborUnitPrice={setWorktopLaborUnitPrice}
-                            rawQuantityValues={rawQuantityValues}
-                            setRawQuantityValues={setRawQuantityValues}
-                            rawPriceValues={rawPriceValues}
-                            setRawPriceValues={setRawPriceValues}
-                            isReadOnly={isReadOnly}
-                            isMobile={isMobile}
-                            PortalDropdown={PortalDropdown}
-                          />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         )}
                       </div>
                     </div>
