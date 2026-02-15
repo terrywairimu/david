@@ -169,6 +169,19 @@ export function useComprehensiveAnalytics({
         const { data: expenseRows } = await expensesQuery
         const expenses = expenseRows || []
 
+        // Client purchases: cost of items bought for that client (purchase price, not selling price)
+        let purchasesQuery = supabase
+          .from("purchases")
+          .select("purchase_date, total_amount, client_id")
+          .gte("purchase_date", startIso.split("T")[0])
+          .lte("purchase_date", endIso.split("T")[0])
+          .not("client_id", "is", null)
+        if (clientId && clientId !== "general") {
+          purchasesQuery = purchasesQuery.eq("client_id", clientId)
+        }
+        const { data: purchaseRows } = await purchasesQuery
+        const clientPurchases = purchaseRows || []
+
         payments.forEach((r: any) => {
           const dateStr = String(r.date_created || "")
           if (!dateStr) return
@@ -186,6 +199,17 @@ export function useComprehensiveAnalytics({
           const k = getAggKey(dateStr)
           const current = aggregationMap.get(k) || { amount: 0, count: 0, total_paid: 0, total_expenses: 0, net_profit: 0 }
           const amt = Number(r.amount || 0)
+          current.total_expenses += amt
+          aggregationMap.set(k, current)
+        })
+
+        // Add client purchases (purchase price / cost) to total_expenses
+        clientPurchases.forEach((r: any) => {
+          const dateStr = String(r.purchase_date || r.date_created || "")
+          if (!dateStr) return
+          const k = getAggKey(dateStr)
+          const current = aggregationMap.get(k) || { amount: 0, count: 0, total_paid: 0, total_expenses: 0, net_profit: 0 }
+          const amt = Number(r.total_amount || 0)
           current.total_expenses += amt
           aggregationMap.set(k, current)
         })
