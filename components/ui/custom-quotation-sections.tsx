@@ -158,7 +158,7 @@ const ItemRow = ({
   )
 }
 
-// Normal section = single cabinet-style block (matches main Cabinet section exactly)
+// Normal section = single cabinet-style block (matches main Cabinet section exactly, with per-section labour)
 interface CustomNormalSectionProps {
   sectionId: string
   items: Record<string, QuotationItem[]>
@@ -173,10 +173,11 @@ interface CustomNormalSectionProps {
   handleItemSearch: (id: string, term: string) => void
   selectStockItem: (id: string, stock: StockItem, sg?: string) => void
   getFilteredItems: (id: string) => StockItem[]
-  includeLabourCabinet: boolean
-  setIncludeLabourCabinet: React.Dispatch<React.SetStateAction<boolean>>
-  cabinetLabourPercentage: number
-  setCabinetLabourPercentage: React.Dispatch<React.SetStateAction<number>>
+  includeLabour: boolean
+  setIncludeLabour: (v: boolean) => void
+  labourPercentage: number
+  setLabourPercentage: (v: number) => void
+  sectionCabinetTotal: number
   rawQuantityValues: Record<string, string>
   setRawQuantityValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
   rawPriceValues: Record<string, string>
@@ -187,8 +188,9 @@ interface CustomNormalSectionProps {
 }
 
 export function CustomNormalSection(props: CustomNormalSectionProps) {
-  const { sectionId, items, addItem, removeItem, updateItem, getItemInputRef, itemDropdownVisible, setItemDropdownVisible, handleItemSearch, selectStockItem, getFilteredItems, includeLabourCabinet, setIncludeLabourCabinet, cabinetLabourPercentage, setCabinetLabourPercentage, rawQuantityValues, setRawQuantityValues, rawPriceValues, setRawPriceValues, isReadOnly, isMobile, PortalDropdown } = props
+  const { sectionId, items, addItem, removeItem, updateItem, getItemInputRef, itemDropdownVisible, setItemDropdownVisible, handleItemSearch, selectStockItem, getFilteredItems, includeLabour, setIncludeLabour, labourPercentage, setLabourPercentage, sectionCabinetTotal, rawQuantityValues, setRawQuantityValues, rawPriceValues, setRawPriceValues, isReadOnly, isMobile, PortalDropdown } = props
   const arr = items.cabinet || []
+  const sectionLabour = includeLabour ? (sectionCabinetTotal * labourPercentage) / 100 : 0
 
   return (
     <div className="mb-3">
@@ -205,12 +207,29 @@ export function CustomNormalSection(props: CustomNormalSectionProps) {
       ))}
       {!isReadOnly && (
         <>
-          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-            <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
-            <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabourCabinet ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabourCabinet(!includeLabourCabinet)}>
-              <div style={{ position: "absolute", top: "2px", left: includeLabourCabinet ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+          {includeLabour ? (
+            <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+              <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Add Labour</div>
+              <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>%</div>
+              <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+                <input type="number" value={labourPercentage === 30 ? "" : (labourPercentage === 0 ? "" : labourPercentage)} onFocus={(e) => { e.currentTarget.value = ""; setLabourPercentage(0); }} onChange={(e) => setLabourPercentage(Number(e.target.value) || 0)} onBlur={(e) => setLabourPercentage(Number(e.target.value) || 30)} placeholder="30" style={{ width: "100%", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none" }} min={0} max={100} step="0.01" />
+              </div>
+              <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }} />
+              <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>KES {sectionLabour.toFixed(2)}</div>
+              <div className="col-delete d-flex align-items-center" style={{ flex: "0 0 40px" }}>
+                <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabour(!includeLabour)}>
+                  <div style={{ position: "absolute", top: "2px", left: includeLabour ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+              <span className="me-2 small" style={{ color: "#fff" }}>Include labour as percentage</span>
+              <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: includeLabour ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeLabour(!includeLabour)}>
+                <div style={{ position: "absolute", top: "2px", left: includeLabour ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+              </div>
+            </div>
+          )}
           <div className="mt-3">
             <button type="button" className="btn btn-primary" onClick={() => addItem("cabinet", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
               <Plus size={14} className="me-1" /> Add Item
