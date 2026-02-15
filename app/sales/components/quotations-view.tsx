@@ -266,6 +266,7 @@ const QuotationsView = () => {
             quotation_number: quotationData.quotation_number,
             client_id: quotationData.client_id,
             date_created: quotationData.date_created,
+            custom_sections: quotationData.custom_sections ?? [],
             cabinet_total: quotationData.cabinet_total,
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
@@ -311,7 +312,8 @@ const QuotationsView = () => {
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price,
-            stock_item_id: item.stock_item_id
+            stock_item_id: item.stock_item_id,
+            section_group: item.section_group ?? null
           }))
 
           const { error: itemsError } = await supabase
@@ -329,6 +331,7 @@ const QuotationsView = () => {
           .update({
             client_id: quotationData.client_id,
             date_created: quotationData.date_created,
+            custom_sections: quotationData.custom_sections ?? [],
             cabinet_total: quotationData.cabinet_total,
             worktop_total: quotationData.worktop_total,
             accessories_total: quotationData.accessories_total,
@@ -381,7 +384,8 @@ const QuotationsView = () => {
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price,
-            stock_item_id: item.stock_item_id
+            stock_item_id: item.stock_item_id,
+            section_group: item.section_group ?? null
           }))
 
           const { error: itemsError } = await supabase

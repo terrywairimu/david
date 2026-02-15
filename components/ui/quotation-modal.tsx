@@ -12,6 +12,7 @@ import type { QuotationData } from '@/lib/pdf-template';
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
 import ImportQuotationModal from "./import-quotation-modal"
+import { CustomNormalSection, CustomWorktopSection } from "./custom-quotation-sections"
 import dynamic from 'next/dynamic'
 
 // Dynamically import MobilePDFViewer to avoid SSR issues
@@ -132,6 +133,79 @@ const PortalDropdown: React.FC<{
   )
 }
 
+// Add New Section button with dropdown (Normal section | Worktop section)
+const AddNewSectionButton: React.FC<{
+  anchorKey: string
+  addCustomSection: (type: "normal" | "worktop") => void
+  isOpen: boolean
+  onToggle: () => void
+}> = ({ anchorKey, addCustomSection, isOpen, onToggle }) => {
+  const btnRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) onToggle()
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isOpen, onToggle])
+
+  return (
+    <div ref={btnRef} className="mt-2 position-relative">
+      <button
+        type="button"
+        className="btn btn-outline-light btn-sm d-flex align-items-center"
+        onClick={onToggle}
+        style={{ borderRadius: "10px", padding: "8px 14px", borderColor: "rgba(255,255,255,0.4)" }}
+      >
+        <Plus size={12} className="me-1" />
+        Add New Section
+        <ChevronDown size={12} className="ms-1" style={{ opacity: isOpen ? 1 : 0.7 }} />
+      </button>
+      {isOpen && (
+        <ul
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            marginTop: "4px",
+            minWidth: "180px",
+            backgroundColor: "white",
+            border: "1px solid #dee2e6",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            zIndex: 1050,
+            listStyle: "none",
+            padding: "4px 0"
+          }}
+        >
+          <li>
+            <button
+              type="button"
+              className="dropdown-item w-100 text-start px-3 py-2"
+              style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
+              onClick={() => addCustomSection("normal")}
+            >
+              Normal section
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="dropdown-item w-100 text-start px-3 py-2"
+              style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
+              onClick={() => addCustomSection("worktop")}
+            >
+              Worktop section
+            </button>
+          </li>
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // Quotation number generation logic (now using Supabase, not localStorage)
 const generateQuotationNumber = async () => {
   try {
@@ -240,6 +314,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [rawQuantityValues, setRawQuantityValues] = useState<{ [key: string]: string }>({})
   const [rawPriceValues, setRawPriceValues] = useState<{ [key: string]: string }>({})
 
+  // Custom sections (e.g. Kitchen 2, multiple worktops)
+  type CustomSectionType = "normal" | "worktop"
+  type CustomSection = { id: string; name: string; type: CustomSectionType }
+  const [customSections, setCustomSections] = useState<CustomSection[]>([])
+  const [customSectionItems, setCustomSectionItems] = useState<Record<string, Record<string, QuotationItem[]>>>({})
+  const [addNewSectionDropdownOpen, setAddNewSectionDropdownOpen] = useState<string | null>(null)
+  const addNewSectionBtnRef = useRef<HTMLDivElement | null>(null)
+
   // Refs for dropdown positioning
   const clientInputRef = useRef<HTMLDivElement>(null)
   const itemInputRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement | null> }>({})
@@ -280,6 +362,46 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     } else if (e.key === 'Escape') {
       handleSectionNameCancel()
     }
+  }
+
+  // Custom section helpers
+  const getNextCustomSectionName = () => {
+    const n = customSections.length + 1
+    return `New Section ${n}`
+  }
+  const addCustomSection = (type: CustomSectionType) => {
+    const id = `cs-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const name = getNextCustomSectionName()
+    setCustomSections(prev => [...prev, { id, name, type }])
+    if (type === "normal") {
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [id]: {
+          cabinet: [createNewItem("cabinet")],
+          accessories: [],
+          appliances: [],
+          wardrobes: [],
+          tvunit: []
+        }
+      }))
+    } else {
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [id]: { worktop: [] }
+      }))
+    }
+    setAddNewSectionDropdownOpen(null)
+  }
+  const removeCustomSection = (id: string) => {
+    setCustomSections(prev => prev.filter(s => s.id !== id))
+    setCustomSectionItems(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }
+  const updateCustomSectionName = (id: string, name: string) => {
+    setCustomSections(prev => prev.map(s => s.id === id ? { ...s, name } : s))
   }
 
   // Editable Section Header Component
@@ -577,6 +699,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeLabourAppliances(true)
     setIncludeLabourWardrobes(true)
     setIncludeLabourTvUnit(true)
+    setCustomSections([])
+    setCustomSectionItems({})
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
@@ -661,13 +785,15 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setDiscountAmount(quotation.discount_amount || 0)
 
     // Load items by category (filter out Labour Charge - it's managed by include labour toggle)
+    // Only load items without section_group into main sections; custom section items load separately
     if (quotation.items) {
-      const cabinet = quotation.items.filter((item: any) => item.category === "cabinet" && !item.description?.includes("Labour Charge"));
-      const worktop = quotation.items.filter((item: any) => item.category === "worktop");
-      const accessories = quotation.items.filter((item: any) => item.category === "accessories" && !item.description?.includes("Labour Charge"));
-      const appliances = quotation.items.filter((item: any) => item.category === "appliances" && !item.description?.includes("Labour Charge"));
-      const wardrobes = quotation.items.filter((item: any) => item.category === "wardrobes" && !item.description?.includes("Labour Charge"));
-      const tvunit = quotation.items.filter((item: any) => item.category === "tvunit" && !item.description?.includes("Labour Charge"));
+      const mainItems = (quotation.items as any[]).filter((item: any) => !item.section_group)
+      const cabinet = mainItems.filter((item: any) => item.category === "cabinet" && !item.description?.includes("Labour Charge"));
+      const worktop = mainItems.filter((item: any) => item.category === "worktop");
+      const accessories = mainItems.filter((item: any) => item.category === "accessories" && !item.description?.includes("Labour Charge"));
+      const appliances = mainItems.filter((item: any) => item.category === "appliances" && !item.description?.includes("Labour Charge"));
+      const wardrobes = mainItems.filter((item: any) => item.category === "wardrobes" && !item.description?.includes("Labour Charge"));
+      const tvunit = mainItems.filter((item: any) => item.category === "tvunit" && !item.description?.includes("Labour Charge"));
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
       setAccessoriesItems(accessories.length > 0 ? accessories : []);
@@ -689,6 +815,29 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeLabourAppliances(!!quotation.items?.some((item: any) => item.category === 'appliances' && String(item.description || '').includes('Labour Charge')))
     setIncludeLabourWardrobes(!!quotation.items?.some((item: any) => item.category === 'wardrobes' && String(item.description || '').includes('Labour Charge')))
     setIncludeLabourTvUnit(!!quotation.items?.some((item: any) => item.category === 'tvunit' && String(item.description || '').includes('Labour Charge')))
+
+    // Load custom sections and their items
+    const customSectionsData = (quotation.custom_sections as Array<{ id: string; name: string; type: string }>) || []
+    setCustomSections(customSectionsData)
+    const items = quotation.items || []
+    const itemsBySection: Record<string, Record<string, QuotationItem[]>> = {}
+    for (const sec of customSectionsData) {
+      if (sec.type === "normal") {
+        const cabinet = items.filter((i: any) => i.section_group === sec.id && i.category === "cabinet" && !String(i.description || "").includes("Labour Charge"))
+        const accessories = items.filter((i: any) => i.section_group === sec.id && i.category === "accessories" && !String(i.description || "").includes("Labour Charge"))
+        const appliances = items.filter((i: any) => i.section_group === sec.id && i.category === "appliances" && !String(i.description || "").includes("Labour Charge"))
+        const wardrobes = items.filter((i: any) => i.section_group === sec.id && i.category === "wardrobes" && !String(i.description || "").includes("Labour Charge"))
+        const tvunit = items.filter((i: any) => i.section_group === sec.id && i.category === "tvunit" && !String(i.description || "").includes("Labour Charge"))
+        itemsBySection[sec.id] = {
+          cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")],
+          accessories, appliances, wardrobes, tvunit
+        }
+      } else {
+        const worktop = items.filter((i: any) => i.section_group === sec.id && i.category === "worktop")
+        itemsBySection[sec.id] = { worktop }
+      }
+    }
+    setCustomSectionItems(itemsBySection)
   }
 
   const handleClientSelect = (client: Client) => {
@@ -702,58 +851,81 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setClientDropdownVisible(searchTerm.length > 0)
   }
 
-  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit") => {
+  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", sectionGroup?: string) => {
     const newItem = createNewItem(category)
 
-    // Use functional updates for better performance and avoiding stale closures
-    switch (category) {
-      case "cabinet":
-        setCabinetItems(prev => [...prev, newItem])
-        break
-      case "worktop":
-        setWorktopItems(prev => [...prev, newItem])
-        break
-      case "accessories":
-        setAccessoriesItems(prev => [...prev, newItem])
-        break
-      case "appliances":
-        setAppliancesItems(prev => [...prev, newItem])
-        break
-      case "wardrobes":
-        setWardrobesItems(prev => [...prev, newItem])
-        break
-      case "tvunit":
-        setTvUnitItems(prev => [...prev, newItem])
-        break
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: [...arr, newItem] }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet":
+          setCabinetItems(prev => [...prev, newItem])
+          break
+        case "worktop":
+          setWorktopItems(prev => [...prev, newItem])
+          break
+        case "accessories":
+          setAccessoriesItems(prev => [...prev, newItem])
+          break
+        case "appliances":
+          setAppliancesItems(prev => [...prev, newItem])
+          break
+        case "wardrobes":
+          setWardrobesItems(prev => [...prev, newItem])
+          break
+        case "tvunit":
+          setTvUnitItems(prev => [...prev, newItem])
+          break
+      }
     }
   }
 
-  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number) => {
-    switch (category) {
-      case "cabinet":
-        if (cabinetItems.length > 1) {
-          setCabinetItems(cabinetItems.filter((_, i) => i !== index))
-        }
-        break
-      case "worktop":
-        setWorktopItems(worktopItems.filter((_, i) => i !== index))
-        break
-      case "accessories":
-        setAccessoriesItems(accessoriesItems.filter((_, i) => i !== index))
-        break
-      case "appliances":
-        setAppliancesItems(appliancesItems.filter((_, i) => i !== index))
-        break
-      case "wardrobes":
-        setWardrobesItems(wardrobesItems.filter((_, i) => i !== index))
-        break
-      case "tvunit":
-        setTvUnitItems(tvUnitItems.filter((_, i) => i !== index))
-        break
+  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, sectionGroup?: string) => {
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      const minLen = category === "cabinet" ? 1 : 0
+      if (arr.length <= minLen) return
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: arr.filter((_, i) => i !== index) }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet":
+          if (cabinetItems.length > 1) {
+            setCabinetItems(cabinetItems.filter((_, i) => i !== index))
+          }
+          break
+        case "worktop":
+          setWorktopItems(worktopItems.filter((_, i) => i !== index))
+          break
+        case "accessories":
+          setAccessoriesItems(accessoriesItems.filter((_, i) => i !== index))
+          break
+        case "appliances":
+          setAppliancesItems(appliancesItems.filter((_, i) => i !== index))
+          break
+        case "wardrobes":
+          setWardrobesItems(wardrobesItems.filter((_, i) => i !== index))
+          break
+        case "tvunit":
+          setTvUnitItems(tvUnitItems.filter((_, i) => i !== index))
+          break
+      }
     }
   }
 
-  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof QuotationItem, value: any) => {
+  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof QuotationItem, value: any, sectionGroup?: string) => {
     const updateItems = (items: QuotationItem[]) => {
       return items.map((item, i) => {
         if (i === index) {
@@ -761,15 +933,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
           if (field === 'stock_item_id') {
             const stockItem = stockItems.find(si => si.id === value)
-
-
             updatedItem.stock_item = stockItem || undefined
             updatedItem.description = stockItem?.name || ""
             updatedItem.unit = stockItem?.unit || "pieces"
             updatedItem.unit_price = Number(stockItem?.unit_price) || 0
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
-
-
           } else if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price
           }
@@ -780,25 +948,36 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       })
     }
 
-    switch (category) {
-      case "cabinet":
-        setCabinetItems(updateItems(cabinetItems))
-        break
-      case "worktop":
-        setWorktopItems(updateItems(worktopItems))
-        break
-      case "accessories":
-        setAccessoriesItems(updateItems(accessoriesItems))
-        break
-      case "appliances":
-        setAppliancesItems(updateItems(appliancesItems))
-        break
-      case "wardrobes":
-        setWardrobesItems(updateItems(wardrobesItems))
-        break
-      case "tvunit":
-        setTvUnitItems(updateItems(tvUnitItems))
-        break
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: updateItems(arr) }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet":
+          setCabinetItems(updateItems(cabinetItems))
+          break
+        case "worktop":
+          setWorktopItems(updateItems(worktopItems))
+          break
+        case "accessories":
+          setAccessoriesItems(updateItems(accessoriesItems))
+          break
+        case "appliances":
+          setAppliancesItems(updateItems(appliancesItems))
+          break
+        case "wardrobes":
+          setWardrobesItems(updateItems(wardrobesItems))
+          break
+        case "tvunit":
+          setTvUnitItems(updateItems(tvUnitItems))
+          break
+      }
     }
   }
 
@@ -810,48 +989,70 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setItemDropdownVisible(prev => ({ ...prev, [itemId]: !prev[itemId] }))
   }
 
-  const selectStockItem = (itemId: string, stockItem: StockItem) => {
-
-
-    // Find which category this item belongs to and get the correct index within that category
+  const selectStockItem = (itemId: string, stockItem: StockItem, sectionGroup?: string) => {
     let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
     let index = -1
 
-    // Check cabinet items
-    const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
-    if (cabinetIndex !== -1) {
-      category = "cabinet"
-      index = cabinetIndex
-    } else {
-      // Check worktop items
-      const worktopIndex = worktopItems.findIndex(item => item.id?.toString() === itemId)
-      if (worktopIndex !== -1) {
-        category = "worktop"
-        index = worktopIndex
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (items) {
+        for (const cat of ["cabinet", "worktop", "accessories", "appliances", "wardrobes", "tvunit"] as const) {
+          const arr = items[cat] || []
+          const idx = arr.findIndex(item => item.id?.toString() === itemId)
+          if (idx !== -1) {
+            category = cat
+            index = idx
+            break
+          }
+        }
+      }
+    }
+
+    if (!category || index === -1) {
+      const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
+      if (cabinetIndex !== -1) {
+        category = "cabinet"
+        index = cabinetIndex
       } else {
-        // Check accessories items
-        const accessoriesIndex = accessoriesItems.findIndex(item => item.id?.toString() === itemId)
-        if (accessoriesIndex !== -1) {
-          category = "accessories"
-          index = accessoriesIndex
+        const worktopIndex = worktopItems.findIndex(item => item.id?.toString() === itemId)
+        if (worktopIndex !== -1) {
+          category = "worktop"
+          index = worktopIndex
         } else {
-          // Check appliances items
-          const appliancesIndex = appliancesItems.findIndex(item => item.id?.toString() === itemId)
-          if (appliancesIndex !== -1) {
-            category = "appliances"
-            index = appliancesIndex
+          const accessoriesIndex = accessoriesItems.findIndex(item => item.id?.toString() === itemId)
+          if (accessoriesIndex !== -1) {
+            category = "accessories"
+            index = accessoriesIndex
           } else {
-            // Check wardrobes items
-            const wardrobesIndex = wardrobesItems.findIndex(item => item.id?.toString() === itemId)
-            if (wardrobesIndex !== -1) {
-              category = "wardrobes"
-              index = wardrobesIndex
+            const appliancesIndex = appliancesItems.findIndex(item => item.id?.toString() === itemId)
+            if (appliancesIndex !== -1) {
+              category = "appliances"
+              index = appliancesIndex
             } else {
-              // Check tvunit items
-              const tvunitIndex = tvUnitItems.findIndex(item => item.id?.toString() === itemId)
-              if (tvunitIndex !== -1) {
-                category = "tvunit"
-                index = tvunitIndex
+              const wardrobesIndex = wardrobesItems.findIndex(item => item.id?.toString() === itemId)
+              if (wardrobesIndex !== -1) {
+                category = "wardrobes"
+                index = wardrobesIndex
+              } else {
+                const tvunitIndex = tvUnitItems.findIndex(item => item.id?.toString() === itemId)
+                if (tvunitIndex !== -1) {
+                  category = "tvunit"
+                  index = tvunitIndex
+                } else {
+                  for (const [secId, secItems] of Object.entries(customSectionItems)) {
+                    for (const cat of ["cabinet", "worktop", "accessories", "appliances", "wardrobes", "tvunit"] as const) {
+                      const arr = secItems[cat] || []
+                      const idx = arr.findIndex(item => item.id?.toString() === itemId)
+                      if (idx !== -1) {
+                        category = cat
+                        index = idx
+                        sectionGroup = secId
+                        break
+                      }
+                    }
+                    if (category) break
+                  }
+                }
               }
             }
           }
@@ -860,15 +1061,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     }
 
     if (category && index !== -1) {
-
-
-      // Single call to updateItem with stock_item_id will automatically populate all fields
-      updateItem(category, index, "stock_item_id", stockItem.id)
-
+      updateItem(category, index, "stock_item_id", stockItem.id, sectionGroup)
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
-    } else {
-
     }
   }
 
@@ -1555,7 +1750,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       return
     }
 
-    if (cabinetItems.length === 0 && worktopItems.length === 0 && accessoriesItems.length === 0 && appliancesItems.length === 0 && wardrobesItems.length === 0 && tvUnitItems.length === 0) {
+    const hasMainItems = cabinetItems.length > 0 || worktopItems.length > 0 || accessoriesItems.length > 0 || appliancesItems.length > 0 || wardrobesItems.length > 0 || tvUnitItems.length > 0
+    const hasCustomItems = Object.values(customSectionItems).some(sec => {
+      const items = Object.values(sec).flat()
+      return items.some(i => (i.description || "").trim() !== "" || i.total_price > 0)
+    })
+    if (!hasMainItems && !hasCustomItems) {
       toast.error("Please add at least one item")
       return
     }
@@ -1619,7 +1819,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       const saveWardrobesLabour = includeLabourWardrobes && includeWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
       const saveTvUnitLabour = includeLabourTvUnit && includeTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
 
-      const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
+      const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour + (totals.customSectionsLabour || 0);
       const saveVatPercentageNum = Number(vatPercentage);
       // Reverse calculate VAT: if total includes VAT, extract the VAT amount
       const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
@@ -1655,7 +1855,28 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         status: "pending",
         notes,
         terms_conditions: termsConditions,
-        items: [...finalCabinetItems, ...worktopItems, ...finalAccessoriesItems, ...finalAppliancesItems, ...finalWardrobesItems, ...finalTvUnitItems],
+        items: (() => {
+          const main = [...finalCabinetItems, ...worktopItems, ...finalAccessoriesItems, ...finalAppliancesItems, ...finalWardrobesItems, ...finalTvUnitItems]
+          const custom: Array<{ category: string; description: string; unit: string; quantity: number; unit_price: number; total_price: number; stock_item_id?: number; section_group: string }> = []
+          for (const sec of customSections) {
+            const secItems = customSectionItems[sec.id] || {}
+            if (sec.type === "normal") {
+              for (const cat of ["cabinet", "accessories", "appliances", "wardrobes", "tvunit"] as const) {
+                const arr = (secItems[cat] || []).filter(i => !i.description?.includes("Labour Charge"))
+                for (const item of arr) {
+                  custom.push({ ...item, section_group: sec.id })
+                }
+              }
+            } else {
+              const worktop = (secItems.worktop || [])
+              for (const item of worktop) {
+                custom.push({ ...item, section_group: sec.id })
+              }
+            }
+          }
+          return [...main, ...custom]
+        })(),
+        custom_sections: customSections.map(s => ({ id: s.id, name: s.name, type: s.type })),
         cabinet_labour_percentage: cabinetLabourPercentage,
         accessories_labour_percentage: accessoriesLabourPercentage,
         appliances_labour_percentage: appliancesLabourPercentage,
@@ -1908,7 +2129,42 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const wardrobesTotal = includeWardrobes ? wardrobesItems.reduce((sum, item) => sum + item.total_price, 0) : 0
     const tvUnitTotal = includeTvUnit ? tvUnitItems.reduce((sum, item) => sum + item.total_price, 0) : 0
 
-    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
+    let customSectionsItemTotal = 0
+    let customSectionsLabour = 0
+    for (const sec of customSections) {
+      const items = customSectionItems[sec.id] || {}
+      if (sec.type === "normal") {
+        const cabItems = (items.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
+        const cabSum = cabItems.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += cabSum
+        customSectionsLabour += includeLabourCabinet ? (cabSum * cabinetLabourPercentage) / 100 : 0
+
+        const accItems = (items.accessories || []).filter(i => !i.description?.includes("Labour Charge"))
+        const accSum = accItems.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += accSum
+        customSectionsLabour += includeLabourAccessories ? (accSum * accessoriesLabourPercentage) / 100 : 0
+
+        const appItems = (items.appliances || []).filter(i => !i.description?.includes("Labour Charge"))
+        const appSum = appItems.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += appSum
+        customSectionsLabour += includeLabourAppliances ? (appSum * appliancesLabourPercentage) / 100 : 0
+
+        const wardItems = (items.wardrobes || []).filter(i => !i.description?.includes("Labour Charge"))
+        const wardSum = wardItems.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += wardSum
+        customSectionsLabour += includeLabourWardrobes ? (wardSum * wardrobesLabourPercentage) / 100 : 0
+
+        const tvItems = (items.tvunit || []).filter(i => !i.description?.includes("Labour Charge"))
+        const tvSum = tvItems.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += tvSum
+        customSectionsLabour += includeLabourTvUnit ? (tvSum * tvUnitLabourPercentage) / 100 : 0
+      } else {
+        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
+        customSectionsItemTotal += workSum
+      }
+    }
+
+    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal + customSectionsItemTotal
 
     // Calculate individual labour amounts (only when include labour is on for that section; no worktopLabour)
     const cabinetLabour = includeLabourCabinet ? (cabinetTotal * cabinetLabourPercentage) / 100 : 0
@@ -1917,7 +2173,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const wardrobesLabour = includeLabourWardrobes && includeWardrobes ? (wardrobesTotal * wardrobesLabourPercentage) / 100 : 0
     const tvUnitLabour = includeLabourTvUnit && includeTvUnit ? (tvUnitTotal * tvUnitLabourPercentage) / 100 : 0
 
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour + customSectionsLabour
     const grandTotal = subtotal + totalLabour
 
     return {
@@ -1929,6 +2185,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       tvUnitTotal,
       subtotal,
       labourAmount: totalLabour,
+      customSectionsLabour,
+      customSectionsTotal: customSectionsItemTotal + customSectionsLabour,
       grandTotal,
       cabinetLabour,
       accessoriesLabour,
@@ -1940,7 +2198,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     includeWorktop, includeAccessories, includeAppliances, includeWardrobes, includeTvUnit,
     includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit,
     worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage,
-    accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage])
+    accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage,
+    customSections, customSectionItems])
 
   // Legacy function for backward compatibility - now just returns memoized values
   const calculateTotals = () => totals
@@ -2434,6 +2693,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               <Plus size={14} className="me-1" />
                               Add Item
                             </button>
+                            <AddNewSectionButton anchorKey="cabinet" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "cabinet"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "cabinet" ? null : "cabinet")} />
                           </div>
                         )}
                       </div>
@@ -2791,6 +3051,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 <Plus size={14} className="me-1" />
                                 Add Item
                               </button>
+                              <AddNewSectionButton anchorKey="worktop" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "worktop"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "worktop" ? null : "worktop")} />
                             </div>
                           )}
                         </div>
@@ -3077,6 +3338,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 <Plus size={14} className="me-1" />
                                 Add Item
                               </button>
+                              <AddNewSectionButton anchorKey="accessories" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "accessories"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "accessories" ? null : "accessories")} />
                             </div>
                           )}
                         </div>
@@ -3363,6 +3625,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 <Plus size={14} className="me-1" />
                                 Add Item
                               </button>
+                              <AddNewSectionButton anchorKey="appliances" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "appliances"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "appliances" ? null : "appliances")} />
                             </div>
                           )}
                         </div>
@@ -3649,6 +3912,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 <Plus size={14} className="me-1" />
                                 Add Item
                               </button>
+                              <AddNewSectionButton anchorKey="wardrobes" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "wardrobes"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "wardrobes" ? null : "wardrobes")} />
                             </div>
                           )}
                         </div>
@@ -3935,6 +4199,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 <Plus size={14} className="me-1" />
                                 Add Item
                               </button>
+                              <AddNewSectionButton anchorKey="tvunit" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "tvunit"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "tvunit" ? null : "tvunit")} />
                             </div>
                           )}
                         </div>
@@ -3942,6 +4207,116 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Custom Sections (e.g. Kitchen 2, multiple worktops) */}
+                {customSections.map((sec) => (
+                  <div key={sec.id} className="mb-4">
+                    <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                      <div className="card-body p-4">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <div className="d-flex align-items-center">
+                            <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                            {isReadOnly ? (
+                              <h6 className="mb-0 fw-bold" style={{ color: "#ffffff" }}>{sec.name}</h6>
+                            ) : (
+                              <input
+                                type="text"
+                                value={sec.name}
+                                onChange={(e) => updateCustomSectionName(sec.id, e.target.value)}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "#ffffff",
+                                  fontSize: "16px",
+                                  fontWeight: "bold",
+                                  outline: "none",
+                                  borderBottom: "2px solid transparent",
+                                  padding: "2px 4px"
+                                }}
+                              />
+                            )}
+                          </div>
+                          {!isReadOnly && (
+                            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }}>
+                              <Trash2 size={14} /> Remove
+                            </button>
+                          )}
+                        </div>
+                        {sec.type === "normal" ? (
+                          <CustomNormalSection
+                            sectionId={sec.id}
+                            items={customSectionItems[sec.id] || {}}
+                            addItem={addItem}
+                            removeItem={removeItem}
+                            updateItem={updateItem}
+                            sectionNames={sectionNames}
+                            stockItems={stockItems}
+                            getItemInputRef={getItemInputRef}
+                            itemDropdownVisible={itemDropdownVisible}
+                            setItemDropdownVisible={setItemDropdownVisible}
+                            handleItemSearch={handleItemSearch}
+                            selectStockItem={selectStockItem}
+                            getFilteredItems={getFilteredItems}
+                            includeLabourCabinet={includeLabourCabinet}
+                            setIncludeLabourCabinet={setIncludeLabourCabinet}
+                            cabinetLabourPercentage={cabinetLabourPercentage}
+                            setCabinetLabourPercentage={setCabinetLabourPercentage}
+                            includeLabourAccessories={includeLabourAccessories}
+                            setIncludeLabourAccessories={setIncludeLabourAccessories}
+                            accessoriesLabourPercentage={accessoriesLabourPercentage}
+                            setAccessoriesLabourPercentage={setAccessoriesLabourPercentage}
+                            includeLabourAppliances={includeLabourAppliances}
+                            setIncludeLabourAppliances={setIncludeLabourAppliances}
+                            appliancesLabourPercentage={appliancesLabourPercentage}
+                            setAppliancesLabourPercentage={setAppliancesLabourPercentage}
+                            includeLabourWardrobes={includeLabourWardrobes}
+                            setIncludeLabourWardrobes={setIncludeLabourWardrobes}
+                            wardrobesLabourPercentage={wardrobesLabourPercentage}
+                            setWardrobesLabourPercentage={setWardrobesLabourPercentage}
+                            includeLabourTvUnit={includeLabourTvUnit}
+                            setIncludeLabourTvUnit={setIncludeLabourTvUnit}
+                            tvUnitLabourPercentage={tvUnitLabourPercentage}
+                            setTvUnitLabourPercentage={setTvUnitLabourPercentage}
+                            rawQuantityValues={rawQuantityValues}
+                            setRawQuantityValues={setRawQuantityValues}
+                            rawPriceValues={rawPriceValues}
+                            setRawPriceValues={setRawPriceValues}
+                            isReadOnly={isReadOnly}
+                            isMobile={isMobile}
+                            PortalDropdown={PortalDropdown}
+                          />
+                        ) : (
+                          <CustomWorktopSection
+                            sectionId={sec.id}
+                            items={(customSectionItems[sec.id] || {}).worktop || []}
+                            addItem={addItem}
+                            removeItem={removeItem}
+                            updateItem={updateItem}
+                            sectionNames={sectionNames}
+                            stockItems={stockItems}
+                            getItemInputRef={getItemInputRef}
+                            itemDropdownVisible={itemDropdownVisible}
+                            setItemDropdownVisible={setItemDropdownVisible}
+                            handleItemSearch={handleItemSearch}
+                            selectStockItem={selectStockItem}
+                            getFilteredItems={getFilteredItems}
+                            worktopLaborQty={worktopLaborQty}
+                            setWorktopLaborQty={setWorktopLaborQty}
+                            worktopLaborUnitPrice={worktopLaborUnitPrice}
+                            setWorktopLaborUnitPrice={setWorktopLaborUnitPrice}
+                            rawQuantityValues={rawQuantityValues}
+                            setRawQuantityValues={setRawQuantityValues}
+                            rawPriceValues={rawPriceValues}
+                            setRawPriceValues={setRawPriceValues}
+                            isReadOnly={isReadOnly}
+                            isMobile={isMobile}
+                            PortalDropdown={PortalDropdown}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
                 {/* Totals Section */}
                 <div className="mb-4">
@@ -3985,6 +4360,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                             <div className="d-flex justify-content-between mb-2">
                               <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
                               <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {customSections.length > 0 && (totals as any).customSectionsTotal > 0 && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>Custom Sections Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {((totals as any).customSectionsTotal || 0).toFixed(2)}</span>
                             </div>
                           )}
                         </div>
