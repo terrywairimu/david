@@ -823,13 +823,14 @@ const QuotationsView = () => {
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
-      const grouped = quotation.items?.reduce((acc, item) => {
+      const allItems = quotation.items || [];
+      const mainItems = allItems.filter((item: any) => !item.section_group);
+      const customSectionItemsList = allItems.filter((item: any) => item.section_group);
+      const customSectionsMeta = (quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || [];
+      const grouped = mainItems.reduce((acc, item) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof quotation.items>) || {};
-
-      // Debug: Log the grouped items structure
-
+      }, {} as Record<string, any>) || {};
 
       // Define the default section order
       const sectionOrder = ['cabinet', 'worktop', 'accessories', 'appliances', 'wardrobes', 'tvunit'];
