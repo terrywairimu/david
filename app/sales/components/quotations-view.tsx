@@ -475,10 +475,14 @@ const QuotationsView = () => {
 
       // Prepare items data with section headings and improved formatting
       const items: any[] = [];
-      const grouped = quotation.items?.reduce((acc, item) => {
+      const allItems = quotation.items || [];
+      const mainItems = allItems.filter((item: any) => !item.section_group);
+      const customSectionItemsList = allItems.filter((item: any) => item.section_group);
+      const customSectionsMeta = (quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || [];
+      const grouped = mainItems.reduce((acc, item) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
-      }, {} as Record<string, typeof quotation.items>) || {};
+      }, {} as Record<string, any>) || {};
 
 
 
@@ -593,10 +597,35 @@ const QuotationsView = () => {
         items.push(summaryRow);
       });
 
+      // Process custom sections (each as independent section)
+      const customBySection = customSectionItemsList.reduce((acc: Record<string, any[]>, item: any) => {
+        const sg = item.section_group || "";
+        (acc[sg] = acc[sg] || []).push(item);
+        return acc;
+      }, {});
+      for (const sec of customSectionsMeta) {
+        const secItemList = customBySection[sec.id] || [];
+        if (secItemList.length === 0) continue;
+        const secName = sec.name || "Custom Section";
+        let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (secTotal <= 0) continue;
+        items.push({ isSection: true, itemNumber: "", quantity: "", unit: "", description: secName.toUpperCase(), unitPrice: "", total: "" });
+        secItemList.forEach((item: any, idx: number) => {
+          items.push({ isSection: false, itemNumber: String(idx + 1), quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price != null ? item.unit_price : "", total: item.total_price != null ? item.total_price : "" });
+        });
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          items.push({ isSection: false, itemNumber: String(secItemList.length + 1), quantity: quotation.worktop_labor_qty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: quotation.worktop_labor_unit_price, total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price });
+        }
+        items.push({ isSectionSummary: true, itemNumber: "", quantity: "", unit: "", description: `${secName} Total`, unitPrice: "", total: secTotal.toFixed(2) });
+      }
+
       // Debug: Log the final items array
       console.log('Final items array for PDF:', items);
 
-      // Calculate section totals for PDF
+      // Calculate section totals for PDF (main sections + each custom section independently)
       const sectionTotals: Array<{name: string, total: number}> = [];
       
       sectionOrder.forEach((category) => {
@@ -687,6 +716,17 @@ const QuotationsView = () => {
           });
         }
       });
+      // Add custom section totals independently
+      for (const sec of customSectionsMeta) {
+        const secItemList = customBySection[sec.id] || [];
+        if (secItemList.length === 0) continue;
+        const secName = sec.name || "Custom Section";
+        let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (secTotal > 0) sectionTotals.push({ name: secName, total: secTotal });
+      }
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({
@@ -913,10 +953,35 @@ const QuotationsView = () => {
         items.push(summaryRow);
       });
 
+      // Process custom sections (each as independent section)
+      const customBySectionDl = customSectionItemsList.reduce((acc: Record<string, any[]>, item: any) => {
+        const sg = item.section_group || "";
+        (acc[sg] = acc[sg] || []).push(item);
+        return acc;
+      }, {});
+      for (const sec of customSectionsMeta) {
+        const secItemList = customBySectionDl[sec.id] || [];
+        if (secItemList.length === 0) continue;
+        const secName = sec.name || "Custom Section";
+        let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (secTotal <= 0) continue;
+        items.push({ isSection: true, itemNumber: "", quantity: "", unit: "", description: secName.toUpperCase(), unitPrice: "", total: "" });
+        secItemList.forEach((item: any, idx: number) => {
+          items.push({ isSection: false, itemNumber: String(idx + 1), quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price != null ? item.unit_price : "", total: item.total_price != null ? item.total_price : "" });
+        });
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          items.push({ isSection: false, itemNumber: String(secItemList.length + 1), quantity: quotation.worktop_labor_qty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: quotation.worktop_labor_unit_price, total: quotation.worktop_labor_qty * quotation.worktop_labor_unit_price });
+        }
+        items.push({ isSectionSummary: true, itemNumber: "", quantity: "", unit: "", description: `${secName} Total`, unitPrice: "", total: secTotal.toFixed(2) });
+      }
+
       // Debug: Log the final items array
       console.log('Final items array for PDF:', items);
 
-      // Calculate section totals for PDF
+      // Calculate section totals for PDF (main sections + each custom section independently)
       const sectionTotals: Array<{name: string, total: number}> = [];
       
       sectionOrder.forEach((category) => {
@@ -976,6 +1041,17 @@ const QuotationsView = () => {
           });
         }
       });
+      // Add custom section totals independently
+      for (const sec of customSectionsMeta) {
+        const secItemList = customBySectionDl[sec.id] || [];
+        if (secItemList.length === 0) continue;
+        const secName = sec.name || "Custom Section";
+        let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (secTotal > 0) sectionTotals.push({ name: secName, total: secTotal });
+      }
 
       // Prepare quotation data
       const { template, inputs } = await generateQuotationPDF({

@@ -1104,7 +1104,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
       // Calculate subtotal with all labour included (consistent with UI display)
       // Only include labour for visible sections
-      const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+      const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour + (totals.customSectionsLabour ?? 0);
 
       // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
       const vatPercentageNum = Number(vatPercentage);
@@ -1314,6 +1314,66 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         }
       }
 
+      // Add custom sections (each as independent section with header, items, and summary)
+      for (const sec of customSections) {
+        if (!(includeCustomSection[sec.id] ?? true)) continue
+        const secItems = customSectionItems[sec.id] || {}
+        let secTotal = 0
+        if (sec.type === "normal") {
+          const cabItems = (secItems.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge"))
+          const cabSum = cabItems.reduce((s: number, i: QuotationItem) => s + i.total_price, 0)
+          const inclLabour = customSectionIncludeLabour[sec.id] ?? true
+          const labourPct = customSectionLabourPercentage[sec.id] ?? 30
+          const labour = inclLabour ? (cabSum * labourPct) / 100 : 0
+          secTotal = cabSum + labour
+          if (secTotal <= 0) continue
+          items.push({ isSection: true, description: sec.name, quantity: 0, unit: "", unitPrice: 0, total: 0 })
+          cabItems.forEach((item: QuotationItem) => {
+            items.push({ quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price, total: item.total_price })
+          })
+          if (inclLabour && labour > 0) {
+            items.push({ quantity: 1, unit: "sum", description: `Labour Charge (${labourPct}%)`, unitPrice: labour, total: labour })
+          }
+        } else {
+          const workItems = secItems.worktop || []
+          const workSum = workItems.reduce((s: number, i: QuotationItem) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
+          secTotal = workSum
+          if (secTotal <= 0) continue
+          items.push({ isSection: true, description: sec.name, quantity: 0, unit: "", unitPrice: 0, total: 0 })
+          workItems.forEach((item: QuotationItem) => {
+            items.push({ quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price, total: item.total_price })
+          })
+          if (worktopLaborQty > 0 && worktopLaborUnitPrice > 0) {
+            items.push({ quantity: worktopLaborQty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: worktopLaborUnitPrice, total: worktopLaborQty * worktopLaborUnitPrice })
+          }
+        }
+        items.push({ isSectionSummary: true, description: `${sec.name} Total`, quantity: 0, unit: "", unitPrice: secTotal, total: secTotal })
+      }
+
+      // Build section totals for PDF (each section independently: Cabinet, Worktop?, Accessories?, etc., then each custom section)
+      const sectionTotalsForPdf: Array<{ name: string; total: number }> = []
+      if (totals.cabinetTotal + cabinetLabour > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.cabinet, total: totals.cabinetTotal + cabinetLabour })
+      }
+      if (includeWorktop && totals.worktopTotal > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.worktop, total: totals.worktopTotal })
+      }
+      if (includeAccessories && totals.accessoriesTotal + accessoriesLabour > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.accessories, total: totals.accessoriesTotal + accessoriesLabour })
+      }
+      if (includeAppliances && totals.appliancesTotal + appliancesLabour > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.appliances, total: totals.appliancesTotal + appliancesLabour })
+      }
+      if (includeWardrobes && totals.wardrobesTotal + wardrobesLabour > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.wardrobes, total: totals.wardrobesTotal + wardrobesLabour })
+      }
+      if (includeTvUnit && totals.tvUnitTotal + tvUnitLabour > 0) {
+        sectionTotalsForPdf.push({ name: sectionNames.tvunit, total: totals.tvUnitTotal + tvUnitLabour })
+      }
+      ;(totals.customSectionTotals || []).forEach((cs) => {
+        if (cs.total > 0) sectionTotalsForPdf.push({ name: cs.name, total: cs.total })
+      })
+
       // Fetch watermark image as base64
       async function fetchImageAsBase64(url: string): Promise<string> {
         const response = await fetch(url);
@@ -1341,10 +1401,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         quotationNumber: quotationNumber,
         items: items,
         section_names: sectionNames, // Add custom section names
+        sectionTotals: sectionTotalsForPdf, // Each section independently (main + custom)
         subtotal: originalAmount, // Amount before VAT
         vat: vat, // Extracted VAT amount
         vatPercentage: vatPercentageNum,
-        total: subtotalWithLabour, // Total amount including VAT
+        total: subtotalWithLabour - discountAmount, // Grand total after discount
         terms: termsConditions.split('\n').filter(line => line.trim()),
         preparedBy: "",
         approvedBy: "",
@@ -1494,7 +1555,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
       // Prepare items data with section headings and improved formatting (same as working download PDF)
       const items: any[] = [];
-      const grouped = quotation.items?.reduce((acc: Record<string, any[]>, item: any) => {
+      // Separate main section items (no section_group) from custom section items (have section_group)
+      const mainItems = (quotation.items || []).filter((item: any) => !item.section_group);
+      const customSectionItemsList = (quotation.items || []).filter((item: any) => item.section_group);
+      const customSectionsMeta = (quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || [];
+      const customSectionNameMap = Object.fromEntries(customSectionsMeta.map((s) => [s.id, s.name]));
+      const grouped = mainItems.reduce((acc: Record<string, any[]>, item: any) => {
         (acc[item.category] = acc[item.category] || []).push(item);
         return acc;
       }, {} as Record<string, any[]>) || {};
@@ -1704,6 +1770,89 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         items.push(summaryRow);
       });
 
+      // Process custom sections (each as independent section)
+      const customBySection = customSectionItemsList.reduce((acc: Record<string, any[]>, item: any) => {
+        const sg = item.section_group || "";
+        (acc[sg] = acc[sg] || []).push(item);
+        return acc;
+      }, {});
+      const sectionTotalsForViewing: Array<{ name: string; total: number }> = [];
+      // Rebuild section totals from main sections for PDF totals box
+      const addMainSectionTotal = (category: string, total: number) => {
+        if (total <= 0) return;
+        const labels: Record<string, string> = {
+          cabinet: quotation.section_names?.cabinet || "General",
+          worktop: quotation.section_names?.worktop || "Worktop",
+          accessories: quotation.section_names?.accessories || "Accessories",
+          appliances: quotation.section_names?.appliances || "Appliances",
+          wardrobes: quotation.section_names?.wardrobes || "Wardrobes",
+          tvunit: quotation.section_names?.tvunit || "TV Unit"
+        };
+        sectionTotalsForViewing.push({ name: labels[category] || category, total });
+      };
+      sectionOrder.forEach((category) => {
+        const itemsInCategory = grouped[category] || [];
+        if (itemsInCategory.length === 0) return;
+        let st = itemsInCategory.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (category === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          st += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (category !== "worktop" && category !== "cabinet" && itemsInCategory.length > 0) {
+          const sit = itemsInCategory.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+          let lp = quotation.labour_percentage || 30;
+          if (category === "cabinet") lp = quotation.cabinet_labour_percentage || lp;
+          else if (category === "accessories") lp = quotation.accessories_labour_percentage || lp;
+          else if (category === "appliances") lp = quotation.appliances_labour_percentage || lp;
+          else if (category === "wardrobes") lp = quotation.wardrobes_labour_percentage || lp;
+          else if (category === "tvunit") lp = quotation.tvunit_labour_percentage || lp;
+          st += (sit * lp) / 100;
+        }
+        addMainSectionTotal(category, st);
+      });
+      // Process each custom section and add to items + sectionTotals
+      for (const sec of customSectionsMeta) {
+        const secItemList = customBySection[sec.id] || [];
+        if (secItemList.length === 0) continue;
+        const secName = sec.name || "Custom Section";
+        let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        }
+        if (secTotal <= 0) continue;
+        items.push({ isSection: true, itemNumber: "", quantity: "", unit: "", description: secName, unitPrice: "", total: "" });
+        secItemList.forEach((item: any, idx: number) => {
+          items.push({
+            isSection: false,
+            itemNumber: String(idx + 1),
+            quantity: item.quantity,
+            unit: item.unit || "",
+            description: item.description || "",
+            unitPrice: item.unit_price != null ? item.unit_price : "",
+            total: item.total_price != null ? item.total_price : ""
+          });
+        });
+        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+          items.push({
+            itemNumber: String(secItemList.length + 1),
+            quantity: quotation.worktop_labor_qty,
+            unit: "per slab",
+            description: "Worktop Installation Labor",
+            unitPrice: quotation.worktop_labor_unit_price.toFixed(2),
+            total: (quotation.worktop_labor_qty * quotation.worktop_labor_unit_price).toFixed(2)
+          });
+        }
+        items.push({
+          isSectionSummary: true,
+          itemNumber: "",
+          quantity: "",
+          unit: "",
+          description: `${secName} Total`,
+          unitPrice: "",
+          total: secTotal.toFixed(2)
+        });
+        sectionTotalsForViewing.push({ name: secName, total: secTotal });
+      }
+
       // Parse terms and conditions from database
       const parseTermsAndConditions = (termsText: string) => {
         return (termsText || "").split('\n').filter(line => line.trim());
@@ -1722,7 +1871,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         deliveryNoteNo: "Delivery Note No.",
         quotationNumber: quotation.quotation_number,
         items,
-        sectionTotals: [],
+        sectionTotals: sectionTotalsForViewing,
         total: quotation.grand_total || 0,
         notes: quotation.notes || "",
         terms: parseTermsAndConditions(quotation.terms_conditions || ""),
@@ -2145,20 +2294,26 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
     let customSectionsItemTotal = 0
     let customSectionsLabour = 0
+    const customSectionTotals: Array<{ id: string; name: string; total: number }> = []
     for (const sec of customSections) {
       if (!(includeCustomSection[sec.id] ?? true)) continue
       const items = customSectionItems[sec.id] || {}
+      let secTotal = 0
       if (sec.type === "normal") {
         const cabItems = (items.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
         const cabSum = cabItems.reduce((s, i) => s + i.total_price, 0)
         customSectionsItemTotal += cabSum
         const includeLabour = customSectionIncludeLabour[sec.id] ?? true
         const labourPct = customSectionLabourPercentage[sec.id] ?? 30
-        customSectionsLabour += includeLabour ? (cabSum * labourPct) / 100 : 0
+        const labour = includeLabour ? (cabSum * labourPct) / 100 : 0
+        customSectionsLabour += labour
+        secTotal = cabSum + labour
       } else {
         const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
         customSectionsItemTotal += workSum
+        secTotal = workSum
       }
+      customSectionTotals.push({ id: sec.id, name: sec.name, total: secTotal })
     }
 
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal + customSectionsItemTotal
@@ -2184,6 +2339,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       labourAmount: totalLabour,
       customSectionsLabour,
       customSectionsTotal: customSectionsItemTotal + customSectionsLabour,
+      customSectionTotals,
       grandTotal,
       cabinetLabour,
       accessoriesLabour,
@@ -4462,12 +4618,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
                             </div>
                           )}
-                          {customSections.length > 0 && (totals as any).customSectionsTotal > 0 && (
-                            <div className="d-flex justify-content-between mb-2">
-                              <span style={{ color: "#ffffff" }}>Custom Sections Total:</span>
-                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {((totals as any).customSectionsTotal || 0).toFixed(2)}</span>
+                          {(totals.customSectionTotals || []).map((cs) => (
+                            <div key={cs.id} className="d-flex justify-content-between mb-2">
+                              <span style={{ color: "#ffffff" }}>{cs.name} Total:</span>
+                              <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {cs.total.toFixed(2)}</span>
                             </div>
-                          )}
+                          ))}
                         </div>
                         <div className="col-md-6">
                           <div className="d-flex justify-content-between mb-2">
