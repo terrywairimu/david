@@ -2,7 +2,6 @@
 
 import React from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
@@ -122,13 +121,12 @@ const Sidebar = () => {
         <div className="sidebar-user-header">
           <div className="sidebar-avatar-wrapper">
             {hasGoogleAvatar ? (
-              <Image
+              <img
                 src={avatarUrl}
                 alt="Profile"
                 width={48}
                 height={48}
                 className="sidebar-avatar-img"
-                unoptimized
               />
             ) : (
               <div className="sidebar-avatar-initials">{initials}</div>

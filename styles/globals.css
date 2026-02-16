@@ -492,6 +492,23 @@ body {
         transform: scale(1.1);
     }
     
+    .sidebar-user-header {
+        padding: 0.5rem 0.5rem 0.25rem;
+    }
+    .sidebar-avatar-wrapper {
+        width: 40px;
+        height: 40px;
+    }
+    .sidebar-avatar-initials {
+        font-size: 0.9rem;
+    }
+    .sidebar-role-label {
+        font-size: 0.7rem;
+        margin-top: 0.35rem;
+    }
+    .sidebar-header-divider {
+        margin-top: 0.5rem;
+    }
     .sidebar h3 {
         font-size: 1rem;
         margin-bottom: 0.75rem;
@@ -583,6 +600,17 @@ body {
     .sidebar .nav-link:hover i,
     .sidebar .nav-link.active i {
         transform: scale(1.1);
+    }
+    
+    .sidebar-user-header {
+        padding: 0.6rem 0.5rem 0.4rem;
+    }
+    .sidebar-avatar-wrapper {
+        width: 44px;
+        height: 44px;
+    }
+    .sidebar-role-label {
+        font-size: 0.72rem;
     }
     
     .sidebar h3 {
