@@ -280,10 +280,15 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     const sectionData: {[key: string]: any[]} = {}
     const defaultSections: {[key: string]: string} = {}
     
+    // Track how many times we've seen each section type - only first goes to main section, rest get create_new
+    const sectionTypeCount: {[key: string]: number} = {}
+    
     // Keep each physical section separate (e.g. Kitchen 1 Cabinets, Kitchen 1 Worktop, Kitchen 2 Cabinets, Kitchen 2 Worktop)
     sectionAnalysis.sections.forEach((section: any, index: number) => {
       const sectionType = detectSectionType(section.title)
       const uniqueKey = `section_${index}`
+      const count = (sectionTypeCount[sectionType] ?? 0) + 1
+      sectionTypeCount[sectionType] = count
       
       const mappedRows = section.dataRows.map((row: any[]) => {
         const mappedRow: any = {}
@@ -299,7 +304,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       }).filter((row: any) => row.description && row.quantity && row.unitPrice)
       
       sectionData[uniqueKey] = mappedRows
-      defaultSections[uniqueKey] = sectionType
+      // First occurrence of each section type goes to main section; 2nd+ get their own "Create new" section
+      defaultSections[uniqueKey] = count === 1 ? sectionType : `create_new:${uniqueKey}`
     })
     
     // Create sections array for display - each physical section listed
