@@ -72,6 +72,104 @@ const dropdownItemHoverStyle = {
   backgroundColor: '#f0f9ff'
 }
 
+// Client search dropdown - MUST be at module level to avoid remounting on each keystroke
+// (defining it inside ReportBuilderModal caused the input to lose focus every character)
+function ClientSearchDropdown({ 
+  searchTerm, 
+  setSearchTerm, 
+  selectedId, 
+  setSelectedId, 
+  showDropdown, 
+  setShowDropdown, 
+  filteredList,
+  placeholder = "Search client..."
+}: {
+  searchTerm: string
+  setSearchTerm: (v: string) => void
+  selectedId: string
+  setSelectedId: (v: string) => void
+  showDropdown: boolean
+  setShowDropdown: (v: boolean) => void
+  filteredList: Array<{id: number, name: string}>
+  placeholder?: string
+}) {
+  return (
+    <div className="position-relative">
+      <div className="input-group">
+        <span className="input-group-text" style={{ borderRadius: '12px 0 0 12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+          <Search size={16} style={{ color: '#6b7280' }} />
+        </span>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value)
+            setShowDropdown(true)
+          }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder={placeholder}
+          style={{ 
+            borderRadius: '0 12px 12px 0', 
+            height: '45px',
+            backgroundColor: '#ffffff',
+            color: '#333333',
+            border: '1px solid #e5e7eb',
+            borderLeft: 'none'
+          }}
+        />
+      </div>
+      
+      {showDropdown && (
+        <div 
+          className="position-absolute w-100 shadow-lg rounded-3 mt-1" 
+          style={{ 
+            zIndex: 1000, 
+            maxHeight: '200px', 
+            overflowY: 'auto', 
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb'
+          }}
+        >
+          <div 
+            className="border-bottom"
+            onClick={() => { setSelectedId(''); setSearchTerm(''); setShowDropdown(false) }}
+            style={{ ...dropdownItemStyle, color: '#6b7280', fontSize: '0.875rem' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+          >
+            All Clients
+          </div>
+          {filteredList.map(client => (
+            <div 
+              key={client.id}
+              onClick={() => {
+                setSelectedId(client.id.toString())
+                setSearchTerm(client.name)
+                setShowDropdown(false)
+              }}
+              style={{ 
+                ...dropdownItemStyle, 
+                backgroundColor: selectedId === client.id.toString() ? '#eff6ff' : '#ffffff',
+                color: '#1f2937'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === client.id.toString() ? '#eff6ff' : '#ffffff'}
+            >
+              {client.name}
+            </div>
+          ))}
+          {filteredList.length === 0 && (
+            <div style={{ ...dropdownItemStyle, color: '#9ca3af', fontStyle: 'italic' }}>
+              No clients found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Currency formatting function
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-KE', {
@@ -931,101 +1029,6 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       setLoading(false)
     }
   }
-
-  // Client search dropdown component
-  const ClientSearchDropdown = ({ 
-    searchTerm, 
-    setSearchTerm, 
-    selectedId, 
-    setSelectedId, 
-    showDropdown, 
-    setShowDropdown, 
-    filteredList,
-    placeholder = "Search client..."
-  }: {
-    searchTerm: string
-    setSearchTerm: (v: string) => void
-    selectedId: string
-    setSelectedId: (v: string) => void
-    showDropdown: boolean
-    setShowDropdown: (v: boolean) => void
-    filteredList: Array<{id: number, name: string}>
-    placeholder?: string
-  }) => (
-    <div className="position-relative">
-      <div className="input-group">
-        <span className="input-group-text" style={{ borderRadius: '12px 0 0 12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-          <Search size={16} style={{ color: '#6b7280' }} />
-        </span>
-        <input 
-          type="text" 
-          className="form-control" 
-          value={searchTerm}
-          onChange={e => {
-            setSearchTerm(e.target.value)
-            setShowDropdown(true)
-          }}
-          onFocus={() => setShowDropdown(true)}
-          placeholder={placeholder}
-          style={{ 
-            borderRadius: '0 12px 12px 0', 
-            height: '45px',
-            backgroundColor: '#ffffff',
-            color: '#333333',
-            border: '1px solid #e5e7eb',
-            borderLeft: 'none'
-          }}
-        />
-      </div>
-      
-      {showDropdown && (
-        <div 
-          className="position-absolute w-100 shadow-lg rounded-3 mt-1" 
-          style={{ 
-            zIndex: 1000, 
-            maxHeight: '200px', 
-            overflowY: 'auto', 
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb'
-          }}
-        >
-          <div 
-            className="border-bottom"
-            onClick={() => { setSelectedId(''); setSearchTerm(''); setShowDropdown(false) }}
-            style={{ ...dropdownItemStyle, color: '#6b7280', fontSize: '0.875rem' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-          >
-            All Clients
-          </div>
-          {filteredList.map(client => (
-            <div 
-              key={client.id}
-              onClick={() => {
-                setSelectedId(client.id.toString())
-                setSearchTerm(client.name)
-                setShowDropdown(false)
-              }}
-              style={{ 
-                ...dropdownItemStyle, 
-                backgroundColor: selectedId === client.id.toString() ? '#eff6ff' : '#ffffff',
-                color: '#1f2937'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === client.id.toString() ? '#eff6ff' : '#ffffff'}
-            >
-              {client.name}
-            </div>
-          ))}
-          {filteredList.length === 0 && (
-            <div style={{ ...dropdownItemStyle, color: '#9ca3af', fontStyle: 'italic' }}>
-              No clients found
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }} onClick={(e) => {
