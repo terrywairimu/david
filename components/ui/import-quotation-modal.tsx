@@ -5,16 +5,33 @@ import { X, Upload, FileSpreadsheet, FileText, CheckCircle, AlertCircle, Downloa
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'
 
+interface CustomSectionOption {
+  id: string
+  name: string
+  type: string
+  anchorKey: string
+}
+
 interface ImportQuotationModalProps {
   isOpen: boolean
   onClose: () => void
   onImport: (data: any) => void
+  /** Existing custom sections to include in the target dropdown */
+  customSections?: CustomSectionOption[]
+}
+
+interface ParsedSection {
+  value: string
+  label: string
+  count: number
+  sectionType: string
+  title: string
 }
 
 interface ParsedData {
   headers: string[]
   rows: any[][]
-  sections: { value: string; label: string; count: number }[]
+  sections: ParsedSection[]
   detectedSections: string[]
 }
 
@@ -29,7 +46,8 @@ interface ColumnMapping {
 const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   isOpen,
   onClose,
-  onImport
+  onImport,
+  customSections = []
 }) => {
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload')
   const [file, setFile] = useState<File | null>(null)
@@ -46,7 +64,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const sections = [
+  const mainSections = [
     { value: 'kitchen_cabinets', label: 'Kitchen Cabinets' },
     { value: 'worktop', label: 'Worktop' },
     { value: 'accessories', label: 'Accessories' },
@@ -54,6 +72,31 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     { value: 'wardrobes', label: 'Wardrobes' },
     { value: 'tvunit', label: 'TV Unit' }
   ]
+
+  /** All section options for the dropdown: main + custom + create-new per parsed section */
+  const getSectionOptionsFor = (parsedSection: ParsedSection | undefined) => {
+    const options = [...mainSections]
+    customSections.forEach(cs => {
+      options.push({ value: `custom:${cs.id}`, label: cs.name })
+    })
+    if (parsedSection) {
+      options.push({ value: `create_new:${parsedSection.value}`, label: `Create new: ${parsedSection.title}` })
+    }
+    return options
+  }
+
+  const getSectionLabel = (value: string) => {
+    if (value.startsWith('custom:')) {
+      const id = value.slice(7)
+      return customSections.find(c => c.id === id)?.name ?? value
+    }
+    if (value.startsWith('create_new:')) {
+      const key = value.slice(11)
+      const ps = parsedData?.sections.find(s => s.value === key)
+      return ps ? `Create new: ${ps.title}` : value
+    }
+    return mainSections.find(s => s.value === value)?.label ?? value
+  }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -235,21 +278,13 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
 
   const processDataByDetectedSections = (sectionAnalysis: any, columnMapping: ColumnMapping) => {
     const sectionData: {[key: string]: any[]} = {}
-    const sectionCounts: {[key: string]: number} = {}
     const defaultSections: {[key: string]: string} = {}
     
-    // Initialize section data
-    sectionAnalysis.detectedSections.forEach((section: string) => {
-      sectionData[section] = []
-      sectionCounts[section] = 0
-      defaultSections[section] = section
-    })
-    
-    // Process each detected section
-    sectionAnalysis.sections.forEach((section: any) => {
+    // Keep each physical section separate (e.g. Kitchen 1 Cabinets, Kitchen 1 Worktop, Kitchen 2 Cabinets, Kitchen 2 Worktop)
+    sectionAnalysis.sections.forEach((section: any, index: number) => {
       const sectionType = detectSectionType(section.title)
+      const uniqueKey = `section_${index}`
       
-      // Map the data rows for this section
       const mappedRows = section.dataRows.map((row: any[]) => {
         const mappedRow: any = {}
         Object.entries(columnMapping).forEach(([field, headerName]) => {
@@ -263,25 +298,33 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
         return mappedRow
       }).filter((row: any) => row.description && row.quantity && row.unitPrice)
       
-      // Add to the appropriate section
-      if (sectionData[sectionType]) {
-        sectionData[sectionType].push(...mappedRows)
-        sectionCounts[sectionType] += mappedRows.length
-      }
+      sectionData[uniqueKey] = mappedRows
+      defaultSections[uniqueKey] = sectionType
     })
     
-    // Create sections array for display
-    const sectionsArray = sectionAnalysis.detectedSections.map((section: string) => ({
-      value: section,
-      label: sections.find(s => s.value === section)?.label || section,
-      count: sectionCounts[section]
-    }))
+    // Create sections array for display - each physical section listed
+    const sectionsArray: ParsedSection[] = sectionAnalysis.sections.map((section: any, index: number) => {
+      const uniqueKey = `section_${index}`
+      const sectionType = detectSectionType(section.title)
+      const count = sectionData[uniqueKey]?.length || 0
+      return {
+        value: uniqueKey,
+        label: section.title || mainLabelForType(sectionType),
+        count,
+        sectionType,
+        title: section.title
+      }
+    })
     
     return {
       sections: sectionsArray,
       mappedData: sectionData,
       defaultSections
     }
+  }
+
+  const mainLabelForType = (sectionType: string) => {
+    return mainSections.find(s => s.value === sectionType)?.label || sectionType
   }
 
   const detectSectionsFromTitle = (titleRow: string[]) => {
@@ -392,7 +435,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     // Create sections array for display
     const sectionsArray = detectedSections.map(section => ({
       value: section,
-      label: sections.find(s => s.value === section)?.label || section,
+      label: mainSections.find(s => s.value === section)?.label || section,
       count: sectionCounts[section]
     }))
     
@@ -498,40 +541,60 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       return
     }
 
-    // Prepare data for each section using user's allocation (selectedSections)
-    const importData: {[key: string]: any[]} = {}
-    Object.entries(mappedData).forEach(([section, items]) => {
-      if (items.length > 0) {
-        const targetSection = selectedSections[section] || section
-        const mappedItems = items.map(row => ({
-          category: targetSection,
-          description: String(row.description || '').trim(),
-          unit: String(row.unit || 'pcs').trim(),
-          quantity: parseFloat(row.quantity) || 1,
-          unit_price: parseFloat(row.unitPrice) || 0,
-          total_price: (parseFloat(row.quantity) || 1) * (parseFloat(row.unitPrice) || 0),
-          specifications: '',
-          notes: ''
-        }))
-        if (!importData[targetSection]) importData[targetSection] = []
-        importData[targetSection].push(...mappedItems)
+    const toItem = (row: any, category: string) => ({
+      category: category === 'kitchen_cabinets' ? 'cabinet' : category as string,
+      description: String(row.description || '').trim(),
+      unit: String(row.unit || 'pcs').trim(),
+      quantity: parseFloat(row.quantity) || 1,
+      unit_price: parseFloat(row.unitPrice) || 0,
+      total_price: (parseFloat(row.quantity) || 1) * (parseFloat(row.unitPrice) || 0),
+      specifications: '',
+      notes: ''
+    })
+
+    const mainSectionTypeToCategory: Record<string, string> = {
+      kitchen_cabinets: 'cabinet',
+      worktop: 'worktop',
+      accessories: 'accessories',
+      appliances: 'appliances',
+      wardrobes: 'wardrobes',
+      tvunit: 'tvunit'
+    }
+
+    const main: {[key: string]: any[]} = {}
+    const custom: {[key: string]: any[]} = {}
+    const createNew: Array<{ name: string; sectionType: string; anchorKey: string; type: 'normal' | 'worktop'; items: any[] }> = []
+
+    Object.entries(mappedData).forEach(([sectionKey, items]) => {
+      if (items.length === 0) return
+      const target = selectedSections[sectionKey] ?? parsedData?.sections.find(s => s.value === sectionKey)?.sectionType ?? sectionKey
+      const parsed = parsedData?.sections.find(s => s.value === sectionKey)
+      const sectionType = parsed?.sectionType ?? 'kitchen_cabinets'
+      const category = mainSectionTypeToCategory[sectionType] ?? sectionType
+      const mappedItems = items.map((row: any) => toItem(row, category))
+
+      if (target.startsWith('custom:')) {
+        const id = target.slice(7)
+        if (!custom[id]) custom[id] = []
+        custom[id].push(...mappedItems)
+      } else if (target.startsWith('create_new:')) {
+        const anchorKey = sectionType === 'worktop' ? 'worktop' : 
+          sectionType === 'wardrobes' ? 'wardrobes' : sectionType === 'accessories' ? 'accessories' :
+          sectionType === 'appliances' ? 'appliances' : sectionType === 'tvunit' ? 'tvunit' : 'cabinet'
+        createNew.push({
+          name: parsed?.title ?? 'New Section',
+          sectionType,
+          anchorKey,
+          type: sectionType === 'worktop' ? 'worktop' : 'normal',
+          items: mappedItems
+        })
+      } else {
+        if (!main[target]) main[target] = []
+        main[target].push(...mappedItems)
       }
     })
 
-    onImport(importData)
-    
-    // Create success message
-    const sectionMessages = Object.entries(importData).map(([section, items]) => 
-      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label} section. To allocate another section use the dropdown below.`
-    )
-    
-    if (sectionMessages.length === 1) {
-      toast.success(`Auto-Mapping Successful: ${sectionMessages[0]}`)
-    } else {
-      toast.success(`Auto-Mapping Successful: ${sectionMessages.join(' ')}`)
-    }
-    
-    // Reset modal state before closing
+    onImport({ main, custom, createNew })
     resetModal()
     onClose()
   }
@@ -759,35 +822,38 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                     Auto-Mapping Successful
                   </h6>
                   <p className="mb-0">
-                    {Object.entries(mappedData).map(([section, items]) => 
-                      `${items.length} items will be imported to ${sections.find(s => s.value === section)?.label} section. To allocate another section use the dropdown below.`
-                    ).join(' ')}
+                    {Object.entries(mappedData).map(([sectionKey, items]) => {
+                      const parsed = parsedData.sections.find(s => s.value === sectionKey)
+                      const targetLabel = getSectionLabel(selectedSections[sectionKey] || parsed?.sectionType || sectionKey)
+                      return `${items.length} items will be imported to ${targetLabel} section. To allocate another section use the dropdown below.`
+                    }).join(' ')}
                   </p>
                 </div>
 
-                {/* Section Selection - always show so user can choose where to allocate items */}
+                {/* Section Mapping - all detected sections with dropdown to verify/change target */}
                 <div className="mb-4">
+                  <h6 className="fw-semibold mb-2">Section Mappings (verify before import)</h6>
                   <div className="row g-2">
-                    {parsedData.sections.map((section, index) => (
+                    {parsedData.sections.map((section) => (
                       <div key={section.value} className={`col-md-${12 / Math.min(parsedData.sections.length, 3)}`}>
                         <label className="form-label fw-semibold">
-                          {parsedData.sections.length === 1 ? 'Import items to' : section.label}
+                          {section.label}
                         </label>
                         <select 
                           className="form-select"
-                          value={selectedSections[section.value] || section.value}
+                          value={selectedSections[section.value] ?? section.sectionType}
                           onChange={(e) => setSelectedSections(prev => ({
                             ...prev,
                             [section.value]: e.target.value
                           }))}
                         >
-                          {sections.map(s => (
+                          {getSectionOptionsFor(section).map(s => (
                             <option key={s.value} value={s.value}>
                               {s.label}
                             </option>
                           ))}
                         </select>
-                        <small className="text-muted">{section.count} items</small>
+                        <small className="text-muted d-block">{section.count} items → {getSectionLabel(selectedSections[section.value] ?? section.sectionType)}</small>
                       </div>
                     ))}
                   </div>
@@ -812,7 +878,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
                           <tr key={`${section}-${index}`}>
                             <td>
                               <span className="badge bg-primary">
-                                {sections.find(s => s.value === section)?.label}
+                                {getSectionLabel(selectedSections[section] ?? parsedData.sections.find(s => s.value === section)?.sectionType ?? section)}
                               </span>
                             </td>
                             <td>{row.description}</td>

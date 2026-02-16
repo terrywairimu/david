@@ -374,21 +374,26 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     return `New Section ${n}`
   }
   const addCustomSection = (anchorKey: AnchorKey, type: CustomSectionType) => {
+    addCustomSectionWithName(anchorKey, type, getNextCustomSectionName())
+  }
+  const addCustomSectionWithName = (
+    anchorKey: AnchorKey,
+    type: CustomSectionType,
+    name: string,
+    initialItems?: { cabinet?: QuotationItem[]; worktop?: QuotationItem[] }
+  ) => {
     const id = `cs-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    const name = getNextCustomSectionName()
     setCustomSections(prev => [...prev, { id, name, type, anchorKey }])
     setIncludeCustomSection(prev => ({ ...prev, [id]: true }))
     setCustomSectionIncludeLabour(prev => ({ ...prev, [id]: true }))
     setCustomSectionLabourPercentage(prev => ({ ...prev, [id]: 30 }))
     if (type === "normal") {
-      setCustomSectionItems(prev => ({
-        ...prev,
-        [id]: { cabinet: [createNewItem("cabinet")] }
-      }))
+      const cabinet = initialItems?.cabinet?.length ? initialItems.cabinet : [createNewItem("cabinet")]
+      setCustomSectionItems(prev => ({ ...prev, [id]: { cabinet, worktop: initialItems?.worktop ?? [] } }))
     } else {
       setCustomSectionItems(prev => ({
         ...prev,
-        [id]: { worktop: [] }
+        [id]: { cabinet: [], worktop: initialItems?.worktop ?? [] }
       }))
     }
     setAddNewSectionDropdownOpen(null)
@@ -2100,141 +2105,100 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   // Handle import data from Excel/CSV
   const handleImportData = async (importData: any) => {
     try {
-      // Handle both old format (single section) and new format (multiple sections)
-      const sectionsData = importData.section ?
-        { [importData.section]: importData.items } :
-        importData
+      // New format: { main, custom, createNew }
+      const isNewFormat = importData?.main != null || importData?.custom != null || importData?.createNew != null
+
+      // Build flat sections for processing (legacy + new format)
+      let sectionsToProcess: Array<{ section: string; items: any[] }> = []
+
+      if (isNewFormat) {
+        if (importData.main) {
+          for (const [section, items] of Object.entries(importData.main)) {
+            if (Array.isArray(items) && items.length > 0) sectionsToProcess.push({ section, items })
+          }
+        }
+        if (importData.custom) {
+          for (const [customId, items] of Object.entries(importData.custom)) {
+            if (Array.isArray(items) && items.length > 0) sectionsToProcess.push({ section: `custom:${customId}`, items })
+          }
+        }
+      } else {
+        // Legacy format
+        const sectionsData = importData.section ?
+          { [importData.section]: importData.items } :
+          importData
+        for (const [section, items] of Object.entries(sectionsData)) {
+          if (Array.isArray(items) && items.length > 0) sectionsToProcess.push({ section, items })
+        }
+      }
 
       let totalImported = 0
       const sectionMessages: string[] = []
 
-      // Process each section
-      for (const [section, items] of Object.entries(sectionsData)) {
-        if (!Array.isArray(items) || items.length === 0) continue
+      // Process createNew first (create sections, then add items via custom flow)
+      if (isNewFormat && importData.createNew?.length) {
+        for (const cn of importData.createNew) {
+          const anchorKey = (cn.anchorKey || (cn.sectionType === 'worktop' ? 'worktop' : 'cabinet')) as AnchorKey
+          const type: CustomSectionType = cn.type === 'worktop' ? 'worktop' : 'normal'
+          const items = cn.items || []
+          const processed = await processImportItems(items, 'custom')
+          if (processed.validItems.length > 0) {
+            const cat = cn.sectionType === 'worktop' ? 'worktop' : 'cabinet'
+            addCustomSectionWithName(anchorKey, type, cn.name || 'New Section', {
+              [cat]: processed.validItems
+            } as any)
+            totalImported += processed.validItems.length
+            sectionMessages.push(`${processed.validItems.length} items to new section "${cn.name}"`)
+          }
+        }
+      }
 
-        // Check if items exist in stock, create new ones if they don't
+      const processImportItems = async (items: any[], sectionForKey: string) => {
         const processedItems = await Promise.all(items.map(async (item: any) => {
-          // Search for existing stock item with multiple strategies
-          const searchTerm = item.description.trim()
-          console.log(`🔍 Searching for stock item: "${searchTerm}"`)
+          const searchTerm = item.description?.trim()
+          if (!searchTerm) return null
 
-          let existingItems = null
-
-          // Strategy 1: Exact match using eq (most reliable)
-          const { data: exactMatches } = await supabase
-            .from('stock_items')
-            .select('*')
-            .eq('name', searchTerm)
-            .limit(1)
-
-          if (exactMatches && exactMatches.length > 0) {
-            existingItems = exactMatches
-            console.log(`✅ Found exact match: ${searchTerm} -> ID: ${exactMatches[0].id}`)
-          } else {
-            // Strategy 1b: Try case insensitive exact match
-            const { data: caseInsensitiveMatches } = await supabase
-              .from('stock_items')
-              .select('*')
-              .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
-              .limit(1)
-
-            if (caseInsensitiveMatches && caseInsensitiveMatches.length > 0) {
-              existingItems = caseInsensitiveMatches
-              console.log(`✅ Found case insensitive match: ${searchTerm} -> ID: ${caseInsensitiveMatches[0].id}`)
-            } else {
-              // Strategy 2: Partial match
-              const { data: partialMatches } = await supabase
-                .from('stock_items')
-                .select('*')
-                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
-                .limit(1)
-
-              if (partialMatches && partialMatches.length > 0) {
-                existingItems = partialMatches
-                console.log(`✅ Found partial match: ${searchTerm} -> ID: ${partialMatches[0].id}`)
-              } else {
-                // Strategy 3: Search with normalized text (remove extra spaces, special chars)
-                const normalizedTerm = searchTerm.replace(/\s+/g, ' ').trim()
-                const { data: normalizedMatches } = await supabase
-                  .from('stock_items')
-                  .select('*')
-                  .or(`name.ilike.%${normalizedTerm}%,description.ilike.%${normalizedTerm}%`)
-                  .limit(1)
-
-                if (normalizedMatches && normalizedMatches.length > 0) {
-                  existingItems = normalizedMatches
-                  console.log(`✅ Found normalized match: ${searchTerm} -> ID: ${normalizedMatches[0].id}`)
-                } else {
-                  console.log(`❌ No match found for: ${searchTerm}`)
-                }
-              }
+          let existingItems: any[] | null = null
+          const { data: exactMatches } = await supabase.from('stock_items').select('*').eq('name', searchTerm).limit(1)
+          if (exactMatches?.length) existingItems = exactMatches
+          else {
+            const { data: ilike } = await supabase.from('stock_items').select('*').or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`).limit(1)
+            if (ilike?.length) existingItems = ilike
+            else {
+              const { data: partial } = await supabase.from('stock_items').select('*').or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`).limit(1)
+              if (partial?.length) existingItems = partial
             }
           }
 
-          let stockItemId = null
-          let stockItem = null
-
-          if (existingItems && existingItems.length > 0) {
-            // Use existing item
+          let stockItemId: number | null = null
+          let stockItem: any = null
+          if (existingItems?.length) {
             stockItemId = existingItems[0].id
             stockItem = existingItems[0]
-            console.log(`✅ Found existing stock item: ${searchTerm} -> ID: ${stockItemId}`)
           } else {
-            // Create new stock item
-            const newStockItem = {
+            const { data: createdItem, error } = await supabase.from('stock_items').insert([{
               name: item.description,
               description: item.description,
               unit: item.unit,
               unit_price: item.unit_price,
-              category: section,
+              category: sectionForKey,
               status: 'active',
-              quantity: 0, // Will be updated when purchased
+              quantity: 0,
               reorder_level: 0
-            }
-
-            const { data: createdItem, error } = await supabase
-              .from('stock_items')
-              .insert([newStockItem])
-              .select()
-              .single()
-
+            }]).select().single()
             if (error) {
-              // If it's a unique constraint violation, try to find the existing item
-              if (error.code === '23505' && error.message.includes('already exists')) {
-                console.log(`⚠️ Item already exists, searching for it: ${searchTerm}`)
-
-                // Try to find the existing item again with a more comprehensive search
-                const { data: existingItem } = await supabase
-                  .from('stock_items')
-                  .select('*')
-                  .eq('name', item.description)
-                  .limit(1)
-
-                if (existingItem && existingItem.length > 0) {
-                  stockItemId = existingItem[0].id
-                  stockItem = existingItem[0]
-                  console.log(`✅ Found existing item after conflict: ${searchTerm} -> ID: ${stockItemId}`)
-                } else {
-                  console.error('Could not find existing item after conflict:', error)
-                  toast.error(`Failed to find existing stock item: ${item.description}`)
-                  return null
-                }
-              } else {
-                console.error('Error creating stock item:', error)
-                toast.error(`Failed to create stock item: ${item.description}`)
-                return null
-              }
-            } else {
-              stockItemId = createdItem.id
-              stockItem = createdItem
-              console.log(`🆕 Created new stock item: ${searchTerm} -> ID: ${stockItemId}`)
-              toast.success(`Created new stock item: ${item.description}`)
-            }
+              if (error.code === '23505') {
+                const { data: found } = await supabase.from('stock_items').select('*').eq('name', item.description).limit(1)
+                if (found?.length) { stockItemId = found[0].id; stockItem = found[0] }
+                else { toast.error(`Failed to find stock item: ${item.description}`); return null }
+              } else { toast.error(`Failed to create stock item: ${item.description}`); return null }
+            } else { stockItemId = createdItem.id; stockItem = createdItem; toast.success(`Created new stock item: ${item.description}`) }
           }
 
+          const cat = sectionForKey === 'kitchen_cabinets' ? 'cabinet' : sectionForKey as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
           return {
             id: Date.now() + Math.random(),
-            category: section === 'kitchen_cabinets' ? 'cabinet' : section as "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit",
+            category: cat,
             description: item.description,
             unit: item.unit || 'pcs',
             quantity: parseFloat(item.quantity) || 1,
@@ -2244,40 +2208,56 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             notes: '',
             stock_item_id: stockItemId,
             stock_item: stockItem
-          }
+          } as QuotationItem
         }))
+        return { validItems: processedItems.filter((x): x is QuotationItem => x != null) }
+      }
 
-        // Filter out any failed items
-        const validItems = processedItems.filter(item => item !== null)
+      for (const { section, items } of sectionsToProcess) {
+        const sectionForKey = section.startsWith('custom:') ? 'cabinet' : section
+        const { validItems } = await processImportItems(items, sectionForKey)
 
-        if (validItems.length > 0) {
-          // Add items to the appropriate section and auto-open the section
-          if (section === 'kitchen_cabinets') {
-            setCabinetItems(prev => {
-              // Filter out empty items (those with empty descriptions) and add new items
-              const nonEmptyItems = prev.filter(item => item.description.trim() !== '')
-              return [...nonEmptyItems, ...validItems]
-            })
-          } else if (section === 'worktop') {
-            setWorktopItems(prev => [...prev, ...validItems])
-            setIncludeWorktop(true) // Auto-open worktop section
-          } else if (section === 'accessories') {
-            setAccessoriesItems(prev => [...prev, ...validItems])
-            setIncludeAccessories(true) // Auto-open accessories section
-          } else if (section === 'appliances') {
-            setAppliancesItems(prev => [...prev, ...validItems])
-            setIncludeAppliances(true) // Auto-open appliances section
-          } else if (section === 'wardrobes') {
-            setWardrobesItems(prev => [...prev, ...validItems])
-            setIncludeWardrobes(true) // Auto-open wardrobes section
-          } else if (section === 'tvunit') {
-            setTvUnitItems(prev => [...prev, ...validItems])
-            setIncludeTvUnit(true) // Auto-open TV unit section
-          }
+        if (validItems.length === 0) continue
 
-          totalImported += validItems.length
-          sectionMessages.push(`${validItems.length} items to ${section}`)
+        if (section.startsWith('custom:')) {
+          const customId = section.slice(7)
+          setCustomSectionItems(prev => {
+            const curr = prev[customId] || { cabinet: [], worktop: [] }
+            const byCat = validItems.reduce((acc, it) => {
+              if (it.category === 'worktop') acc.worktop.push(it)
+              else acc.cabinet.push(it)
+              return acc
+            }, { cabinet: [] as QuotationItem[], worktop: [] as QuotationItem[] })
+            return { ...prev, [customId]: { cabinet: [...curr.cabinet, ...byCat.cabinet], worktop: [...curr.worktop, ...byCat.worktop] } }
+          })
+          setIncludeCustomSection(prev => ({ ...prev, [customId]: true }))
+          const secName = customSections.find(c => c.id === customId)?.name ?? customId
+          sectionMessages.push(`${validItems.length} items to ${secName}`)
+        } else if (section === 'kitchen_cabinets') {
+          setCabinetItems(prev => [...prev.filter(i => i.description.trim()), ...validItems])
+          sectionMessages.push(`${validItems.length} items to Kitchen Cabinets`)
+        } else if (section === 'worktop') {
+          setWorktopItems(prev => [...prev, ...validItems])
+          setIncludeWorktop(true)
+          sectionMessages.push(`${validItems.length} items to Worktop`)
+        } else if (section === 'accessories') {
+          setAccessoriesItems(prev => [...prev, ...validItems])
+          setIncludeAccessories(true)
+          sectionMessages.push(`${validItems.length} items to Accessories`)
+        } else if (section === 'appliances') {
+          setAppliancesItems(prev => [...prev, ...validItems])
+          setIncludeAppliances(true)
+          sectionMessages.push(`${validItems.length} items to Appliances`)
+        } else if (section === 'wardrobes') {
+          setWardrobesItems(prev => [...prev, ...validItems])
+          setIncludeWardrobes(true)
+          sectionMessages.push(`${validItems.length} items to Wardrobes`)
+        } else if (section === 'tvunit') {
+          setTvUnitItems(prev => [...prev, ...validItems])
+          setIncludeTvUnit(true)
+          sectionMessages.push(`${validItems.length} items to TV Unit`)
         }
+        totalImported += validItems.length
       }
 
       if (totalImported > 0) {
@@ -5017,6 +4997,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={handleImportData}
+        customSections={customSections.map(s => ({ id: s.id, name: s.name, type: s.type, anchorKey: s.anchorKey }))}
       />
     </>
   )
