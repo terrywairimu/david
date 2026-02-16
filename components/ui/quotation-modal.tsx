@@ -840,11 +840,22 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setCustomSections(customSectionsData)
     const items = quotation.items || []
     const itemsBySection: Record<string, Record<string, QuotationItem[]>> = {}
+    const includeLabour: Record<string, boolean> = {}
+    const labourPct: Record<string, number> = {}
     for (const sec of customSectionsData) {
       if (sec.type === "normal") {
         const cabinet = items.filter((i: any) => i.section_group === sec.id && i.category === "cabinet" && !String(i.description || "").includes("Labour Charge"))
         itemsBySection[sec.id] = {
           cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]
+        }
+        const hasLabourCharge = items.some((i: any) => i.section_group === sec.id && String(i.description || "").includes("Labour Charge"))
+        if (hasLabourCharge) {
+          includeLabour[sec.id] = true
+          const labourItem = items.find((i: any) => i.section_group === sec.id && String(i.description || "").includes("Labour Charge"))
+          if (labourItem && labourItem.unit_price > 0) {
+            const pctMatch = String(labourItem.description || "").match(/\((\d+)%\)/)
+            labourPct[sec.id] = pctMatch ? parseInt(pctMatch[1], 10) : 30
+          }
         }
       } else {
         const worktop = items.filter((i: any) => i.section_group === sec.id && i.category === "worktop")
@@ -852,6 +863,12 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       }
     }
     setCustomSectionItems(itemsBySection)
+    if (Object.keys(includeLabour).length > 0) {
+      setCustomSectionIncludeLabour(prev => ({ ...prev, ...includeLabour }))
+    }
+    if (Object.keys(labourPct).length > 0) {
+      setCustomSectionLabourPercentage(prev => ({ ...prev, ...labourPct }))
+    }
   }
 
   const handleClientSelect = (client: Client) => {
@@ -2023,11 +2040,27 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           const custom: Array<{ category: string; description: string; unit: string; quantity: number; unit_price: number; total_price: number; stock_item_id?: number; section_group: string }> = []
           for (const sec of customSections) {
             const secItems = customSectionItems[sec.id] || {}
-        if (sec.type === "normal") {
-          for (const cat of ["cabinet"] as const) {
-                const arr = (secItems[cat] || []).filter(i => !i.description?.includes("Labour Charge"))
-                for (const item of arr) {
-                  custom.push({ ...item, section_group: sec.id })
+            if (sec.type === "normal") {
+              const arr = (secItems.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
+              for (const item of arr) {
+                custom.push({ ...item, section_group: sec.id })
+              }
+              // Add Labour Charge item when include labour is on (same as main Cabinet/Accessories)
+              const includeLabour = customSectionIncludeLabour[sec.id] ?? true
+              const labourPct = customSectionLabourPercentage[sec.id] ?? 30
+              if (includeLabour && arr.length > 0) {
+                const cabSum = arr.reduce((s, i) => s + i.total_price, 0)
+                if (cabSum > 0) {
+                  const labour = (cabSum * labourPct) / 100
+                  custom.push({
+                    category: "cabinet",
+                    description: `Labour Charge (${labourPct}%)`,
+                    unit: "sum",
+                    quantity: 1,
+                    unit_price: labour,
+                    total_price: labour,
+                    section_group: sec.id
+                  })
                 }
               }
             } else {
