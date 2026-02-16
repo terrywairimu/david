@@ -280,15 +280,9 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     const sectionData: {[key: string]: any[]} = {}
     const defaultSections: {[key: string]: string} = {}
     
-    // Track how many times we've seen each section type - only first goes to main section, rest get create_new
-    const sectionTypeCount: {[key: string]: number} = {}
-    
-    // Keep each physical section separate (e.g. Kitchen 1 Cabinets, Kitchen 1 Worktop, Kitchen 2 Cabinets, Kitchen 2 Worktop)
+    // Default: always create new section. User can manually select main/existing via dropdown to append.
     sectionAnalysis.sections.forEach((section: any, index: number) => {
-      const sectionType = detectSectionType(section.title)
       const uniqueKey = `section_${index}`
-      const count = (sectionTypeCount[sectionType] ?? 0) + 1
-      sectionTypeCount[sectionType] = count
       
       const mappedRows = section.dataRows.map((row: any[]) => {
         const mappedRow: any = {}
@@ -304,8 +298,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       }).filter((row: any) => row.description && row.quantity && row.unitPrice)
       
       sectionData[uniqueKey] = mappedRows
-      // First occurrence of each section type goes to main section; 2nd+ get their own "Create new" section
-      defaultSections[uniqueKey] = count === 1 ? sectionType : `create_new:${uniqueKey}`
+      // Always default to create new section. User can override via dropdown to append to main/existing.
+      defaultSections[uniqueKey] = `create_new:${uniqueKey}`
     })
     
     // Create sections array for display - each physical section listed
@@ -571,6 +565,16 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     const custom: {[key: string]: any[]} = {}
     const createNew: Array<{ name: string; sectionType: string; anchorKey: string; type: 'normal' | 'worktop'; items: any[] }> = []
 
+    // Base names for indexed section names (Wardrobe, Wardrobe 1, Wardrobe 2...)
+    const anchorBaseName: Record<string, string> = {
+      cabinet: 'Kitchen Cabinets',
+      worktop: 'Worktop',
+      accessories: 'Accessories',
+      appliances: 'Appliances',
+      wardrobes: 'Wardrobe',
+      tvunit: 'TV Unit'
+    }
+
     Object.entries(mappedData).forEach(([sectionKey, items]) => {
       if (items.length === 0) return
       const target = selectedSections[sectionKey] ?? parsedData?.sections.find(s => s.value === sectionKey)?.sectionType ?? sectionKey
@@ -587,8 +591,15 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
         const anchorKey = sectionType === 'worktop' ? 'worktop' : 
           sectionType === 'wardrobes' ? 'wardrobes' : sectionType === 'accessories' ? 'accessories' :
           sectionType === 'appliances' ? 'appliances' : sectionType === 'tvunit' ? 'tvunit' : 'cabinet'
+        const baseName = anchorBaseName[anchorKey] ?? 'Section'
+        const existingSameAnchor = customSections.filter(s => s.anchorKey === anchorKey).length
+        const priorCreateNewSameAnchor = createNew.filter(cn => cn.anchorKey === anchorKey).length
+        const index = existingSameAnchor + priorCreateNewSameAnchor
+        const name = index === 0
+          ? (parsed?.title ?? baseName)
+          : `${baseName} ${index}`
         createNew.push({
-          name: parsed?.title ?? 'New Section',
+          name,
           sectionType,
           anchorKey,
           type: sectionType === 'worktop' ? 'worktop' : 'normal',
