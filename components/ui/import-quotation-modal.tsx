@@ -273,7 +273,16 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     if (lowerTitle.includes('accessories')) return 'accessories'
     if (lowerTitle.includes('appliances')) return 'appliances'
     if (lowerTitle.includes('tv') && lowerTitle.includes('unit')) return 'tvunit'
-    return 'kitchen_cabinets' // Default
+    return 'kitchen_cabinets' // Default for unrecognized (e.g. Dining, Office)
+  }
+
+  /** True if title matches a standard section type (Kitchen, Wardrobe, etc.) */
+  const isStandardSectionTitle = (title: string) => {
+    const lower = (title ?? '').toLowerCase()
+    return (lower.includes('kitchen') && lower.includes('cabinets')) ||
+      lower.includes('wardrobe') || lower.includes('worktop') || lower.includes('work top') ||
+      lower.includes('accessories') || lower.includes('appliances') ||
+      (lower.includes('tv') && lower.includes('unit'))
   }
 
   const processDataByDetectedSections = (sectionAnalysis: any, columnMapping: ColumnMapping) => {
@@ -575,6 +584,9 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       tvunit: 'TV Unit'
     }
 
+    const isSameBase = (name: string, base: string) =>
+      name === base || new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\d+$`).test(name)
+
     Object.entries(mappedData).forEach(([sectionKey, items]) => {
       if (items.length === 0) return
       const target = selectedSections[sectionKey] ?? parsedData?.sections.find(s => s.value === sectionKey)?.sectionType ?? sectionKey
@@ -591,10 +603,16 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
         const anchorKey = sectionType === 'worktop' ? 'worktop' : 
           sectionType === 'wardrobes' ? 'wardrobes' : sectionType === 'accessories' ? 'accessories' :
           sectionType === 'appliances' ? 'appliances' : sectionType === 'tvunit' ? 'tvunit' : 'cabinet'
-        const baseName = anchorBaseName[anchorKey] ?? 'Section'
-        const existingSameAnchor = customSections.filter(s => s.anchorKey === anchorKey).length
-        const priorCreateNewSameAnchor = createNew.filter(cn => cn.anchorKey === anchorKey).length
-        const index = existingSameAnchor + priorCreateNewSameAnchor
+        const rawTitle = (parsed?.title ?? '').trim()
+        const isCustom = rawTitle && !isStandardSectionTitle(rawTitle)
+        const baseName = isCustom ? rawTitle : (anchorBaseName[anchorKey] ?? 'Section')
+        const existingSame = isCustom
+          ? customSections.filter(s => isSameBase(s.name, baseName)).length
+          : customSections.filter(s => s.anchorKey === anchorKey).length
+        const priorSame = isCustom
+          ? createNew.filter(cn => isSameBase(cn.name, baseName)).length
+          : createNew.filter(cn => cn.anchorKey === anchorKey).length
+        const index = existingSame + priorSame
         const name = index === 0
           ? (parsed?.title ?? baseName)
           : `${baseName} ${index}`
