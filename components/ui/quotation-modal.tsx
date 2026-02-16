@@ -849,7 +849,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     const labourPct: Record<string, number> = {}
     for (const sec of customSectionsData) {
       if (sec.type === "normal") {
-        const cabinet = items.filter((i: any) => i.section_group === sec.id && i.category === "cabinet" && !String(i.description || "").includes("Labour Charge"))
+        const cabinet = items.filter((i: any) => i.section_group === sec.id && (i.category === "cabinet" || i.category === "custom") && !String(i.description || "").includes("Labour Charge"))
         itemsBySection[sec.id] = {
           cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]
         }
@@ -863,7 +863,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           }
         }
       } else {
-        const worktop = items.filter((i: any) => i.section_group === sec.id && i.category === "worktop")
+        const worktop = items.filter((i: any) => i.section_group === sec.id && (i.category === "worktop" || i.category === "custom"))
         itemsBySection[sec.id] = { worktop }
       }
     }
@@ -2048,7 +2048,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             if (sec.type === "normal") {
               const arr = (secItems.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
               for (const item of arr) {
-                custom.push({ ...item, section_group: sec.id })
+                custom.push({ ...item, category: "cabinet", section_group: sec.id })
               }
               // Add Labour Charge item when include labour is on (same as main Cabinet/Accessories)
               const includeLabour = customSectionIncludeLabour[sec.id] ?? true
@@ -2071,7 +2071,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             } else {
               const worktop = (secItems.worktop || [])
               for (const item of worktop) {
-                custom.push({ ...item, section_group: sec.id })
+                custom.push({ ...item, category: "worktop", section_group: sec.id })
               }
             }
           }
@@ -2201,7 +2201,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           const anchorKey = (cn.anchorKey || (cn.sectionType === 'worktop' ? 'worktop' : 'cabinet')) as AnchorKey
           const type: CustomSectionType = cn.type === 'worktop' ? 'worktop' : 'normal'
           const items = cn.items || []
-          const processed = await processImportItems(items, 'custom')
+          const sectionForKey = cn.sectionType === 'worktop' ? 'worktop' : 'kitchen_cabinets'
+          const processed = await processImportItems(items, sectionForKey)
           if (processed.validItems.length > 0) {
             const cat = cn.sectionType === 'worktop' ? 'worktop' : 'cabinet'
             addCustomSectionWithName(anchorKey, type, cn.name || 'New Section', {
