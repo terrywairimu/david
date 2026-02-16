@@ -2,11 +2,34 @@
 
 import React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
 import FloatingSidebarButton from "./ui/floating-sidebar-button"
 import { useAuth } from "@/lib/auth-context"
+import { ROLES } from "@/lib/settings-constants"
+
+function getInitials(fullName: string | null, email: string | undefined): string {
+  if (fullName && fullName.trim()) {
+    const parts = fullName.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    return fullName.slice(0, 2).toUpperCase()
+  }
+  if (email) {
+    const local = email.split("@")[0]
+    return local.slice(0, 2).toUpperCase()
+  }
+  return "?"
+}
+
+function getRoleLabel(role: string | null): string {
+  if (!role) return "No role"
+  const found = ROLES.find((r) => r.id === role)
+  return found?.label ?? role
+}
 
 function SignOutButton() {
   const { user, signOut } = useAuth()
@@ -31,7 +54,7 @@ function SignOutButton() {
 }
 
 const Sidebar = () => {
-  const { canAccessSettings, canAccessSection, needsAdminApproval } = useAuth()
+  const { user, profile, canAccessSettings, canAccessSection, needsAdminApproval } = useAuth()
   const canAccess = canAccessSection
   const [activeSection, setActiveSection] = useState("register")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -88,13 +111,32 @@ const Sidebar = () => {
     setShowPurchaseAccordion(false)
   }
 
+  const avatarUrl = profile?.avatar_url ?? (user?.user_metadata?.avatar_url as string | undefined)
+  const hasGoogleAvatar = !!avatarUrl
+  const initials = getInitials(profile?.full_name ?? null, user?.email)
+  const roleLabel = getRoleLabel(profile?.role ?? null)
+
   return (
     <>
       <div className={`sidebar ${isMobileOpen ? 'show' : ''}`}>
-        <h3>
-          <i className="fas fa-chart-line me-2"></i>
-          Dashboard
-        </h3>
+        <div className="sidebar-user-header">
+          <div className="sidebar-avatar-wrapper">
+            {hasGoogleAvatar ? (
+              <Image
+                src={avatarUrl}
+                alt="Profile"
+                width={48}
+                height={48}
+                className="sidebar-avatar-img"
+                unoptimized
+              />
+            ) : (
+              <div className="sidebar-avatar-initials">{initials}</div>
+            )}
+          </div>
+          <div className="sidebar-role-label">{roleLabel}</div>
+          <div className="sidebar-header-divider" />
+        </div>
         {needsAdminApproval ? (
           <p className="text-white-50 text-sm px-2 py-4">
             Contact the admin to add you.
