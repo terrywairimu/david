@@ -2135,24 +2135,6 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       let totalImported = 0
       const sectionMessages: string[] = []
 
-      // Process createNew first (create sections, then add items via custom flow)
-      if (isNewFormat && importData.createNew?.length) {
-        for (const cn of importData.createNew) {
-          const anchorKey = (cn.anchorKey || (cn.sectionType === 'worktop' ? 'worktop' : 'cabinet')) as AnchorKey
-          const type: CustomSectionType = cn.type === 'worktop' ? 'worktop' : 'normal'
-          const items = cn.items || []
-          const processed = await processImportItems(items, 'custom')
-          if (processed.validItems.length > 0) {
-            const cat = cn.sectionType === 'worktop' ? 'worktop' : 'cabinet'
-            addCustomSectionWithName(anchorKey, type, cn.name || 'New Section', {
-              [cat]: processed.validItems
-            } as any)
-            totalImported += processed.validItems.length
-            sectionMessages.push(`${processed.validItems.length} items to new section "${cn.name}"`)
-          }
-        }
-      }
-
       const processImportItems = async (items: any[], sectionForKey: string) => {
         const processedItems = await Promise.all(items.map(async (item: any) => {
           const searchTerm = item.description?.trim()
@@ -2211,6 +2193,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           } as QuotationItem
         }))
         return { validItems: processedItems.filter((x): x is QuotationItem => x != null) }
+      }
+
+      // Process createNew first (create sections, then add items via custom flow)
+      if (isNewFormat && importData.createNew?.length) {
+        for (const cn of importData.createNew) {
+          const anchorKey = (cn.anchorKey || (cn.sectionType === 'worktop' ? 'worktop' : 'cabinet')) as AnchorKey
+          const type: CustomSectionType = cn.type === 'worktop' ? 'worktop' : 'normal'
+          const items = cn.items || []
+          const processed = await processImportItems(items, 'custom')
+          if (processed.validItems.length > 0) {
+            const cat = cn.sectionType === 'worktop' ? 'worktop' : 'cabinet'
+            addCustomSectionWithName(anchorKey, type, cn.name || 'New Section', {
+              [cat]: processed.validItems
+            } as any)
+            totalImported += processed.validItems.length
+            sectionMessages.push(`${processed.validItems.length} items to new section "${cn.name}"`)
+          }
+        }
       }
 
       for (const { section, items } of sectionsToProcess) {
