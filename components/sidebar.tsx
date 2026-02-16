@@ -270,17 +270,23 @@ const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLink
         {/* Inline Accordion - matches nav-link design language, flows with sidebar */}
         {showAccordion && (
           <div className="purchase-inline-accordion">
-            {/* Credit Section */}
-            <div className="purchase-accordion-section">
-              <button
-                type="button"
+            {/* Credit Section - expands on hover */}
+            <div
+              className="purchase-accordion-section"
+              onMouseEnter={() => setActiveSection('credit')}
+              onMouseLeave={() => setActiveSection(null)}
+            >
+              <div
+                role="button"
+                tabIndex={0}
                 className="purchase-accordion-trigger"
                 onClick={() => toggleSection('credit')}
+                onKeyDown={(e) => e.key === 'Enter' && toggleSection('credit')}
               >
                 <i className="fas fa-credit-card purchase-accordion-icon purchase-accordion-icon-credit"></i>
                 <span className="purchase-accordion-trigger-label">Credit Purchases</span>
                 <i className={`fas fa-chevron-down purchase-accordion-chevron ${activeSection === 'credit' ? 'rotated' : ''}`}></i>
-              </button>
+              </div>
               {activeSection === 'credit' && (
                 <div className="purchase-accordion-subs">
                   <Link href="/purchases?type=credit&view=client" className="purchase-accordion-sub-link purchase-accordion-sub-credit">
@@ -294,17 +300,23 @@ const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLink
                 </div>
               )}
             </div>
-            {/* Cash Section */}
-            <div className="purchase-accordion-section">
-              <button
-                type="button"
+            {/* Cash Section - expands on hover */}
+            <div
+              className="purchase-accordion-section"
+              onMouseEnter={() => setActiveSection('cash')}
+              onMouseLeave={() => setActiveSection(null)}
+            >
+              <div
+                role="button"
+                tabIndex={0}
                 className="purchase-accordion-trigger"
                 onClick={() => toggleSection('cash')}
+                onKeyDown={(e) => e.key === 'Enter' && toggleSection('cash')}
               >
                 <i className="fas fa-dollar-sign purchase-accordion-icon purchase-accordion-icon-cash"></i>
                 <span className="purchase-accordion-trigger-label">Cash Purchases</span>
                 <i className={`fas fa-chevron-down purchase-accordion-chevron ${activeSection === 'cash' ? 'rotated' : ''}`}></i>
-              </button>
+              </div>
               {activeSection === 'cash' && (
                 <div className="purchase-accordion-subs">
                   <Link href="/purchases?type=cash&view=client" className="purchase-accordion-sub-link purchase-accordion-sub-cash">
