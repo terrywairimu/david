@@ -264,194 +264,59 @@ const PurchaseSidebarLink = React.forwardRef<HTMLDivElement, PurchaseSidebarLink
         >
           <i className={icon}></i>
           <span>{label}</span>
-          <i className={`fas fa-chevron-down purchase-dropdown-arrow ${showAccordion ? 'rotated' : ''}`} 
-             style={{ 
-               marginLeft: 'auto', 
-               transition: 'transform 0.3s ease',
-               transform: showAccordion ? 'rotate(180deg)' : 'rotate(0deg)'
-             }}></i>
+          <i className={`fas fa-chevron-down purchase-dropdown-arrow ${showAccordion ? 'rotated' : ''}`}></i>
         </div>
         
-        {/* Inline Accordion - Outside the nav-link to be part of sidebar flow */}
+        {/* Inline Accordion - matches nav-link design language, flows with sidebar */}
         {showAccordion && (
-          <div 
-            className="purchase-inline-accordion" 
-            style={{
-              width: '100%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(20px)',
-              borderRadius: '0 0 12px 12px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-              zIndex: 1000,
-              overflow: 'hidden',
-              animation: 'accordionSlideDown 0.3s ease',
-              margin: '0 8px 8px 8px'
-            }}
-          >
-            {/* Credit Section - Partial/No Payment */}
-            <div className="accordion-section">
-              <div 
-                className="accordion-trigger"
+          <div className="purchase-inline-accordion">
+            {/* Credit Section */}
+            <div className="purchase-accordion-section">
+              <button
+                type="button"
+                className="purchase-accordion-trigger"
                 onClick={() => toggleSection('credit')}
-                style={{
-                  padding: '12px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <i className="fas fa-credit-card" style={{ color: '#ff6b6b', width: '16px' }}></i>
-                <span style={{ fontSize: '14px', color: 'white', fontWeight: '500' }}>Credit Purchases</span>
-                <i className={`fas fa-chevron-down ${activeSection === 'credit' ? 'rotated' : ''}`} 
-                   style={{ 
-                     marginLeft: 'auto', 
-                     fontSize: '12px',
-                     transition: 'transform 0.3s ease',
-                     transform: activeSection === 'credit' ? 'rotate(180deg)' : 'rotate(0deg)'
-                   }}></i>
-              </div>
-              
-                              {activeSection === 'credit' && (
-                  <div style={{ padding: '0' }}>
-                    <Link
-                      href="/purchases?type=credit&view=client"
-                      className="accordion-link"
-                      style={{
-                        display: 'block',
-                        padding: '12px 16px',
-                        textDecoration: 'none',
-                        color: 'white',
-                        fontSize: '13px',
-                        transition: 'all 0.2s ease',
-                        background: 'rgba(255, 107, 107, 0.2)',
-                        width: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.3)'
-                        e.currentTarget.style.transform = 'translateX(4px)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)'
-                        e.currentTarget.style.transform = 'translateX(0)'
-                      }}
-                    >
-                      <i className="fas fa-user" style={{ marginRight: '8px', fontSize: '12px' }}></i>
-                      Client Credit
-                    </Link>
-                    <Link
-                      href="/purchases?type=credit&view=general"
-                      className="accordion-link"
-                      style={{
-                        display: 'block',
-                        padding: '12px 16px',
-                        textDecoration: 'none',
-                        color: 'white',
-                        fontSize: '13px',
-                        transition: 'all 0.2s ease',
-                        background: 'rgba(255, 107, 107, 0.2)',
-                        width: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.3)'
-                        e.currentTarget.style.transform = 'translateX(4px)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 107, 107, 0.2)'
-                        e.currentTarget.style.transform = 'translateX(0)'
-                      }}
-                    >
-                      <i className="fas fa-building" style={{ marginRight: '8px', fontSize: '12px' }}></i>
-                      General Credit
-                    </Link>
-                  </div>
-                )}
+                <i className="fas fa-credit-card purchase-accordion-icon purchase-accordion-icon-credit"></i>
+                <span className="purchase-accordion-trigger-label">Credit Purchases</span>
+                <i className={`fas fa-chevron-down purchase-accordion-chevron ${activeSection === 'credit' ? 'rotated' : ''}`}></i>
+              </button>
+              {activeSection === 'credit' && (
+                <div className="purchase-accordion-subs">
+                  <Link href="/purchases?type=credit&view=client" className="purchase-accordion-sub-link purchase-accordion-sub-credit">
+                    <i className="fas fa-user"></i>
+                    Client Credit
+                  </Link>
+                  <Link href="/purchases?type=credit&view=general" className="purchase-accordion-sub-link purchase-accordion-sub-credit">
+                    <i className="fas fa-building"></i>
+                    General Credit
+                  </Link>
+                </div>
+              )}
             </div>
-
-            {/* Cash Section - Full Payment */}
-            <div className="accordion-section">
-              <div 
-                className="accordion-trigger"
+            {/* Cash Section */}
+            <div className="purchase-accordion-section">
+              <button
+                type="button"
+                className="purchase-accordion-trigger"
                 onClick={() => toggleSection('cash')}
-                style={{
-                  padding: '12px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <i className="fas fa-dollar-sign" style={{ color: '#00b894', width: '16px' }}></i>
-                <span style={{ fontSize: '14px', color: 'white', fontWeight: '500' }}>Cash Purchases</span>
-                <i className={`fas fa-chevron-down ${activeSection === 'cash' ? 'rotated' : ''}`} 
-                   style={{ 
-                     marginLeft: 'auto', 
-                     fontSize: '12px',
-                     transition: 'transform 0.3s ease',
-                     transform: activeSection === 'cash' ? 'rotate(180deg)' : 'rotate(0deg)'
-                   }}></i>
-              </div>
-              
-                              {activeSection === 'cash' && (
-                  <div style={{ padding: '0' }}>
-                    <Link
-                      href="/purchases?type=cash&view=client"
-                      className="accordion-link"
-                      style={{
-                        display: 'block',
-                        padding: '12px 16px',
-                        textDecoration: 'none',
-                        color: 'white',
-                        fontSize: '13px',
-                        transition: 'all 0.2s ease',
-                        background: 'rgba(0, 184, 148, 0.2)',
-                        width: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.3)'
-                        e.currentTarget.style.transform = 'translateX(4px)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.2)'
-                        e.currentTarget.style.transform = 'translateX(0)'
-                      }}
-                    >
-                      <i className="fas fa-user" style={{ marginRight: '8px', fontSize: '12px' }}></i>
-                      Client Cash
-                    </Link>
-                    <Link
-                      href="/purchases?type=cash&view=general"
-                      className="accordion-link"
-                      style={{
-                        display: 'block',
-                        padding: '12px 16px',
-                        textDecoration: 'none',
-                        color: 'white',
-                        fontSize: '13px',
-                        transition: 'all 0.2s ease',
-                        background: 'rgba(0, 184, 148, 0.2)',
-                        width: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.3)'
-                        e.currentTarget.style.transform = 'translateX(4px)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(0, 184, 148, 0.2)'
-                        e.currentTarget.style.transform = 'translateX(0)'
-                      }}
-                    >
-                      <i className="fas fa-building" style={{ marginRight: '8px', fontSize: '12px' }}></i>
-                      General Cash
-                    </Link>
-                  </div>
-                )}
+                <i className="fas fa-dollar-sign purchase-accordion-icon purchase-accordion-icon-cash"></i>
+                <span className="purchase-accordion-trigger-label">Cash Purchases</span>
+                <i className={`fas fa-chevron-down purchase-accordion-chevron ${activeSection === 'cash' ? 'rotated' : ''}`}></i>
+              </button>
+              {activeSection === 'cash' && (
+                <div className="purchase-accordion-subs">
+                  <Link href="/purchases?type=cash&view=client" className="purchase-accordion-sub-link purchase-accordion-sub-cash">
+                    <i className="fas fa-user"></i>
+                    Client Cash
+                  </Link>
+                  <Link href="/purchases?type=cash&view=general" className="purchase-accordion-sub-link purchase-accordion-sub-cash">
+                    <i className="fas fa-building"></i>
+                    General Cash
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
