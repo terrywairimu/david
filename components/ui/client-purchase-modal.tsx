@@ -478,6 +478,11 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     // This prevents the "one day less" issue by treating the date as a pure calendar date
     const dateToSave = dateInputToDateOnly(purchaseDate)
     
+    // Cash: always fully paid, balance 0
+    const finalPaymentStatus = isCashPayment ? "fully_paid" : paymentStatus
+    const finalAmountPaid = isCashPayment ? totalAmount : amountPaid
+    const finalBalance = isCashPayment ? 0 : balance
+    
     const purchaseData = {
       purchase_order_number: purchaseOrderNumber,
       purchase_date: dateToSave.toISOString(),
@@ -485,9 +490,9 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
       client_id: clientId,
       paid_to: paidTo,
       payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      amount_paid: amountPaid,
-      balance: balance,
+      payment_status: finalPaymentStatus,
+      amount_paid: finalAmountPaid,
+      balance: finalBalance,
       total_amount: totalAmount,
       status: "pending",
       items: items
@@ -588,26 +593,37 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     return () => clearTimeout(timeoutId)
   }, [itemSearches, stockItems, items])
 
+  // Cash = always fully paid: lock payment status and force balance 0
+  const isCashPayment = paymentMethod?.toLowerCase() === "cash"
+  useEffect(() => {
+    if (isCashPayment) {
+      setPaymentStatus("fully_paid")
+    }
+  }, [isCashPayment])
+
   // Calculate balance and auto-update amount_paid based on status
   useEffect(() => {
     const total = items.reduce((sum, item) => sum + item.total_price, 0)
     let newAmountPaid = amountPaid
     let newBalance = balance
 
-    if (paymentStatus === "fully_paid") {
+    // Cash: always fully paid, balance 0
+    if (isCashPayment) {
+      newAmountPaid = total
+      newBalance = 0
+    } else if (paymentStatus === "fully_paid") {
       newAmountPaid = total
       newBalance = 0
     } else if (paymentStatus === "not_yet_paid") {
       newAmountPaid = 0
       newBalance = total
     } else if (paymentStatus === "partially_paid") {
-      // Keep current amount_paid, calculate balance
       newBalance = total - amountPaid
     }
 
     setAmountPaid(newAmountPaid)
     setBalance(newBalance)
-  }, [paymentStatus, items, amountPaid])
+  }, [paymentStatus, items, amountPaid, isCashPayment])
 
   useEffect(() => {
     if (!showClientDropdown) return;
@@ -795,18 +811,28 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                 {/* Status - Left */}
                 <div className="col-md-3">
                   <label className="form-label">Payment Status</label>
-                  <select
-                    className="form-select border-0 shadow-sm"
-                    value={paymentStatus}
-                    onChange={(e) => setPaymentStatus(e.target.value)}
-                    style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                    required
-                    disabled={mode === "view"}
-                  >
-                    <option value="not_yet_paid">Not Yet Paid</option>
-                    <option value="partially_paid">Partially Paid</option>
-                    <option value="fully_paid">Fully Paid</option>
-                  </select>
+                  {isCashPayment ? (
+                    <input
+                      type="text"
+                      className="form-control border-0 shadow-sm"
+                      value="Fully Paid"
+                      readOnly
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
+                    />
+                  ) : (
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={paymentStatus}
+                      onChange={(e) => setPaymentStatus(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                      required
+                      disabled={mode === "view"}
+                    >
+                      <option value="not_yet_paid">Not Yet Paid</option>
+                      <option value="partially_paid">Partially Paid</option>
+                      <option value="fully_paid">Fully Paid</option>
+                    </select>
+                  )}
                 </div>
                 
                 {/* Amount Paid - Middle Left */}
