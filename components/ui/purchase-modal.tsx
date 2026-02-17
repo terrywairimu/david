@@ -713,6 +713,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <option value="">Select Payment Method</option>
                     <option value="cash">Cash</option>
                     <option value="cooperative_bank">Cooperative Bank</option>
+                    {purchaseType === "credit" && <option value="credit">Credit</option>}
                     <option value="cheque">Cheque</option>
                     <option value="mpesa">M-Pesa</option>
                     <option value="petty_cash">Petty Cash</option>
