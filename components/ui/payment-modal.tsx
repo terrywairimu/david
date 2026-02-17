@@ -331,7 +331,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
           <div className="modal-header border-0" style={{ padding: "24px 32px 16px" }}>
             <h5 className="modal-title fw-bold">
-              {mode === "create" ? "Make Payment" : mode === "edit" ? "Edit Payment" : "View Payment"}
+              {mode === "create" ? "Received Payment" : mode === "edit" ? "Edit Received Payment" : "View Received Payment"}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}>
               <X size={18} />
@@ -497,7 +497,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       <option value="Credit">Credit</option>
                       <option value="Cheque">Cheque</option>
                       <option value="M-Pesa">M-Pesa</option>
-                      <option value="Petty Cash">Petty Cash</option>
                     </select>
                   </div>
                 </div>
