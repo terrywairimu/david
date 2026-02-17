@@ -1038,6 +1038,7 @@ const PurchasesPage = () => {
         onSave={handleGeneralModalSave}
         purchase={selectedPurchase}
         mode={modalMode}
+        purchaseType={paymentType === "cash" ? "cash" : "credit"}
       />
 
       {/* Client Purchase Modal */}
@@ -1047,6 +1048,7 @@ const PurchasesPage = () => {
         onSave={handleClientModalSave}
         purchase={selectedPurchase}
         mode={modalMode}
+        purchaseType={paymentType === "cash" ? "cash" : "credit"}
       />
       </div>
     </div>

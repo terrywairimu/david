@@ -16,6 +16,7 @@ interface PurchaseModalProps {
   onSave: (purchaseData: any) => void
   purchase?: any
   mode?: "create" | "edit" | "view"
+  purchaseType?: "cash" | "credit"
 }
 
 interface PurchaseItem {
@@ -97,7 +98,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   onClose,
   onSave,
   purchase,
-  mode = "create"
+  mode = "create",
+  purchaseType = "credit"
 }) => {
   const [purchaseDate, setPurchaseDate] = useState("")
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
@@ -199,21 +201,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setTotal(newTotal)
   }, [items])
 
-  // Cash-like (fully paid only): Cash, M-Pesa, Petty Cash, Cheque, Cooperative Bank. Credit keeps dropdown.
-  const isCashPayment = !!paymentMethod && ["cash", "mpesa", "petty_cash", "cheque", "cooperative_bank"].includes(paymentMethod.toLowerCase().trim())
+  // Cash purchases (from cash context): fully paid only. Credit purchases: full status options.
+  const isCashPurchase = purchaseType === "cash"
   useEffect(() => {
-    if (isCashPayment) {
+    if (isCashPurchase) {
       setPaymentStatus("fully_paid")
     }
-  }, [isCashPayment])
+  }, [isCashPurchase])
 
   // Calculate balance and auto-update amount_paid based on status
   useEffect(() => {
     let newAmountPaid = amountPaid
     let newBalance = balance
 
-    // Cash: always fully paid, balance 0
-    if (isCashPayment) {
+    // Cash purchase: always fully paid, balance 0
+    if (isCashPurchase) {
       newAmountPaid = total
       newBalance = 0
     } else if (paymentStatus === "fully_paid") {
@@ -228,7 +230,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
     setAmountPaid(newAmountPaid)
     setBalance(newBalance)
-  }, [paymentStatus, total, amountPaid, isCashPayment])
+  }, [paymentStatus, total, amountPaid, isCashPurchase])
 
   // Filter suppliers based on search with debouncing
   useEffect(() => {
@@ -542,10 +544,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
       // This prevents the "one day less" issue by treating the date as a pure calendar date
       const dateToSave = dateInputToDateOnly(purchaseDate)
       
-      // Cash: always fully paid, balance 0
-      const finalPaymentStatus = isCashPayment ? "fully_paid" : paymentStatus
-      const finalAmountPaid = isCashPayment ? total : amountPaid
-      const finalBalance = isCashPayment ? 0 : balance
+      // Cash purchase: always fully paid, balance 0
+      const finalPaymentStatus = isCashPurchase ? "fully_paid" : paymentStatus
+      const finalAmountPaid = isCashPurchase ? total : amountPaid
+      const finalBalance = isCashPurchase ? 0 : balance
 
       const purchaseData = {
         purchase_date: dateToSave.toISOString(),
@@ -711,7 +713,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     <option value="">Select Payment Method</option>
                     <option value="cash">Cash</option>
                     <option value="cooperative_bank">Cooperative Bank</option>
-                    <option value="credit">Credit</option>
                     <option value="cheque">Cheque</option>
                     <option value="mpesa">M-Pesa</option>
                     <option value="petty_cash">Petty Cash</option>
@@ -722,9 +723,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
               {/* Status, Amount Paid, Balance, and Total Amount in one row */}
               <div className="row mb-3">
                 {/* Status - Left - when Cash/M-Pesa/Petty Cash: read-only Fully Paid only */}
-                <div className="col-md-3" key={`payment-status-${paymentMethod}`}>
+                <div className="col-md-3" key={`payment-status-${purchaseType}`}>
                   <label className="form-label">Payment Status</label>
-                  {isCashPayment ? (
+                  {isCashPurchase ? (
                     <input
                       type="text"
                       className="form-control border-0 shadow-sm"
