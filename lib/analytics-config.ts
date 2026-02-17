@@ -250,7 +250,7 @@ export function getHeaderStatsConfig(section: SectionId, subType: string): Heade
 export function getSegmentationTitle(section: SectionId, subType: string): string {
   const subLabel = subType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   switch (section) {
-    case 'profitability': return 'Sales Orders by status (profitability)'
+    case 'profitability': return 'Profitability'
     case 'sales': return `${subLabel} by status`
     case 'expenses': return `${subLabel} by category`
     case 'payments': return `${subLabel} by method`

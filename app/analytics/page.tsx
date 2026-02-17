@@ -1096,48 +1096,102 @@ export default function AnalyticsPage() {
 
         <ChartCard
           title={getSegmentationTitle(section, section === 'profitability' ? 'sales_orders' : subType)}
-          subtitle={`${timeLabel} · ${section === 'profitability' ? 'Sales Orders distribution' : segmentationSubtitle}${section === 'profitability' && comprehensiveSummary ? ` · Paid: KES ${formatNumber(comprehensiveSummary.total_paid ?? 0)} · Expenses: KES ${formatNumber(comprehensiveSummary.total_expenses ?? 0)} · Net: KES ${formatNumber(comprehensiveSummary.net_profit ?? 0)}` : ''}`}
+          subtitle={section === 'profitability' ? `${timeLabel} · ${(clientFilter && clientFilter !== 'general') ? 'Per client' : 'General'}` : `${timeLabel} · ${segmentationSubtitle}`}
         >
-          {segmentationError && (
-            <div className="p-2 text-destructive text-xs flex items-center gap-2">
-              <AlertCircle className="w-3 h-3" />
-              {segmentationError}
-            </div>
-          )}
-          {segmentationLoading ? (
-            <div className="h-[200px] flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : segmentationSegments.length === 0 ? (
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-              No data for this period
-            </div>
-          ) : (
+          {section === 'profitability' ? (
+            // Profitability: use comprehensiveSummary for Paid/Expenses/Net pie + legend
             <>
-              <div className="w-full" style={{ height: 200 }}>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={segmentationSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {segmentationSegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number, name: string, props: any) => {
-                        const rev = props.payload?.revenue ?? 0
-                        const fmt = section === 'stock' && subType === 'movements' ? rev.toLocaleString() : `KES ${Number(rev).toLocaleString()}`
-                        return [`${value}% · ${fmt}`, name]
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2 mt-4">
-                {segmentationSegments.map(s => (
-                  <div key={s.name} className="flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} /> <span className="truncate">{s.name}</span></div>
-                    <div className="font-bold shrink-0">{s.value}%</div>
+              {(comprehensiveLoading && !comprehensiveSummary) ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (() => {
+                const paid = Number(comprehensiveSummary?.total_paid ?? 0)
+                const expenses = Number(comprehensiveSummary?.total_expenses ?? 0)
+                const net = Number(comprehensiveSummary?.net_profit ?? 0)
+                const profitabilitySegments = [
+                  { name: 'Paid', value: Math.max(0, paid), revenue: paid, color: '#22c55e' },
+                  { name: 'Expenses', value: Math.max(0, expenses), revenue: expenses, color: '#f59e0b' },
+                  { name: 'Net', value: Math.max(0, net), revenue: net, color: '#3b82f6' },
+                ].filter(s => s.value > 0)
+                if (profitabilitySegments.length === 0) {
+                  return (
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                      No data for this period
+                    </div>
+                  )
+                }
+                return (
+                  <>
+                    <div className="w-full" style={{ height: 200 }}>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie data={profitabilitySegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                            {profitabilitySegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: number, name: string, props: any) => {
+                              const rev = props.payload?.revenue ?? 0
+                              return [`KES ${Number(rev).toLocaleString()}`, name]
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-2 mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs border-t border-border pt-3">
+                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0 bg-[#22c55e]" /> <span>Paid: KES {formatNumber(paid)}</span></div>
+                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0 bg-[#f59e0b]" /> <span>Expenses: KES {formatNumber(expenses)}</span></div>
+                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0 bg-[#3b82f6]" /> <span>Net: KES {formatNumber(net)}</span></div>
+                    </div>
+                  </>
+                )
+              })()}
+            </>
+          ) : (
+            // Other sections: use segmentationSegments
+            <>
+              {segmentationError && (
+                <div className="p-2 text-destructive text-xs flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" />
+                  {segmentationError}
+                </div>
+              )}
+              {segmentationLoading ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : segmentationSegments.length === 0 ? (
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                  No data for this period
+                </div>
+              ) : (
+                <>
+                  <div className="w-full" style={{ height: 200 }}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie data={segmentationSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                          {segmentationSegments.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number, name: string, props: any) => {
+                            const rev = props.payload?.revenue ?? 0
+                            const fmt = section === 'stock' && subType === 'movements' ? rev.toLocaleString() : `KES ${Number(rev).toLocaleString()}`
+                            return [`${value}% · ${fmt}`, name]
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-2 mt-4">
+                    {segmentationSegments.map(s => (
+                      <div key={s.name} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} /> <span className="truncate">{s.name}</span></div>
+                        <div className="font-bold shrink-0">{s.value}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </ChartCard>
