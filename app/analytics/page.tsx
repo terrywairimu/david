@@ -19,6 +19,7 @@ import {
   type ChartTypeKey,
 } from '@/lib/analytics-config'
 import { formatNumber } from '@/lib/format-number'
+import { generateAnalyticsReportPDF } from '@/lib/analytics-report-pdf'
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Package,
   Calendar, Filter, Download, Share, RefreshCw, Zap, Eye,
@@ -875,8 +876,34 @@ export default function AnalyticsPage() {
     generateAIInsights,
   } = useAnalytics(effectiveTimeRangeForLegacy as any)
 
-  const handleExport = (type: string) => {
-    setNotification({ message: `Exporting ${type} report...` })
+  const handleExport = async (type: string) => {
+    setNotification({ message: 'Preparing professional analytics report...' })
+    try {
+      await generateAnalyticsReportPDF(
+        {
+          section,
+          subType: section === 'profitability' ? 'sales_orders' : subType,
+          clientFilter,
+          timeRange,
+          timeLabel,
+          customStart: timeRange === 'custom' ? customStartDate : undefined,
+          customEnd: timeRange === 'custom' ? customEndDate : undefined,
+          comprehensiveSummary: comprehensiveSummary ?? null,
+          comprehensiveChartData,
+          chartTitle,
+          analyticsMetric,
+          segmentationSegments,
+          aiInsights: aiAnalysis?.insights,
+          aiSummary: aiAnalysis?.summary,
+          clients,
+        },
+        'analytics_report'
+      )
+      setNotification({ message: 'Report downloaded successfully!' })
+    } catch (err) {
+      console.error('Analytics export failed:', err)
+      setNotification({ message: 'Export failed. Please try again.' })
+    }
   }
 
   const handleFullscreen = (section: string) => {
