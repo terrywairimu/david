@@ -595,11 +595,14 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
   // Cash = always fully paid: lock payment status and force balance 0
   const isCashPayment = paymentMethod?.toLowerCase() === "cash"
+  const isCreditPayment = paymentMethod?.toLowerCase() === "credit"
   useEffect(() => {
     if (isCashPayment) {
       setPaymentStatus("fully_paid")
+    } else if (isCreditPayment && paymentStatus === "fully_paid") {
+      setPaymentStatus("not_yet_paid")
     }
-  }, [isCashPayment])
+  }, [isCashPayment, isCreditPayment, paymentStatus])
 
   // Calculate balance and auto-update amount_paid based on status
   useEffect(() => {
@@ -822,7 +825,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                   ) : (
                     <select
                       className="form-select border-0 shadow-sm"
-                      value={paymentStatus}
+                      value={isCreditPayment && paymentStatus === "fully_paid" ? "not_yet_paid" : paymentStatus}
                       onChange={(e) => setPaymentStatus(e.target.value)}
                       style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
@@ -830,7 +833,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                     >
                       <option value="not_yet_paid">Not Yet Paid</option>
                       <option value="partially_paid">Partially Paid</option>
-                      <option value="fully_paid">Fully Paid</option>
+                      {!isCreditPayment && <option value="fully_paid">Fully Paid</option>}
                     </select>
                   )}
                 </div>
