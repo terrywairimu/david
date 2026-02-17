@@ -27,6 +27,10 @@ export interface AnalyticsReportParams {
   aiInsights?: { title: string; description: string }[]
   aiSummary?: string
   clients?: { id: number; name: string }[]
+  /** Base64 data URL (e.g. from html2canvas) for main trend chart */
+  mainChartImage?: string
+  /** Base64 data URL for pie/segmentation chart */
+  pieChartImage?: string
 }
 
 function formatVal(
@@ -157,6 +161,15 @@ export async function generateAnalyticsReportPDF(
   })
   y += statRows.length * 7 + 12
 
+  // Main chart visualization (area/line/bar chart)
+  const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const mainChartImg = params.mainChartImage || mainChartPlaceholder
+  page1Schema.push(
+    { name: 'mainChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
+    { name: 'mainChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 55 }
+  )
+  y += 68
+
   // Chart data table header (Time Series / Performance Over Time)
   let dataKey = 'amount'
   if (params.comprehensiveChartData.length > 0) {
@@ -211,6 +224,8 @@ export async function generateAnalyticsReportPDF(
     scopeNote: `Scope: ${params.section.replace(/_/g, ' ')} — ${params.section === 'profitability' && params.clientFilter !== 'general' ? 'Per client analysis' : 'All clients'} · Metric: ${params.chartTitle}`,
     execHeader: '',
     execTitle: 'Executive Summary',
+    mainChartLabel: 'Performance Trend Chart',
+    mainChartImage: mainChartImg,
     tableSectionTitle: params.comprehensiveChartData.length > 0 ? 'Performance Over Time (Time Series Data)' : '',
     watermark: watermarkBase64,
   }
@@ -246,6 +261,15 @@ export async function generateAnalyticsReportPDF(
     { name: 'page2Title', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 10, fontSize: 12, fontColor: '#B06A2B', alignment: 'center' }
   )
   y += 14
+
+  // Pie / Segmentation chart visualization
+  const pieChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const pieChartImg = params.pieChartImage || pieChartPlaceholder
+  page2Schema.push(
+    { name: 'pieChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
+    { name: 'pieChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: 90, height: 90 }
+  )
+  y += 102
 
   // Distribution / Segmentation section
   page2Schema.push(
@@ -327,6 +351,8 @@ export async function generateAnalyticsReportPDF(
 
   const page2Input: Record<string, any> = {
     page2Title: `${reportTitle} (Continued)`,
+    pieChartLabel: params.section === 'profitability' ? 'Profitability (Paid / Expenses / Net)' : 'Distribution Chart',
+    pieChartImage: pieChartImg,
     distSectionTitle: params.section === 'profitability' ? 'Profitability Breakdown (Paid vs Expenses vs Net)' : 'Distribution / Segmentation',
     distHeader: '',
     distCol1: 'Category',

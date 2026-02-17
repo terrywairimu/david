@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import html2canvas from 'html2canvas'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -836,6 +837,10 @@ export default function AnalyticsPage() {
   const [productSettingsOpen, setProductSettingsOpen] = useState(false)
   const [customerSettingsOpen, setCustomerSettingsOpen] = useState(false)
 
+  // Refs for chart capture (PDF export)
+  const mainChartRef = useRef<HTMLDivElement>(null)
+  const pieChartRef = useRef<HTMLDivElement>(null)
+
   // Chart settings
   const [chartSettings, setChartSettings] = useState({
     chartType: 'area',
@@ -876,9 +881,29 @@ export default function AnalyticsPage() {
     generateAIInsights,
   } = useAnalytics(effectiveTimeRangeForLegacy as any)
 
-  const handleExport = async (type: string) => {
-    setNotification({ message: 'Preparing professional analytics report...' })
+  const captureChartAsImage = async (el: HTMLElement | null, options?: { scale?: number }) => {
+    if (!el || !el.offsetParent) return undefined
     try {
+      const canvas = await html2canvas(el, {
+        scale: options?.scale ?? 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      return canvas.toDataURL('image/png')
+    } catch {
+      return undefined
+    }
+  }
+
+  const handleExport = async (type: string) => {
+    setNotification({ message: 'Capturing charts and preparing report...' })
+    try {
+      const [mainChartImage, pieChartImage] = await Promise.all([
+        captureChartAsImage(mainChartRef.current),
+        captureChartAsImage(pieChartRef.current),
+      ])
+      setNotification({ message: 'Generating PDF...' })
       await generateAnalyticsReportPDF(
         {
           section,
@@ -896,6 +921,8 @@ export default function AnalyticsPage() {
           aiInsights: aiAnalysis?.insights,
           aiSummary: aiAnalysis?.summary,
           clients,
+          mainChartImage,
+          pieChartImage,
         },
         'analytics_report'
       )
@@ -1069,7 +1096,7 @@ export default function AnalyticsPage() {
                 <p className="text-sm">No data for this period. Try a different time range or section.</p>
               </div>
             ) : (
-              <div className="w-full overflow-x-auto" style={{ minHeight: 350 }}>
+              <div ref={mainChartRef} className="w-full overflow-x-auto" style={{ minHeight: 350 }}>
                 <AnalyticsChartByType
                   data={comprehensiveChartData}
                   dataKey={(() => {
@@ -1150,7 +1177,7 @@ export default function AnalyticsPage() {
                 }
                 return (
                   <>
-                    <div className="w-full" style={{ height: 200 }}>
+                    <div ref={pieChartRef} className="w-full" style={{ height: 200 }}>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
                           <Pie data={profitabilitySegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
@@ -1193,7 +1220,7 @@ export default function AnalyticsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="w-full" style={{ height: 200 }}>
+                  <div ref={pieChartRef} className="w-full" style={{ height: 200 }}>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie data={segmentationSegments} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
