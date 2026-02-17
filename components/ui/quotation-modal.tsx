@@ -152,7 +152,7 @@ const AddNewSectionButton: React.FC<{
   }, [isOpen, onToggle])
 
   return (
-    <div ref={btnRef} className="mt-2 position-relative">
+    <div ref={btnRef} className="position-relative">
       <button
         type="button"
         className="btn btn-outline-light btn-sm d-flex align-items-center"
@@ -2516,7 +2516,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   <div className="col-md-6 col-12 mb-1 mb-md-0 client-col">
                     <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                       <div className="card-body" style={{ padding: isMobile ? 0 : "1.25rem" }}>
-                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <h6 className="card-title mb-3 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
                           <User size={18} className="me-2" />
                           Client Information
                         </h6>
@@ -2625,7 +2625,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                     <div className="card-body p-4">
-                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                      <h6 className="card-title mb-3 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
                         <Calculator size={18} className="me-2" />
                         <EditableSectionHeader
                           sectionKey="cabinet"
@@ -2845,10 +2845,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                         {/* Add Item Button */}
                         {!isReadOnly && (
-                          <div className="mt-3">
+                          <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                             <button
                               type="button"
-                              className="btn btn-primary"
+                              className="btn btn-primary d-inline-flex align-items-center"
                               onClick={() => addItem("cabinet")}
                               style={{
                                 borderRadius: "12px",
@@ -2857,7 +2857,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                 padding: "10px 20px"
                               }}
                             >
-                              <Plus size={14} className="me-1" />
+                              <Plus size={14} className="me-2" />
                               Add Item
                             </button>
                             <AddNewSectionButton anchorKey="cabinet" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "cabinet"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "cabinet" ? null : "cabinet")} />
@@ -3241,10 +3241,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                           {/* Move the Add Item button to be the last element: */}
                           {!isReadOnly && (
-                            <div className="mt-3">
+                            <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary d-inline-flex align-items-center"
                                 onClick={() => addItem("worktop")}
                                 style={{
                                   borderRadius: "12px",
@@ -3253,7 +3253,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   padding: "10px 20px"
                                 }}
                               >
-                                <Plus size={14} className="me-1" />
+                                <Plus size={14} className="me-2" />
                                 Add Item
                               </button>
                               <AddNewSectionButton anchorKey="worktop" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "worktop"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "worktop" ? null : "worktop")} />
@@ -3563,10 +3563,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                           {/* Add Item Button */}
                           {!isReadOnly && (
-                            <div className="mt-3">
+                            <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary d-inline-flex align-items-center"
                                 onClick={() => addItem("accessories")}
                                 style={{
                                   borderRadius: "12px",
@@ -3575,7 +3575,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   padding: "10px 20px"
                                 }}
                               >
-                                <Plus size={14} className="me-1" />
+                                <Plus size={14} className="me-2" />
                                 Add Item
                               </button>
                               <AddNewSectionButton anchorKey="accessories" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "accessories"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "accessories" ? null : "accessories")} />
@@ -3885,10 +3885,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                           {/* Add Item Button */}
                           {!isReadOnly && (
-                            <div className="mt-3">
+                            <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary d-inline-flex align-items-center"
                                 onClick={() => addItem("appliances")}
                                 style={{
                                   borderRadius: "12px",
@@ -3897,7 +3897,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   padding: "10px 20px"
                                 }}
                               >
-                                <Plus size={14} className="me-1" />
+                                <Plus size={14} className="me-2" />
                                 Add Item
                               </button>
                               <AddNewSectionButton anchorKey="appliances" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "appliances"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "appliances" ? null : "appliances")} />
@@ -4207,10 +4207,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                           {/* Add Item Button */}
                           {!isReadOnly && (
-                            <div className="mt-3">
+                            <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary d-inline-flex align-items-center"
                                 onClick={() => addItem("wardrobes")}
                                 style={{
                                   borderRadius: "12px",
@@ -4219,7 +4219,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   padding: "10px 20px"
                                 }}
                               >
-                                <Plus size={14} className="me-1" />
+                                <Plus size={14} className="me-2" />
                                 Add Item
                               </button>
                               <AddNewSectionButton anchorKey="wardrobes" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "wardrobes"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "wardrobes" ? null : "wardrobes")} />
@@ -4529,10 +4529,10 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
                           {/* Add Item Button */}
                           {!isReadOnly && (
-                            <div className="mt-3">
+                            <div className="mt-3 d-flex flex-wrap align-items-center gap-2">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary d-inline-flex align-items-center"
                                 onClick={() => addItem("tvunit")}
                                 style={{
                                   borderRadius: "12px",
@@ -4541,7 +4541,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                                   padding: "10px 20px"
                                 }}
                               >
-                                <Plus size={14} className="me-1" />
+                                <Plus size={14} className="me-2" />
                                 Add Item
                               </button>
                               <AddNewSectionButton anchorKey="tvunit" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "tvunit"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "tvunit" ? null : "tvunit")} />
@@ -4592,7 +4592,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                 <div className="mb-4">
                   <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                     <div className="card-body p-4">
-                      <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                      <h6 className="card-title mb-3 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
                         <Calculator size={18} className="me-2" />
                         Summary
                       </h6>
@@ -4732,7 +4732,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   <div className="col-md-6">
                     <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                       <div className="card-body p-4">
-                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <h6 className="card-title mb-3 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
                           Notes
                         </h6>
                         <textarea
@@ -4749,7 +4749,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                   <div className="col-md-6">
                     <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
                       <div className="card-body p-4">
-                        <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
+                        <h6 className="card-title mb-3 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}>
                           Terms & Conditions
                         </h6>
                         <textarea

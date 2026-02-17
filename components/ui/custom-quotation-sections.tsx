@@ -231,8 +231,8 @@ export function CustomNormalSection(props: CustomNormalSectionProps) {
             </div>
           )}
           <div className="mt-3">
-            <button type="button" className="btn btn-primary" onClick={() => addItem("cabinet", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
-              <Plus size={14} className="me-1" /> Add Item
+            <button type="button" className="btn btn-primary d-inline-flex align-items-center" onClick={() => addItem("cabinet", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+              <Plus size={14} className="me-2" /> Add Item
             </button>
           </div>
         </>
@@ -294,8 +294,8 @@ export function CustomWorktopSection(props: CustomWorktopSectionProps) {
             <input type="number" value={worktopLaborUnitPrice} onChange={(e) => setWorktopLaborUnitPrice(parseFloat(e.target.value) || 0)} style={{ width: "100px", borderRadius: "8px", background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }} min={0} step="0.01" />
           </div>
           <div className="mt-3">
-            <button type="button" className="btn btn-primary" onClick={() => addItem("worktop", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
-              <Plus size={14} className="me-1" /> Add Item
+            <button type="button" className="btn btn-primary d-inline-flex align-items-center" onClick={() => addItem("worktop", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+              <Plus size={14} className="me-2" /> Add Item
             </button>
           </div>
         </>
