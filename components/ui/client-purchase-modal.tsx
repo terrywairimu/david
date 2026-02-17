@@ -593,16 +593,13 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
     return () => clearTimeout(timeoutId)
   }, [itemSearches, stockItems, items])
 
-  // Cash = always fully paid: lock payment status and force balance 0
-  const isCashPayment = paymentMethod?.toLowerCase() === "cash"
-  const isCreditPayment = paymentMethod?.toLowerCase() === "credit"
+  // Cash-like (fully paid only): Cash, M-Pesa, Petty Cash, Cheque, Cooperative Bank. Credit keeps dropdown.
+  const isCashPayment = !!paymentMethod && ["cash", "mpesa", "petty_cash", "cheque", "cooperative_bank"].includes(paymentMethod.toLowerCase().trim())
   useEffect(() => {
     if (isCashPayment) {
       setPaymentStatus("fully_paid")
-    } else if (isCreditPayment && paymentStatus === "fully_paid") {
-      setPaymentStatus("not_yet_paid")
     }
-  }, [isCashPayment, isCreditPayment, paymentStatus])
+  }, [isCashPayment])
 
   // Calculate balance and auto-update amount_paid based on status
   useEffect(() => {
@@ -811,8 +808,8 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
               {/* Status, Amount Paid, Balance, and Total Amount in one row */}
               <div className="row mb-3">
-                {/* Status - Left */}
-                <div className="col-md-3">
+                {/* Status - Left - when Cash/M-Pesa/Petty Cash: read-only Fully Paid only */}
+                <div className="col-md-3" key={`payment-status-${paymentMethod}`}>
                   <label className="form-label">Payment Status</label>
                   {isCashPayment ? (
                     <input
@@ -825,7 +822,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                   ) : (
                     <select
                       className="form-select border-0 shadow-sm"
-                      value={isCreditPayment && paymentStatus === "fully_paid" ? "not_yet_paid" : paymentStatus}
+                      value={paymentStatus}
                       onChange={(e) => setPaymentStatus(e.target.value)}
                       style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
                       required
@@ -833,7 +830,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                     >
                       <option value="not_yet_paid">Not Yet Paid</option>
                       <option value="partially_paid">Partially Paid</option>
-                      {!isCreditPayment && <option value="fully_paid">Fully Paid</option>}
+                      <option value="fully_paid">Fully Paid</option>
                     </select>
                   )}
                 </div>
