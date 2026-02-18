@@ -1247,6 +1247,72 @@ const calculateColumnWidthsFromData = (
   return contentWidths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
 };
 
+/** Purchases: reserve Total Amount, cap wrapable columns so all fit within tableWidth. Items wraps. */
+const calculatePurchasesColumnWidths = (
+  tableHeaders: string[],
+  rowData: Record<string, string | number>[],
+  fieldKeys: string[],
+  tableWidth: number = 180
+): number[] => {
+  const colCount = tableHeaders.length;
+  if (colCount === 0) return [];
+  const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
+  const availableWidth = tableWidth - totalGaps;
+
+  // Minimum widths (Total Amount must always be visible)
+  const minWidths: Record<string, number> = {
+    'Order Number': 22, 'Date': 18, 'Supplier': 22, 'Client': 18, 'Paid To': 18,
+    'Items': 28, 'Total Amount': 28
+  };
+  const itemsColIdx = tableHeaders.indexOf('Items');
+
+  // Non-Items columns: min width, capped so Total Amount fits
+  let fixedWidths = tableHeaders.map((header, colIdx) => {
+    if (colIdx === itemsColIdx) return 0;
+    const key = fieldKeys[colIdx];
+    let maxLen = header.length;
+    rowData.forEach((row) => {
+      const val = key ? String(row[key] ?? '') : '';
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    const contentW = maxLen * CHAR_WIDTH_MM;
+    return Math.max(minWidths[header] ?? MIN_COLUMN_WIDTH, Math.round(contentW));
+  });
+  // Scale down fixed columns if they exceed available (ensures Items + Total Amount fit)
+  const fixedSum = fixedWidths.reduce((a, b) => a + b, 0);
+  const itemsMinWidth = 28;
+  if (fixedSum + itemsMinWidth > availableWidth) {
+    const scale = (availableWidth - itemsMinWidth) / fixedSum;
+    fixedWidths = fixedWidths.map((w, i) => i === itemsColIdx ? 0 : Math.max(minWidths[tableHeaders[i]] ?? 16, Math.round(w * scale)));
+  }
+  const newFixedSum = fixedWidths.reduce((a, b) => a + b, 0);
+  const itemsWidth = Math.max(itemsMinWidth, availableWidth - newFixedSum); // Items gets remainder
+  const result = fixedWidths.map((w, i) => (i === itemsColIdx ? itemsWidth : w));
+  return result;
+};
+
+/** Estimate row height in mm from items text (7pt font ~1.1mm/char, line height ~3.5mm) */
+const computePurchaseRowHeights = (
+  rowData: Record<string, string | number>[],
+  fieldKeys: string[],
+  tableHeaders: string[],
+  dataDrivenWidths: number[]
+): number[] => {
+  const itemsColIdx = tableHeaders.indexOf('Items');
+  if (itemsColIdx < 0) return rowData.map(() => 8);
+  const itemsKey = fieldKeys[itemsColIdx];
+  const itemsWidthMm = dataDrivenWidths[itemsColIdx] ?? 40;
+  const charsPerLine = Math.max(10, Math.floor(itemsWidthMm / 1.1)); // 7pt ~1.1mm/char
+  const lineHeightMm = 3.5;
+  const minRowHeight = 6;
+
+  return rowData.map((row) => {
+    const text = String(row[itemsKey] ?? '');
+    const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+    return Math.max(minRowHeight, Math.min(35, Math.round(lines * lineHeightMm)));
+  });
+};
+
 // Custom table headers for each section view (exact headers from table views, excluding Actions)
 const customTableHeaders = {
   expenses: {
@@ -1303,33 +1369,59 @@ const generateDynamicTemplateWithPagination = (
     ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
     : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   const dataDrivenWidths = rowData && rowData.length > 0
-    ? calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys)
+    ? (templateType === 'purchases'
+        ? calculatePurchasesColumnWidths(tableHeaders, rowData, fieldKeys)
+        : calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys))
     : undefined;
 
-  // Purchases use taller rows for Items column (multi-line text)
-  const effectiveRowHeight = templateType === 'purchases' ? 14 : rowHeight;
-  const purchasesFirstPageRows = templateType === 'purchases' ? Math.floor(firstPageAvailable / effectiveRowHeight) : firstPageRows;
-  const purchasesOtherPageRows = templateType === 'purchases' ? Math.floor(otherPageAvailable / effectiveRowHeight) : otherPageRows;
+  // Purchases: dynamic row heights from items text; others use fixed
+  const purchaseRowHeights = (templateType === 'purchases' && rowData && dataDrivenWidths)
+    ? computePurchaseRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
+    : null;
 
-  // Paginate rows - only add pages with content (no blank continuation pages)
+  // Paginate rows
   const pages: Array<Array<number>> = [];
-  let rowIndex = 0;
-  
-  // First page (always add - either with data or empty for "no records" report)
-  const firstPageMaxRows = templateType === 'purchases' ? purchasesFirstPageRows : firstPageRows;
-  const otherPageMaxRows = templateType === 'purchases' ? purchasesOtherPageRows : otherPageRows;
-  const firstPageActualRows = Math.min(firstPageMaxRows, rowCount);
-  pages.push(Array.from({length: firstPageActualRows}, (_, i) => i));
-  rowIndex += firstPageActualRows;
-  
-  // Subsequent pages - only add pages that have rows
-  while (rowIndex < rowCount) {
-    const remainingRows = rowCount - rowIndex;
-    const rowsForThisPage = Math.min(otherPageMaxRows, remainingRows);
-    if (rowsForThisPage > 0) {
-      pages.push(Array.from({length: rowsForThisPage}, (_, i) => rowIndex + i));
+  if (templateType === 'purchases' && purchaseRowHeights) {
+    // Height-based pagination for purchases (dynamic row heights)
+    let rowIndex = 0;
+    let pageIdx = 0;
+    if (rowCount === 0) {
+      pages.push([]);
+    } else {
+      while (rowIndex < rowCount) {
+        const isFirstPage = pageIdx === 0;
+        const availableH = isFirstPage ? firstPageAvailable : otherPageAvailable;
+        const pageRows: number[] = [];
+        let accumulatedH = 0;
+        while (rowIndex < rowCount && accumulatedH + purchaseRowHeights[rowIndex] <= availableH) {
+          pageRows.push(rowIndex);
+          accumulatedH += purchaseRowHeights[rowIndex];
+          rowIndex++;
+        }
+        if (pageRows.length === 0 && rowIndex < rowCount) {
+          pageRows.push(rowIndex++);
+        }
+        if (pageRows.length > 0) pages.push(pageRows);
+        pageIdx++;
+      }
     }
-    rowIndex += rowsForThisPage;
+  } else {
+    // Fixed row-height pagination
+    const effectiveRowHeight = rowHeight;
+    const firstPageMaxRows = Math.floor(firstPageAvailable / effectiveRowHeight);
+    const otherPageMaxRows = Math.floor(otherPageAvailable / effectiveRowHeight);
+    let rowIndex = 0;
+    const firstPageActualRows = Math.min(firstPageMaxRows, rowCount);
+    pages.push(Array.from({ length: firstPageActualRows }, (_, i) => i));
+    rowIndex += firstPageActualRows;
+    while (rowIndex < rowCount) {
+      const remainingRows = rowCount - rowIndex;
+      const rowsForThisPage = Math.min(otherPageMaxRows, remainingRows);
+      if (rowsForThisPage > 0) {
+        pages.push(Array.from({ length: rowsForThisPage }, (_, i) => rowIndex + i));
+      }
+      rowIndex += rowsForThisPage;
+    }
   }
 
   // Build schemas for all pages
@@ -1400,18 +1492,27 @@ const generateDynamicTemplateWithPagination = (
     });
 
     // Data rows for this page
-    const rowH = templateType === 'purchases' ? effectiveRowHeight : rowHeight;
     pageRows.forEach((rowIdx, localIdx) => {
-      const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowH);
-      
-      // Generate data row fields - pass tableHeaders and dataDrivenWidths for aligned columns
-      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders, dataDrivenWidths, rowData);
+      let yPosition: number;
+      let rowH: number;
+      if (templateType === 'purchases' && purchaseRowHeights) {
+        rowH = purchaseRowHeights[rowIdx];
+        const cumulativeH = pageRows.slice(0, localIdx).reduce((s, i) => s + purchaseRowHeights[i], 0);
+        yPosition = tableHeaderY + tableHeaderHeight + cumulativeH;
+      } else {
+        rowH = rowHeight;
+        yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowH);
+      }
+      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders, dataDrivenWidths, rowData, rowH);
       pageSchema.push(...dataFields);
     });
 
     // Footer (only on the last table page)
     if (pageIdx === pages.length - 1) {
-      const lastRowY = tableHeaderY + tableHeaderHeight + (pageRows.length * rowH);
+      const totalRowsH = templateType === 'purchases' && purchaseRowHeights
+        ? pageRows.reduce((s, i) => s + purchaseRowHeights[i], 0)
+        : pageRows.length * rowHeight;
+      const lastRowY = tableHeaderY + tableHeaderHeight + totalRowsH;
       const footerStartY = lastRowY + 10; // 10mm spacing after last row
       const availableSpace = pageHeight - bottomMargin - footerStartY;
       
@@ -1642,7 +1743,8 @@ const generateDataFields = (
   yPosition: number,
   tableHeaders?: string[],
   dataDrivenWidths?: number[],
-  rowData?: Record<string, string | number>[]
+  rowData?: Record<string, string | number>[],
+  rowHeightMm: number = 8
 ) => {
   const fields: any[] = [];
   const fieldKeys = FIELD_KEYS_BY_TYPE[templateType];
@@ -1794,8 +1896,9 @@ const generateDataFields = (
     case 'purchases':
       // Purchase fields: use tableHeaders for alignment (client=7 cols, general=5 cols)
       // Positions match header columns exactly via dataDrivenWidths
+      // Items cell uses dynamic rowHeightMm for wrapping
       const purchasePositions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0, dataDrivenWidths) : [];
-      const purchasesRowHeight = 12; // Taller for Items multi-line wrapping
+      const itemsCellHeight = Math.max(5, rowHeightMm - 1); // leave 1mm gap
       tableHeaders?.forEach((header, colIdx) => {
         const key = PURCHASES_HEADER_TO_KEY[header];
         if (!key || !purchasePositions[colIdx]) return;
@@ -1806,7 +1909,7 @@ const generateDataFields = (
           type: 'text',
           position: { x: pos.x, y: yPosition },
           width: pos.width,
-          height: isItems ? purchasesRowHeight : 5,
+          height: isItems ? itemsCellHeight : 5,
           fontSize: isItems ? 7 : FONT_SIZE_TABLE_ROW,
           fontColor: '#000',
           fontName: 'Helvetica',
