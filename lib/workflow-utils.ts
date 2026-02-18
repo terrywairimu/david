@@ -365,13 +365,14 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
     
     if (format === 'pdf') {
       // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       
       // Get custom table headers for quotations
       const customTableHeaders = ['Quotation #', 'Date', 'Client', 'Total Amount', 'Status'];
       
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(quotations.length, customTableHeaders, 'quotations');
+      // Generate dynamic template with pagination (returns template + pages for per-page inputs)
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(quotations.length, customTableHeaders, 'quotations');
+      const template = { basePdf, schemas }
       
       // Fetch watermark image as base64
       async function fetchImageAsBase64(url: string): Promise<string> {
@@ -388,46 +389,42 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
 
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
-        logo: companyLogoBase64,
-        companyName: "CABINET MASTER STYLES & FINISHES",
-        companyLocation: "Location: Ruiru Eastern By-Pass",
-        companyPhone: "Tel: +254729554475",
-        companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header - Changed to "QUOTATIONS REPORT"
-        reportTitle: "QUOTATIONS REPORT",
-        reportDateLabel: 'Date:',
-        reportDateValue: new Date().toLocaleDateString(),
-        reportPeriodLabel: 'Period:',
-        reportPeriodValue: "All Time",
-        reportTypeLabel: 'Type:',
-        reportTypeValue: "Quotations",
-        
-        // Real Data Rows (populated with actual data from quotations array)
-        ...quotations.map((quotation, index) => ({
-          [`quotationNumber_${index}`]: String(quotation.quotation_number || 'N/A'),
-          [`date_${index}`]: new Date(quotation.date_created).toLocaleDateString(),
-          [`client_${index}`]: String(quotation.client?.name || 'Unknown'),
-          [`totalAmount_${index}`]: `KES ${(quotation.grand_total || 0).toFixed(2)}`,
-          [`status_${index}`]: String(quotation.status || 'Active')
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
-        summaryTitle: 'Summary:',
-        summaryContent: `Total Quotations: ${quotations.length}`,
-        totalLabel: 'Total:',
-        totalValue: `KES ${quotations.reduce((sum, quotation) => sum + (quotation.grand_total || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(quotations.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
+      const rowData = quotations.map((q) => ({
+        quotationNumber: String(q.quotation_number || 'N/A'),
+        date: new Date(q.date_created).toLocaleDateString(),
+        client: String(q.client?.name || 'Unknown'),
+        totalAmount: `KES ${(q.grand_total || 0).toFixed(2)}`,
+        status: String(q.status || 'Active'),
+      }));
+
+      const inputs = buildPaginatedInputs(
+        pages,
+        template.schemas.length,
+        customTableHeaders,
+        'quotations',
+        rowData,
+        {
+          logo: companyLogoBase64,
+          companyName: "CABINET MASTER STYLES & FINISHES",
+          companyLocation: "Location: Ruiru Eastern By-Pass",
+          companyPhone: "Tel: +254729554475",
+          companyEmail: "Email: cabinetmasterstyles@gmail.com",
+          reportTitle: "QUOTATIONS REPORT",
+          reportDateLabel: 'Date:',
+          reportDateValue: new Date().toLocaleDateString(),
+          reportPeriodLabel: 'Period:',
+          reportPeriodValue: "All Time",
+          reportTypeLabel: 'Type:',
+          reportTypeValue: "Quotations",
+          summaryTitle: 'Summary:',
+          summaryContent: `Total Quotations: ${quotations.length}`,
+          totalLabel: 'Total:',
+          totalValue: `KES ${quotations.reduce((sum, q) => sum + (q.grand_total || 0), 0).toFixed(2)}`,
+          preparedByLabel: 'Prepared by: System',
+          approvedByLabel: 'Approved by: System',
+        },
+        watermarkLogoBase64
+      );
       
       // Generate and download the PDF
       const { generate } = await import('@pdfme/generator')
@@ -485,16 +482,10 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
 export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers for sales orders
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Order #', 'Date', 'Client', 'Total Amount', 'Status'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(salesOrders.length, customTableHeaders, 'salesOrders');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(salesOrders.length, customTableHeaders, 'salesOrders');
+      const template = { basePdf, schemas }
       async function fetchImageAsBase64(url: string): Promise<string> {
         const response = await fetch(url);
         const blob = await response.blob();
@@ -505,20 +496,21 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = salesOrders.map((o) => ({
+        orderNumber: String(o.order_number || 'N/A'),
+        date: new Date(o.date_created).toLocaleDateString(),
+        client: String(o.client?.name || 'Unknown'),
+        totalAmount: `KES ${(o.grand_total || 0).toFixed(2)}`,
+        status: String(o.status || 'Active'),
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'salesOrders', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "SALES ORDERS REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -526,31 +518,13 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Sales Orders",
-        
-        // Real Data Rows (populated with actual data from salesOrders array)
-        ...salesOrders.map((order, index) => ({
-          [`orderNumber_${index}`]: String(order.order_number || 'N/A'),
-          [`date_${index}`]: new Date(order.date_created).toLocaleDateString(),
-          [`client_${index}`]: String(order.client?.name || 'Unknown'),
-          [`totalAmount_${index}`]: `KES ${(order.grand_total || 0).toFixed(2)}`,
-          [`status_${index}`]: String(order.status || 'Active')
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Sales Orders: ${salesOrders.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${salesOrders.reduce((sum, order) => sum + (order.grand_total || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(salesOrders.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${salesOrders.reduce((sum, o) => sum + (o.grand_total || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -601,19 +575,13 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
 export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers for invoices
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Invoice #', 'Date', 'Due Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(invoices.length, customTableHeaders, 'invoices');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(invoices.length, customTableHeaders, 'invoices');
+      const template = { basePdf, schemas }
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -621,20 +589,24 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = invoices.map((inv) => ({
+        invoiceNumber: String(inv.invoice_number || 'N/A'),
+        date: new Date(inv.date_created).toLocaleDateString(),
+        dueDate: new Date(inv.due_date).toLocaleDateString(),
+        client: String(inv.client?.name || 'Unknown'),
+        totalAmount: `KES ${(inv.grand_total || 0).toFixed(2)}`,
+        paidAmount: `KES ${(inv.paid_amount || 0).toFixed(2)}`,
+        balance: `KES ${(inv.balance_amount || 0).toFixed(2)}`,
+        status: String(inv.status || 'Active'),
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'invoices', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "INVOICES REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -642,34 +614,13 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Invoices",
-        
-        // Real Data Rows (populated with actual data from invoices array)
-        ...invoices.map((invoice, index) => ({
-          [`invoiceNumber_${index}`]: String(invoice.invoice_number || 'N/A'),
-          [`date_${index}`]: new Date(invoice.date_created).toLocaleDateString(),
-          [`dueDate_${index}`]: new Date(invoice.due_date).toLocaleDateString(),
-          [`client_${index}`]: String(invoice.client?.name || 'Unknown'),
-          [`totalAmount_${index}`]: `KES ${(invoice.grand_total || 0).toFixed(2)}`,
-          [`paidAmount_${index}`]: `KES ${(invoice.paid_amount || 0).toFixed(2)}`,
-          [`balance_${index}`]: `KES ${(invoice.balance_amount || 0).toFixed(2)}`,
-          [`status_${index}`]: String(invoice.status || 'Active')
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Invoices: ${invoices.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${invoices.reduce((sum, invoice) => sum + (invoice.grand_total || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(invoices.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${invoices.reduce((sum, inv) => sum + (inv.grand_total || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -721,19 +672,13 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
 export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers for cash sales
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Receipt #', 'Date', 'Client', 'Total Amount'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(cashSales.length, customTableHeaders, 'cashSales');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(cashSales.length, customTableHeaders, 'cashSales');
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -741,20 +686,20 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = cashSales.map((s) => ({
+        receiptNumber: String(s.sale_number || 'N/A'),
+        date: new Date(s.date_created).toLocaleDateString(),
+        client: String(s.client?.name || 'Unknown'),
+        totalAmount: `KES ${(s.grand_total || 0).toFixed(2)}`,
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'cashSales', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "CASH SALES REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -762,30 +707,13 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Cash Sales",
-        
-        // Real Data Rows (populated with actual data from cashSales array)
-        ...cashSales.map((sale, index) => ({
-          [`receiptNumber_${index}`]: String(sale.sale_number || 'N/A'),
-          [`date_${index}`]: new Date(sale.date_created).toLocaleDateString(),
-          [`client_${index}`]: String(sale.client?.name || 'Unknown'),
-          [`totalAmount_${index}`]: `KES ${(sale.grand_total || 0).toFixed(2)}`
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Cash Sales: ${cashSales.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${cashSales.reduce((sum, sale) => sum + (sale.grand_total || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(cashSales.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${cashSales.reduce((sum, s) => sum + (s.grand_total || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -842,19 +770,13 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
 export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers for stock
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(stockItems.length, customTableHeaders, 'stock');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(stockItems.length, customTableHeaders, 'stock');
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -862,20 +784,23 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = stockItems.map((item) => ({
+        itemCode: String(item.id || 'N/A'),
+        product: String(item.name || 'N/A'),
+        category: String(item.category || 'N/A'),
+        quantity: `${String(item.quantity || 0)} ${String(item.unit || '')}`.trim(),
+        unitPrice: `KES ${(item.unit_price || 0).toFixed(2)}`,
+        totalValue: `KES ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}`,
+        status: (item.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock',
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'stock', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "STOCK INVENTORY REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -883,33 +808,13 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Stock Inventory",
-        
-        // Real Data Rows (populated with actual data from stockItems array)
-        ...stockItems.map((item, index) => ({
-          [`itemCode_${index}`]: String(item.id || 'N/A'),
-          [`product_${index}`]: String(item.name || 'N/A'),
-          [`category_${index}`]: String(item.category || 'N/A'),
-          [`quantity_${index}`]: `${String(item.quantity || 0)} ${String(item.unit || '')}`.trim(),
-          [`unitPrice_${index}`]: `KES ${(item.unit_price || 0).toFixed(2)}`,
-          [`totalValue_${index}`]: `KES ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}`,
-          [`status_${index}`]: (item.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock'
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Stock Items: ${stockItems.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${stockItems.reduce((sum, item) => sum + (item.quantity * (item.unit_price || 0)), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(stockItems.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${stockItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -960,24 +865,39 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
   }
 }
 
+function formatPurchasesItemsDescription(items: any[]) {
+  if (!items || items.length === 0) return 'No items';
+  if (items.length === 1) {
+    const item = items[0];
+    const description = (
+      item.stock_item?.description && item.stock_item.description.trim() !== ''
+        ? item.stock_item.description
+        : (item.stock_item?.name && item.stock_item.name.trim() !== '' ? item.stock_item.name : 'N/A')
+    );
+    return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
+  }
+  return `${items.length} items: ${items.map(item => {
+    const description = (
+      item.stock_item?.description && item.stock_item.description.trim() !== ''
+        ? item.stock_item.description
+        : (item.stock_item?.name && item.stock_item.name.trim() !== '' ? item.stock_item.name : 'N/A')
+    );
+    return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
+  }).join(', ')}`;
+}
+
 export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'csv' = 'pdf', purchaseType: 'client' | 'general' = 'general') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers based on purchase type
-      const customTableHeaders = purchaseType === 'client' 
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
+      const customTableHeaders = purchaseType === 'client'
         ? ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount']
         : ['Order Number', 'Date', 'Supplier', 'Items', 'Total Amount'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(purchases.length, customTableHeaders, 'purchases');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(purchases.length, customTableHeaders, 'purchases');
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -985,20 +905,23 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = purchases.map((p) => ({
+        orderNumber: String(p.purchase_order_number || 'N/A'),
+        date: p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : 'N/A',
+        supplier: String(p.supplier?.name || 'Unknown'),
+        client: purchaseType === 'client' ? String(p.client?.name || 'N/A') : '',
+        paidTo: purchaseType === 'client' ? String(p.paid_to || 'N/A') : '',
+        items: formatPurchasesItemsDescription(p.items || []),
+        totalAmount: `KES ${(p.total_amount || 0).toFixed(2)}`,
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'purchases', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "PURCHASES REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -1006,73 +929,13 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Purchases",
-        
-        // Real Data Rows (populated with actual data from purchases array)
-        ...purchases.map((purchase, index) => {
-          // Format items description similar to frontend display
-          const formatItemsDescription = (items: any[]) => {
-            if (!items || items.length === 0) return 'No items';
-            if (items.length === 1) {
-              const item = items[0];
-              const description = (
-                item.stock_item?.description && item.stock_item.description.trim() !== ''
-                  ? item.stock_item.description
-                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
-                      ? item.stock_item.name
-                      : 'N/A')
-              );
-              return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
-            }
-            return `${items.length} items: ${items.map(item => {
-              const description = (
-                item.stock_item?.description && item.stock_item.description.trim() !== ''
-                  ? item.stock_item.description
-                  : (item.stock_item?.name && item.stock_item.name.trim() !== ''
-                      ? item.stock_item.name
-                      : 'N/A')
-              );
-              return `${description} (${item.quantity} ${item.stock_item?.unit || 'N/A'})`;
-            }).join(', ')}`;
-          };
-
-          if (purchaseType === 'client') {
-            return {
-              [`orderNumber_${index}`]: String(purchase.purchase_order_number || 'N/A'),
-              [`date_${index}`]: purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
-              [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
-              [`client_${index}`]: String(purchase.client?.name || 'N/A'),
-              [`paidTo_${index}`]: String(purchase.paid_to || 'N/A'),
-              [`items_${index}`]: formatItemsDescription(purchase.items || []),
-              [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
-            };
-          } else {
-            return {
-              [`orderNumber_${index}`]: String(purchase.purchase_order_number || 'N/A'),
-              [`date_${index}`]: purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString() : 'N/A',
-              [`supplier_${index}`]: String(purchase.supplier?.name || 'Unknown'),
-              [`client_${index}`]: '', // Empty for general purchases
-              [`paidTo_${index}`]: '', // Empty for general purchases
-              [`items_${index}`]: formatItemsDescription(purchase.items || []),
-              [`totalAmount_${index}`]: `KES ${(purchase.total_amount || 0).toFixed(2)}`
-            };
-          }
-        }).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Purchases: ${purchases.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${purchases.reduce((sum, purchase) => sum + (purchase.total_amount || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(purchases.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${purchases.reduce((sum, p) => sum + (p.total_amount || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -2387,19 +2250,13 @@ export const createPurchaseWithTransaction = async (purchaseData: any) => {
 export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv' = 'pdf') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers for payments
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(payments.length, customTableHeaders, 'payments');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(payments.length, customTableHeaders, 'payments');
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -2407,20 +2264,23 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = payments.map((p) => ({
+        paymentNumber: String(p.payment_number || 'N/A'),
+        client: String(p.client?.name || 'Unknown'),
+        date: new Date(p.date_created).toLocaleDateString(),
+        paidTo: String(p.paid_to || '-'),
+        description: String(p.description || '-'),
+        amount: `KES ${(p.amount || 0).toFixed(2)}`,
+        accountCredited: String(p.account_credited || '-'),
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'payments', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: "PAYMENTS REPORT",
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -2428,33 +2288,13 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: "Payments",
-        
-        // Real Data Rows (populated with actual data from payments array)
-        ...payments.map((payment, index) => ({
-          [`paymentNumber_${index}`]: String(payment.payment_number || 'N/A'),
-          [`client_${index}`]: String(payment.client?.name || 'Unknown'),
-          [`date_${index}`]: new Date(payment.date_created).toLocaleDateString(),
-          [`paidTo_${index}`]: String(payment.paid_to || '-'),
-          [`description_${index}`]: String(payment.description || '-'),
-          [`amount_${index}`]: `KES ${(payment.amount || 0).toFixed(2)}`,
-          [`accountCredited_${index}`]: String(payment.account_credited || '-')
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total Payments: ${payments.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${payments.reduce((sum, payment) => sum + (payment.amount || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(payments.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${payments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
@@ -2507,21 +2347,15 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
 export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv' = 'pdf', expenseType: 'client' | 'company' = 'company') => {
   try {
     if (format === 'pdf') {
-      // Use the new dynamic template system with pagination support
-      const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      
-      // Get custom table headers based on expense type
-      const customTableHeaders = expenseType === 'company' 
+      const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
+      const customTableHeaders = expenseType === 'company'
         ? ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited']
         : ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited'];
-      
-      // Generate dynamic template with pagination
-      const template = generateDynamicTemplateWithPagination(expenses.length, customTableHeaders, 'expenses');
-      
-      // Fetch watermark image as base64
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(expenses.length, customTableHeaders, 'expenses');
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        const res = await fetch(url);
+        const blob = await res.blob();
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -2529,20 +2363,23 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
           reader.readAsDataURL(blob);
         });
       }
-      
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      // Create inputs with actual data
-      const inputs = [{
-        // Company Info
+      const rowData = expenses.map((e) => ({
+        expenseNumber: String(e.expense_number || 'N/A'),
+        date: new Date(e.date_created).toLocaleDateString(),
+        department: expenseType === 'company' ? String(e.department || '-') : String(e.client?.name || 'Unknown'),
+        category: String(e.category || '-'),
+        description: String(e.description || '-'),
+        amount: `KES ${(e.amount || 0).toFixed(2)}`,
+        accountDebited: String(e.account_debited || '-'),
+      }));
+      const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'expenses', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        
-        // Report Header
         reportTitle: `${expenseType.toUpperCase()} EXPENSES REPORT`,
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
@@ -2550,47 +2387,13 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
         reportTypeValue: `${expenseType.charAt(0).toUpperCase() + expenseType.slice(1)} Expenses`,
-        
-        // Real Data Rows (populated with actual data from expenses array)
-        ...expenses.map((expense, index) => {
-          if (expenseType === 'company') {
-            return {
-              [`expenseNumber_${index}`]: String(expense.expense_number || 'N/A'),
-              [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
-              [`department_${index}`]: String(expense.department || '-'),
-              [`category_${index}`]: String(expense.category || '-'),
-              [`description_${index}`]: String(expense.description || '-'),
-              [`amount_${index}`]: `KES ${(expense.amount || 0).toFixed(2)}`,
-              [`accountDebited_${index}`]: String(expense.account_debited || '-')
-            };
-          } else {
-            return {
-              [`expenseNumber_${index}`]: String(expense.expense_number || 'N/A'),
-              [`date_${index}`]: new Date(expense.date_created).toLocaleDateString(),
-              [`department_${index}`]: String(expense.client?.name || 'Unknown'),
-              [`category_${index}`]: String(expense.category || '-'),
-              [`description_${index}`]: String(expense.description || '-'),
-              [`amount_${index}`]: `KES ${(expense.amount || 0).toFixed(2)}`,
-              [`accountDebited_${index}`]: String(expense.account_debited || '-')
-            };
-          }
-        }).reduce((acc, item) => ({ ...acc, ...item }), {}),
-        
-        // Footer
         summaryTitle: 'Summary:',
         summaryContent: `Total ${expenseType} Expenses: ${expenses.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0).toFixed(2)}`,
-        preparedByLabel: `Prepared by: System`,
-        approvedByLabel: `Approved by: System`,
-        
-        // Watermark - map to all pages
-        ...Array.from({ length: Math.ceil(expenses.length / firstPageRows) + 1 }, (_, i) => ({
-          [`watermarkLogo_${i}`]: watermarkLogoBase64
-        })).reduce((acc, item) => ({ ...acc, ...item }), {}),
-      }];
-      
-      // Generate and download the PDF
+        totalValue: `KES ${expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)}`,
+        preparedByLabel: 'Prepared by: System',
+        approvedByLabel: 'Approved by: System',
+      }, watermarkLogoBase64);
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })

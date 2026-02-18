@@ -1395,8 +1395,108 @@ const generateDynamicTemplateWithPagination = (
 
   return {
     basePdf: { width: pageWidth, height: pageHeight, padding: [0, 0, 0, 0] as [number, number, number, number] },
-    schemas
+    schemas,
+    pages,
   };
+};
+
+/** Build per-page inputs array for pdfme (each element = one page). Required for header/logo to show on first page. */
+export const buildPaginatedInputs = (
+  pages: number[][],
+  schemasCount: number,
+  tableHeaders: string[],
+  templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients',
+  rowData: Record<string, string | number>[],
+  baseInput: {
+    logo: string;
+    companyName: string;
+    companyLocation: string;
+    companyPhone: string;
+    companyEmail?: string;
+    reportTitle: string;
+    reportDateLabel: string;
+    reportDateValue: string;
+    reportPeriodLabel: string;
+    reportPeriodValue: string;
+    reportTypeLabel: string;
+    reportTypeValue: string;
+    summaryTitle: string;
+    summaryContent: string;
+    totalLabel: string;
+    totalValue: string;
+    preparedByLabel: string;
+    approvedByLabel: string;
+  },
+  watermarkBase64: string
+): Record<string, any>[] => {
+  const fieldKeysByType: Record<string, string[]> = {
+    quotations: ['quotationNumber', 'date', 'client', 'totalAmount', 'status'],
+    salesOrders: ['orderNumber', 'date', 'client', 'totalAmount', 'status'],
+    invoices: ['invoiceNumber', 'date', 'dueDate', 'client', 'totalAmount', 'paidAmount', 'balance', 'status'],
+    cashSales: ['receiptNumber', 'date', 'client', 'totalAmount'],
+    payments: ['paymentNumber', 'client', 'date', 'paidTo', 'description', 'amount', 'accountCredited'],
+    expenses: ['expenseNumber', 'date', 'department', 'category', 'description', 'amount', 'accountDebited'],
+    stock: ['itemCode', 'product', 'category', 'quantity', 'unitPrice', 'totalValue', 'status'],
+    purchases: ['orderNumber', 'date', 'supplier', 'client', 'paidTo', 'items', 'totalAmount'],
+    clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
+  };
+  const keys = fieldKeysByType[templateType] ?? fieldKeysByType.quotations;
+  const purchasesKeys = templateType === 'purchases' ? fieldKeysByType.purchases : null;
+
+  const result = pages.map((pageRows, pageIdx) => {
+    const input: Record<string, any> = {
+      [`watermarkLogo_${pageIdx}`]: watermarkBase64,
+    };
+    tableHeaders.forEach((h, hi) => {
+      input[`header_${pageIdx}_${hi}`] = h;
+    });
+    pageRows.forEach((rowIdx) => {
+      const row = rowData[rowIdx] || {};
+      const pk = purchasesKeys || keys;
+      pk.forEach((k, ki) => {
+        const val = row[k] ?? row[Object.keys(row)[ki]] ?? '';
+        input[`${k}_${rowIdx}`] = String(val);
+      });
+    });
+    if (pageIdx === 0) {
+      Object.assign(input, {
+        logo: baseInput.logo,
+        companyName: baseInput.companyName,
+        companyLocation: baseInput.companyLocation,
+        companyPhone: baseInput.companyPhone,
+        companyEmail: baseInput.companyEmail ?? 'Email: cabinetmasterstyles@gmail.com',
+        reportTitle: baseInput.reportTitle,
+        reportDateLabel: baseInput.reportDateLabel,
+        reportDateValue: baseInput.reportDateValue,
+        reportPeriodLabel: baseInput.reportPeriodLabel,
+        reportPeriodValue: baseInput.reportPeriodValue,
+        reportTypeLabel: baseInput.reportTypeLabel,
+        reportTypeValue: baseInput.reportTypeValue,
+      });
+    }
+    if (pageIdx === pages.length - 1 && pageIdx === schemasCount - 1) {
+      input.summaryTitle = baseInput.summaryTitle;
+      input.summaryContent = baseInput.summaryContent;
+      input.totalLabel = baseInput.totalLabel;
+      input.totalValue = baseInput.totalValue;
+      input.preparedByLabel = baseInput.preparedByLabel;
+      input.approvedByLabel = baseInput.approvedByLabel;
+    }
+    return input;
+  });
+
+  if (schemasCount > result.length) {
+    result.push({
+      watermarkLogo_footer: watermarkBase64,
+      summaryTitle: baseInput.summaryTitle,
+      summaryContent: baseInput.summaryContent,
+      totalLabel: baseInput.totalLabel,
+      totalValue: baseInput.totalValue,
+      preparedByLabel: baseInput.preparedByLabel,
+      approvedByLabel: baseInput.approvedByLabel,
+    });
+  }
+  return result;
 };
 
 // Calculate header positions with auto-width based on content needs
@@ -2158,6 +2258,7 @@ export {
   generateClientReportPDF,
   generateFinancialReportPDF,
   generateDynamicTemplateWithPagination,
+  buildPaginatedInputs,
   calculateHeaderPositions,
   generateDataFields
 };
