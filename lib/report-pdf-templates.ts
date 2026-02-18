@@ -1247,11 +1247,11 @@ const calculateColumnWidthsFromData = (
   return contentWidths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
 };
 
-/** Purchases: reserve Total Amount, cap wrapable columns so all fit within tableWidth. Items wraps. */
+/** Purchases: guaranteed-fit widths. Total Amount always visible. Items wraps in remainder. */
 const calculatePurchasesColumnWidths = (
   tableHeaders: string[],
-  rowData: Record<string, string | number>[],
-  fieldKeys: string[],
+  _rowData: Record<string, string | number>[],
+  _fieldKeys: string[],
   tableWidth: number = 180
 ): number[] => {
   const colCount = tableHeaders.length;
@@ -1259,35 +1259,26 @@ const calculatePurchasesColumnWidths = (
   const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
   const availableWidth = tableWidth - totalGaps;
 
-  // Minimum widths (Total Amount must always be visible)
-  const minWidths: Record<string, number> = {
-    'Order Number': 22, 'Date': 18, 'Supplier': 22, 'Client': 18, 'Paid To': 18,
-    'Items': 28, 'Total Amount': 28
-  };
   const itemsColIdx = tableHeaders.indexOf('Items');
+  const totalAmountColIdx = tableHeaders.indexOf('Total Amount');
 
-  // Non-Items columns: min width, capped so Total Amount fits
-  let fixedWidths = tableHeaders.map((header, colIdx) => {
-    if (colIdx === itemsColIdx) return 0;
-    const key = fieldKeys[colIdx];
-    let maxLen = header.length;
-    rowData.forEach((row) => {
-      const val = key ? String(row[key] ?? '') : '';
-      if (val.length > maxLen) maxLen = val.length;
-    });
-    const contentW = maxLen * CHAR_WIDTH_MM;
-    return Math.max(minWidths[header] ?? MIN_COLUMN_WIDTH, Math.round(contentW));
-  });
-  // Scale down fixed columns if they exceed available (ensures Items + Total Amount fit)
-  const fixedSum = fixedWidths.reduce((a, b) => a + b, 0);
-  const itemsMinWidth = 28;
-  if (fixedSum + itemsMinWidth > availableWidth) {
-    const scale = (availableWidth - itemsMinWidth) / fixedSum;
-    fixedWidths = fixedWidths.map((w, i) => i === itemsColIdx ? 0 : Math.max(minWidths[tableHeaders[i]] ?? 16, Math.round(w * scale)));
+  // Compact fixed widths - MUST sum to <= availableWidth. Total Amount always 26mm.
+  const fixed: Record<string, number> = {
+    'Order Number': 20, 'Date': 16, 'Supplier': 20, 'Client': 16, 'Paid To': 16,
+    'Total Amount': 26
+  };
+
+  const widths = tableHeaders.map((h) => (h === 'Items' ? 0 : (fixed[h] ?? 16)));
+  const fixedSum = widths.reduce((a, b) => a + b, 0);
+  // Items gets remainder - ensures total exactly fits
+  const itemsWidth = Math.max(20, availableWidth - fixedSum);
+  const result = widths.map((w, i) => (i === itemsColIdx ? itemsWidth : w));
+
+  // Enforce sum <= availableWidth (scale Items down if needed)
+  let sum = result.reduce((a, b) => a + b, 0);
+  if (sum > availableWidth) {
+    result[itemsColIdx] = Math.max(20, result[itemsColIdx] - (sum - availableWidth));
   }
-  const newFixedSum = fixedWidths.reduce((a, b) => a + b, 0);
-  const itemsWidth = Math.max(itemsMinWidth, availableWidth - newFixedSum); // Items gets remainder
-  const result = fixedWidths.map((w, i) => (i === itemsColIdx ? itemsWidth : w));
   return result;
 };
 
@@ -1711,16 +1702,16 @@ const calculateHeaderPositions = (
   };
   
   let currentX = leftMargin;
-  const widths = dataDrivenWidths ?? headers.map((h) => fixedColumnWidths[h] || fixedColumnWidths['default']);
-  
-  // If using fixed widths, ensure they fit (scale down if sum exceeds totalWidth)
-  let finalWidths = widths;
   const totalGaps = (headers.length - 1) * GAP_BETWEEN_COLUMNS;
-  const sumFixed = widths.reduce((a, b) => a + b, 0);
-  if (!dataDrivenWidths && sumFixed + totalGaps > totalWidth) {
-    const scale = (totalWidth - totalGaps) / sumFixed;
-    finalWidths = widths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
+  const availableWidth = totalWidth - totalGaps;
+  let widths = dataDrivenWidths ?? headers.map((h) => fixedColumnWidths[h] || fixedColumnWidths['default']);
+  const sumWidths = widths.reduce((a, b) => a + b, 0);
+  // Always ensure widths fit within table - scale down if overflow
+  if (sumWidths > availableWidth && sumWidths > 0) {
+    const scale = availableWidth / sumWidths;
+    widths = widths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
   }
+  const finalWidths = widths;
   
   headers.forEach((_, index) => {
     const width = finalWidths[index] ?? 24;
