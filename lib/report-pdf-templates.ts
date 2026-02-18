@@ -1200,10 +1200,12 @@ const baseFooterHeight = 40; // base footer block (last page only)
 const rowHeight = 8;
 const firstPageTableStartY = 101; // adjusted so rows fit on first page
 
-// Calculate rows per page
+// Calculate rows per page - always reserve footer space so footer fits on last data page
+// (avoids separate footer-only pages that render as malformed placeholders)
 const firstPageReservedSpace = 16; // Reserve 16mm for better spacing
-const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace;
-const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
+const footerReservedSpace = baseFooterHeight + 15; // Reserve footer + spacing on last page
+const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace - footerReservedSpace;
+const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin - footerReservedSpace;
 const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
 const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
 
@@ -1675,12 +1677,12 @@ export const buildPaginatedInputs = (
     });
   }
 
-  // Validation: pdfme requires inputs.length === schemas.length - pad with empty object if mismatch
-  while (result.length < schemasCount) {
-    result.push({});
-  }
+  // pdfme requires inputs.length === schemas.length - trim if excess, never pad with empty (causes blank pages)
   if (result.length > schemasCount) {
     result.length = schemasCount;
+  }
+  if (result.length < schemasCount) {
+    console.warn('PDF inputs < schemas - possible missing footer page input', { inputs: result.length, schemas: schemasCount });
   }
   return result;
 };
