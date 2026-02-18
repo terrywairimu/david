@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from "react"
 import { X, Search, Plus, Minus, User } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { generateExpenseNumber, generateEmployeePaymentNumber } from "@/lib/workflow-utils"
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
@@ -79,6 +86,10 @@ const ExpenseModal = ({
   const [selectedQuotation, setSelectedQuotation] = useState("")
   const [clientQuotations, setClientQuotations] = useState<{quotation_number: string, grand_total?: number}[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [companyCategories, setCompanyCategories] = useState<{ value: string; label: string }[]>([])
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [creatingCategory, setCreatingCategory] = useState(false)
   
   // Input handling states for quantity and rate
   const [quantityInputFocused, setQuantityInputFocused] = useState<{[key: number]: boolean}>({})
@@ -88,18 +99,6 @@ const ExpenseModal = ({
 
   const clientCategories = [
     "wages", "fare", "transport", "accomodation", "meals", "material facilitation", "others"
-  ]
-
-  const companyCategories = [
-    { value: "utilities", label: "Utilities" },
-    { value: "rent", label: "Rent" },
-    { value: "supplies", label: "Office Supplies" },
-    { value: "perdm", label: "Fare, meals & Accommodation" },
-    { value: "salaries", label: "Salaries & Wages" },
-    { value: "maintenance", label: "Repair & Maintenance" },
-    { value: "fuel", label: "Fuel" },
-    { value: "assets", label: "Assets" },
-    { value: "other", label: "Miscellaneous" }
   ]
 
   const departments = [
@@ -126,9 +125,66 @@ const ExpenseModal = ({
     }
   }
 
+  const builtInCompanyCategories = [
+    { value: "utilities", label: "Utilities" },
+    { value: "rent", label: "Rent" },
+    { value: "supplies", label: "Office Supplies" },
+    { value: "perdm", label: "Fare, meals & Accommodation" },
+    { value: "salaries", label: "Salaries & Wages" },
+    { value: "maintenance", label: "Repair & Maintenance" },
+    { value: "fuel", label: "Fuel" },
+    { value: "assets", label: "Assets" },
+    { value: "other", label: "Miscellaneous" },
+  ]
+
+  const fetchCompanyCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expense_categories")
+        .select("name, value")
+        .eq("expense_type", "company")
+        .order("name", { ascending: true })
+
+      if (error) throw error
+      const list = (data || []).map((c) => ({ value: c.value, label: c.name }))
+      setCompanyCategories(list.length > 0 ? list : builtInCompanyCategories)
+    } catch (error) {
+      console.error("Error fetching expense categories:", error)
+      setCompanyCategories(builtInCompanyCategories)
+    }
+  }
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) return
+    setCreatingCategory(true)
+    try {
+      const value = trimmed.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") || "custom"
+      const { error } = await supabase
+        .from("expense_categories")
+        .insert([{ name: trimmed, value, expense_type: "company" }])
+
+      if (error) throw error
+      const newCat = { value, label: trimmed }
+      setCompanyCategories((prev) => [...prev, newCat].sort((a, b) => a.label.localeCompare(b.label)))
+      setFormData((prev) => ({ ...prev, category: value }))
+      setShowCreateCategoryModal(false)
+      setNewCategoryName("")
+      toast.success("Category created")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create category")
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
   useEffect(() => {
     fetchEmployees()
   }, [])
+
+  useEffect(() => {
+    if (expenseType === "company") fetchCompanyCategories()
+  }, [expenseType])
 
   useEffect(() => {
     console.log('useEffect triggered - expense:', expense, 'mode:', mode, 'expenseType:', expenseType)
@@ -774,19 +830,38 @@ const ExpenseModal = ({
                       </div>
                       <div className="col-md-6">
                         <label className="form-label">Category</label>
-                        <select
-                          className="form-select border-0 shadow-sm"
-                          value={formData.category}
-                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                          style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                          required
-                          disabled={mode === "view"}
-                        >
-                          <option value="">Select Category</option>
-                          {companyCategories.map(cat => (
-                            <option key={cat.value} value={cat.value}>{cat.label}</option>
-                          ))}
-                        </select>
+                        <div className="input-group shadow-sm">
+                          <select
+                            className="form-select border-0"
+                            value={formData.category}
+                            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                            style={{ borderRadius: "16px 0 0 16px", height: "45px", color: "#000000" }}
+                            required
+                            disabled={mode === "view"}
+                          >
+                            <option value="">Select Category</option>
+                            {companyCategories.map(cat => (
+                              <option key={cat.value} value={cat.value}>{cat.label}</option>
+                            ))}
+                          </select>
+                          {mode !== "view" && (
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateCategoryModal(true)}
+                              className="btn border-0 d-flex align-items-center justify-content-center"
+                              style={{
+                                borderRadius: "0 16px 16px 0",
+                                height: "45px",
+                                width: "45px",
+                                background: "white",
+                                color: "#B06A2B",
+                              }}
+                              title="Create new category"
+                            >
+                              <Plus size={20} strokeWidth={2.5} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1102,6 +1177,56 @@ const ExpenseModal = ({
           </div>
         </div>
       </div>
+
+      {/* Create new category modal */}
+      <Dialog open={showCreateCategoryModal} onOpenChange={setShowCreateCategoryModal}>
+        <DialogContent className="sm:max-w-[400px] p-6">
+          <DialogHeader>
+            <DialogTitle className="text-left">Create new category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label htmlFor="newCategoryName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Category name
+              </label>
+              <input
+                id="newCategoryName"
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g. Office Supplies"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B06A2B]/30 focus:border-[#B06A2B]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleCreateCategory()
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 mt-6 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateCategoryModal(false)
+                setNewCategoryName("")
+              }}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateCategory}
+              disabled={!newCategoryName.trim() || creatingCategory}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#B06A2B] hover:bg-[#9a5a24] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingCategory ? "Saving..." : "Save"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
