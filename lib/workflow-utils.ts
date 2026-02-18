@@ -369,12 +369,15 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
       
       // Get custom table headers for quotations
       const customTableHeaders = ['Quotation #', 'Date', 'Client', 'Total Amount', 'Status'];
-      
-      // Generate dynamic template with pagination (returns template + pages for per-page inputs)
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(quotations.length, customTableHeaders, 'quotations');
-      const template = { basePdf, schemas }
-      
-      // Fetch watermark image as base64
+      const rowData = quotations.map((q) => ({
+        quotationNumber: String(q.quotation_number || 'N/A'),
+        date: new Date(q.date_created).toLocaleDateString(),
+        client: String(q.client?.name || 'Unknown'),
+        totalAmount: `KES ${(q.grand_total || 0).toFixed(2)}`,
+        status: String(q.status || 'Active'),
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(quotations.length, customTableHeaders, 'quotations', rowData);
+      const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const response = await fetch(url);
         const blob = await response.blob();
@@ -388,15 +391,6 @@ export const exportQuotations = async (quotations: any[], format: 'pdf' | 'csv' 
       
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-
-      const rowData = quotations.map((q) => ({
-        quotationNumber: String(q.quotation_number || 'N/A'),
-        date: new Date(q.date_created).toLocaleDateString(),
-        client: String(q.client?.name || 'Unknown'),
-        totalAmount: `KES ${(q.grand_total || 0).toFixed(2)}`,
-        status: String(q.status || 'Active'),
-      }));
-
       const inputs = buildPaginatedInputs(
         pages,
         template.schemas.length,
@@ -484,7 +478,14 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Order #', 'Date', 'Client', 'Total Amount', 'Status'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(salesOrders.length, customTableHeaders, 'salesOrders');
+      const rowData = salesOrders.map((o) => ({
+        orderNumber: String(o.order_number || 'N/A'),
+        date: new Date(o.date_created).toLocaleDateString(),
+        client: String(o.client?.name || 'Unknown'),
+        totalAmount: `KES ${(o.grand_total || 0).toFixed(2)}`,
+        status: String(o.status || 'Active'),
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(salesOrders.length, customTableHeaders, 'salesOrders', rowData);
       const template = { basePdf, schemas }
       async function fetchImageAsBase64(url: string): Promise<string> {
         const response = await fetch(url);
@@ -498,13 +499,6 @@ export const exportSalesOrders = async (salesOrders: any[], format: 'pdf' | 'csv
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = salesOrders.map((o) => ({
-        orderNumber: String(o.order_number || 'N/A'),
-        date: new Date(o.date_created).toLocaleDateString(),
-        client: String(o.client?.name || 'Unknown'),
-        totalAmount: `KES ${(o.grand_total || 0).toFixed(2)}`,
-        status: String(o.status || 'Active'),
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'salesOrders', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -577,7 +571,17 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Invoice #', 'Date', 'Due Date', 'Client', 'Total Amount', 'Paid Amount', 'Balance', 'Status'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(invoices.length, customTableHeaders, 'invoices');
+      const rowData = invoices.map((inv) => ({
+        invoiceNumber: String(inv.invoice_number || 'N/A'),
+        date: new Date(inv.date_created).toLocaleDateString(),
+        dueDate: new Date(inv.due_date).toLocaleDateString(),
+        client: String(inv.client?.name || 'Unknown'),
+        totalAmount: `KES ${(inv.grand_total || 0).toFixed(2)}`,
+        paidAmount: `KES ${(inv.paid_amount || 0).toFixed(2)}`,
+        balance: `KES ${(inv.balance_amount || 0).toFixed(2)}`,
+        status: String(inv.status || 'Active'),
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(invoices.length, customTableHeaders, 'invoices', rowData);
       const template = { basePdf, schemas }
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -591,16 +595,6 @@ export const exportInvoices = async (invoices: any[], format: 'pdf' | 'csv' = 'p
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = invoices.map((inv) => ({
-        invoiceNumber: String(inv.invoice_number || 'N/A'),
-        date: new Date(inv.date_created).toLocaleDateString(),
-        dueDate: new Date(inv.due_date).toLocaleDateString(),
-        client: String(inv.client?.name || 'Unknown'),
-        totalAmount: `KES ${(inv.grand_total || 0).toFixed(2)}`,
-        paidAmount: `KES ${(inv.paid_amount || 0).toFixed(2)}`,
-        balance: `KES ${(inv.balance_amount || 0).toFixed(2)}`,
-        status: String(inv.status || 'Active'),
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'invoices', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -674,7 +668,13 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Receipt #', 'Date', 'Client', 'Total Amount'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(cashSales.length, customTableHeaders, 'cashSales');
+      const rowData = cashSales.map((s) => ({
+        receiptNumber: String(s.sale_number || 'N/A'),
+        date: new Date(s.date_created).toLocaleDateString(),
+        client: String(s.client?.name || 'Unknown'),
+        totalAmount: `KES ${(s.grand_total || 0).toFixed(2)}`,
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(cashSales.length, customTableHeaders, 'cashSales', rowData);
       const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -688,12 +688,6 @@ export const exportCashSales = async (cashSales: any[], format: 'pdf' | 'csv' = 
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = cashSales.map((s) => ({
-        receiptNumber: String(s.sale_number || 'N/A'),
-        date: new Date(s.date_created).toLocaleDateString(),
-        client: String(s.client?.name || 'Unknown'),
-        totalAmount: `KES ${(s.grand_total || 0).toFixed(2)}`,
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'cashSales', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -772,7 +766,16 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(stockItems.length, customTableHeaders, 'stock');
+      const rowData = stockItems.map((item) => ({
+        itemCode: String(item.id || 'N/A'),
+        product: String(item.name || 'N/A'),
+        category: String(item.category || 'N/A'),
+        quantity: `${String(item.quantity || 0)} ${String(item.unit || '')}`.trim(),
+        unitPrice: `KES ${(item.unit_price || 0).toFixed(2)}`,
+        totalValue: `KES ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}`,
+        status: (item.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock',
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(stockItems.length, customTableHeaders, 'stock', rowData);
       const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -786,15 +789,6 @@ export const exportStockReport = async (stockItems: any[], format: 'pdf' | 'csv'
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = stockItems.map((item) => ({
-        itemCode: String(item.id || 'N/A'),
-        product: String(item.name || 'N/A'),
-        category: String(item.category || 'N/A'),
-        quantity: `${String(item.quantity || 0)} ${String(item.unit || '')}`.trim(),
-        unitPrice: `KES ${(item.unit_price || 0).toFixed(2)}`,
-        totalValue: `KES ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}`,
-        status: (item.quantity || 0) > 0 ? 'In Stock' : 'Out of Stock',
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'stock', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -893,7 +887,16 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
       const customTableHeaders = purchaseType === 'client'
         ? ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount']
         : ['Order Number', 'Date', 'Supplier', 'Items', 'Total Amount'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(purchases.length, customTableHeaders, 'purchases');
+      const rowData = purchases.map((p) => ({
+        orderNumber: String(p.purchase_order_number || 'N/A'),
+        date: p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : 'N/A',
+        supplier: String(p.supplier?.name || 'Unknown'),
+        client: purchaseType === 'client' ? String(p.client?.name || 'N/A') : '',
+        paidTo: purchaseType === 'client' ? String(p.paid_to || 'N/A') : '',
+        items: formatPurchasesItemsDescription(p.items || []),
+        totalAmount: `KES ${(p.total_amount || 0).toFixed(2)}`,
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(purchases.length, customTableHeaders, 'purchases', rowData);
       const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -907,15 +910,6 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = purchases.map((p) => ({
-        orderNumber: String(p.purchase_order_number || 'N/A'),
-        date: p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : 'N/A',
-        supplier: String(p.supplier?.name || 'Unknown'),
-        client: purchaseType === 'client' ? String(p.client?.name || 'N/A') : '',
-        paidTo: purchaseType === 'client' ? String(p.paid_to || 'N/A') : '',
-        items: formatPurchasesItemsDescription(p.items || []),
-        totalAmount: `KES ${(p.total_amount || 0).toFixed(2)}`,
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'purchases', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -2252,7 +2246,16 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination, buildPaginatedInputs } = await import('./report-pdf-templates')
       const customTableHeaders = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(payments.length, customTableHeaders, 'payments');
+      const rowData = payments.map((p) => ({
+        paymentNumber: String(p.payment_number || 'N/A'),
+        client: String(p.client?.name || 'Unknown'),
+        date: new Date(p.date_created).toLocaleDateString(),
+        paidTo: String(p.paid_to || '-'),
+        description: String(p.description || '-'),
+        amount: `KES ${(p.amount || 0).toFixed(2)}`,
+        accountCredited: String(p.account_credited || '-'),
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(payments.length, customTableHeaders, 'payments', rowData);
       const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -2266,15 +2269,6 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = payments.map((p) => ({
-        paymentNumber: String(p.payment_number || 'N/A'),
-        client: String(p.client?.name || 'Unknown'),
-        date: new Date(p.date_created).toLocaleDateString(),
-        paidTo: String(p.paid_to || '-'),
-        description: String(p.description || '-'),
-        amount: `KES ${(p.amount || 0).toFixed(2)}`,
-        accountCredited: String(p.account_credited || '-'),
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'payments', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",
@@ -2351,7 +2345,16 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
       const customTableHeaders = expenseType === 'company'
         ? ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited']
         : ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited'];
-      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(expenses.length, customTableHeaders, 'expenses');
+      const rowData = expenses.map((e) => ({
+        expenseNumber: String(e.expense_number || 'N/A'),
+        date: new Date(e.date_created).toLocaleDateString(),
+        department: expenseType === 'company' ? String(e.department || '-') : String(e.client?.name || 'Unknown'),
+        category: String(e.category || '-'),
+        description: String(e.description || '-'),
+        amount: `KES ${(e.amount || 0).toFixed(2)}`,
+        accountDebited: String(e.account_debited || '-'),
+      }));
+      const { basePdf, schemas, pages } = generateDynamicTemplateWithPagination(expenses.length, customTableHeaders, 'expenses', rowData);
       const template = { basePdf, schemas };
       async function fetchImageAsBase64(url: string): Promise<string> {
         const res = await fetch(url);
@@ -2365,15 +2368,6 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
       }
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
-      const rowData = expenses.map((e) => ({
-        expenseNumber: String(e.expense_number || 'N/A'),
-        date: new Date(e.date_created).toLocaleDateString(),
-        department: expenseType === 'company' ? String(e.department || '-') : String(e.client?.name || 'Unknown'),
-        category: String(e.category || '-'),
-        description: String(e.description || '-'),
-        amount: `KES ${(e.amount || 0).toFixed(2)}`,
-        accountDebited: String(e.account_debited || '-'),
-      }));
       const inputs = buildPaginatedInputs(pages, template.schemas.length, customTableHeaders, 'expenses', rowData, {
         logo: companyLogoBase64,
         companyName: "CABINET MASTER STYLES & FINISHES",

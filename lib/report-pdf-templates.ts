@@ -1207,6 +1207,46 @@ const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMa
 const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
 const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
 
+// Font sizes - aligned with dynamic-report-pdf.ts (ReportBuilder template)
+const FONT_SIZE_TABLE_HEADER = 9;
+const FONT_SIZE_TABLE_ROW = 8;
+
+// Approximate char width in mm for Helvetica 9pt (used for data-driven column sizing)
+const CHAR_WIDTH_MM = 1.6;
+const MIN_COLUMN_WIDTH = 18;
+const GAP_BETWEEN_COLUMNS = 2;
+
+/** Compute column widths from headers + row data, scaled to fit tableWidth. Ensures all content fits. */
+const calculateColumnWidthsFromData = (
+  tableHeaders: string[],
+  rowData: Record<string, string | number>[],
+  fieldKeys: string[],
+  tableWidth: number = 180
+): number[] => {
+  const colCount = tableHeaders.length;
+  if (colCount === 0) return [];
+
+  // For each column: max content length = max(header length, all row values for that column)
+  const contentWidths = tableHeaders.map((header, colIdx) => {
+    const key = fieldKeys[colIdx];
+    let maxLen = header.length;
+    rowData.forEach((row) => {
+      const val = key ? String(row[key] ?? row[Object.keys(row)[colIdx]] ?? '') : '';
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    // Convert chars to mm, enforce minimum
+    return Math.max(MIN_COLUMN_WIDTH, maxLen * CHAR_WIDTH_MM);
+  });
+
+  // Scale to fit: totalWidth = sum(widths) + (n-1)*gap = tableWidth
+  const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
+  const availableWidth = tableWidth - totalGaps;
+  const sumRaw = contentWidths.reduce((a, b) => a + b, 0);
+  const scale = sumRaw > 0 ? availableWidth / sumRaw : 1;
+
+  return contentWidths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
+};
+
 // Custom table headers for each section view (exact headers from table views, excluding Actions)
 const customTableHeaders = {
   expenses: {
@@ -1226,12 +1266,32 @@ const customTableHeaders = {
   clients: ['Client Name', 'Email', 'Phone', 'Address', 'Total Sales', 'Status']
 };
 
+// Field keys per template type - used for data-driven column width calculation
+const FIELD_KEYS_BY_TYPE: Record<string, string[]> = {
+  quotations: ['quotationNumber', 'date', 'client', 'totalAmount', 'status'],
+  salesOrders: ['orderNumber', 'date', 'client', 'totalAmount', 'status'],
+  invoices: ['invoiceNumber', 'date', 'dueDate', 'client', 'totalAmount', 'paidAmount', 'balance', 'status'],
+  cashSales: ['receiptNumber', 'date', 'client', 'totalAmount'],
+  payments: ['paymentNumber', 'client', 'date', 'paidTo', 'description', 'amount', 'accountCredited'],
+  expenses: ['expenseNumber', 'date', 'department', 'category', 'description', 'amount', 'accountDebited'],
+  stock: ['itemCode', 'product', 'category', 'quantity', 'unitPrice', 'totalValue', 'status'],
+  purchases: ['orderNumber', 'date', 'supplier', 'client', 'paidTo', 'items', 'totalAmount'],
+  clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
+};
+
 // Generate dynamic template with pagination support
 const generateDynamicTemplateWithPagination = (
   rowCount: number, 
   tableHeaders: string[], 
-  templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients'
+  templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients',
+  rowData?: Record<string, string | number>[]
 ) => {
+  // Data-driven column widths when rowData provided (ensures all content fits)
+  const fieldKeys = FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations;
+  const dataDrivenWidths = rowData && rowData.length > 0
+    ? calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys)
+    : undefined;
+
   // Paginate rows - only add pages with content (no blank continuation pages)
   const pages: Array<Array<number>> = [];
   let rowIndex = 0;
@@ -1298,10 +1358,10 @@ const generateDynamicTemplateWithPagination = (
       { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: 10, color: '#E5E5E5', radius: 3 }
     );
 
-    // Add custom table headers based on template type - match data column alignment (Amount/right, etc.)
+    // Add custom table headers - use data-driven widths when available
     const numericHeaders = ['Amount', 'Total Amount', 'Balance', 'Paid Amount', 'Total Value', 'Unit Price', 'Quantity'];
     const isNumericColumn = (h: string) => numericHeaders.some(n => h.includes(n) || h === n);
-    const headerPositions = calculateHeaderPositions(tableHeaders, tableHeaderY);
+    const headerPositions = calculateHeaderPositions(tableHeaders, tableHeaderY, dataDrivenWidths);
     tableHeaders.forEach((header, headerIdx) => {
       const align = isNumericColumn(header) ? 'right' : (headerIdx === 0 ? 'left' : 'left');
       pageSchema.push({
@@ -1310,7 +1370,7 @@ const generateDynamicTemplateWithPagination = (
         position: headerPositions[headerIdx],
         width: headerPositions[headerIdx].width,
         height: 5,
-        fontSize: 9,
+        fontSize: FONT_SIZE_TABLE_HEADER,
         fontColor: '#000',
         fontName: 'Helvetica-Bold',
         alignment: align,
@@ -1322,8 +1382,8 @@ const generateDynamicTemplateWithPagination = (
     pageRows.forEach((rowIdx, localIdx) => {
       const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowHeight);
       
-      // Generate data row fields based on template type - pass tableHeaders for alignment
-      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders);
+      // Generate data row fields - pass tableHeaders and dataDrivenWidths for aligned columns
+      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders, dataDrivenWidths);
       pageSchema.push(...dataFields);
     });
 
@@ -1504,65 +1564,88 @@ export const buildPaginatedInputs = (
   return result;
 };
 
-// Calculate header positions with auto-width based on content needs
-const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
+// Calculate header positions - uses data-driven widths when provided, else fixed defaults
+const calculateHeaderPositions = (
+  headers: string[],
+  tableHeaderY: number,
+  dataDrivenWidths?: number[]
+) => {
   const positions: Array<{x: number, y: number, width: number}> = [];
-  const totalWidth = 180; // Available width for table
+  const totalWidth = 180;
   const leftMargin = 15;
   
-  // Define column width preferences based on content type
-  const columnWidths: { [key: string]: number } = {
-    // Narrow columns (IDs, dates, status)
+  // Fixed fallback when no rowData provided
+  const fixedColumnWidths: { [key: string]: number } = {
     'Quotation #': 25, 'Order #': 25, 'Invoice #': 25, 'Receipt #': 25, 'Expense #': 25, 'Payment #': 25, 'Item Code': 25,
-    'Order Number': 25,
-    'Date': 25, 'Due Date': 25,
-    'Status': 20,
-    'Quantity': 20,
+    'Order Number': 25, 'Date': 25, 'Due Date': 25, 'Status': 20, 'Quantity': 20,
     'Unit Price': 25, 'Total Value': 25, 'Amount': 25, 'Total Amount': 25, 'Paid Amount': 25, 'Balance': 25,
-    
-    // Medium columns (names, categories)
-    'Client': 35, 'Client Name': 35,
-    'Category': 25,
-    'Department': 30,
-    'Supplier': 30,
-    'Product': 35,
-    'Paid To': 25,
-    'Items': 45, // Made wider to accommodate item descriptions
-    'Account Debited': 28, 'Account Credited': 28,
-    
-    // Wide columns (descriptions, addresses)
-    'Description': 40,
-    'Address': 40,
-    'Phone': 25,
-    'Email': 35,
-    
-    // Default width for unspecified columns
-    'default': 30
+    'Client': 28, 'Client Name': 28, 'Category': 22, 'Department': 25, 'Supplier': 25, 'Product': 28,
+    'Paid To': 22, 'Items': 38, 'Account Debited': 26, 'Account Credited': 26,
+    'Description': 32, 'Address': 32, 'Phone': 22, 'Email': 28,
+    'default': 24
   };
   
   let currentX = leftMargin;
+  const widths = dataDrivenWidths ?? headers.map((h) => fixedColumnWidths[h] || fixedColumnWidths['default']);
   
-  headers.forEach((header, index) => {
-    // Get width for this header, or use default
-    const width = columnWidths[header] || columnWidths['default'];
-    
-    positions.push({
-      x: currentX,
-      y: tableHeaderY + 2,
-      width: width
-    });
-    
-    currentX += width + 2; // Add 2mm gap between columns
+  // If using fixed widths, ensure they fit (scale down if sum exceeds totalWidth)
+  let finalWidths = widths;
+  const totalGaps = (headers.length - 1) * GAP_BETWEEN_COLUMNS;
+  const sumFixed = widths.reduce((a, b) => a + b, 0);
+  if (!dataDrivenWidths && sumFixed + totalGaps > totalWidth) {
+    const scale = (totalWidth - totalGaps) / sumFixed;
+    finalWidths = widths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
+  }
+  
+  headers.forEach((_, index) => {
+    const width = finalWidths[index] ?? 24;
+    positions.push({ x: currentX, y: tableHeaderY + 2, width });
+    currentX += width + GAP_BETWEEN_COLUMNS;
   });
   
   return positions;
 };
 
-// Generate data fields based on template type with proper column alignment
-// tableHeaders is optional - when provided, uses calculateHeaderPositions for expenses (company vs client variants)
-const generateDataFields = (templateType: string, rowIdx: number, yPosition: number, tableHeaders?: string[]) => {
+// Alignment per header - numeric columns right-aligned
+const numericHeaders = ['Amount', 'Total Amount', 'Balance', 'Paid Amount', 'Total Value', 'Unit Price', 'Quantity'];
+const getAlignment = (header: string, colIdx: number): 'left' | 'center' | 'right' =>
+  numericHeaders.some(n => header.includes(n) || header === n) ? 'right' : (colIdx === 0 ? 'left' : 'left');
+
+// Generate data fields - uses data-driven positions when tableHeaders + dataDrivenWidths provided
+const generateDataFields = (
+  templateType: string,
+  rowIdx: number,
+  yPosition: number,
+  tableHeaders?: string[],
+  dataDrivenWidths?: number[]
+) => {
   const fields: any[] = [];
-  
+  const fieldKeys = FIELD_KEYS_BY_TYPE[templateType];
+  const positions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0, dataDrivenWidths) : null;
+
+  // Unified data-driven path when headers 1:1 map to field keys (exclude expenses/purchases - have column variants)
+  if (tableHeaders && positions && fieldKeys && fieldKeys.length === tableHeaders.length &&
+      templateType !== 'purchases' && templateType !== 'expenses') {
+    tableHeaders.forEach((header, colIdx) => {
+      const key = fieldKeys[colIdx];
+      if (key) {
+        const pos = positions[colIdx];
+        fields.push({
+          name: `${key}_${rowIdx}`,
+          type: 'text',
+          position: { x: pos.x, y: yPosition },
+          width: pos.width,
+          height: 5,
+          fontSize: FONT_SIZE_TABLE_ROW,
+          fontColor: '#000',
+          fontName: 'Helvetica',
+          alignment: getAlignment(header, colIdx)
+        });
+      }
+    });
+    if (fields.length > 0) return fields;
+  }
+
   switch (templateType) {
     case 'expenses':
       // Expense fields - use tableHeaders for positions so header/data columns align (company=7 cols, client=6 cols)
@@ -1576,7 +1659,7 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
         'Amount': { key: 'amount', alignment: 'right' },
         'Account Debited': { key: 'accountDebited', alignment: 'left' }
       };
-      const positions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0) : [
+      const positions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0, dataDrivenWidths) : [
         { x: 17, y: 0, width: 25 }, { x: 44, y: 0, width: 25 }, { x: 71, y: 0, width: 30 },
         { x: 103, y: 0, width: 25 }, { x: 130, y: 0, width: 40 }, { x: 172, y: 0, width: 25 }, { x: 199, y: 0, width: 28 }
       ];
@@ -1590,7 +1673,7 @@ const generateDataFields = (templateType: string, rowIdx: number, yPosition: num
             position: { x: pos.x, y: yPosition },
             width: pos.width,
             height: 5,
-            fontSize: 9,
+            fontSize: FONT_SIZE_TABLE_ROW,
             fontColor: '#000',
             fontName: 'Helvetica',
             alignment: map.alignment
