@@ -2379,12 +2379,15 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
       const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
       const customTableHeaders = expenseType === 'company'
         ? ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited']
-        : ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited'];
+        : ['Expense #', 'Date', 'Client', 'Category', 'Employee', 'Description', 'Amount', 'Account Debited'];
       const rowData = expenses.map((e) => ({
         expenseNumber: String(e.expense_number || 'N/A'),
         date: new Date(e.date_created).toLocaleDateString(),
         department: expenseType === 'company' ? String(e.department || '-') : String(e.client?.name || 'Unknown'),
-        category: String(e.category || '-'),
+        category: expenseType === 'company'
+          ? String(e.category || '-')
+          : String(e.expense_category ? e.expense_category.charAt(0).toUpperCase() + e.expense_category.slice(1) : '-'),
+        employee: String(e.employee?.name || '-'),
         description: String(e.description || '-'),
         amount: `KES ${(e.amount || 0).toFixed(2)}`,
         accountDebited: String(e.account_debited || '-'),

@@ -1316,7 +1316,7 @@ const computePurchaseRowHeights = (
 const customTableHeaders = {
   expenses: {
     company: ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited'],
-    client: ['Expense #', 'Date', 'Client', 'Description', 'Amount', 'Account Debited']
+    client: ['Expense #', 'Date', 'Client', 'Category', 'Employee', 'Description', 'Amount', 'Account Debited']
   },
   payments: ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'],
   stock: ['Item Code', 'Product', 'Category', 'Quantity', 'Unit Price', 'Total Value', 'Status'],
@@ -1344,13 +1344,14 @@ const FIELD_KEYS_BY_TYPE: Record<string, string[]> = {
   clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
 };
 
-// Header -> field key mapping for expenses (company=7 cols, client=6 cols)
+// Header -> field key mapping for expenses (company=7 cols, client=8 cols with Category+Employee)
 const EXPENSES_HEADER_TO_KEY: Record<string, string> = {
   'Expense #': 'expenseNumber',
   'Date': 'date',
   'Department': 'department',
   'Client': 'department',
   'Category': 'category',
+  'Employee': 'employee',
   'Description': 'description',
   'Amount': 'amount',
   'Account Debited': 'accountDebited',
@@ -1802,7 +1803,7 @@ const calculateHeaderPositions = (
     'Quotation #': 25, 'Order #': 25, 'Invoice #': 25, 'Receipt #': 25, 'Expense #': 25, 'Payment #': 25, 'Item Code': 25,
     'Order Number': 25, 'Date': 25, 'Due Date': 25, 'Status': 20, 'Quantity': 20,
     'Unit Price': 25, 'Total Value': 25, 'Amount': 25, 'Total Amount': 25, 'Paid Amount': 25, 'Balance': 25,
-    'Client': 28, 'Client Name': 28, 'Category': 22, 'Department': 25, 'Supplier': 25, 'Product': 28,
+    'Client': 28, 'Client Name': 28, 'Category': 22, 'Department': 25, 'Employee': 22, 'Supplier': 25, 'Product': 28,
     'Paid To': 22, 'Items': 38, 'Account Debited': 26, 'Account Credited': 26,
     'Description': 32, 'Address': 32, 'Phone': 22, 'Email': 28,
     'default': 24
@@ -1880,6 +1881,7 @@ const generateDataFields = (
         'Department': { key: 'department', alignment: 'left' },
         'Client': { key: 'department', alignment: 'left' },
         'Category': { key: 'category', alignment: 'left' },
+        'Employee': { key: 'employee', alignment: 'left' },
         'Description': { key: 'description', alignment: 'left' },
         'Amount': { key: 'amount', alignment: 'right' },
         'Account Debited': { key: 'accountDebited', alignment: 'left' }
