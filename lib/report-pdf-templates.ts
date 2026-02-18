@@ -1617,8 +1617,11 @@ const generateDynamicTemplateWithPagination = (
     schemas,
     pages,
   };
+  // pdfme expects ONE input object containing all keys from ALL pages (each input in the array
+  // creates a full copy of all pages with that input). So merge per-page inputs into a single object.
   if (baseInput && inputs.length > 0) {
-    result.inputs = inputs;
+    const mergedInput = Object.assign({}, ...inputs);
+    result.inputs = [mergedInput];
   }
   return result;
 };
