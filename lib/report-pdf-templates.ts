@@ -1279,6 +1279,17 @@ const FIELD_KEYS_BY_TYPE: Record<string, string[]> = {
   clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
 };
 
+// Header -> field key mapping for purchases (supports both 7-col client and 5-col general)
+const PURCHASES_HEADER_TO_KEY: Record<string, string> = {
+  'Order Number': 'orderNumber',
+  'Date': 'date',
+  'Supplier': 'supplier',
+  'Client': 'client',
+  'Paid To': 'paidTo',
+  'Items': 'items',
+  'Total Amount': 'totalAmount',
+};
+
 // Generate dynamic template with pagination support
 const generateDynamicTemplateWithPagination = (
   rowCount: number, 
@@ -1287,24 +1298,34 @@ const generateDynamicTemplateWithPagination = (
   rowData?: Record<string, string | number>[]
 ) => {
   // Data-driven column widths when rowData provided (ensures all content fits)
-  const fieldKeys = FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations;
+  // For purchases: derive fieldKeys from tableHeaders (client=7 cols, general=5 cols)
+  const fieldKeys = templateType === 'purchases'
+    ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
+    : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   const dataDrivenWidths = rowData && rowData.length > 0
     ? calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys)
     : undefined;
+
+  // Purchases use taller rows for Items column (multi-line text)
+  const effectiveRowHeight = templateType === 'purchases' ? 14 : rowHeight;
+  const purchasesFirstPageRows = templateType === 'purchases' ? Math.floor(firstPageAvailable / effectiveRowHeight) : firstPageRows;
+  const purchasesOtherPageRows = templateType === 'purchases' ? Math.floor(otherPageAvailable / effectiveRowHeight) : otherPageRows;
 
   // Paginate rows - only add pages with content (no blank continuation pages)
   const pages: Array<Array<number>> = [];
   let rowIndex = 0;
   
   // First page (always add - either with data or empty for "no records" report)
-  const firstPageActualRows = Math.min(firstPageRows, rowCount);
+  const firstPageMaxRows = templateType === 'purchases' ? purchasesFirstPageRows : firstPageRows;
+  const otherPageMaxRows = templateType === 'purchases' ? purchasesOtherPageRows : otherPageRows;
+  const firstPageActualRows = Math.min(firstPageMaxRows, rowCount);
   pages.push(Array.from({length: firstPageActualRows}, (_, i) => i));
   rowIndex += firstPageActualRows;
   
   // Subsequent pages - only add pages that have rows
   while (rowIndex < rowCount) {
     const remainingRows = rowCount - rowIndex;
-    const rowsForThisPage = Math.min(otherPageRows, remainingRows);
+    const rowsForThisPage = Math.min(otherPageMaxRows, remainingRows);
     if (rowsForThisPage > 0) {
       pages.push(Array.from({length: rowsForThisPage}, (_, i) => rowIndex + i));
     }
@@ -1379,17 +1400,18 @@ const generateDynamicTemplateWithPagination = (
     });
 
     // Data rows for this page
+    const rowH = templateType === 'purchases' ? effectiveRowHeight : rowHeight;
     pageRows.forEach((rowIdx, localIdx) => {
-      const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowHeight);
+      const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowH);
       
       // Generate data row fields - pass tableHeaders and dataDrivenWidths for aligned columns
-      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders, dataDrivenWidths);
+      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders, dataDrivenWidths, rowData);
       pageSchema.push(...dataFields);
     });
 
     // Footer (only on the last table page)
     if (pageIdx === pages.length - 1) {
-      const lastRowY = tableHeaderY + tableHeaderHeight + (pageRows.length * rowHeight);
+      const lastRowY = tableHeaderY + tableHeaderHeight + (pageRows.length * rowH);
       const footerStartY = lastRowY + 10; // 10mm spacing after last row
       const availableSpace = pageHeight - bottomMargin - footerStartY;
       
@@ -1506,7 +1528,10 @@ export const buildPaginatedInputs = (
     clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
   };
   const keys = fieldKeysByType[templateType] ?? fieldKeysByType.quotations;
-  const purchasesKeys = templateType === 'purchases' ? fieldKeysByType.purchases : null;
+  // For purchases: derive keys from tableHeaders (client=7 cols, general=5 cols) to match schema
+  const effectiveKeys = templateType === 'purchases'
+    ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h]).filter(Boolean)
+    : keys;
 
   const result = pages.map((pageRows, pageIdx) => {
     const input: Record<string, any> = {
@@ -1517,8 +1542,7 @@ export const buildPaginatedInputs = (
     });
     pageRows.forEach((rowIdx) => {
       const row = rowData[rowIdx] || {};
-      const pk = purchasesKeys || keys;
-      pk.forEach((k, ki) => {
+      effectiveKeys.forEach((k, ki) => {
         const val = row[k] ?? row[Object.keys(row)[ki]] ?? '';
         input[`${k}_${rowIdx}`] = String(val);
       });
@@ -1617,7 +1641,8 @@ const generateDataFields = (
   rowIdx: number,
   yPosition: number,
   tableHeaders?: string[],
-  dataDrivenWidths?: number[]
+  dataDrivenWidths?: number[],
+  rowData?: Record<string, string | number>[]
 ) => {
   const fields: any[] = [];
   const fieldKeys = FIELD_KEYS_BY_TYPE[templateType];
@@ -1767,23 +1792,27 @@ const generateDataFields = (
       break;
       
     case 'purchases':
-      // Purchase fields: Order Number, Date, Supplier, Client, Paid To, Items, Total Amount
-      // Note: Client purchases will use all fields, general purchases will skip client and paidTo
-      // The template will generate all fields, but data will only be provided for the columns that exist
-      // Field positions are calculated dynamically based on header positions
-      // Made items column wider to accommodate descriptions
-      const purchaseHeaders = ['Order Number', 'Date', 'Supplier', 'Client', 'Paid To', 'Items', 'Total Amount'];
-      const purchasePositions = calculateHeaderPositions(purchaseHeaders, 0); // y=0 since we'll set it in position
-      
-      fields.push(
-        { name: `orderNumber_${rowIdx}`, type: 'text', position: { x: purchasePositions[0].x, y: yPosition }, width: purchasePositions[0].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `date_${rowIdx}`, type: 'text', position: { x: purchasePositions[1].x, y: yPosition }, width: purchasePositions[1].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `supplier_${rowIdx}`, type: 'text', position: { x: purchasePositions[2].x, y: yPosition }, width: purchasePositions[2].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `client_${rowIdx}`, type: 'text', position: { x: purchasePositions[3].x, y: yPosition }, width: purchasePositions[3].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `paidTo_${rowIdx}`, type: 'text', position: { x: purchasePositions[4].x, y: yPosition }, width: purchasePositions[4].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `items_${rowIdx}`, type: 'text', position: { x: purchasePositions[5].x, y: yPosition }, width: purchasePositions[5].width, height: 5, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `totalAmount_${rowIdx}`, type: 'text', position: { x: purchasePositions[6].x, y: yPosition }, width: purchasePositions[6].width, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' }
-      );
+      // Purchase fields: use tableHeaders for alignment (client=7 cols, general=5 cols)
+      // Positions match header columns exactly via dataDrivenWidths
+      const purchasePositions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0, dataDrivenWidths) : [];
+      const purchasesRowHeight = 12; // Taller for Items multi-line wrapping
+      tableHeaders?.forEach((header, colIdx) => {
+        const key = PURCHASES_HEADER_TO_KEY[header];
+        if (!key || !purchasePositions[colIdx]) return;
+        const pos = purchasePositions[colIdx];
+        const isItems = key === 'items';
+        fields.push({
+          name: `${key}_${rowIdx}`,
+          type: 'text',
+          position: { x: pos.x, y: yPosition },
+          width: pos.width,
+          height: isItems ? purchasesRowHeight : 5,
+          fontSize: isItems ? 7 : FONT_SIZE_TABLE_ROW,
+          fontColor: '#000',
+          fontName: 'Helvetica',
+          alignment: header === 'Total Amount' ? 'right' : 'left'
+        });
+      });
       break;
       
     default:
