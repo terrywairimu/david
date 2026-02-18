@@ -224,9 +224,11 @@ const ClientExpensesView = ({ clients }: ClientExpensesViewProps) => {
 
   const handleExport = async (format: 'pdf' | 'csv') => {
     const filteredExpenses = getFilteredExpenses()
+    // Enrich with Description from expense_items (same as UI table uses formatExpenseItems)
+    const toExport = filteredExpenses.map(e => ({ ...e, description: formatExpenseItems(e.id) }))
     startDownload(`client_expenses_${new Date().toISOString().split('T')[0]}`, format)
     try {
-      await exportExpensesReport(filteredExpenses, format, 'client')
+      await exportExpensesReport(toExport, format, 'client')
       setTimeout(() => completeDownload(), 500)
     } catch (error) {
       setError('Failed to export client expenses')
