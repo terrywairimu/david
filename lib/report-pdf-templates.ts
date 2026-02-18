@@ -1338,6 +1338,18 @@ const FIELD_KEYS_BY_TYPE: Record<string, string[]> = {
   clients: ['clientName', 'email', 'phone', 'address', 'totalSales', 'status'],
 };
 
+// Header -> field key mapping for expenses (company=7 cols, client=6 cols)
+const EXPENSES_HEADER_TO_KEY: Record<string, string> = {
+  'Expense #': 'expenseNumber',
+  'Date': 'date',
+  'Department': 'department',
+  'Client': 'department',
+  'Category': 'category',
+  'Description': 'description',
+  'Amount': 'amount',
+  'Account Debited': 'accountDebited',
+};
+
 // Header -> field key mapping for purchases (supports both 7-col client and 5-col general)
 const PURCHASES_HEADER_TO_KEY: Record<string, string> = {
   'Order Number': 'orderNumber',
@@ -1349,12 +1361,36 @@ const PURCHASES_HEADER_TO_KEY: Record<string, string> = {
   'Total Amount': 'totalAmount',
 };
 
-// Generate dynamic template with pagination support
+// Base input shape for PDF exports
+export interface ReportBaseInput {
+  logo: string;
+  companyName: string;
+  companyLocation: string;
+  companyPhone: string;
+  companyEmail?: string;
+  reportTitle: string;
+  reportDateLabel: string;
+  reportDateValue: string;
+  reportPeriodLabel: string;
+  reportPeriodValue: string;
+  reportTypeLabel: string;
+  reportTypeValue: string;
+  summaryTitle: string;
+  summaryContent: string;
+  totalLabel: string;
+  totalValue: string;
+  preparedByLabel: string;
+  approvedByLabel: string;
+}
+
+// Generate dynamic template with pagination - reports-style: schema + inputs in same loop, no separate footer page
 const generateDynamicTemplateWithPagination = (
   rowCount: number, 
   tableHeaders: string[], 
   templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients',
-  rowData?: Record<string, string | number>[]
+  rowData?: Record<string, string | number>[],
+  baseInput?: ReportBaseInput,
+  watermarkBase64?: string
 ) => {
   // Data-driven column widths when rowData provided (ensures all content fits)
   // For purchases: derive fieldKeys from tableHeaders (client=7 cols, general=5 cols)
@@ -1417,8 +1453,14 @@ const generateDynamicTemplateWithPagination = (
     }
   }
 
-  // Build schemas for all pages
+  // Build schemas and inputs in same loop (reports-style: 1:1 guaranteed, no pagination issues)
   const schemas: any[][] = [];
+  const inputs: Record<string, any>[] = [];
+  const effectiveKeys = templateType === 'purchases'
+    ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h]).filter(Boolean)
+    : templateType === 'expenses'
+    ? tableHeaders.map(h => EXPENSES_HEADER_TO_KEY[h]).filter(Boolean)
+    : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   
   pages.forEach((pageRows, pageIdx) => {
     const pageSchema: any[] = [];
@@ -1500,80 +1542,85 @@ const generateDynamicTemplateWithPagination = (
       pageSchema.push(...dataFields);
     });
 
-    // Footer (only on the last table page)
+    // Footer (only on last data page) - space reserved in pagination, so always fits on last page (reports-style)
     if (pageIdx === pages.length - 1) {
       const totalRowsH = templateType === 'purchases' && purchaseRowHeights
         ? pageRows.reduce((s, i) => s + purchaseRowHeights[i], 0)
         : pageRows.length * rowHeight;
       const lastRowY = tableHeaderY + tableHeaderHeight + totalRowsH;
-      const footerStartY = lastRowY + 10; // 10mm spacing after last row
-      const availableSpace = pageHeight - bottomMargin - footerStartY;
-      
-      // Check if footer fits on current page
-      if (availableSpace >= baseFooterHeight) {
-        // Footer fits on current page
-        const footerY = footerStartY;
-        
-        // Add footer elements (content provided via inputs; fallback prevents empty placeholder)
-        pageSchema.push(
-          { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-          { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
-          { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-          { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
-          { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
-          { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' }
-        );
-      } else {
-        // Footer doesn't fit - create separate footer page
-        const footerPageSchema: any[] = [];
-        
-        // Add watermark to footer page
-        footerPageSchema.push({
-          name: 'watermarkLogo_footer',
-          type: 'image',
-          position: { x: 60, y: 110 },
-          width: 100,
-          height: 100,
-          opacity: 0.2
-        });
-
-        // Add footer elements to separate page
-        const footerY = topMargin + 10;
-        footerPageSchema.push(
-          // Summary section
-          { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-          { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          
-          // Responsive totals box
-          { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
-          { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-          { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
-          
-          // Signature section
-          { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 35 }, width: 60, height: 0, color: '#000' },
-          { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 35 }, width: 60, height: 0, color: '#000' }
-        );
-
-        // Push current page first, then footer page (footer must be last)
-        schemas.push(pageSchema);
-        schemas.push(footerPageSchema);
-        return; // Skip the schemas.push below
-      }
+      const footerY = lastRowY + 10;
+      pageSchema.push(
+        { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
+        { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
+        { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
+        { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 38 }, width: 60, height: 0, color: '#000' }
+      );
     }
 
     schemas.push(pageSchema);
+
+    // Build page input in same loop when baseInput provided (reports-style: 1:1 schemas/inputs, no pagination mismatch)
+    if (baseInput && watermarkBase64 && rowData) {
+      const input: Record<string, any> = {
+        [`watermarkLogo_${pageIdx}`]: watermarkBase64,
+      };
+      tableHeaders.forEach((h, hi) => {
+        input[`header_${pageIdx}_${hi}`] = h;
+      });
+      pageRows.forEach((rowIdx) => {
+        const row = rowData[rowIdx] || {};
+        effectiveKeys.forEach((k, ki) => {
+          const val = row[k] ?? row[Object.keys(row)[ki]] ?? '';
+          input[`${k}_${rowIdx}`] = String(val);
+        });
+      });
+      if (pageIdx === 0) {
+        Object.assign(input, {
+          logo: baseInput.logo,
+          companyName: baseInput.companyName,
+          companyLocation: baseInput.companyLocation,
+          companyPhone: baseInput.companyPhone,
+          companyEmail: baseInput.companyEmail ?? 'Email: cabinetmasterstyles@gmail.com',
+          reportTitle: baseInput.reportTitle,
+          reportDateLabel: baseInput.reportDateLabel,
+          reportDateValue: baseInput.reportDateValue,
+          reportPeriodLabel: baseInput.reportPeriodLabel,
+          reportPeriodValue: baseInput.reportPeriodValue,
+          reportTypeLabel: baseInput.reportTypeLabel,
+          reportTypeValue: baseInput.reportTypeValue,
+        });
+      }
+      if (pageIdx === pages.length - 1) {
+        input.summaryTitle = String(baseInput.summaryTitle ?? 'Summary:');
+        input.summaryContent = String(baseInput.summaryContent ?? '');
+        input.totalLabel = String(baseInput.totalLabel ?? 'Total:');
+        input.totalValue = String(baseInput.totalValue ?? '');
+        input.preparedByLabel = String(baseInput.preparedByLabel ?? 'Prepared by:');
+        input.approvedByLabel = String(baseInput.approvedByLabel ?? 'Approved by:');
+      }
+      inputs.push(input);
+    }
   });
 
-  return {
+  const result: {
+    basePdf: { width: number; height: number; padding: [number, number, number, number] };
+    schemas: any[][];
+    pages: number[][];
+    inputs?: Record<string, any>[];
+  } = {
     basePdf: { width: pageWidth, height: pageHeight, padding: [0, 0, 0, 0] as [number, number, number, number] },
     schemas,
     pages,
   };
+  if (baseInput && inputs.length > 0) {
+    result.inputs = inputs;
+  }
+  return result;
 };
 
 /** Build per-page inputs array for pdfme (each element = one page). Required for header/logo to show on first page. */
