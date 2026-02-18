@@ -1255,6 +1255,34 @@ const calculateColumnWidthsFromData = (
   return contentWidths.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
 };
 
+/** Expenses: guaranteed-fit widths. Amount & Account Debited always visible. Description gets remainder. */
+const calculateExpensesColumnWidths = (
+  tableHeaders: string[],
+  _rowData: Record<string, string | number>[],
+  _fieldKeys: string[],
+  tableWidth: number = 180
+): number[] => {
+  const colCount = tableHeaders.length;
+  if (colCount === 0) return [];
+  const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
+  const availableWidth = tableWidth - totalGaps;
+
+  const descColIdx = tableHeaders.indexOf('Description');
+  const fixed: Record<string, number> = {
+    'Expense #': 18, 'Date': 16, 'Department': 18, 'Client': 18, 'Category': 16, 'Employee': 18,
+    'Amount': 24, 'Account Debited': 22, 'Account Credited': 22
+  };
+  let fixedSum = 0;
+  const widths = tableHeaders.map((h) => {
+    if (h === 'Description') return 0;
+    const w = fixed[h] ?? 16;
+    fixedSum += w;
+    return w;
+  });
+  const descWidth = descColIdx >= 0 ? Math.max(28, availableWidth - fixedSum) : 28;
+  return widths.map((w, i) => (i === descColIdx ? descWidth : w));
+};
+
 /** Purchases: guaranteed-fit widths. Total Amount always visible. Items wraps in remainder. */
 const calculatePurchasesColumnWidths = (
   tableHeaders: string[],
@@ -1400,13 +1428,17 @@ const generateDynamicTemplateWithPagination = (
   watermarkBase64?: string
 ) => {
   // Data-driven column widths when rowData provided (ensures all content fits)
-  // For purchases: derive fieldKeys from tableHeaders (client=7 cols, general=5 cols)
+  // For purchases/expenses: derive fieldKeys from tableHeaders (column variants)
   const fieldKeys = templateType === 'purchases'
     ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
+    : templateType === 'expenses'
+    ? tableHeaders.map(h => EXPENSES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
     : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   const dataDrivenWidths = rowData && rowData.length > 0
     ? (templateType === 'purchases'
         ? calculatePurchasesColumnWidths(tableHeaders, rowData, fieldKeys)
+        : templateType === 'expenses'
+        ? calculateExpensesColumnWidths(tableHeaders, rowData, fieldKeys)
         : calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys))
     : undefined;
 
