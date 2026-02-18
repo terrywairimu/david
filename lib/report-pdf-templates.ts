@@ -1232,16 +1232,16 @@ const generateDynamicTemplateWithPagination = (
   tableHeaders: string[], 
   templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients'
 ) => {
-  // Paginate rows
+  // Paginate rows - only add pages with content (no blank continuation pages)
   const pages: Array<Array<number>> = [];
   let rowIndex = 0;
   
-  // First page
+  // First page (always add - either with data or empty for "no records" report)
   const firstPageActualRows = Math.min(firstPageRows, rowCount);
   pages.push(Array.from({length: firstPageActualRows}, (_, i) => i));
   rowIndex += firstPageActualRows;
   
-  // Subsequent pages
+  // Subsequent pages - only add pages that have rows
   while (rowIndex < rowCount) {
     const remainingRows = rowCount - rowIndex;
     const rowsForThisPage = Math.min(otherPageRows, remainingRows);
@@ -1272,14 +1272,14 @@ const generateDynamicTemplateWithPagination = (
       // Company header section - matching quotation template
       pageSchema.push(
         { name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 },
-        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
+        { name: 'companyName', type: 'text', position: { x: 60, y: 11 }, width: 140, height: 14, fontSize: 14, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'left', fontWeight: 'Extra Bold', characterSpacing: 0.5 },
         { name: 'companyLocation', type: 'text', position: { x: 60, y: 21 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'companyPhone', type: 'text', position: { x: 60, y: 27 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         
         // Report header section - matching quotation template styling
         { name: 'reportHeaderBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
-        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
+        { name: 'reportTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 14, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center', fontWeight: 'bold' },
         
         // Report info section - responsive width calculation
         { name: 'reportInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 62, height: 28, color: '#E5E5E5', radius: 4 },
@@ -1298,19 +1298,22 @@ const generateDynamicTemplateWithPagination = (
       { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: 10, color: '#E5E5E5', radius: 3 }
     );
 
-    // Add custom table headers based on template type
+    // Add custom table headers based on template type - match data column alignment (Amount/right, etc.)
+    const numericHeaders = ['Amount', 'Total Amount', 'Balance', 'Paid Amount', 'Total Value', 'Unit Price', 'Quantity'];
+    const isNumericColumn = (h: string) => numericHeaders.some(n => h.includes(n) || h === n);
     const headerPositions = calculateHeaderPositions(tableHeaders, tableHeaderY);
     tableHeaders.forEach((header, headerIdx) => {
+      const align = isNumericColumn(header) ? 'right' : (headerIdx === 0 ? 'left' : 'left');
       pageSchema.push({
         name: `header_${pageIdx}_${headerIdx}`,
         type: 'text',
         position: headerPositions[headerIdx],
         width: headerPositions[headerIdx].width,
         height: 5,
-        fontSize: 11,
+        fontSize: 9,
         fontColor: '#000',
         fontName: 'Helvetica-Bold',
-        alignment: headerIdx === 0 ? 'left' : (headerIdx === tableHeaders.length - 2 ? 'right' : 'center'),
+        alignment: align,
         content: header
       });
     });
@@ -1319,8 +1322,8 @@ const generateDynamicTemplateWithPagination = (
     pageRows.forEach((rowIdx, localIdx) => {
       const yPosition = tableHeaderY + tableHeaderHeight + (localIdx * rowHeight);
       
-      // Generate data row fields based on template type
-      const dataFields = generateDataFields(templateType, rowIdx, yPosition);
+      // Generate data row fields based on template type - pass tableHeaders for alignment
+      const dataFields = generateDataFields(templateType, rowIdx, yPosition, tableHeaders);
       pageSchema.push(...dataFields);
     });
 
@@ -1385,8 +1388,10 @@ const generateDynamicTemplateWithPagination = (
           { name: 'approvedByLine', type: 'line', position: { x: 145, y: footerY + 35 }, width: 60, height: 0, color: '#000' }
         );
 
-        // Add footer page to schemas
+        // Push current page first, then footer page (footer must be last)
+        schemas.push(pageSchema);
         schemas.push(footerPageSchema);
+        return; // Skip the schemas.push below
       }
     }
 
@@ -1523,6 +1528,7 @@ const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
     'Product': 35,
     'Paid To': 25,
     'Items': 45, // Made wider to accommodate item descriptions
+    'Account Debited': 28, 'Account Credited': 28,
     
     // Wide columns (descriptions, addresses)
     'Description': 40,
@@ -1553,21 +1559,56 @@ const calculateHeaderPositions = (headers: string[], tableHeaderY: number) => {
 };
 
 // Generate data fields based on template type with proper column alignment
-const generateDataFields = (templateType: string, rowIdx: number, yPosition: number) => {
+// tableHeaders is optional - when provided, uses calculateHeaderPositions for expenses (company vs client variants)
+const generateDataFields = (templateType: string, rowIdx: number, yPosition: number, tableHeaders?: string[]) => {
   const fields: any[] = [];
   
   switch (templateType) {
     case 'expenses':
-      // Expense fields: Expense #, Date, Department/Client, Category, Description, Amount, Account Debited
-      fields.push(
-        { name: `expenseNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `department_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `category_${rowIdx}`, type: 'text', position: { x: 103, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `description_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: `amount_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
-        { name: `accountDebited_${rowIdx}`, type: 'text', position: { x: 199, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
-      );
+      // Expense fields - use tableHeaders for positions so header/data columns align (company=7 cols, client=6 cols)
+      const expenseHeaderToField: Record<string, { key: string; alignment: 'left' | 'right' }> = {
+        'Expense #': { key: 'expenseNumber', alignment: 'left' },
+        'Date': { key: 'date', alignment: 'left' },
+        'Department': { key: 'department', alignment: 'left' },
+        'Client': { key: 'department', alignment: 'left' },
+        'Category': { key: 'category', alignment: 'left' },
+        'Description': { key: 'description', alignment: 'left' },
+        'Amount': { key: 'amount', alignment: 'right' },
+        'Account Debited': { key: 'accountDebited', alignment: 'left' }
+      };
+      const positions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0) : [
+        { x: 17, y: 0, width: 25 }, { x: 44, y: 0, width: 25 }, { x: 71, y: 0, width: 30 },
+        { x: 103, y: 0, width: 25 }, { x: 130, y: 0, width: 40 }, { x: 172, y: 0, width: 25 }, { x: 199, y: 0, width: 28 }
+      ];
+      tableHeaders?.forEach((h, i) => {
+        const map = expenseHeaderToField[h];
+        if (map) {
+          const pos = positions[i];
+          fields.push({
+            name: `${map.key}_${rowIdx}`,
+            type: 'text',
+            position: { x: pos.x, y: yPosition },
+            width: pos.width,
+            height: 5,
+            fontSize: 9,
+            fontColor: '#000',
+            fontName: 'Helvetica',
+            alignment: map.alignment
+          });
+        }
+      });
+      if (fields.length === 0) {
+        // Fallback when tableHeaders not provided
+        fields.push(
+          { name: `expenseNumber_${rowIdx}`, type: 'text', position: { x: 17, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: `date_${rowIdx}`, type: 'text', position: { x: 44, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: `department_${rowIdx}`, type: 'text', position: { x: 71, y: yPosition }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: `category_${rowIdx}`, type: 'text', position: { x: 103, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: `description_${rowIdx}`, type: 'text', position: { x: 130, y: yPosition }, width: 40, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
+          { name: `amount_${rowIdx}`, type: 'text', position: { x: 172, y: yPosition }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'right' },
+          { name: `accountDebited_${rowIdx}`, type: 'text', position: { x: 199, y: yPosition }, width: 28, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+        );
+      }
       break;
       
     case 'payments':
