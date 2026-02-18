@@ -1189,21 +1189,20 @@ const generateFinancialReportPDF = async (data: FinancialReportData) => {
 // NEW DYNAMIC TEMPLATE SYSTEM WITH PAGINATION SUPPORT
 // ============================================================================
 
-// Layout constants (in mm) - matching quotation PDF
+// Layout constants (in mm) - A4 portrait (210x297)
 const pageHeight = 297;
 const pageWidth = 210;
-const topMargin = 20;
-const bottomMargin = 15;
+const topMargin = 15;
+const bottomMargin = 12;
 const headerHeight = 60; // header block (first page only)
-const tableHeaderHeight = 10;
-const baseFooterHeight = 40; // base footer block (last page only)
-const rowHeight = 8;
-const firstPageTableStartY = 101; // adjusted so rows fit on first page
+const tableHeaderHeight = 8;
+const baseFooterHeight = 48; // footer content height (summary + totals + signatures)
+const rowHeight = 6; // match dynamic-report-pdf - compact rows to maximize rows per page
+const firstPageTableStartY = 101;
 
-// Calculate rows per page - always reserve footer space so footer fits on last data page
-// (avoids separate footer-only pages that render as malformed placeholders)
-const firstPageReservedSpace = 16; // Reserve 16mm for better spacing
-const footerReservedSpace = baseFooterHeight + 15; // Reserve footer + spacing on last page
+// Reserve footer space so footer fits on last page. Use tight buffer to maximize rows per page.
+const firstPageReservedSpace = 6;
+const footerReservedSpace = baseFooterHeight + 8; // footer content + gap after last row
 const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace - footerReservedSpace;
 const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin - footerReservedSpace;
 const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
@@ -1503,7 +1502,7 @@ const generateDynamicTemplateWithPagination = (
     // Table header (every page) - positioned correctly for each page
     const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
     pageSchema.push(
-      { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: 10, color: '#E5E5E5', radius: 3 }
+      { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: tableHeaderHeight, color: '#E5E5E5', radius: 3 }
     );
 
     // Add custom table headers - use data-driven widths when available
