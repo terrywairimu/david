@@ -1200,13 +1200,15 @@ const baseFooterHeight = 48; // footer content height (summary + totals + signat
 const rowHeight = 6; // match dynamic-report-pdf - compact rows to maximize rows per page
 const firstPageTableStartY = 101;
 
-// Reserve footer space so footer fits on last page. Use tight buffer to maximize rows per page.
+// Reserve footer space only where needed - last page. Continuation pages use full height.
 const firstPageReservedSpace = 6;
-const footerReservedSpace = baseFooterHeight + 8; // footer content + gap after last row
+const footerReservedSpace = baseFooterHeight + 8; // footer content + gap after last row (last page only)
 const firstPageAvailable = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace - footerReservedSpace;
-const otherPageAvailable = pageHeight - topMargin - tableHeaderHeight - bottomMargin - footerReservedSpace;
+// Continuation pages: full height (no footer - footer only on last page)
+const otherPageAvailableFull = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
+// Last page: must fit footer
+const otherPageAvailableWithFooter = pageHeight - topMargin - tableHeaderHeight - bottomMargin - footerReservedSpace;
 const firstPageRows = Math.floor(firstPageAvailable / rowHeight);
-const otherPageRows = Math.floor(otherPageAvailable / rowHeight);
 
 // Font sizes - aligned with dynamic-report-pdf.ts (ReportBuilder template)
 const FONT_SIZE_TABLE_HEADER = 9;
@@ -1410,7 +1412,7 @@ const generateDynamicTemplateWithPagination = (
   // Paginate rows
   const pages: Array<Array<number>> = [];
   if (templateType === 'purchases' && purchaseRowHeights) {
-    // Height-based pagination for purchases (dynamic row heights)
+    // Height-based pagination for purchases - two-pass: continuation pages use full height
     let rowIndex = 0;
     let pageIdx = 0;
     if (rowCount === 0) {
@@ -1418,7 +1420,7 @@ const generateDynamicTemplateWithPagination = (
     } else {
       while (rowIndex < rowCount) {
         const isFirstPage = pageIdx === 0;
-        const availableH = isFirstPage ? firstPageAvailable : otherPageAvailable;
+        const availableH = isFirstPage ? firstPageAvailable : otherPageAvailableFull;
         const pageRows: number[] = [];
         let accumulatedH = 0;
         while (rowIndex < rowCount && accumulatedH + purchaseRowHeights[rowIndex] <= availableH) {
@@ -1432,23 +1434,49 @@ const generateDynamicTemplateWithPagination = (
         if (pageRows.length > 0) pages.push(pageRows);
         pageIdx++;
       }
+      // Two-pass: last page must fit footer - repeatedly split overflowing last page
+      const maxLastPageH = otherPageAvailableWithFooter;
+      while (pages.length > 1) {
+        const lastPage = pages[pages.length - 1];
+        const lastPageH = lastPage.reduce((s, i) => s + purchaseRowHeights[i], 0);
+        if (lastPageH <= maxLastPageH) break;
+        const moved: number[] = [];
+        let h = lastPageH;
+        while (lastPage.length > 0 && h > maxLastPageH) {
+          const row = lastPage.pop()!;
+          moved.unshift(row);
+          h -= purchaseRowHeights[row];
+        }
+        pages[pages.length - 1] = lastPage;
+        pages.push(moved);
+      }
     }
   } else {
-    // Fixed row-height pagination
+    // Fixed row-height pagination - two-pass: continuation pages use full height, last page reserves footer
     const effectiveRowHeight = rowHeight;
     const firstPageMaxRows = Math.floor(firstPageAvailable / effectiveRowHeight);
-    const otherPageMaxRows = Math.floor(otherPageAvailable / effectiveRowHeight);
+    const otherPageMaxRowsFull = Math.floor(otherPageAvailableFull / effectiveRowHeight);
+    const lastPageMaxRows = Math.floor(otherPageAvailableWithFooter / effectiveRowHeight);
     let rowIndex = 0;
     const firstPageActualRows = Math.min(firstPageMaxRows, rowCount);
     pages.push(Array.from({ length: firstPageActualRows }, (_, i) => i));
     rowIndex += firstPageActualRows;
     while (rowIndex < rowCount) {
       const remainingRows = rowCount - rowIndex;
-      const rowsForThisPage = Math.min(otherPageMaxRows, remainingRows);
+      const rowsForThisPage = Math.min(otherPageMaxRowsFull, remainingRows);
       if (rowsForThisPage > 0) {
         pages.push(Array.from({ length: rowsForThisPage }, (_, i) => rowIndex + i));
       }
       rowIndex += rowsForThisPage;
+    }
+    // Two-pass: last page may have too many rows for footer - split if needed
+    if (pages.length > 1) {
+      const lastPage = pages[pages.length - 1];
+      if (lastPage.length > lastPageMaxRows) {
+        const overflow = lastPage.length - lastPageMaxRows;
+        pages[pages.length - 1] = lastPage.slice(0, -overflow);
+        pages.push(lastPage.slice(-overflow));
+      }
     }
   }
 
