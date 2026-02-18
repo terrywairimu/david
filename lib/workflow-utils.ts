@@ -930,6 +930,9 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
         preparedByLabel: 'Prepared by: System',
         approvedByLabel: 'Approved by: System',
       }, watermarkLogoBase64);
+      if (inputs.length !== template.schemas.length) {
+        console.warn('Purchases PDF: inputs/schemas count mismatch', { inputs: inputs.length, schemas: template.schemas.length });
+      }
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })

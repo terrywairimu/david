@@ -1512,18 +1512,13 @@ const generateDynamicTemplateWithPagination = (
         // Footer fits on current page
         const footerY = footerStartY;
         
-        // Add footer elements
+        // Add footer elements (content provided via inputs; fallback prevents empty placeholder)
         pageSchema.push(
-          // Summary section
           { name: 'summaryTitle', type: 'text', position: { x: 15, y: footerY }, width: 60, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
           { name: 'summaryContent', type: 'text', position: { x: 15, y: footerY + 5 }, width: 120, height: 40, fontSize: 8, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-          
-          // Responsive totals box
           { name: 'totalsBox', type: 'rectangle', position: { x: 140, y: footerY }, width: 60, height: 27, color: '#E5E5E5', radius: 4 },
           { name: 'totalLabel', type: 'text', position: { x: 142, y: footerY + 20 }, width: 35, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
           { name: 'totalValue', type: 'text', position: { x: 165, y: footerY + 20 }, width: 33, height: 5, fontSize: 10, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'right' },
-          
-          // Signature section
           { name: 'preparedByLabel', type: 'text', position: { x: 15, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
           { name: 'preparedByLine', type: 'line', position: { x: 35, y: footerY + 38 }, width: 60, height: 0, color: '#000' },
           { name: 'approvedByLabel', type: 'text', position: { x: 120, y: footerY + 35 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
@@ -1655,27 +1650,37 @@ export const buildPaginatedInputs = (
         reportTypeValue: baseInput.reportTypeValue,
       });
     }
+    // Footer fields: add to last data page when footer is on same page, or will be added below for separate footer page
     if (pageIdx === pages.length - 1 && pageIdx === schemasCount - 1) {
-      input.summaryTitle = baseInput.summaryTitle;
-      input.summaryContent = baseInput.summaryContent;
-      input.totalLabel = baseInput.totalLabel;
-      input.totalValue = baseInput.totalValue;
-      input.preparedByLabel = baseInput.preparedByLabel;
-      input.approvedByLabel = baseInput.approvedByLabel;
+      input.summaryTitle = String(baseInput.summaryTitle ?? 'Summary:');
+      input.summaryContent = String(baseInput.summaryContent ?? '');
+      input.totalLabel = String(baseInput.totalLabel ?? 'Total:');
+      input.totalValue = String(baseInput.totalValue ?? '');
+      input.preparedByLabel = String(baseInput.preparedByLabel ?? 'Prepared by:');
+      input.approvedByLabel = String(baseInput.approvedByLabel ?? 'Approved by:');
     }
     return input;
   });
 
+  // Separate footer page: ensure we have one input per schema (pdfme requires 1:1 alignment)
   if (schemasCount > result.length) {
     result.push({
       watermarkLogo_footer: watermarkBase64,
-      summaryTitle: baseInput.summaryTitle,
-      summaryContent: baseInput.summaryContent,
-      totalLabel: baseInput.totalLabel,
-      totalValue: baseInput.totalValue,
-      preparedByLabel: baseInput.preparedByLabel,
-      approvedByLabel: baseInput.approvedByLabel,
+      summaryTitle: String(baseInput.summaryTitle ?? 'Summary:'),
+      summaryContent: String(baseInput.summaryContent ?? ''),
+      totalLabel: String(baseInput.totalLabel ?? 'Total:'),
+      totalValue: String(baseInput.totalValue ?? ''),
+      preparedByLabel: String(baseInput.preparedByLabel ?? 'Prepared by:'),
+      approvedByLabel: String(baseInput.approvedByLabel ?? 'Approved by:'),
     });
+  }
+
+  // Validation: pdfme requires inputs.length === schemas.length - pad with empty object if mismatch
+  while (result.length < schemasCount) {
+    result.push({});
+  }
+  if (result.length > schemasCount) {
+    result.length = schemasCount;
   }
   return result;
 };
