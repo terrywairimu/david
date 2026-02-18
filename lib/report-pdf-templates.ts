@@ -1205,8 +1205,9 @@ const firstPageReservedSpace = 6;
 const footerReservedSpace = baseFooterHeight + 8; // footer content + gap after last row (last page only)
 // First page when it IS the last page (single-page report): needs footer
 const firstPageAvailableWithFooter = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace - footerReservedSpace;
-// First page when NOT last (multi-page): full height, no footer
-const firstPageAvailableFull = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace;
+// First page when NOT last (multi-page): full height, no footer. Cap at 30 rows for readability.
+const firstPageMultiPageReserve = 12; // extra space so first page = 30 rows (was 32)
+const firstPageAvailableFull = pageHeight - topMargin - headerHeight - tableHeaderHeight - bottomMargin - firstPageReservedSpace - firstPageMultiPageReserve;
 // Continuation pages: full height (no footer - footer only on last page)
 const otherPageAvailableFull = pageHeight - topMargin - tableHeaderHeight - bottomMargin;
 // Last page (non-first): must fit footer
