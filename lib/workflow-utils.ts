@@ -2380,10 +2380,7 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
       const customTableHeaders = expenseType === 'company'
         ? ['Expense #', 'Date', 'Department', 'Category', 'Description', 'Amount', 'Account Debited']
         : ['Expense #', 'Date', 'Client', 'Category', 'Employee', 'Description', 'Amount', 'Account Debited'];
-      const truncateForColumn = (s: string, maxLen: number = 28) =>
-        s.length <= maxLen ? s : s.slice(0, maxLen - 3) + '...';
       const rowData = expenses.map((e) => {
-        const desc = String(e.description || '-');
         return {
           expenseNumber: String(e.expense_number || 'N/A'),
           date: new Date(e.date_created).toLocaleDateString(),
@@ -2392,7 +2389,7 @@ export const exportExpensesReport = async (expenses: any[], format: 'pdf' | 'csv
             ? String(e.category || '-')
             : String(e.expense_category ? e.expense_category.charAt(0).toUpperCase() + e.expense_category.slice(1) : '-'),
           employee: String(e.employee?.name || '-'),
-          description: truncateForColumn(desc),
+          description: String(e.description || '-'),
           amount: `KES ${(e.amount || 0).toFixed(2)}`,
           accountDebited: String(e.account_debited || '-'),
         };

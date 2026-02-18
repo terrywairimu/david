@@ -1318,6 +1318,28 @@ const calculatePurchasesColumnWidths = (
   return result;
 };
 
+/** Estimate row height in mm from description text (8pt font ~1.2mm/char, line height ~3.5mm) - for wrapping */
+const computeExpenseRowHeights = (
+  rowData: Record<string, string | number>[],
+  fieldKeys: string[],
+  tableHeaders: string[],
+  dataDrivenWidths: number[]
+): number[] => {
+  const descColIdx = tableHeaders.indexOf('Description');
+  if (descColIdx < 0) return rowData.map(() => 6);
+  const descKey = fieldKeys[descColIdx];
+  const descWidthMm = dataDrivenWidths[descColIdx] ?? 40;
+  const charsPerLine = Math.max(8, Math.floor(descWidthMm / 1.2));
+  const lineHeightMm = 3.5;
+  const minRowHeight = 6;
+
+  return rowData.map((row) => {
+    const text = String(row[descKey] ?? '');
+    const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+    return Math.max(minRowHeight, Math.min(35, Math.round(lines * lineHeightMm)));
+  });
+};
+
 /** Estimate row height in mm from items text (7pt font ~1.1mm/char, line height ~3.5mm) */
 const computePurchaseRowHeights = (
   rowData: Record<string, string | number>[],
@@ -1442,14 +1464,20 @@ const generateDynamicTemplateWithPagination = (
         : calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys))
     : undefined;
 
-  // Purchases: dynamic row heights from items text; others use fixed
+  // Purchases: dynamic row heights from items text; expenses: from description; others fixed
   const purchaseRowHeights = (templateType === 'purchases' && rowData && dataDrivenWidths)
     ? computePurchaseRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
+    : null;
+  const expenseRowHeights = (templateType === 'expenses' && rowData && dataDrivenWidths)
+    ? computeExpenseRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
     : null;
 
   // Paginate rows
   const pages: Array<Array<number>> = [];
-  if (templateType === 'purchases' && purchaseRowHeights) {
+  const heightDrivenPagination = (templateType === 'purchases' && purchaseRowHeights) ||
+    (templateType === 'expenses' && expenseRowHeights);
+  const rowHeightsArr = purchaseRowHeights ?? expenseRowHeights;
+  if (heightDrivenPagination && rowHeightsArr) {
     // Height-based pagination for purchases - two-pass: continuation pages use full height
     let rowIndex = 0;
     let pageIdx = 0;
@@ -1461,9 +1489,9 @@ const generateDynamicTemplateWithPagination = (
         const availableH = isFirstPage ? firstPageAvailableFull : otherPageAvailableFull;
         const pageRows: number[] = [];
         let accumulatedH = 0;
-        while (rowIndex < rowCount && accumulatedH + purchaseRowHeights[rowIndex] <= availableH) {
+        while (rowIndex < rowCount && accumulatedH + rowHeightsArr[rowIndex] <= availableH) {
           pageRows.push(rowIndex);
-          accumulatedH += purchaseRowHeights[rowIndex];
+          accumulatedH += rowHeightsArr[rowIndex];
           rowIndex++;
         }
         if (pageRows.length === 0 && rowIndex < rowCount) {
@@ -1478,13 +1506,13 @@ const generateDynamicTemplateWithPagination = (
       if (pages.length === 1) {
         // Single page: first page must fit footer
         const firstPage = pages[0];
-        let firstPageH = firstPage.reduce((s, i) => s + purchaseRowHeights[i], 0);
+        let firstPageH = firstPage.reduce((s, i) => s + rowHeightsArr[i], 0);
         if (firstPageH > maxFirstPageAsLastH) {
           const moved: number[] = [];
           while (firstPage.length > 0 && firstPageH > maxFirstPageAsLastH) {
             const row = firstPage.pop()!;
             moved.unshift(row);
-            firstPageH -= purchaseRowHeights[row];
+            firstPageH -= rowHeightsArr[row];
           }
           pages[0] = firstPage;
           pages.push(moved);
@@ -1493,14 +1521,14 @@ const generateDynamicTemplateWithPagination = (
       }
       while (pages.length > 1) {
         const lastPage = pages[pages.length - 1];
-        const lastPageH = lastPage.reduce((s, i) => s + purchaseRowHeights[i], 0);
+        const lastPageH = lastPage.reduce((s, i) => s + rowHeightsArr[i], 0);
         if (lastPageH <= maxLastPageH) break;
         const moved: number[] = [];
         let h = lastPageH;
         while (lastPage.length > 0 && h > maxLastPageH) {
           const row = lastPage.pop()!;
           moved.unshift(row);
-          h -= purchaseRowHeights[row];
+          h -= rowHeightsArr[row];
         }
         pages[pages.length - 1] = lastPage;
         pages.push(moved);
@@ -1613,9 +1641,9 @@ const generateDynamicTemplateWithPagination = (
     pageRows.forEach((rowIdx, localIdx) => {
       let yPosition: number;
       let rowH: number;
-      if (templateType === 'purchases' && purchaseRowHeights) {
-        rowH = purchaseRowHeights[rowIdx];
-        const cumulativeH = pageRows.slice(0, localIdx).reduce((s, i) => s + purchaseRowHeights[i], 0);
+      if (heightDrivenPagination && rowHeightsArr) {
+        rowH = rowHeightsArr[rowIdx];
+        const cumulativeH = pageRows.slice(0, localIdx).reduce((s, i) => s + rowHeightsArr[i], 0);
         yPosition = tableHeaderY + tableHeaderHeight + cumulativeH;
       } else {
         rowH = rowHeight;
@@ -1627,8 +1655,8 @@ const generateDynamicTemplateWithPagination = (
 
     // Footer (only on last data page) - space reserved in pagination, so always fits on last page (reports-style)
     if (pageIdx === pages.length - 1) {
-      const totalRowsH = templateType === 'purchases' && purchaseRowHeights
-        ? pageRows.reduce((s, i) => s + purchaseRowHeights[i], 0)
+      const totalRowsH = heightDrivenPagination && rowHeightsArr
+        ? pageRows.reduce((s, i) => s + rowHeightsArr[i], 0)
         : pageRows.length * rowHeight;
       const lastRowY = tableHeaderY + tableHeaderHeight + totalRowsH;
       const footerY = lastRowY + 10;
@@ -1907,6 +1935,7 @@ const generateDataFields = (
   switch (templateType) {
     case 'expenses':
       // Expense fields - use tableHeaders for positions so header/data columns align (company=7 cols, client=6 cols)
+      // Description cell uses dynamic rowHeightMm for wrapping (like Items in purchases)
       const expenseHeaderToField: Record<string, { key: string; alignment: 'left' | 'right' }> = {
         'Expense #': { key: 'expenseNumber', alignment: 'left' },
         'Date': { key: 'date', alignment: 'left' },
@@ -1922,17 +1951,19 @@ const generateDataFields = (
         { x: 17, y: 0, width: 25 }, { x: 44, y: 0, width: 25 }, { x: 71, y: 0, width: 30 },
         { x: 103, y: 0, width: 25 }, { x: 130, y: 0, width: 40 }, { x: 172, y: 0, width: 25 }, { x: 199, y: 0, width: 28 }
       ];
+      const descCellHeight = Math.max(5, rowHeightMm - 1);
       tableHeaders?.forEach((h, i) => {
         const map = expenseHeaderToField[h];
         if (map) {
           const pos = positions[i];
+          const isDescription = map.key === 'description';
           fields.push({
             name: `${map.key}_${rowIdx}`,
             type: 'text',
             position: { x: pos.x, y: yPosition },
             width: pos.width,
-            height: 5,
-            fontSize: FONT_SIZE_TABLE_ROW,
+            height: isDescription ? descCellHeight : 5,
+            fontSize: isDescription ? 7 : FONT_SIZE_TABLE_ROW,
             fontColor: '#000',
             fontName: 'Helvetica',
             alignment: map.alignment
