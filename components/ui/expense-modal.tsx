@@ -87,7 +87,9 @@ const ExpenseModal = ({
   const [clientQuotations, setClientQuotations] = useState<{quotation_number: string, grand_total?: number}[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [companyCategories, setCompanyCategories] = useState<{ value: string; label: string }[]>([])
+  const [clientCategories, setClientCategories] = useState<{ value: string; label: string }[]>([])
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
+  const [createCategoryType, setCreateCategoryType] = useState<"company" | "client">("company")
   const [newCategoryName, setNewCategoryName] = useState("")
   const [creatingCategory, setCreatingCategory] = useState(false)
   
@@ -96,10 +98,6 @@ const ExpenseModal = ({
   const [rateInputFocused, setRateInputFocused] = useState<{[key: number]: boolean}>({})
   const [rawQuantityValues, setRawQuantityValues] = useState<{[key: number]: string}>({})
   const [rawRateValues, setRawRateValues] = useState<{[key: number]: string}>({})
-
-  const clientCategories = [
-    "wages", "fare", "transport", "accomodation", "meals", "material facilitation", "others"
-  ]
 
   const departments = [
     { value: "administration", label: "Administration" },
@@ -137,6 +135,16 @@ const ExpenseModal = ({
     { value: "other", label: "Miscellaneous" },
   ]
 
+  const builtInClientCategories = [
+    { value: "wages", label: "Wages" },
+    { value: "fare", label: "Fare" },
+    { value: "transport", label: "Transport" },
+    { value: "accomodation", label: "Accomodation" },
+    { value: "meals", label: "Meals" },
+    { value: "material facilitation", label: "Material facilitation" },
+    { value: "others", label: "Others" },
+  ]
+
   const fetchCompanyCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -154,20 +162,44 @@ const ExpenseModal = ({
     }
   }
 
+  const fetchClientCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expense_categories")
+        .select("name, value")
+        .eq("expense_type", "client")
+        .order("name", { ascending: true })
+
+      if (error) throw error
+      const list = (data || []).map((c) => ({ value: c.value, label: c.name }))
+      setClientCategories(list.length > 0 ? list : builtInClientCategories)
+    } catch (error) {
+      console.error("Error fetching client expense categories:", error)
+      setClientCategories(builtInClientCategories)
+    }
+  }
+
   const handleCreateCategory = async () => {
     const trimmed = newCategoryName.trim()
     if (!trimmed) return
     setCreatingCategory(true)
     try {
-      const value = trimmed.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") || "custom"
+      const value = createCategoryType === "company"
+        ? trimmed.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") || "custom"
+        : trimmed.toLowerCase().replace(/\s+/g, " ") || "custom"
       const { error } = await supabase
         .from("expense_categories")
-        .insert([{ name: trimmed, value, expense_type: "company" }])
+        .insert([{ name: trimmed, value, expense_type: createCategoryType }])
 
       if (error) throw error
       const newCat = { value, label: trimmed }
-      setCompanyCategories((prev) => [...prev, newCat].sort((a, b) => a.label.localeCompare(b.label)))
-      setFormData((prev) => ({ ...prev, category: value }))
+      if (createCategoryType === "company") {
+        setCompanyCategories((prev) => [...prev, newCat].sort((a, b) => a.label.localeCompare(b.label)))
+        setFormData((prev) => ({ ...prev, category: value }))
+      } else {
+        setClientCategories((prev) => [...prev, newCat].sort((a, b) => a.label.localeCompare(b.label)))
+        setFormData((prev) => ({ ...prev, expense_category: value }))
+      }
       setShowCreateCategoryModal(false)
       setNewCategoryName("")
       toast.success("Category created")
@@ -184,6 +216,7 @@ const ExpenseModal = ({
 
   useEffect(() => {
     if (expenseType === "company") fetchCompanyCategories()
+    else fetchClientCategories()
   }, [expenseType])
 
   useEffect(() => {
@@ -847,7 +880,10 @@ const ExpenseModal = ({
                           {mode !== "view" && (
                             <button
                               type="button"
-                              onClick={() => setShowCreateCategoryModal(true)}
+                              onClick={() => {
+                                setCreateCategoryType("company")
+                                setShowCreateCategoryModal(true)
+                              }}
                               className="btn border-0 d-flex align-items-center justify-content-center"
                               style={{
                                 borderRadius: "0 16px 16px 0",
@@ -910,21 +946,41 @@ const ExpenseModal = ({
                   <div className="row">
                     <div className="col-md-4">
                       <label className="form-label">Category</label>
-                      <select
-                        className="form-select border-0 shadow-sm"
-                        value={formData.expense_category}
-                        onChange={(e) => setFormData(prev => ({ ...prev, expense_category: e.target.value }))}
-                        style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                        required
-                        disabled={mode === "view"}
-                      >
-                        <option value="">Select Category</option>
-                        {clientCategories.map(cat => (
-                          <option key={cat} value={cat}>
-                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="input-group shadow-sm">
+                        <select
+                          className="form-select border-0"
+                          value={formData.expense_category}
+                          onChange={(e) => setFormData(prev => ({ ...prev, expense_category: e.target.value }))}
+                          style={{ borderRadius: "16px 0 0 16px", height: "45px", color: "#000000" }}
+                          required
+                          disabled={mode === "view"}
+                        >
+                          <option value="">Select Category</option>
+                          {clientCategories.map(cat => (
+                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                          ))}
+                        </select>
+                        {mode !== "view" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateCategoryType("client")
+                              setShowCreateCategoryModal(true)
+                            }}
+                            className="btn border-0 d-flex align-items-center justify-content-center"
+                            style={{
+                              borderRadius: "0 16px 16px 0",
+                              height: "45px",
+                              width: "45px",
+                              background: "white",
+                              color: "#B06A2B",
+                            }}
+                            title="Create new category"
+                          >
+                            <Plus size={20} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="col-md-4">
                       <label className="form-label">Employee</label>
