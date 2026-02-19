@@ -132,14 +132,7 @@ export async function generateAnalyticsReportPDF(
   })
   y += 12
 
-  // Executive Summary header
-  page1Schema.push(
-    { name: 'execHeader', type: 'rectangle', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 8, color: '#F0F0F0', borderRadius: 2 },
-    { name: 'execTitle', type: 'text', position: { x: MARGIN.left + 4, y: y + 2 }, width: 150, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' }
-  )
-  y += 12
-
-  // Summary stat rows (up to 5)
+  // Executive Summary - only include when we have stat rows
   const statRows: { label: string; value: string }[] = []
   statsConfig.slice(0, 5).forEach((statDef) => {
     const raw = summary?.[statDef.valueKey as keyof typeof summary] ?? 0
@@ -153,22 +146,33 @@ export async function generateAnalyticsReportPDF(
     statRows.push({ label: statDef.label, value })
   })
 
-  statRows.forEach((row, i) => {
+  if (statRows.length > 0) {
     page1Schema.push(
-      { name: `statLabel_${i}`, type: 'text', position: { x: MARGIN.left, y: y + i * 7 }, width: 80, height: 6, fontSize: 9, fontColor: '#333333', alignment: 'left' },
-      { name: `statValue_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 90, y: y + i * 7 }, width: 90, height: 6, fontSize: 9, fontColor: '#111111', alignment: 'right' }
+      { name: 'execHeader', type: 'rectangle', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 8, color: '#F0F0F0', borderRadius: 2 },
+      { name: 'execTitle', type: 'text', position: { x: MARGIN.left + 4, y: y + 2 }, width: 150, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' }
     )
-  })
-  y += statRows.length * 7 + 12
+    y += 12
+    statRows.forEach((row, i) => {
+      page1Schema.push(
+        { name: `statLabel_${i}`, type: 'text', position: { x: MARGIN.left, y: y + i * 7 }, width: 80, height: 6, fontSize: 9, fontColor: '#333333', alignment: 'left' },
+        { name: `statValue_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 90, y: y + i * 7 }, width: 90, height: 6, fontSize: 9, fontColor: '#111111', alignment: 'right' }
+      )
+    })
+    y += statRows.length * 7 + 12
+  }
 
-  // Main chart visualization (area/line/bar chart)
-  const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-  const mainChartImg = params.mainChartImage || mainChartPlaceholder
-  page1Schema.push(
-    { name: 'mainChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
-    { name: 'mainChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 55 }
-  )
-  y += 68
+  // Main chart visualization - only include when we have real chart image or chart data
+  const hasMainChart = !!(params.mainChartImage && params.mainChartImage.length > 300)
+  const hasChartData = params.comprehensiveChartData.length > 0
+  if (hasMainChart || hasChartData) {
+    const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    const mainChartImg = params.mainChartImage || mainChartPlaceholder
+    page1Schema.push(
+      { name: 'mainChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
+      { name: 'mainChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 55 }
+    )
+    y += 68
+  }
 
   // Chart data table header (Time Series / Performance Over Time)
   let dataKey = 'amount'
@@ -212,11 +216,30 @@ export async function generateAnalyticsReportPDF(
     opacity: 0.06,
   })
 
+  // Build distItems early to determine if we have meaningful distribution data
+  let distItems: { name: string; value: number; amount: number }[] = []
+  if (params.section === 'profitability' && summary) {
+    const paid = Number(summary.total_paid ?? 0)
+    const expenses = Number(summary.total_expenses ?? 0)
+    const net = Number(summary.net_profit ?? 0)
+    const total = paid + expenses + Math.abs(net) || 1
+    distItems = [
+      { name: 'Paid', value: 100 * (paid || 0) / total, amount: paid },
+      { name: 'Expenses', value: 100 * (expenses || 0) / total, amount: expenses },
+      { name: 'Net', value: 100 * (net || 0) / total, amount: net },
+    ]
+  } else {
+    distItems = params.segmentationSegments.slice(0, 10).map((seg) => ({
+      name: seg.name,
+      value: seg.value,
+      amount: seg.revenue,
+    }))
+  }
+  const hasMeaningfulDist = distItems.some((d) => Math.abs(d.amount) > 0 || Math.abs(d.value) > 0)
+
   // Determine if page 2 has meaningful content (avoid empty pages)
   const hasPieChart = !!(params.pieChartImage && params.pieChartImage.length > 300)
-  const hasDistItems = (params.section === 'profitability' && summary)
-    ? true
-    : params.segmentationSegments.length > 0
+  const hasDistItems = (params.section === 'profitability') ? hasMeaningfulDist : params.segmentationSegments.length > 0
   const hasAI = (params.aiInsights?.length ?? 0) > 0 || (params.aiSummary?.trim?.()?.length ?? 0) > 0
   const hasPage2Content = hasPieChart || hasDistItems || hasAI
 
@@ -240,17 +263,22 @@ export async function generateAnalyticsReportPDF(
     reportPeriod: `Period: ${periodStr}`,
     reportDate: `Generated: ${generatedDate}`,
     scopeNote: `Scope: ${params.section.replace(/_/g, ' ')} — ${params.section === 'profitability' && params.clientFilter !== 'general' ? 'Per client analysis' : 'All clients'} · Metric: ${params.chartTitle}`,
-    execHeader: '',
-    execTitle: 'Executive Summary',
-    mainChartLabel: 'Performance Trend Chart',
-    mainChartImage: mainChartImg,
     tableSectionTitle: params.comprehensiveChartData.length > 0 ? 'Performance Over Time (Time Series Data)' : '',
     watermark: watermarkBase64,
   }
-  statRows.forEach((row, i) => {
-    page1Input[`statLabel_${i}`] = row.label
-    page1Input[`statValue_${i}`] = row.value
-  })
+  if (hasMainChart || hasChartData) {
+    const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    page1Input.mainChartLabel = 'Performance Trend Chart'
+    page1Input.mainChartImage = params.mainChartImage || mainChartPlaceholder
+  }
+  if (statRows.length > 0) {
+    page1Input.execHeader = ''
+    page1Input.execTitle = 'Executive Summary'
+    statRows.forEach((row, i) => {
+      page1Input[`statLabel_${i}`] = row.label
+      page1Input[`statValue_${i}`] = row.value
+    })
+  }
   if (params.comprehensiveChartData.length > 0) {
     const chartRows = params.comprehensiveChartData.slice(0, 15)
     chartRows.forEach((row, i) => {
@@ -288,22 +316,23 @@ export async function generateAnalyticsReportPDF(
   )
   y += 14
 
-  // Pie / Segmentation chart visualization
-  const pieChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-  const pieChartImg = params.pieChartImage || pieChartPlaceholder
-  page2Schema.push(
-    { name: 'pieChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
-    { name: 'pieChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: 90, height: 90 }
-  )
-  y += 102
+  // Pie / Segmentation chart - only include when we have a real chart image
+  if (hasPieChart) {
+    const pieChartImg = params.pieChartImage!
+    page2Schema.push(
+      { name: 'pieChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
+      { name: 'pieChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: 90, height: 90 }
+    )
+    y += 102
+  }
 
-  // Distribution / Segmentation section
+  // Distribution / Segmentation section - only when we have meaningful data
+  if (hasDistItems) {
   page2Schema.push(
     { name: 'distSectionTitle', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' }
   )
   y += 8
 
-  // Distribution table
   page2Schema.push(
     { name: 'distHeader', type: 'rectangle', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 8, color: '#E8E8E8', borderRadius: 2 },
     { name: 'distCol1', type: 'text', position: { x: MARGIN.left + 3, y: y + 2 }, width: 120, height: 6, fontSize: 9, fontColor: '#000000', alignment: 'left' },
@@ -312,25 +341,6 @@ export async function generateAnalyticsReportPDF(
   )
   y += 10
 
-  const segRows = params.segmentationSegments
-  let distItems: { name: string; value: number; amount: number }[] = []
-  if (params.section === 'profitability' && summary) {
-    const paid = Number(summary.total_paid ?? 0)
-    const expenses = Number(summary.total_expenses ?? 0)
-    const net = Number(summary.net_profit ?? 0)
-    const total = paid + expenses + Math.abs(net) || 1
-    distItems = [
-      { name: 'Paid', value: 100 * (paid || 0) / total, amount: paid },
-      { name: 'Expenses', value: 100 * (expenses || 0) / total, amount: expenses },
-      { name: 'Net', value: 100 * (net || 0) / total, amount: net },
-    ]
-  } else {
-    distItems = segRows.slice(0, 10).map((seg) => ({
-      name: seg.name,
-      value: seg.value,
-      amount: seg.revenue,
-    }))
-  }
   distItems.slice(0, 10).forEach((item, i) => {
     page2Schema.push(
       { name: `distName_${i}`, type: 'text', position: { x: MARGIN.left + 3, y: y + i * 6 }, width: 120, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'left' },
@@ -339,9 +349,11 @@ export async function generateAnalyticsReportPDF(
     )
   })
   y += Math.max(distItems.length, 1) * 6 + 10
+  }
 
-  // AI Insights section (always include for consistent layout)
+  // AI Insights section - only when we have insights or summary
   const insights = params.aiInsights ?? []
+  if (hasAI) {
   y += 4
   page2Schema.push(
     { name: 'aiHeader', type: 'rectangle', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 8, color: '#F0F0F0', borderRadius: 2 },
@@ -365,6 +377,7 @@ export async function generateAnalyticsReportPDF(
       { name: `aiInsDesc_${i}`, type: 'text', position: { x: MARGIN.left, y: y + i * 20 + 8 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 12, fontSize: 8, fontColor: '#555555', alignment: 'left' }
     )
   }
+  }
 
   // Footer
   const footerY = PAGE.height - MARGIN.bottom - 25
@@ -377,20 +390,21 @@ export async function generateAnalyticsReportPDF(
 
   const page2Input: Record<string, any> = {
     page2Title: `${reportTitle} (Continued)`,
-    pieChartLabel: params.section === 'profitability' ? 'Profitability (Paid / Expenses / Net)' : 'Distribution Chart',
-    pieChartImage: pieChartImg,
-    distSectionTitle: params.section === 'profitability' ? 'Profitability Breakdown (Paid vs Expenses vs Net)' : 'Distribution / Segmentation',
-    distHeader: '',
-    distCol1: 'Category',
-    distCol2: '%',
-    distCol3: params.section === 'profitability' ? 'Amount (KES)' : 'Amount',
     summary: `Analytics Report | ${params.comprehensiveChartData.length} data points | Generated by Cabinet Master Analytics`,
     preparedBy: 'Prepared by: ____________',
     approvedBy: 'Approved by: ____________',
     pageNumber: 'Page 2 of 2',
-    aiHeader: '',
-    aiTitle: 'AI Business Insights',
-    aiSummary: params.aiSummary ?? '',
+  }
+  if (hasPieChart) {
+    page2Input.pieChartLabel = params.section === 'profitability' ? 'Profitability (Paid / Expenses / Net)' : 'Distribution Chart'
+    page2Input.pieChartImage = params.pieChartImage
+  }
+  if (hasDistItems) {
+    page2Input.distSectionTitle = params.section === 'profitability' ? 'Profitability Breakdown (Paid vs Expenses vs Net)' : 'Distribution / Segmentation'
+    page2Input.distHeader = ''
+    page2Input.distCol1 = 'Category'
+    page2Input.distCol2 = '%'
+    page2Input.distCol3 = params.section === 'profitability' ? 'Amount (KES)' : 'Amount'
   }
   distItems.forEach((item, i) => {
     page2Input[`distName_${i}`] = item.name
@@ -401,6 +415,11 @@ export async function generateAnalyticsReportPDF(
     page2Input[`distName_${i}`] = ''
     page2Input[`distPct_${i}`] = ''
     page2Input[`distAmt_${i}`] = ''
+  }
+  if (hasAI) {
+    page2Input.aiHeader = ''
+    page2Input.aiTitle = 'AI Business Insights'
+    page2Input.aiSummary = params.aiSummary ?? ''
   }
   insights.forEach((ins, i) => {
     page2Input[`aiInsTitle_${i}`] = ins.title
