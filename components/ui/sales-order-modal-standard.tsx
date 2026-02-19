@@ -783,14 +783,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setDiscountAmount(salesOrder.discount_amount)
     }
     
-    // Load items by category
+    // Load items by category - only items WITHOUT section_group go to main sections; custom section items load separately below
     if (salesOrder.items) {
-      const cabinet = salesOrder.items.filter((item: any) => item.category === "cabinet" && !item.description?.includes("Labour Charge"));
-      const worktop = salesOrder.items.filter((item: any) => item.category === "worktop");
-      const accessories = salesOrder.items.filter((item: any) => item.category === "accessories" && !item.description?.includes("Labour Charge"));
-      const appliances = salesOrder.items.filter((item: any) => item.category === "appliances" && !item.description?.includes("Labour Charge"));
-      const wardrobes = salesOrder.items.filter((item: any) => item.category === "wardrobes" && !item.description?.includes("Labour Charge"));
-      const tvunit = salesOrder.items.filter((item: any) => item.category === "tvunit" && !item.description?.includes("Labour Charge"));
+      const mainItems = (salesOrder.items as any[]).filter((item: any) => !item.section_group)
+      const cabinet = mainItems.filter((item: any) => item.category === "cabinet" && !item.description?.includes("Labour Charge"));
+      const worktop = mainItems.filter((item: any) => item.category === "worktop");
+      const accessories = mainItems.filter((item: any) => item.category === "accessories" && !item.description?.includes("Labour Charge"));
+      const appliances = mainItems.filter((item: any) => item.category === "appliances" && !item.description?.includes("Labour Charge"));
+      const wardrobes = mainItems.filter((item: any) => item.category === "wardrobes" && !item.description?.includes("Labour Charge"));
+      const tvunit = mainItems.filter((item: any) => item.category === "tvunit" && !item.description?.includes("Labour Charge"));
       setCabinetItems(cabinet.length > 0 ? cabinet : [createNewItem("cabinet")]);
       setWorktopItems(worktop);
       setAccessoriesItems(accessories.length > 0 ? accessories : []);
@@ -803,15 +804,16 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setAccessoriesLabourPercentage(Number(salesOrder.accessories_labour_percentage) || 30)
           setAppliancesLabourPercentage(Number(salesOrder.appliances_labour_percentage) || 30)
       setWardrobesLabourPercentage(Number(salesOrder.wardrobes_labour_percentage) || 30)
-      setTvUnitLabourPercentage(Number(salesOrder.tvunit_labour_percentage) || 30)
+    setTvUnitLabourPercentage(Number(salesOrder.tvunit_labour_percentage) || 30)
     setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
     setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
-    // Infer include labour from saved items (Labour Charge in items when toggle was on)
-    setIncludeLabourCabinet(salesOrder.items?.some((i: any) => i.category === "cabinet" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourAccessories(salesOrder.items?.some((i: any) => i.category === "accessories" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourAppliances(salesOrder.items?.some((i: any) => i.category === "appliances" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourWardrobes(salesOrder.items?.some((i: any) => i.category === "wardrobes" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourTvUnit(salesOrder.items?.some((i: any) => i.category === "tvunit" && i.description?.includes?.("Labour Charge")) ?? true);
+    // Infer include labour from saved items - only main section items (no section_group) count for main toggles
+    const mainItemsForLabour = (salesOrder.items || []).filter((i: any) => !i.section_group)
+    setIncludeLabourCabinet(mainItemsForLabour.some((i: any) => i.category === "cabinet" && i.description?.includes?.("Labour Charge")) ?? true);
+    setIncludeLabourAccessories(mainItemsForLabour.some((i: any) => i.category === "accessories" && i.description?.includes?.("Labour Charge")) ?? true);
+    setIncludeLabourAppliances(mainItemsForLabour.some((i: any) => i.category === "appliances" && i.description?.includes?.("Labour Charge")) ?? true);
+    setIncludeLabourWardrobes(mainItemsForLabour.some((i: any) => i.category === "wardrobes" && i.description?.includes?.("Labour Charge")) ?? true);
+    setIncludeLabourTvUnit(mainItemsForLabour.some((i: any) => i.category === "tvunit" && i.description?.includes?.("Labour Charge")) ?? true);
 
     // Load custom sections and their items
     const customSectionsData = ((salesOrder.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || []).map(s => ({
