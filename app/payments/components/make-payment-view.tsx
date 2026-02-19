@@ -261,7 +261,7 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
     try {
       startDownload(`${paymentType}_payments_report_${new Date().toISOString().split('T')[0]}`, format)
       
-      exportPaymentsReport(filteredPayments, format)
+      exportPaymentsReport(filteredPayments, format, paymentType === 'suppliers' ? 'make-payments-suppliers' : 'make-payments-employees')
       
       setTimeout(() => {
         completeDownload()

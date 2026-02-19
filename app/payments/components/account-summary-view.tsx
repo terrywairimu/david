@@ -719,16 +719,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       if (format === 'csv') {
         await handleExport()
       } else {
-        const paymentsData = filteredData.map(transaction => ({
-          payment_number: transaction.transaction_number,
-          client: { name: transaction.client_name || 'System' },
-          date_created: transaction.transaction_date,
-          paid_to: transaction.account_type,
-          description: transaction.description,
-          amount: transaction.amount,
-          account_credited: transaction.account_type
-        }))
-        await exportPaymentsReport(paymentsData, format)
+        await exportPaymentsReport(filteredData, format, 'account-summary')
       }
       setTimeout(() => completeDownload(), 500)
     } catch (error) {

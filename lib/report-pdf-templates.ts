@@ -1283,6 +1283,34 @@ const calculateExpensesColumnWidths = (
   return widths.map((w, i) => (i === descColIdx ? descWidth : w));
 };
 
+/** Payments (all variants): guaranteed-fit widths. Amount/Balance visible. Description gets remainder when present. */
+const calculatePaymentsColumnWidths = (
+  tableHeaders: string[],
+  _rowData: Record<string, string | number>[],
+  _fieldKeys: string[],
+  tableWidth: number = 180
+): number[] => {
+  const colCount = tableHeaders.length;
+  if (colCount === 0) return [];
+  const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
+  const availableWidth = tableWidth - totalGaps;
+  const descColIdx = tableHeaders.indexOf('Description');
+  const fixed: Record<string, number> = {
+    'Payment #': 20, 'Transaction #': 22, 'Client': 20, 'Date': 14, 'Paid To': 18,
+    'Amount': 22, 'Account Credited': 20, 'Supplier': 20, 'Employee': 20,
+    'Balance': 20, 'Method': 14, 'Status': 14, 'Account': 20, 'Money In': 18, 'Money Out': 18,
+  };
+  let fixedSum = 0;
+  const widths = tableHeaders.map((h) => {
+    if (h === 'Description') return 0;
+    const w = fixed[h] ?? 16;
+    fixedSum += w;
+    return w;
+  });
+  const descWidth = descColIdx >= 0 ? Math.max(28, availableWidth - fixedSum) : 28;
+  return widths.map((w, i) => (i === descColIdx ? descWidth : w));
+};
+
 /** Purchases: guaranteed-fit widths. Total Amount always visible. Items wraps in remainder. */
 const calculatePurchasesColumnWidths = (
   tableHeaders: string[],
@@ -1418,6 +1446,26 @@ const PURCHASES_HEADER_TO_KEY: Record<string, string> = {
   'Total Amount': 'totalAmount',
 };
 
+// Header -> field key mapping for ALL payment management views (receive, make-suppliers, make-employees, account-summary)
+const PAYMENTS_HEADER_TO_KEY: Record<string, string> = {
+  'Payment #': 'paymentNumber',
+  'Transaction #': 'transactionNumber',
+  'Client': 'client',
+  'Date': 'date',
+  'Paid To': 'paidTo',
+  'Description': 'description',
+  'Amount': 'amount',
+  'Account Credited': 'accountCredited',
+  'Supplier': 'entity',
+  'Employee': 'entity',
+  'Balance': 'balance',
+  'Method': 'method',
+  'Status': 'status',
+  'Account': 'account',
+  'Money In': 'moneyIn',
+  'Money Out': 'moneyOut',
+};
+
 // Base input shape for PDF exports
 export interface ReportBaseInput {
   logo: string;
@@ -1441,26 +1489,34 @@ export interface ReportBaseInput {
 }
 
 // Generate dynamic template with pagination - reports-style: schema + inputs in same loop, no separate footer page
+type PaymentTemplateVariant = 'receivePayments' | 'makePaymentsSuppliers' | 'makePaymentsEmployees' | 'accountSummary';
+const PAYMENT_TEMPLATE_VARIANTS: PaymentTemplateVariant[] = ['receivePayments', 'makePaymentsSuppliers', 'makePaymentsEmployees', 'accountSummary'];
+
 const generateDynamicTemplateWithPagination = (
   rowCount: number, 
   tableHeaders: string[], 
-  templateType: 'expenses' | 'payments' | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients',
+  templateType: 'expenses' | 'payments' | PaymentTemplateVariant | 'stock' | 'quotations' | 'salesOrders' | 'invoices' | 'cashSales' | 'purchases' | 'clients',
   rowData?: Record<string, string | number>[],
   baseInput?: ReportBaseInput,
   watermarkBase64?: string
 ) => {
+  const isPaymentVariant = PAYMENT_TEMPLATE_VARIANTS.includes(templateType as PaymentTemplateVariant);
+  const effectiveTemplateType = isPaymentVariant ? 'payments' : templateType;
   // Data-driven column widths when rowData provided (ensures all content fits)
-  // For purchases/expenses: derive fieldKeys from tableHeaders (column variants)
   const fieldKeys = templateType === 'purchases'
     ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
     : templateType === 'expenses'
     ? tableHeaders.map(h => EXPENSES_HEADER_TO_KEY[h] ?? '').filter(Boolean)
-    : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
+    : isPaymentVariant
+    ? tableHeaders.map(h => PAYMENTS_HEADER_TO_KEY[h] ?? '').filter(Boolean)
+    : (FIELD_KEYS_BY_TYPE[effectiveTemplateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   const dataDrivenWidths = rowData && rowData.length > 0
     ? (templateType === 'purchases'
         ? calculatePurchasesColumnWidths(tableHeaders, rowData, fieldKeys)
         : templateType === 'expenses'
         ? calculateExpensesColumnWidths(tableHeaders, rowData, fieldKeys)
+        : isPaymentVariant
+        ? calculatePaymentsColumnWidths(tableHeaders, rowData, fieldKeys)
         : calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys))
     : undefined;
 
@@ -1571,7 +1627,9 @@ const generateDynamicTemplateWithPagination = (
     ? tableHeaders.map(h => PURCHASES_HEADER_TO_KEY[h]).filter(Boolean)
     : templateType === 'expenses'
     ? tableHeaders.map(h => EXPENSES_HEADER_TO_KEY[h]).filter(Boolean)
-    : (FIELD_KEYS_BY_TYPE[templateType] ?? FIELD_KEYS_BY_TYPE.quotations);
+    : isPaymentVariant
+    ? tableHeaders.map(h => PAYMENTS_HEADER_TO_KEY[h]).filter(Boolean)
+    : (FIELD_KEYS_BY_TYPE[effectiveTemplateType] ?? FIELD_KEYS_BY_TYPE.quotations);
   
   pages.forEach((pageRows, pageIdx) => {
     const pageSchema: any[] = [];
@@ -1891,7 +1949,7 @@ const calculateHeaderPositions = (
 };
 
 // Alignment per header - numeric columns right-aligned
-const numericHeaders = ['Amount', 'Total Amount', 'Balance', 'Paid Amount', 'Total Value', 'Unit Price', 'Quantity'];
+const numericHeaders = ['Amount', 'Total Amount', 'Balance', 'Paid Amount', 'Total Value', 'Unit Price', 'Quantity', 'Money In', 'Money Out'];
 const getAlignment = (header: string, colIdx: number): 'left' | 'center' | 'right' =>
   numericHeaders.some(n => header.includes(n) || header === n) ? 'right' : (colIdx === 0 ? 'left' : 'left');
 
@@ -1906,12 +1964,15 @@ const generateDataFields = (
   rowHeightMm: number = 8
 ) => {
   const fields: any[] = [];
-  const fieldKeys = FIELD_KEYS_BY_TYPE[templateType];
+  const isPaymentVariant = PAYMENT_TEMPLATE_VARIANTS.includes(templateType as PaymentTemplateVariant);
+  const fieldKeys = isPaymentVariant && tableHeaders
+    ? tableHeaders.map(h => PAYMENTS_HEADER_TO_KEY[h] ?? '').filter(Boolean)
+    : FIELD_KEYS_BY_TYPE[templateType];
   const positions = tableHeaders ? calculateHeaderPositions(tableHeaders, 0, dataDrivenWidths) : null;
 
-  // Unified data-driven path when headers 1:1 map to field keys (exclude expenses/purchases - have column variants)
+  // Unified data-driven path: use for payment variants (responsive) and standard types; exclude expenses/purchases (have own handlers)
   if (tableHeaders && positions && fieldKeys && fieldKeys.length === tableHeaders.length &&
-      templateType !== 'purchases' && templateType !== 'expenses') {
+      (isPaymentVariant || (templateType !== 'purchases' && templateType !== 'expenses' && templateType !== 'payments'))) {
     tableHeaders.forEach((header, colIdx) => {
       const key = fieldKeys[colIdx];
       if (key) {

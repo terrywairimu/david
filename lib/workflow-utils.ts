@@ -2269,30 +2269,111 @@ export const createPurchaseWithTransaction = async (purchaseData: any) => {
   }
 } 
 
-export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv' = 'pdf') => {
+export type PaymentsReportType = 'receive-payments' | 'make-payments-suppliers' | 'make-payments-employees' | 'account-summary';
+
+const PAYMENTS_EXPORT_CONFIG: Record<PaymentsReportType, {
+  headers: string[];
+  templateType: 'receivePayments' | 'makePaymentsSuppliers' | 'makePaymentsEmployees' | 'accountSummary';
+  reportTitle: string;
+  reportTypeValue: string;
+  filenamePrefix: string;
+  successMsg: string;
+}> = {
+  'receive-payments': {
+    headers: ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'],
+    templateType: 'receivePayments',
+    reportTitle: 'RECEIVED PAYMENTS REPORT',
+    reportTypeValue: 'Received Payments',
+    filenamePrefix: 'received_payments',
+    successMsg: 'Received payments report exported successfully!',
+  },
+  'make-payments-suppliers': {
+    headers: ['Payment #', 'Date', 'Supplier', 'Paid To', 'Amount', 'Balance', 'Method', 'Status'],
+    templateType: 'makePaymentsSuppliers',
+    reportTitle: 'SUPPLIER PAYMENTS REPORT',
+    reportTypeValue: 'Supplier Payments',
+    filenamePrefix: 'supplier_payments',
+    successMsg: 'Supplier payments report exported successfully!',
+  },
+  'make-payments-employees': {
+    headers: ['Payment #', 'Date', 'Employee', 'Paid To', 'Amount', 'Balance', 'Method', 'Status'],
+    templateType: 'makePaymentsEmployees',
+    reportTitle: 'EMPLOYEE PAYMENTS REPORT',
+    reportTypeValue: 'Employee Payments',
+    filenamePrefix: 'employee_payments',
+    successMsg: 'Employee payments report exported successfully!',
+  },
+  'account-summary': {
+    headers: ['Transaction #', 'Account', 'Date', 'Description', 'Amount', 'Status', 'Money In', 'Money Out', 'Balance'],
+    templateType: 'accountSummary',
+    reportTitle: 'ACCOUNT TRANSACTIONS REPORT',
+    reportTypeValue: 'Account Summary',
+    filenamePrefix: 'account_transactions',
+    successMsg: 'Account transactions report exported successfully!',
+  },
+};
+
+export const exportPaymentsReport = async (
+  data: any[],
+  format: 'pdf' | 'csv' = 'pdf',
+  reportType: PaymentsReportType = 'receive-payments'
+) => {
+  const config = PAYMENTS_EXPORT_CONFIG[reportType];
   try {
     if (format === 'pdf') {
       const { generateDynamicTemplateWithPagination } = await import('./report-pdf-templates')
-      const customTableHeaders = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited'];
-      const rowData = payments.map((p) => ({
-        paymentNumber: String(p.payment_number || 'N/A'),
-        client: String(p.client?.name || 'Unknown'),
-        date: new Date(p.date_created).toLocaleDateString(),
-        paidTo: String(p.paid_to || '-'),
-        description: String(p.description || '-'),
-        amount: `KES ${(p.amount || 0).toFixed(2)}`,
-        accountCredited: String(p.account_credited || '-'),
-      }));
-      async function fetchImageAsBase64(url: string): Promise<string> {
+      let rowData: Record<string, string | number>[];
+      let totalValue: string;
+
+      if (reportType === 'receive-payments') {
+        rowData = data.map((p) => ({
+          paymentNumber: String(p.payment_number || 'N/A'),
+          client: String(p.client?.name || 'Unknown'),
+          date: new Date(p.date_created).toLocaleDateString(),
+          paidTo: String(p.paid_to || '-'),
+          description: String(p.description || '-'),
+          amount: `KES ${(p.amount || 0).toFixed(2)}`,
+          accountCredited: String(p.account_credited || '-'),
+        }));
+        totalValue = `KES ${data.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`;
+      } else if (reportType === 'make-payments-suppliers' || reportType === 'make-payments-employees') {
+        const entityKey = reportType === 'make-payments-suppliers' ? 'supplier' : 'employee';
+        rowData = data.map((p) => ({
+          paymentNumber: String(p.payment_number || 'N/A'),
+          date: new Date(p.payment_date).toLocaleDateString(),
+          entity: String(p[entityKey]?.name || 'Unknown'),
+          paidTo: String(p.paid_to || '-'),
+          amount: `KES ${(p.amount || 0).toFixed(2)}`,
+          balance: `KES ${(p.balance ?? 0).toFixed(2)}`,
+          method: String(p.payment_method || '-'),
+          status: String(p.status || '-'),
+        }));
+        totalValue = `KES ${data.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`;
+      } else {
+        rowData = data.map((t) => ({
+          transactionNumber: String(t.transaction_number || t.payment_number || 'N/A'),
+          account: String(t.account_type ? t.account_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : '-'),
+          date: new Date(t.transaction_date || t.date_created).toLocaleDateString(),
+          description: String(t.description || '-'),
+          amount: `KES ${(t.amount || 0).toFixed(2)}`,
+          status: (t.transaction_type || t.status) === 'in' ? 'In' : 'Out',
+          moneyIn: `KES ${(t.money_in ?? 0).toFixed(2)}`,
+          moneyOut: `KES ${(t.money_out ?? 0).toFixed(2)}`,
+          balance: `KES ${(t.balance_after ?? 0).toFixed(2)}`,
+        }));
+        totalValue = `Total Transactions: ${data.length}`;
+      }
+
+      const fetchImageAsBase64 = async (url: string): Promise<string> => {
         const res = await fetch(url);
         const blob = await res.blob();
-        return new Promise<string>((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-      }
+      };
       const watermarkLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const companyLogoBase64 = await fetchImageAsBase64('/logowatermark.png');
       const baseInput = {
@@ -2301,24 +2382,24 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
         companyLocation: "Location: Ruiru Eastern By-Pass",
         companyPhone: "Tel: +254729554475",
         companyEmail: "Email: cabinetmasterstyles@gmail.com",
-        reportTitle: "PAYMENTS REPORT",
+        reportTitle: config.reportTitle,
         reportDateLabel: 'Date:',
         reportDateValue: new Date().toLocaleDateString(),
         reportPeriodLabel: 'Period:',
         reportPeriodValue: "All Time",
         reportTypeLabel: 'Type:',
-        reportTypeValue: "Payments",
+        reportTypeValue: config.reportTypeValue,
         summaryTitle: 'Summary:',
-        summaryContent: `Total Payments: ${payments.length}`,
+        summaryContent: `Total Records: ${data.length}`,
         totalLabel: 'Total:',
-        totalValue: `KES ${payments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}`,
+        totalValue,
         preparedByLabel: 'Prepared by: System',
         approvedByLabel: 'Approved by: System',
       };
       const { basePdf, schemas, inputs } = generateDynamicTemplateWithPagination(
-        payments.length,
-        customTableHeaders,
-        'payments',
+        data.length,
+        config.headers,
+        config.templateType,
         rowData,
         baseInput,
         watermarkLogoBase64
@@ -2327,49 +2408,41 @@ export const exportPaymentsReport = async (payments: any[], format: 'pdf' | 'csv
       const { generate } = await import('@pdfme/generator')
       const { text, rectangle, line, image } = await import('@pdfme/schemas')
       const pdf = await generate({ template, inputs, plugins: { text, rectangle, line, image } as any })
-      
-      // Download PDF
+
       const blob = new Blob([new Uint8Array(pdf.buffer)], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `payments_report_${Date.now()}.pdf`
+      link.download = `${config.filenamePrefix}_${Date.now()}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      
-      toast.success('Payments report exported successfully!')
+
+      toast.success(config.successMsg)
     } else {
-      // CSV export
-      const headers = ['Payment #', 'Client', 'Date', 'Paid To', 'Description', 'Amount', 'Account Credited']
-      const csvContent = [
-        headers.join(','),
-        ...payments.map(payment => [
-          payment.payment_number || 'N/A',
-          payment.client?.name || 'Unknown',
-          new Date(payment.date_created).toLocaleDateString(),
-          payment.paid_to || '-',
-          payment.description || '-',
-          (payment.amount || 0).toFixed(2),
-          payment.account_credited || '-'
-        ].join(','))
-      ].join('\n')
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', `payments_${Date.now()}.csv`)
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success('Payments report exported to CSV successfully!')
+      const headers = config.headers;
+      const csvRows = reportType === 'receive-payments'
+        ? data.map((p) => [p.payment_number || 'N/A', p.client?.name || 'Unknown', new Date(p.date_created).toLocaleDateString(), p.paid_to || '-', p.description || '-', (p.amount || 0).toFixed(2), p.account_credited || '-'])
+        : reportType === 'make-payments-suppliers' || reportType === 'make-payments-employees'
+        ? data.map((p) => [p.payment_number || 'N/A', new Date(p.payment_date).toLocaleDateString(), (reportType === 'make-payments-suppliers' ? p.supplier : p.employee)?.name || 'Unknown', p.paid_to || '-', (p.amount || 0).toFixed(2), (p.balance ?? 0).toFixed(2), p.payment_method || '-', p.status || '-'])
+        : data.map((t) => [t.transaction_number || 'N/A', t.account_type || '-', new Date(t.transaction_date).toLocaleDateString(), `"${(t.description || '-').replace(/"/g, '""')}"`, (t.amount || 0).toFixed(2), t.transaction_type === 'in' ? 'In' : 'Out', (t.money_in ?? 0).toFixed(2), (t.money_out ?? 0).toFixed(2), (t.balance_after ?? 0).toFixed(2)]);
+      const csvContent = [headers.join(','), ...csvRows.map((r) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${config.filenamePrefix}_${Date.now()}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Report exported to CSV successfully!');
     }
   } catch (error) {
-    console.error('Export error:', error)
-    toast.error('Failed to export payments report')
+    console.error('Export error:', error);
+    toast.error('Failed to export report');
   }
 } 
 

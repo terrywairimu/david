@@ -163,7 +163,7 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
     startDownload(`received_payments_report_${new Date().toISOString().split('T')[0]}`, format)
     
     try {
-      exportPaymentsReport(getFilteredPayments(), format)
+      exportPaymentsReport(getFilteredPayments(), format, 'receive-payments')
       // Complete progress after a short delay to simulate processing
       setTimeout(() => {
         completeDownload()
