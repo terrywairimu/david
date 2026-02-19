@@ -302,13 +302,20 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [clientFilter, setClientFilter] = useState<string>('')
   const [clientSearchFilter, setClientSearchFilter] = useState('')
   const [showClientFilterDropdown, setShowClientFilterDropdown] = useState(false)
-  const [clientReportType, setClientReportType] = useState<'list'|'statement'|'aging'|'activity'>('list')
+  const [clientReportType, setClientReportType] = useState<'list'|'profitLoss'|'clientExpenses'|'paymentStatus'|'analytics'>('list')
   
   // Custom
   const [includeSales, setIncludeSales] = useState(true)
   const [includeExpensesData, setIncludeExpensesData] = useState(true)
   const [includeInventoryData, setIncludeInventoryData] = useState(true)
   const [customGroupBy, setCustomGroupBy] = useState<'none'|'day'|'week'|'month'|'client'|'category'>('none')
+
+  // Auto-select Specific Client when report type requires it
+  useEffect(() => {
+    if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)) {
+      setClientFilterType('specific')
+    }
+  }, [clientReportType])
 
   // Load client options for all report types
   useEffect(() => {
@@ -786,51 +793,209 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       totals = { value: rows.reduce((s, r) => s + r.value, 0) }
       
     } else if (type === 'clients') {
-      title = 'CLIENT REPORT'
-      
-      let query = supabase.from('registered_entities')
-        .select('*')
-        .eq('type', 'client')
-        .eq('status', 'active')
-        .order('name')
-      
-      if (clientFilterType === 'specific' && clientFilter) {
-        query = query.eq('id', parseInt(clientFilter))
-        const clientName = clientOptions.find(c => c.id.toString() === clientFilter)?.name
-        if (clientName) title = `CLIENT REPORT - ${clientName.toUpperCase()}`
-      }
-      
-      const { data: clients } = await query
-      
-      const clientData = await Promise.all((clients || []).map(async (client: any) => {
-        const [orders, payments, expenses] = await Promise.all([
-          supabase.from('sales_orders').select('grand_total').eq('client_id', client.id),
-          supabase.from('payments').select('amount').eq('client_id', client.id).eq('status', 'completed'),
-          supabase.from('expenses').select('amount').eq('client_id', client.id).eq('expense_type', 'client')
+      const clientId = clientFilter || (clientFilterType === 'specific' ? clientFilter : null)
+      const clientName = clientId ? clientOptions.find(c => c.id.toString() === clientId)?.name : null
+
+      if (clientReportType === 'profitLoss') {
+        if (!clientId) throw new Error('Please select a client for Profit & Loss report')
+        title = `PROFIT & LOSS STATEMENT - ${(clientName || 'CLIENT').toUpperCase()}`
+        const cid = parseInt(clientId)
+        let salesQuery = supabase.from('sales_orders').select('grand_total, client_id')
+          .gte('date_created', start.toISOString()).lte('date_created', end.toISOString()).eq('client_id', cid)
+        let expensesQuery = supabase.from('expenses').select('amount, category, expense_type, client_id')
+          .gte('date_created', start.toISOString()).lte('date_created', end.toISOString()).eq('client_id', cid)
+        let paymentsQuery = supabase.from('payments').select('amount, client_id')
+          .eq('status', 'completed').eq('client_id', cid)
+          .gte('date_paid', start.toISOString()).lte('date_paid', end.toISOString())
+        let cogsQuery = supabase.from('purchases').select('total_amount, client_id')
+          .not('client_id', 'is', null).eq('client_id', cid)
+          .gte('purchase_date', start.toISOString()).lte('purchase_date', end.toISOString())
+        const [salesRes, expensesRes, paymentsRes, cogsRes] = await Promise.all([salesQuery, expensesQuery, paymentsQuery, cogsQuery])
+        const totalRevenue = (salesRes.data || []).reduce((s, r) => s + parseFloat(r.grand_total || 0), 0)
+        const totalPayments = (paymentsRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
+        const totalCOGS = (cogsRes.data || []).reduce((s: number, r: any) => s + parseFloat(r.total_amount || 0), 0)
+        const expensesByCategory = (expensesRes.data || []).reduce((acc: any, exp: any) => {
+          const cat = exp.category || 'Other'
+          acc[cat] = (acc[cat] || 0) + parseFloat(exp.amount || 0)
+          return acc
+        }, {})
+        const totalExpenses = Object.values(expensesByCategory).reduce((s: number, v: any) => s + v, 0)
+        const grossProfit = totalRevenue - totalCOGS
+        const operatingProfit = grossProfit - totalExpenses
+        const netIncome = totalPayments - totalCOGS - totalExpenses
+        const showPct = type === 'financial' ? showPercentages : true
+        rows = [
+          { account: 'REVENUE', type: '', amount: null, percentage: '' },
+          { account: 'Sales Revenue', type: 'Revenue', amount: totalRevenue, percentage: '100.0%' },
+          { account: 'Payments Received', type: 'Revenue', amount: totalPayments, percentage: showPct && totalRevenue > 0 ? `${((totalPayments/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'COST OF GOODS SOLD (COGS)', type: '', amount: null, percentage: '' },
+          { account: 'Purchases for Resale', type: 'COGS', amount: totalCOGS, percentage: showPct && totalRevenue > 0 ? `${((totalCOGS/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'GROSS PROFIT', type: 'Subtotal', amount: grossProfit, percentage: showPct && totalRevenue > 0 ? `${((grossProfit/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'OPERATING EXPENSES', type: '', amount: null, percentage: '' },
+          ...Object.entries(expensesByCategory).map(([cat, amt]: [string, any]) => ({
+            account: `  ${cat.charAt(0).toUpperCase() + cat.slice(1)}`,
+            type: 'Expense',
+            amount: amt,
+            percentage: showPct && totalRevenue > 0 ? `${((amt/totalRevenue)*100).toFixed(1)}%` : ''
+          })),
+          { account: 'Total Operating Expenses', type: 'Subtotal', amount: totalExpenses, percentage: showPct && totalRevenue > 0 ? `${((totalExpenses/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'OPERATING PROFIT', type: 'Total', amount: operatingProfit, percentage: showPct && totalRevenue > 0 ? `${((operatingProfit/totalRevenue)*100).toFixed(1)}%` : '' },
+          { account: 'NET INCOME', type: 'GrandTotal', amount: netIncome, percentage: showPct && totalRevenue > 0 ? `${((netIncome/totalRevenue)*100).toFixed(1)}%` : '' }
+        ]
+        columns = REPORT_COLUMNS.financial
+      } else if (clientReportType === 'paymentStatus') {
+        if (!clientId) throw new Error('Please select a client for Payment Status report')
+        title = `CLIENT PAYMENT STATUS - ${(clientName || 'CLIENT').toUpperCase()}`
+        const { data: payments } = await supabase.from('payments')
+          .select('payment_number, date_created, payment_date, paid_to, amount, payment_method, status, client:registered_entities(name)')
+          .eq('client_id', parseInt(clientId))
+          .gte('date_created', start.toISOString())
+          .lte('date_created', end.toISOString())
+          .order('date_created', { ascending: false })
+        rows = (payments || []).map((p: any) => ({
+          payment_number: p.payment_number || 'N/A',
+          date: new Date(p.payment_date || p.date_created).toLocaleDateString(),
+          paid_to: p.paid_to || '-',
+          amount: parseFloat(p.amount || 0),
+          method: p.payment_method || '-',
+          status: p.status || '-',
+          client: p.client?.name || clientName || '-'
+        }))
+        columns = [
+          { key: 'payment_number', label: 'Payment #', width: 14, align: 'left' as const },
+          { key: 'date', label: 'Date', width: 12, align: 'left' as const },
+          { key: 'paid_to', label: 'Paid To', width: 18, align: 'left' as const },
+          { key: 'amount', label: 'Amount (KES)', width: 14, align: 'right' as const },
+          { key: 'method', label: 'Method', width: 12, align: 'left' as const },
+          { key: 'status', label: 'Status', width: 10, align: 'center' as const }
+        ]
+        totals = { amount: rows.reduce((s, r) => s + r.amount, 0) }
+      } else if (clientReportType === 'clientExpenses') {
+        if (!clientId) throw new Error('Please select a client for Client Expenses report')
+        title = `CLIENT EXPENSES REPORT - ${(clientName || 'CLIENT').toUpperCase()}`
+        const cid = parseInt(clientId)
+        const [expRes, purchRes] = await Promise.all([
+          supabase.from('expenses').select(`
+            id, expense_number, date_created, amount, description, category, expense_type,
+            client:registered_entities(name),
+            employee:employees(name),
+            account_debited
+          `).eq('client_id', cid).eq('expense_type', 'client')
+            .gte('date_created', start.toISOString()).lte('date_created', end.toISOString())
+            .order('date_created', { ascending: false }),
+          supabase.from('purchases').select(`
+            id, purchase_order_number, purchase_date, total_amount, client_id,
+            supplier:registered_entities(name)
+          `).eq('client_id', cid)
+            .gte('purchase_date', start.toISOString().split('T')[0])
+            .lte('purchase_date', end.toISOString().split('T')[0])
+            .order('purchase_date', { ascending: false })
         ])
-        
-        const totalOrders = (orders.data || []).reduce((s, o) => s + parseFloat(o.grand_total || 0), 0)
-        const totalPaid = (payments.data || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
-        const totalExpenses = (expenses.data || []).reduce((s, e) => s + parseFloat(e.amount || 0), 0)
-        
-        return {
-          name: client.name || '-',
-          phone: client.phone || '-',
-          location: client.location || '-',
-          total_orders: totalOrders,
-          total_payments: totalPaid,
-          total_expenses: totalExpenses,
-          balance: totalOrders - totalPaid
+        const expenses = expRes.data || []
+        const purchases = purchRes.data || []
+        const totalExp = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+        const totalPurch = purchases.reduce((s, p) => s + parseFloat(p.total_amount || 0), 0)
+        const byCategory = expenses.reduce((acc: Record<string, number>, e: any) => {
+          const cat = e.category || e.expense_category || 'Other'
+          acc[cat] = (acc[cat] || 0) + parseFloat(e.amount || 0)
+          return acc
+        }, {})
+        rows = [
+          { account: 'GENERAL', type: 'Summary', amount: null, percentage: '' },
+          { account: '  Client Expenses', type: '', amount: totalExp, percentage: '' },
+          { account: '  Client Purchases', type: '', amount: totalPurch, percentage: '' },
+          { account: '  Total Client Expenses', type: '', amount: totalExp + totalPurch, percentage: '' },
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'CLIENT EXPENSES BY CATEGORY', type: 'Summary', amount: null, percentage: '' },
+          ...Object.entries(byCategory).map(([cat, amt]) => ({ account: `  ${cat}`, type: 'Category', amount: amt, percentage: '' })),
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'EXPENSES TABLE', type: 'Summary', amount: null, percentage: '' },
+          ...expenses.map((e: any) => ({
+            account: `${e.expense_number || 'N/A'} | ${new Date(e.date_created).toLocaleDateString()} | ${e.client?.name || '-'} | ${e.category || e.expense_category || '-'} | ${e.employee?.name || '-'} | ${(e.description || '-').slice(0, 40)}`,
+            type: 'Expense',
+            amount: parseFloat(e.amount || 0),
+            percentage: ''
+          })),
+          { account: '', type: '', amount: null, percentage: '' },
+          { account: 'PURCHASES TABLE', type: 'Summary', amount: null, percentage: '' },
+          ...purchases.map((p: any) => ({
+            account: `${p.purchase_order_number || 'N/A'} | ${new Date(p.purchase_date).toLocaleDateString()} | ${p.supplier?.name || '-'}`,
+            type: 'Purchase',
+            amount: parseFloat(p.total_amount || 0),
+            percentage: ''
+          }))
+        ]
+        columns = REPORT_COLUMNS.financial
+        totals = { amount: totalExp + totalPurch }
+      } else if (clientReportType === 'analytics') {
+        if (!clientId) throw new Error('Please select a client for Analytics report')
+        title = `CLIENT PROFITABILITY - ${(clientName || 'CLIENT').toUpperCase()}`
+        const cid = parseInt(clientId)
+        const [payRes, expRes, purchRes] = await Promise.all([
+          supabase.from('payments').select('amount').eq('client_id', cid).eq('status', 'completed')
+            .gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+          supabase.from('expenses').select('amount').eq('client_id', cid).eq('expense_type', 'client')
+            .gte('date_created', start.toISOString()).lte('date_created', end.toISOString()),
+          supabase.from('purchases').select('total_amount').eq('client_id', cid)
+            .gte('purchase_date', start.toISOString().split('T')[0])
+            .lte('purchase_date', end.toISOString().split('T')[0])
+        ])
+        const totalPaid = (payRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
+        const totalExpenses = (expRes.data || []).reduce((s, r) => s + parseFloat(r.amount || 0), 0)
+        const totalPurchases = (purchRes.data || []).reduce((s, r) => s + parseFloat(r.total_amount || 0), 0)
+        const netProfit = totalPaid - totalExpenses - totalPurchases
+        rows = [
+          { account: 'CLIENT PROFITABILITY', type: '', amount: null, percentage: '' },
+          { account: 'Total Paid (Payments)', type: 'Revenue', amount: totalPaid, percentage: '' },
+          { account: 'Total Expenses', type: 'Expense', amount: totalExpenses, percentage: '' },
+          { account: 'Client Purchases (COGS)', type: 'Expense', amount: totalPurchases, percentage: '' },
+          { account: 'NET PROFIT', type: 'GrandTotal', amount: netProfit, percentage: '' }
+        ]
+        columns = REPORT_COLUMNS.financial
+        totals = { amount: netProfit }
+      } else {
+        title = 'CLIENT REPORT'
+        let query = supabase.from('registered_entities')
+          .select('*')
+          .eq('type', 'client')
+          .eq('status', 'active')
+          .order('name')
+        if (clientFilterType === 'specific' && clientFilter) {
+          query = query.eq('id', parseInt(clientFilter))
+          if (clientName) title = `CLIENT REPORT - ${clientName.toUpperCase()}`
         }
-      }))
-      
-      rows = clientData
-      columns = REPORT_COLUMNS.clients
-      totals = {
-        total_orders: rows.reduce((s, r) => s + r.total_orders, 0),
-        total_payments: rows.reduce((s, r) => s + r.total_payments, 0),
-        total_expenses: rows.reduce((s, r) => s + r.total_expenses, 0),
-        balance: rows.reduce((s, r) => s + r.balance, 0)
+        const { data: clients } = await query
+        const clientData = await Promise.all((clients || []).map(async (client: any) => {
+          const [orders, payments, expenses] = await Promise.all([
+            supabase.from('sales_orders').select('grand_total').eq('client_id', client.id),
+            supabase.from('payments').select('amount').eq('client_id', client.id).eq('status', 'completed'),
+            supabase.from('expenses').select('amount').eq('client_id', client.id).eq('expense_type', 'client')
+          ])
+          const totalOrders = (orders.data || []).reduce((s, o) => s + parseFloat(o.grand_total || 0), 0)
+          const totalPaid = (payments.data || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0)
+          const totalExpenses = (expenses.data || []).reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+          return {
+            name: client.name || '-',
+            phone: client.phone || '-',
+            location: client.location || '-',
+            total_orders: totalOrders,
+            total_payments: totalPaid,
+            total_expenses: totalExpenses,
+            balance: totalOrders - totalPaid
+          }
+        }))
+        rows = clientData
+        columns = REPORT_COLUMNS.clients
+        totals = {
+          total_orders: rows.reduce((s, r) => s + r.total_orders, 0),
+          total_payments: rows.reduce((s, r) => s + r.total_payments, 0),
+          total_expenses: rows.reduce((s, r) => s + r.total_expenses, 0),
+          balance: rows.reduce((s, r) => s + r.balance, 0)
+        }
       }
     }
     
@@ -846,6 +1011,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       setPreviewColumns(columns)
     } catch (error) {
       console.error('Error generating preview:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      if (msg.includes('Please select a client')) alert(msg)
     } finally {
       setLoading(false)
     }
@@ -860,13 +1027,17 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       // Generate report data
       const { rows, columns, title, totals } = await generateReportData()
       
-      if (rows.length === 0) {
+      const allowEmptyClientReports = type === 'clients' && ['clientExpenses', 'analytics'].includes(clientReportType)
+      if (rows.length === 0 && !allowEmptyClientReports) {
         alert('No data found for the selected criteria.')
         setLoading(false)
         return
       }
-      
-      const filenameBase = `${type}_report_${new Date().toISOString().slice(0,10)}`
+
+      const clientReportSuffix = type === 'clients' && clientReportType !== 'list'
+        ? `_${clientReportType}_${new Date().toISOString().slice(0,10)}`
+        : ''
+      const filenameBase = `${type}_report${clientReportSuffix || '_' + new Date().toISOString().slice(0,10)}`
       const fileType = format === 'pdf' ? 'pdf' as const : 'csv' as const
       startDownload(filenameBase, fileType)
       
@@ -877,8 +1048,8 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         // Prepare report data
         const reportData: ReportData = {
           title,
-          subtitle: type === 'expenses' && selectedClientId ? 
-            clientOptions.find(c => c.id.toString() === selectedClientId)?.name : undefined,
+          subtitle: (type === 'expenses' && selectedClientId ? clientOptions.find(c => c.id.toString() === selectedClientId)?.name : undefined)
+            || (type === 'clients' && clientFilter && clientReportType !== 'list' ? clientOptions.find(c => c.id.toString() === clientFilter)?.name : undefined),
           period: `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`,
           generatedDate: new Date().toLocaleString(),
           columns,
@@ -1345,41 +1516,65 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
             {/* Client Report Options */}
             {type === 'clients' && (
-              <div className="row g-3 mb-4">
-                <div className="col-md-4">
-                  <label className="form-label fw-semibold" style={labelStyle}>Filter by Client</label>
-                  <select 
-                    className="form-select" 
-                    value={clientFilterType} 
-                    onChange={e => {
-                      setClientFilterType(e.target.value as any)
-                      if (e.target.value !== 'specific') {
-                        setClientFilter('')
-                        setClientSearchFilter('')
-                      }
-                    }}
-                    style={dropdownStyle}
-                  >
-                    <option value="all">All Clients</option>
-                    <option value="specific">Specific Client</option>
-                  </select>
-                </div>
-                
-                {clientFilterType === 'specific' && (
+              <>
+                <div className="row g-3 mb-4">
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
-                    <ClientSearchDropdown 
-                      searchTerm={clientSearchFilter}
-                      setSearchTerm={setClientSearchFilter}
-                      selectedId={clientFilter}
-                      setSelectedId={setClientFilter}
-                      showDropdown={showClientFilterDropdown}
-                      setShowDropdown={setShowClientFilterDropdown}
-                      filteredList={filteredClientFilterOptions}
-                    />
+                    <label className="form-label fw-semibold" style={labelStyle}>Report Type</label>
+                    <select 
+                      className="form-select" 
+                      value={clientReportType} 
+                      onChange={e => {
+                        setClientReportType(e.target.value as any)
+                        if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(e.target.value)) {
+                          setClientFilterType('specific')
+                        }
+                      }}
+                      style={dropdownStyle}
+                    >
+                      <option value="list">Client List (Summary)</option>
+                      <option value="profitLoss">Profit & Loss Statement</option>
+                      <option value="clientExpenses">Client Expenses</option>
+                      <option value="paymentStatus">Client Payment Status</option>
+                      <option value="analytics">Analytics (Profitability)</option>
+                    </select>
                   </div>
-                )}
-              </div>
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold" style={labelStyle}>Filter by Client</label>
+                    <select 
+                      className="form-select" 
+                      value={clientFilterType} 
+                      onChange={e => {
+                        setClientFilterType(e.target.value as any)
+                        if (e.target.value !== 'specific') {
+                          setClientFilter('')
+                          setClientSearchFilter('')
+                        }
+                      }}
+                      style={dropdownStyle}
+                      disabled={['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)}
+                    >
+                      <option value="all">All Clients</option>
+                      <option value="specific">Specific Client</option>
+                    </select>
+                  </div>
+                  
+                  {(clientFilterType === 'specific' || ['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)) && (
+                    <div className="col-md-4">
+                      <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
+                      <ClientSearchDropdown 
+                        searchTerm={clientSearchFilter}
+                        setSearchTerm={setClientSearchFilter}
+                        selectedId={clientFilter}
+                        setSelectedId={setClientFilter}
+                        showDropdown={showClientFilterDropdown}
+                        setShowDropdown={setShowClientFilterDropdown}
+                        filteredList={filteredClientFilterOptions}
+                        placeholder={['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType) ? "Select client (required)..." : "Search client..."}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Output Format */}
