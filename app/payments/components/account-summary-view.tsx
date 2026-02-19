@@ -76,6 +76,7 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   const syncInProgress = useRef(false)
   const lastSyncTime = useRef<number>(0)
   const transactionNumberCounter = useRef<number>(0)
+  const loadAccountDataDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Improved transaction number generation with better concurrency handling
   const generateUniqueTransactionNumber = async (): Promise<string> => {
@@ -244,74 +245,33 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
+  const debouncedLoadAccountData = () => {
+    if (loadAccountDataDebounceRef.current) clearTimeout(loadAccountDataDebounceRef.current)
+    loadAccountDataDebounceRef.current = setTimeout(() => {
+      loadAccountDataDebounceRef.current = null
+      loadAccountData()
+    }, 500)
+  }
+
   useEffect(() => {
     setupClientOptions()
     loadAccountData()
-    
-    // Set up real-time subscriptions for automatic updates
-    const setupRealtimeSubscriptions = async () => {
-      // Subscribe to payment changes
-      const paymentsSubscription = supabase
-        .channel('payments-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'payments' },
-          (payload) => {
-            console.log('Payment change detected:', payload)
-            // Reload account data when payments change
-            loadAccountData()
-          }
-        )
-        .subscribe()
 
-      // Subscribe to transaction changes
-      const transactionsSubscription = supabase
-        .channel('transactions-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'account_transactions' },
-          (payload) => {
-            console.log('Transaction change detected:', payload)
-            // Reload account data when transactions change
-            loadAccountData()
-          }
-        )
+    const setupRealtimeSubscriptions = () => {
+      const handler = () => debouncedLoadAccountData()
+      const ch = supabase
+        .channel('account-summary-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, handler)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'account_transactions' }, handler)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, handler)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases' }, handler)
         .subscribe()
-
-      // Subscribe to expense changes
-      const expensesSubscription = supabase
-        .channel('expenses-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'expenses' },
-          (payload) => {
-            console.log('Expense change detected:', payload)
-            // Reload account data when expenses change
-            loadAccountData()
-          }
-        )
-        .subscribe()
-
-      // Subscribe to purchase changes
-      const purchasesSubscription = supabase
-        .channel('purchases-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'purchases' },
-          (payload) => {
-            console.log('Purchase change detected:', payload)
-            // Reload account data when purchases change
-            loadAccountData()
-          }
-        )
-        .subscribe()
-
-      // Cleanup subscriptions on unmount
       return () => {
-        paymentsSubscription.unsubscribe()
-        transactionsSubscription.unsubscribe()
-        expensesSubscription.unsubscribe()
-        purchasesSubscription.unsubscribe()
+        if (loadAccountDataDebounceRef.current) clearTimeout(loadAccountDataDebounceRef.current)
+        supabase.removeChannel(ch)
       }
     }
-
-    setupRealtimeSubscriptions()
+    return setupRealtimeSubscriptions()
   }, [clients])
 
   const setupClientOptions = () => {
@@ -333,9 +293,8 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
         await syncAllTransactions()
       }
       
-      // Load account balances and transactions
-      await loadAccountBalances()
-      await loadTransactions()
+      // Single unified fetch for both balances and transactions
+      await loadAccountDataUnified()
     } catch (error) {
       console.error('Error loading account data:', error)
       toast.error('Failed to load account data')
@@ -344,72 +303,52 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
+  // OPTIMIZED: Bulk check - single query per type to get existing IDs, find missing in memory
+  const getMissingTransactionIds = async (): Promise<{
+    paymentIds: number[]
+    expenseIds: number[]
+    purchaseIds: number[]
+  }> => {
+    try {
+      const [paymentsRes, expensesRes, purchasesRes, paymentTxRes, expenseTxRes, purchaseTxRes] = await Promise.all([
+        supabase.from('payments').select('id'),
+        supabase.from('expenses').select('id'),
+        supabase.from('purchases').select('id'),
+        supabase.from('account_transactions').select('reference_id').eq('reference_type', 'payment'),
+        supabase.from('account_transactions').select('reference_id').eq('reference_type', 'expense'),
+        supabase.from('account_transactions').select('reference_id').eq('reference_type', 'purchase'),
+      ])
+
+      const paymentIds = new Set((paymentsRes.data || []).map((p: { id: number }) => p.id))
+      const expenseIds = new Set((expensesRes.data || []).map((e: { id: number }) => e.id))
+      const purchaseIds = new Set((purchasesRes.data || []).map((p: { id: number }) => p.id))
+      const existingPaymentTx = new Set((paymentTxRes.data || []).map((t: { reference_id: number }) => t.reference_id))
+      const existingExpenseTx = new Set((expenseTxRes.data || []).map((t: { reference_id: number }) => t.reference_id))
+      const existingPurchaseTx = new Set((purchaseTxRes.data || []).map((t: { reference_id: number }) => t.reference_id))
+
+      const missingPaymentIds = [...paymentIds].filter(id => !existingPaymentTx.has(id))
+      const missingExpenseIds = [...expenseIds].filter(id => !existingExpenseTx.has(id))
+      const missingPurchaseIds = [...purchaseIds].filter(id => !existingPurchaseTx.has(id))
+
+      return { paymentIds: missingPaymentIds, expenseIds: missingExpenseIds, purchaseIds: missingPurchaseIds }
+    } catch (error) {
+      console.error('Error getting missing transaction IDs:', error)
+      return { paymentIds: [], expenseIds: [], purchaseIds: [] }
+    }
+  }
+
   const checkIfSyncNeeded = async (): Promise<boolean> => {
     try {
-      // Prevent multiple simultaneous syncs
-      if (syncInProgress.current) {
-        console.log('Sync already in progress, skipping...')
-        return false
-      }
-
-      // Check if we've synced recently (within last 2 minutes for more frequent updates)
+      if (syncInProgress.current) return false
       const now = Date.now()
-      if (now - lastSyncTime.current < 2 * 60 * 1000) {
-        console.log('Sync performed recently, skipping...')
-        return false
+      if (now - lastSyncTime.current < 2 * 60 * 1000) return false
+
+      const { paymentIds, expenseIds, purchaseIds } = await getMissingTransactionIds()
+      const hasMissing = paymentIds.length > 0 || expenseIds.length > 0 || purchaseIds.length > 0
+      if (hasMissing) {
+        console.log('Sync needed - missing:', { payments: paymentIds.length, expenses: expenseIds.length, purchases: purchaseIds.length })
       }
-
-      // Check if there are any transactions that need syncing
-      const { count: paymentCount } = await supabase
-        .from('payments')
-        .select('id', { count: 'exact', head: true })
-
-      const { count: expenseCount } = await supabase
-        .from('expenses')
-        .select('id', { count: 'exact', head: true })
-
-      const { count: purchaseCount } = await supabase
-        .from('purchases')
-        .select('id', { count: 'exact', head: true })
-
-      // Count transactions by reference_type
-      const { count: paymentTransactionCount } = await supabase
-        .from('account_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('reference_type', 'payment')
-
-      const { count: expenseTransactionCount } = await supabase
-        .from('account_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('reference_type', 'expense')
-
-      const { count: purchaseTransactionCount } = await supabase
-        .from('account_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('reference_type', 'purchase')
-
-      const totalRecords = (paymentCount || 0) + (expenseCount || 0) + (purchaseCount || 0)
-      const totalTransactions = (paymentTransactionCount || 0) + (expenseTransactionCount || 0) + (purchaseTransactionCount || 0)
-
-      console.log('Sync check:', {
-        payments: paymentCount,
-        paymentTransactions: paymentTransactionCount,
-        expenses: expenseCount,
-        expenseTransactions: expenseTransactionCount,
-        purchases: purchaseCount,
-        purchaseTransactions: purchaseTransactionCount,
-        totalRecords,
-        totalTransactions
-      })
-
-      // Check if sync is needed by comparing source records with transactions
-      const needsPaymentSync = (paymentCount || 0) > (paymentTransactionCount || 0)
-      const needsExpenseSync = (expenseCount || 0) > (expenseTransactionCount || 0)
-      const needsPurchaseSync = (purchaseCount || 0) > (purchaseTransactionCount || 0)
-      
-      const needsSync = needsPaymentSync || needsExpenseSync || needsPurchaseSync
-      
-      return needsSync
+      return hasMissing
     } catch (error) {
       console.error('Error checking if sync needed:', error)
       return false
@@ -429,783 +368,227 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
     }
   }
 
-  const syncAllTransactions = async () => {
-    // Prevent multiple simultaneous syncs
-    if (syncInProgress.current) {
-      console.log('Sync already in progress, skipping...')
-      return
+  const mapPaymentToAccountType = (payment: any): string => {
+    const creditedField = payment.account_credited || payment.account_paid_to
+    if (creditedField) {
+      const credited = String(creditedField)
+      if (credited === 'Cash') return 'cash'
+      if (credited === 'Cooperative Bank') return 'cooperative_bank'
+      if (credited === 'Credit') return 'credit'
+      if (credited === 'Cheque') return 'cheque'
+      if (credited === 'M-Pesa' || credited === 'mpesa') return 'mpesa'
+      if (credited === 'Petty Cash' || credited === 'petty_cash') return 'petty_cash'
     }
+    if (payment.payment_method) {
+      const method = String(payment.payment_method).toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+      if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) return method
+    }
+    return 'cash'
+  }
 
+  const mapExpenseToAccountType = (expense: any): string => {
+    const debitedField = expense.account_debited || expense.account_paid_from
+    if (debitedField) {
+      const debited = String(debitedField)
+      if (debited === 'Cash') return 'cash'
+      if (debited === 'Cooperative Bank') return 'cooperative_bank'
+      if (debited === 'Credit') return 'credit'
+      if (debited === 'Cheque') return 'cheque'
+      if (debited === 'M-Pesa' || debited === 'mpesa') return 'mpesa'
+      if (debited === 'Petty Cash' || debited === 'petty_cash') return 'petty_cash'
+    }
+    return 'cash'
+  }
+
+  const mapPurchaseToAccountType = (purchase: any): string => {
+    if (purchase.payment_method) {
+      const method = String(purchase.payment_method).toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
+      if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) return method
+    }
+    return 'cash'
+  }
+
+  const formatExpenseDescription = (items: any[], expenseNumber: string): string => {
+    if (!items || items.length === 0) return expenseNumber
+    if (items.length === 1) {
+      const item = items[0]
+      return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
+    }
+    return `${items.length} items: ${items.map((i: any) => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
+  }
+
+  const formatPurchaseDescription = (items: any[], orderNumber: string): string => {
+    if (!items || items.length === 0) return orderNumber
+    const desc = (item: any) => {
+      const si = item.stock_items
+      const d = (si?.description && si.description.trim() !== '') ? si.description : (si?.name && si.name.trim() !== '') ? si.name : 'N/A'
+      return `${d} (${item.quantity} ${si?.unit || 'N/A'})`
+    }
+    if (items.length === 1) return desc(items[0])
+    return `${items.length} items: ${items.map(desc).join(", ")}`
+  }
+
+  const syncAllTransactions = async () => {
+    if (syncInProgress.current) return
     try {
       syncInProgress.current = true
       setIsSyncing(true)
-      console.log('Starting transaction sync...')
-      
-      // Validate database schema first
+      console.log('Starting optimized transaction sync...')
+
       const schemaValid = await validateDatabaseSchema()
-      if (!schemaValid) {
-        console.error('Database schema validation failed. Aborting sync.')
+      if (!schemaValid) return
+
+      const { paymentIds: missingPaymentIds, expenseIds: missingExpenseIds, purchaseIds: missingPurchaseIds } = await getMissingTransactionIds()
+      const totalMissing = missingPaymentIds.length + missingExpenseIds.length + missingPurchaseIds.length
+      if (totalMissing === 0) {
+        console.log('No missing transactions to sync')
+        lastSyncTime.current = Date.now()
+        await loadAccountDataUnified()
         return
       }
-      
-      // First, clean up any existing duplicates
+
       await cleanupDuplicateTransactions()
 
-      // Sync payments
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select('*')
-        .order('date_created')
+      const BATCH_SIZE = 50
 
-      if (paymentsError) {
-        console.error('Error fetching payments:', paymentsError)
-        return
-      }
-
-      console.log(`Found ${payments?.length || 0} payments to sync`)
-
-      for (const payment of payments || []) {
-        try {
-          // Check if transaction already exists with better error handling
-          const exists = await checkTransactionExists('payment', payment.id)
-          
-          if (exists) {
-            // Update existing transaction if payment data has changed
-            const { data: existingTransaction } = await supabase
-              .from('account_transactions')
-              .select('*')
-              .eq('reference_type', 'payment')
-              .eq('reference_id', payment.id)
-              .single()
-
-            if (existingTransaction) {
-              // Map payment_method to account_type - use account_credited/account_paid_to if available, otherwise payment_method
-              let accountType = 'cash' // default
-              const creditedField = payment.account_credited || payment.account_paid_to
-              if (creditedField) {
-                const credited = creditedField
-                if (credited === 'Cash') {
-                  accountType = 'cash'
-                } else if (credited === 'Cooperative Bank') {
-                  accountType = 'cooperative_bank'
-                } else if (credited === 'Credit') {
-                  accountType = 'credit'
-                } else if (credited === 'Cheque') {
-                  accountType = 'cheque'
-                } else if (credited === 'M-Pesa' || credited === 'mpesa') {
-                  accountType = 'mpesa'
-                } else if (credited === 'Petty Cash' || credited === 'petty_cash') {
-                  accountType = 'petty_cash'
-                }
-              } else if (payment.payment_method) {
-                const method = payment.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
-                if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
-                  accountType = method
-                }
-              }
-
-              // Check if account type has changed
-              const accountTypeChanged = existingTransaction.account_type !== accountType
-              
-              // Check if payment data has changed
-              const paymentChanged = 
-                existingTransaction.amount !== payment.amount ||
-                existingTransaction.description !== (payment.description || payment.payment_number) ||
-                existingTransaction.transaction_date !== (payment.payment_date || payment.date_paid || payment.date_created)
-
-              if (accountTypeChanged || paymentChanged) {
-                console.log(`Updating existing transaction for payment ${payment.id} due to data changes`)
-                
-                // If account type changed, delete and recreate the transaction
-                if (accountTypeChanged) {
-                  console.log(`Account type changed from ${existingTransaction.account_type} to ${accountType}, recreating transaction`)
-                  
-                  // Delete the existing transaction
-                  const { error: deleteError } = await supabase
-                    .from('account_transactions')
-                    .delete()
-                    .eq('reference_type', 'payment')
-                    .eq('reference_id', payment.id)
-
-                  if (deleteError) {
-                    console.error(`Error deleting transaction for payment ${payment.id}:`, deleteError)
-                    continue
-                  }
-
-                  // Create new transaction with correct account type
-                  const success = await createTransactionWithRetry({
-                    account_type: accountType,
-                    transaction_type: 'in',
-                    amount: payment.amount,
-                    description: payment.description || payment.payment_number,
-                    reference_type: 'payment',
-                    reference_id: payment.id,
-                    transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
-                    balance_after: 0 // Will be calculated by trigger
-                  })
-
-                  if (success) {
-                    console.log(`Successfully recreated transaction for payment ${payment.id} with account type ${accountType}`)
-                  } else {
-                    console.error('Failed to recreate payment transaction after retries:', {
-                      payment_id: payment.id,
-                      payment_number: payment.payment_number,
-                      account_type: accountType
-                    })
-                  }
-                } else {
-                  // Only update other fields, not account type
-                  const { error: updateError } = await supabase
-                    .from('account_transactions')
-                    .update({
-                      amount: payment.amount,
-                      description: payment.description || payment.payment_number,
-                      transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
-                      updated_at: getCurrentNairobiTime().toISOString()
-                    })
-                    .eq('reference_type', 'payment')
-                    .eq('reference_id', payment.id)
-
-                  if (updateError) {
-                    console.error(`Error updating transaction for payment ${payment.id}:`, updateError)
-                  } else {
-                    console.log(`Successfully updated transaction for payment ${payment.id}`)
-                  }
-                }
-              } else {
-                console.log(`Payment transaction already exists and unchanged for payment ${payment.id}`)
-              }
-              continue
-            }
-          }
-
-          // Map payment_method to account_type - use account_credited/account_paid_to if available, otherwise payment_method
-          let accountType = 'cash' // default
-          const creditedField = payment.account_credited || payment.account_paid_to
-          if (creditedField) {
-            const credited = creditedField
-            if (credited === 'Cash') {
-              accountType = 'cash'
-            } else if (credited === 'Cooperative Bank') {
-              accountType = 'cooperative_bank'
-            } else if (credited === 'Credit') {
-              accountType = 'credit'
-            } else if (credited === 'Cheque') {
-              accountType = 'cheque'
-            } else if (credited === 'M-Pesa' || credited === 'mpesa') {
-              accountType = 'mpesa'
-            } else if (credited === 'Petty Cash' || credited === 'petty_cash') {
-              accountType = 'petty_cash'
-            }
-          } else if (payment.payment_method) {
-            const method = payment.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
-            if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
-              accountType = method
-            }
-          }
-          
-          console.log('Creating payment transaction:', {
-            accountType,
-            amount: payment.amount,
-            payment_method: payment.payment_method,
-            account_credited: payment.account_credited || payment.account_paid_to,
-            payment_date: payment.payment_date || payment.date_paid || payment.date_created,
-            description: payment.description
-          })
-          
-          const success = await createTransactionWithRetry({
+      // Create transactions for missing payments
+      if (missingPaymentIds.length > 0) {
+        const { data: payments } = await supabase.from('payments').select('*').in('id', missingPaymentIds)
+        const toInsert: any[] = []
+        for (const payment of payments || []) {
+          const accountType = mapPaymentToAccountType(payment)
+          const txDate = payment.payment_date || payment.date_paid || payment.date_created
+          toInsert.push({
             account_type: accountType,
             transaction_type: 'in',
             amount: payment.amount,
             description: payment.description || payment.payment_number,
             reference_type: 'payment',
             reference_id: payment.id,
-            transaction_date: payment.payment_date || payment.date_paid || payment.date_created,
-            balance_after: 0 // Will be calculated by trigger
+            transaction_date: txDate,
+            transaction_number: `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`,
+            balance_after: 0,
           })
-
-          if (success) {
-            console.log(`Successfully created payment transaction for payment ${payment.id}`)
-          } else {
-            console.error('Failed to create payment transaction after retries:', {
-              payment_id: payment.id,
-              payment_number: payment.payment_number,
-              account_type: accountType
-            })
-          }
-        } catch (error) {
-          console.error(`Error processing payment ${payment.id}:`, error)
         }
+        for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+          const batch = toInsert.slice(i, i + BATCH_SIZE)
+          for (let j = 0; j < batch.length; j++) {
+            batch[j] = { ...batch[j], transaction_number: await generateUniqueTransactionNumber() }
+          }
+          const { error } = await supabase.from('account_transactions').insert(batch)
+          if (error) {
+            console.error('Batch insert payments failed, falling back to single inserts:', error)
+            for (const t of batch) {
+              await createTransactionWithRetry({
+                account_type: t.account_type,
+                transaction_type: t.transaction_type,
+                amount: t.amount,
+                description: t.description,
+                reference_type: 'payment',
+                reference_id: t.reference_id,
+                transaction_date: t.transaction_date,
+                balance_after: 0,
+              })
+            }
+          }
+        }
+        console.log(`Created ${toInsert.length} payment transactions`)
       }
 
-      // Sync expenses
-      const { data: expenses, error: expensesError } = await supabase
-        .from('expenses')
-        .select('*')
-        .order('date_created')
-
-      if (expensesError) {
-        console.error('Error fetching expenses:', expensesError)
-        return
-      }
-
-      console.log(`Found ${expenses?.length || 0} expenses to sync`)
-
-      for (const expense of expenses || []) {
-        try {
-          // Check if transaction already exists with better error handling
-          const exists = await checkTransactionExists('expense', expense.id)
-          
-          if (exists) {
-            // Update existing transaction if expense data has changed
-            const { data: existingTransaction } = await supabase
-              .from('account_transactions')
-              .select('*')
-              .eq('reference_type', 'expense')
-              .eq('reference_id', expense.id)
-              .single()
-
-            if (existingTransaction) {
-              // Map account_debited/account_paid_from to proper account_type
-              let accountType = 'cash' // default
-              const debitedField = expense.account_debited || expense.account_paid_from
-              if (debitedField) {
-                const debited = debitedField
-                if (debited === 'Cash') {
-                  accountType = 'cash'
-                } else if (debited === 'Cooperative Bank') {
-                  accountType = 'cooperative_bank'
-                } else if (debited === 'Credit') {
-                  accountType = 'credit'
-                } else if (debited === 'Cheque') {
-                  accountType = 'cheque'
-                } else if (debited === 'M-Pesa' || debited === 'mpesa') {
-                  accountType = 'mpesa'
-                } else if (debited === 'Petty Cash' || debited === 'petty_cash') {
-                  accountType = 'petty_cash'
-                }
-              }
-
-              // Check if account type has changed
-              const accountTypeChanged = existingTransaction.account_type !== accountType
-              
-              // Get the real description from expense_items using the same structure as frontend views
-              const { data: expenseItems } = await supabase
-                .from('expense_items')
-                .select('description, quantity, rate')
-                .eq('expense_id', expense.id)
-                .order('created_at', { ascending: false })
-
-              // Use the exact same formatExpenseItems logic as the frontend views
-              const formatExpenseItems = (items: any[]) => {
-                if (items.length === 0) return expense.expense_number
-                if (items.length === 1) {
-                  const item = items[0]
-                  return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
-                }
-                return `${items.length} items: ${items.map(i => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
-              }
-
-              const realDescription = formatExpenseItems(expenseItems || [])
-              
-              // Check if expense data has changed
-              const expenseChanged = 
-                existingTransaction.amount !== expense.amount ||
-                existingTransaction.description !== realDescription ||
-                existingTransaction.transaction_date !== new Date(expense.date_created).toISOString().split('T')[0]
-
-              if (accountTypeChanged || expenseChanged) {
-                console.log(`Updating existing transaction for expense ${expense.id} due to data changes`)
-                
-                // If account type changed, delete and recreate the transaction
-                if (accountTypeChanged) {
-                  console.log(`Account type changed from ${existingTransaction.account_type} to ${accountType}, recreating transaction`)
-                  
-                  // Delete the existing transaction
-                  const { error: deleteError } = await supabase
-                    .from('account_transactions')
-                    .delete()
-                    .eq('reference_type', 'expense')
-                    .eq('reference_id', expense.id)
-
-                  if (deleteError) {
-                    console.error(`Error deleting transaction for expense ${expense.id}:`, deleteError)
-                    continue
-                  }
-
-                  // Create new transaction with correct account type
-                  const success = await createTransactionWithRetry({
-                    account_type: accountType,
-                    transaction_type: 'out',
-                    amount: expense.amount,
-                    description: realDescription,
-                    reference_type: 'expense',
-                    reference_id: expense.id,
-                    transaction_date: new Date(expense.date_created).toISOString().split('T')[0],
-                    balance_after: 0 // Will be calculated by trigger
-                  })
-
-                  if (success) {
-                    console.log(`Successfully recreated transaction for expense ${expense.id} with account type ${accountType}`)
-                  } else {
-                    console.error('Failed to recreate expense transaction after retries:', {
-                      expense_id: expense.id,
-                      expense_number: expense.expense_number,
-                      account_type: accountType,
-                      account_debited: expense.account_debited || expense.account_paid_from
-                    })
-                  }
-                } else {
-                  // Only update other fields, not account type
-                  const { error: updateError } = await supabase
-                    .from('account_transactions')
-                    .update({
-                      amount: expense.amount,
-                      description: realDescription,
-                      transaction_date: new Date(expense.date_created).toISOString().split('T')[0],
-                      updated_at: getCurrentNairobiTime().toISOString()
-                    })
-                    .eq('reference_type', 'expense')
-                    .eq('reference_id', expense.id)
-
-                  if (updateError) {
-                    console.error(`Error updating transaction for expense ${expense.id}:`, updateError)
-                  } else {
-                    console.log(`Successfully updated transaction for expense ${expense.id}`)
-                  }
-                }
-              } else {
-                console.log(`Expense transaction already exists and unchanged for expense ${expense.id}`)
-              }
-              continue
-            }
-          }
-
-          // Map account_debited to proper account_type
-          let accountType = 'cash' // default
-          const debitedField = expense.account_debited || expense.account_paid_from
-          if (debitedField) {
-            const debited = debitedField
-            if (debited === 'Cash') {
-              accountType = 'cash'
-            } else if (debited === 'Cooperative Bank') {
-              accountType = 'cooperative_bank'
-            } else if (debited === 'Credit') {
-              accountType = 'credit'
-            } else if (debited === 'Cheque') {
-              accountType = 'cheque'
-            } else if (debited === 'M-Pesa' || debited === 'mpesa') {
-              accountType = 'mpesa'
-            } else if (debited === 'Petty Cash' || debited === 'petty_cash') {
-              accountType = 'petty_cash'
-            }
-          }
-          
-          console.log('Creating expense transaction:', {
-            accountType,
-            amount: expense.amount,
-            account_debited: expense.account_debited || expense.account_paid_from,
-            date_created: expense.date_created
-          })
-          
-          // Get the real description from expense_items using the same structure as frontend views
-          const { data: expenseItems } = await supabase
-            .from('expense_items')
-            .select('description, quantity, rate')
-            .eq('expense_id', expense.id)
-            .order('created_at', { ascending: false })
-
-          // Use the exact same formatExpenseItems logic as the frontend views
-          const formatExpenseItems = (items: any[]) => {
-            if (items.length === 0) return expense.expense_number
-            if (items.length === 1) {
-              const item = items[0]
-              return item.quantity === 1 ? `${item.description} @ ${item.rate}` : `${item.quantity} ${item.description} @ ${item.rate}`
-            }
-            return `${items.length} items: ${items.map(i => i.quantity === 1 ? `${i.description} @ ${i.rate}` : `${i.quantity} ${i.description} @ ${i.rate}`).join(", ")}`
-          }
-
-          const realDescription = formatExpenseItems(expenseItems || [])
-
+      // Create transactions for missing expenses
+      if (missingExpenseIds.length > 0) {
+        const { data: expenses } = await supabase.from('expenses').select('*').in('id', missingExpenseIds)
+        for (const expense of expenses || []) {
+          const { data: items } = await supabase.from('expense_items').select('description, quantity, rate').eq('expense_id', expense.id)
+          const desc = formatExpenseDescription(items || [], expense.expense_number)
+          const accountType = mapExpenseToAccountType(expense)
           const success = await createTransactionWithRetry({
             account_type: accountType,
             transaction_type: 'out',
             amount: expense.amount,
-            description: realDescription,
+            description: desc,
             reference_type: 'expense',
             reference_id: expense.id,
-            transaction_date: new Date(expense.date_created).toISOString().split('T')[0],
-            balance_after: 0 // Will be calculated by trigger
+            transaction_date: expense.date_created,
+            balance_after: 0,
           })
-
-          if (success) {
-            console.log(`Successfully created expense transaction for expense ${expense.id}`)
-          } else {
-            console.error('Failed to create expense transaction after retries:', {
-              expense_id: expense.id,
-              expense_number: expense.expense_number,
-              account_type: accountType,
-              account_debited: expense.account_debited || expense.account_paid_from
-            })
-          }
-        } catch (error) {
-          console.error(`Error processing expense ${expense.id}:`, error)
+          if (!success) console.error('Failed to create expense transaction:', expense.id)
         }
+        console.log(`Created expenses for ${expenses?.length || 0} records`)
       }
 
-      // Sync purchases
-      const { data: purchases, error: purchasesError } = await supabase
-        .from('purchases')
-        .select('*')
-        .order('purchase_date')
-
-      if (purchasesError) {
-        console.error('Error fetching purchases:', purchasesError)
-        return
-      }
-
-      console.log(`Found ${purchases?.length || 0} purchases to sync`)
-
-      for (const purchase of purchases || []) {
-        try {
-          // Check if transaction already exists with better error handling
-          const exists = await checkTransactionExists('purchase', purchase.id)
-          
-          if (exists) {
-            // Update existing transaction if purchase data has changed
-            const { data: existingTransaction } = await supabase
-              .from('account_transactions')
-              .select('*')
-              .eq('reference_type', 'purchase')
-              .eq('reference_id', purchase.id)
-              .single()
-
-            if (existingTransaction) {
-              // Map payment_method to account_type
-              let accountType = 'cash' // default
-              if (purchase.payment_method) {
-                const method = purchase.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
-                if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
-                  accountType = method
-                }
-              }
-
-              // Check if account type has changed
-              const accountTypeChanged = existingTransaction.account_type !== accountType
-              
-              // Get the real description from purchase_items and stock_items using the same structure as frontend views
-              const { data: purchaseItems } = await supabase
-                .from('purchase_items')
-                .select(`
-                  stock_item_id,
-                  quantity,
-                  stock_items (
-                    name,
-                    description,
-                    unit
-                  )
-                `)
-                .eq('purchase_id', purchase.id)
-                .order('id', { ascending: false })
-
-              // Use the exact same logic as the frontend views
-              const formatPurchaseItems = (items: any[]) => {
-                if (items.length === 0) return purchase.purchase_order_number
-                if (items.length === 1) {
-                  const item = items[0]
-                  const description = (
-                    item.stock_items?.description && item.stock_items.description.trim() !== ''
-                      ? item.stock_items.description
-                      : (item.stock_items?.name && item.stock_items.name.trim() !== ''
-                          ? item.stock_items.name
-                          : 'N/A')
-                  )
-                  return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
-                }
-                return `${items.length} items: ${items.map(item => {
-                  const description = (
-                    item.stock_items?.description && item.stock_items.description.trim() !== ''
-                      ? item.stock_items.description
-                      : (item.stock_items?.name && item.stock_items.name.trim() !== ''
-                          ? item.stock_items.name
-                          : 'N/A')
-                  )
-                  return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
-                }).join(", ")}`
-              }
-
-              const realDescription = formatPurchaseItems(purchaseItems || [])
-              
-              // Check if purchase data has changed
-              const purchaseChanged = 
-                existingTransaction.amount !== purchase.total_amount ||
-                existingTransaction.description !== realDescription ||
-                existingTransaction.transaction_date !== purchase.purchase_date
-
-              if (accountTypeChanged || purchaseChanged) {
-                console.log(`Updating existing transaction for purchase ${purchase.id} due to data changes`)
-                
-                // If account type changed, delete and recreate the transaction
-                if (accountTypeChanged) {
-                  console.log(`Account type changed from ${existingTransaction.account_type} to ${accountType}, recreating transaction`)
-                  
-                  // Delete the existing transaction
-                  const { error: deleteError } = await supabase
-                    .from('account_transactions')
-                    .delete()
-                    .eq('reference_type', 'purchase')
-                    .eq('reference_id', purchase.id)
-
-                  if (deleteError) {
-                    console.error(`Error deleting transaction for purchase ${purchase.id}:`, deleteError)
-                    continue
-                  }
-
-                  // Create new transaction with correct account type
-                  const success = await createTransactionWithRetry({
-                    account_type: accountType,
-                    transaction_type: 'out',
-                    amount: purchase.total_amount,
-                    description: realDescription,
-                    reference_type: 'purchase',
-                    reference_id: purchase.id,
-                    transaction_date: purchase.purchase_date,
-                    balance_after: 0 // Will be calculated by trigger
-                  })
-
-                  if (success) {
-                    console.log(`Successfully recreated transaction for purchase ${purchase.id} with account type ${accountType}`)
-                  } else {
-                    console.error('Failed to recreate purchase transaction after retries:', {
-                      purchase_id: purchase.id,
-                      purchase_number: purchase.purchase_order_number,
-                      account_type: accountType
-                    })
-                  }
-                } else {
-                  // Only update other fields, not account type
-                  const { error: updateError } = await supabase
-                    .from('account_transactions')
-                    .update({
-                      amount: purchase.total_amount,
-                      description: realDescription,
-                      transaction_date: purchase.purchase_date,
-                      updated_at: getCurrentNairobiTime().toISOString()
-                    })
-                    .eq('reference_type', 'purchase')
-                    .eq('reference_id', purchase.id)
-
-                  if (updateError) {
-                    console.error(`Error updating transaction for purchase ${purchase.id}:`, updateError)
-                  } else {
-                    console.log(`Successfully updated transaction for purchase ${purchase.id}`)
-                  }
-                }
-              } else {
-                console.log(`Purchase transaction already exists and unchanged for purchase ${purchase.id}`)
-              }
-              continue
-            }
-          }
-
-          // Map payment_method to account_type
-          let accountType = 'cash' // default
-          if (purchase.payment_method) {
-            const method = purchase.payment_method.toLowerCase().replace(/\s+/g, '_').replace('m-pesa', 'mpesa')
-            if (['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash'].includes(method)) {
-              accountType = method
-            }
-          }
-          
-          // Get the real description from purchase_items and stock_items using the same structure as frontend views
-          const { data: purchaseItems } = await supabase
-            .from('purchase_items')
-            .select(`
-              stock_item_id,
-              quantity,
-              stock_items (
-                name,
-                description,
-                unit
-              )
-            `)
-            .eq('purchase_id', purchase.id)
-            .order('id', { ascending: false })
-
-          // Use the exact same logic as the frontend views
-          const formatPurchaseItems = (items: any[]) => {
-            if (items.length === 0) return purchase.purchase_order_number
-            if (items.length === 1) {
-              const item = items[0]
-              const description = (
-                item.stock_items?.description && item.stock_items.description.trim() !== ''
-                  ? item.stock_items.description
-                  : (item.stock_items?.name && item.stock_items.name.trim() !== ''
-                      ? item.stock_items.name
-                      : 'N/A')
-              )
-              return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
-            }
-            return `${items.length} items: ${items.map(item => {
-              const description = (
-                item.stock_items?.description && item.stock_items.description.trim() !== ''
-                  ? item.stock_items.description
-                  : (item.stock_items?.name && item.stock_items.name.trim() !== ''
-                      ? item.stock_items.name
-                      : 'N/A')
-              )
-              return `${description} (${item.quantity} ${item.stock_items?.unit || 'N/A'})`
-            }).join(", ")}`
-          }
-
-          const realDescription = formatPurchaseItems(purchaseItems || [])
-
-          console.log('Creating purchase transaction:', {
-            accountType,
-            amount: purchase.total_amount,
-            payment_method: purchase.payment_method,
-            purchase_date: purchase.purchase_date,
-            description: realDescription
-          })
-          
+      // Create transactions for missing purchases
+      if (missingPurchaseIds.length > 0) {
+        const { data: purchases } = await supabase.from('purchases').select('*').in('id', missingPurchaseIds)
+        for (const purchase of purchases || []) {
+          const { data: items } = await supabase.from('purchase_items').select(`
+            stock_item_id, quantity, stock_items(name, description, unit)
+          `).eq('purchase_id', purchase.id).order('id', { ascending: false })
+          const desc = formatPurchaseDescription(items || [], purchase.purchase_order_number)
+          const accountType = mapPurchaseToAccountType(purchase)
           const success = await createTransactionWithRetry({
             account_type: accountType,
             transaction_type: 'out',
             amount: purchase.total_amount,
-            description: realDescription,
+            description: desc,
             reference_type: 'purchase',
             reference_id: purchase.id,
             transaction_date: purchase.purchase_date,
-            balance_after: 0 // Will be calculated by trigger
+            balance_after: 0,
           })
-
-          if (success) {
-            console.log(`Successfully created purchase transaction for purchase ${purchase.id}`)
-          } else {
-            console.error('Failed to create purchase transaction after retries:', {
-              purchase_id: purchase.id,
-              purchase_number: purchase.purchase_order_number,
-              account_type: accountType
-            })
-          }
-        } catch (error) {
-          console.error(`Error processing purchase ${purchase.id}:`, error)
+          if (!success) console.error('Failed to create purchase transaction:', purchase.id)
         }
+        console.log(`Created purchases for ${purchases?.length || 0} records`)
       }
 
-      // Ensure account_balances table is in sync with transactions
-      await loadAccountBalances()
-
-      // Force refresh the UI
-      await loadTransactions()
-      
-      // Force a re-render by updating state
-      setAccountBalances(prev => [...prev])
-
-      console.log('Transaction sync completed')
       lastSyncTime.current = Date.now()
+      await loadAccountDataUnified()
+      console.log('Transaction sync completed')
     } catch (error) {
       console.error('Error during transaction sync:', error)
+      toast.error('Sync failed')
     } finally {
       syncInProgress.current = false
       setIsSyncing(false)
     }
   }
 
-  const loadAccountBalances = async () => {
-    try {
-      // Get all transactions and calculate balances from the view
-      const { data: transactions, error } = await supabase
-        .from('account_transactions_view')
-        .select('account_type, money_in, money_out')
-
-      if (error) {
-        console.error('Error loading transactions for balance calculation:', error)
-        const msg = error.message?.toLowerCase() || ''
-        if (msg.includes('does not exist') || msg.includes('relation')) {
-          toast.error('Account summary tables not found. Run scripts/create-account-tables.sql in Supabase.')
-        } else {
-          toast.error('Failed to load account balances')
-        }
-        return
-      }
-
-      // Calculate balances for each account type
-      const balanceMap = new Map<string, { total_in: number; total_out: number; current_balance: number }>()
-
-      // Initialize all account types with zero balances
-      const allAccountTypes = ['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash']
-      allAccountTypes.forEach(accountType => {
-        balanceMap.set(accountType, { total_in: 0, total_out: 0, current_balance: 0 })
-      })
-
-      // Calculate from actual transactions using money_in and money_out
-      for (const transaction of transactions || []) {
-        const accountType = transaction.account_type || 'cash'
-        const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
-
-        current.total_in += transaction.money_in || 0
-        current.total_out += transaction.money_out || 0
-        current.current_balance += (transaction.money_in || 0) - (transaction.money_out || 0)
-
-        balanceMap.set(accountType, current)
-      }
-
-      // Update account_balances table with calculated values
-      for (const [accountType, balance] of balanceMap.entries()) {
-        const { error: updateError } = await supabase
-          .from('account_balances')
-          .update({
-            current_balance: balance.current_balance,
-            last_transaction_date: getCurrentNairobiTime().toISOString(),
-            updated_at: getCurrentNairobiTime().toISOString()
-          })
-          .eq('account_type', accountType)
-
-        if (updateError) {
-          console.error(`Error updating balance for ${accountType}:`, updateError)
-        } else {
-          console.log(`Updated ${accountType} balance to: ${balance.current_balance}`)
-        }
-      }
-
-      // Set the account balances for display
-      const accountBalancesArray = Array.from(balanceMap.entries()).map(([account_type, balance]) => ({
-        account_type: account_type,
-        current_balance: balance.current_balance,
-        total_in: balance.total_in,
-        total_out: balance.total_out
-      }))
-
-      setAccountBalances(accountBalancesArray)
-      console.log('Account balances updated:', accountBalancesArray)
-    } catch (error) {
-      console.error('Error loading account balances:', error)
-      toast.error('Failed to load account balances. Check console for details.')
-    }
-  }
-
-  const loadTransactions = async () => {
+  const loadAccountDataUnified = async () => {
     try {
       const { data: transactionsData, error } = await supabase
         .from('account_transactions_view')
         .select('*')
-
       if (error) {
-        console.error('Error loading transactions:', error)
         const msg = error.message?.toLowerCase() || ''
         if (msg.includes('does not exist') || msg.includes('relation')) {
-          toast.error('Account transactions view not found. Run scripts/create-account-tables.sql in Supabase.')
+          toast.error('Account summary tables not found. Run scripts/create-account-tables.sql in Supabase.')
         } else {
-          toast.error('Failed to load transactions')
+          toast.error('Failed to load account data')
         }
         return
       }
-
-      setTransactions(transactionsData || [])
+      const txList = transactionsData || []
+      setTransactions(txList)
+      const balanceMap = new Map<string, { total_in: number; total_out: number; current_balance: number }>()
+      const allAccountTypes = ['cash', 'cooperative_bank', 'credit', 'cheque', 'mpesa', 'petty_cash']
+      allAccountTypes.forEach(t => balanceMap.set(t, { total_in: 0, total_out: 0, current_balance: 0 }))
+      for (const t of txList) {
+        const accountType = t.account_type || 'cash'
+        const current = balanceMap.get(accountType) || { total_in: 0, total_out: 0, current_balance: 0 }
+        current.total_in += t.money_in || 0
+        current.total_out += t.money_out || 0
+        current.current_balance += (t.money_in || 0) - (t.money_out || 0)
+        balanceMap.set(accountType, current)
+      }
+      setAccountBalances(Array.from(balanceMap.entries()).map(([account_type, b]) => ({
+        account_type,
+        current_balance: b.current_balance,
+        total_in: b.total_in,
+        total_out: b.total_out
+      })))
     } catch (error) {
-      console.error('Error loading transactions:', error)
-      toast.error('Failed to load transactions. Check console for details.')
+      console.error('Error loading account data:', error)
+      toast.error('Failed to load account data')
     }
   }
 
