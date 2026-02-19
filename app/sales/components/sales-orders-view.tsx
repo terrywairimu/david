@@ -162,15 +162,22 @@ const SalesOrdersView = () => {
   const getFilteredSalesOrders = () => {
     let filtered = [...salesOrders]
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((order) => {
+        const dateStr = order.date_created ? new Date(order.date_created).toLocaleDateString().toLowerCase() : ""
+        const amountStr = order.grand_total != null ? String(order.grand_total).toLowerCase() : ""
+        return (
+          order.order_number.toLowerCase().includes(term) ||
+          order.client?.name.toLowerCase().includes(term) ||
+          (order.original_quotation_number?.toLowerCase().includes(term)) ||
+          (order.notes?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term) ||
+          (order.status?.toLowerCase().includes(term))
+        )
+      })
     }
 
     // Client filter

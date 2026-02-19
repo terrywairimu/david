@@ -51,14 +51,22 @@ const ReceivePaymentView = ({ clients, invoices, payments, loading, onRefresh }:
   const getFilteredPayments = () => {
     let filtered = payments
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(payment => 
-        payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((payment) => {
+        const dateStr = payment.date_created ? new Date(payment.date_created).toLocaleDateString().toLowerCase() : ""
+        const amountStr = payment.amount != null ? String(payment.amount).toLowerCase() : ""
+        return (
+          payment.payment_number?.toLowerCase().includes(term) ||
+          payment.client?.name?.toLowerCase().includes(term) ||
+          payment.description?.toLowerCase().includes(term) ||
+          payment.paid_to?.toLowerCase().includes(term) ||
+          (payment.account_credited?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term)
+        )
+      })
     }
 
     // Client filter

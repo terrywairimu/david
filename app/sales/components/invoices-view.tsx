@@ -159,11 +159,27 @@ const InvoicesView = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(invoice =>
-      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((invoice) => {
+        const dateStr = invoice.date_created ? new Date(invoice.date_created).toLocaleDateString().toLowerCase() : ""
+        const dueStr = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString().toLowerCase() : ""
+        const totalStr = invoice.grand_total != null ? String(invoice.grand_total).toLowerCase() : ""
+        const paidStr = invoice.amount_paid != null ? String(invoice.amount_paid).toLowerCase() : ""
+        const balanceStr = (invoice.balance ?? invoice.balance_amount) != null ? String(invoice.balance ?? invoice.balance_amount).toLowerCase() : ""
+        return (
+          invoice.invoice_number.toLowerCase().includes(term) ||
+          invoice.client?.name.toLowerCase().includes(term) ||
+          (invoice.original_quotation_number?.toLowerCase().includes(term)) ||
+          (invoice.original_order_number?.toLowerCase().includes(term)) ||
+          (invoice.notes?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          dueStr.includes(term) ||
+          totalStr.includes(term) ||
+          paidStr.includes(term) ||
+          balanceStr.includes(term) ||
+          (invoice.status?.toLowerCase().includes(term))
+        )
+      })
     }
 
     // Client filter

@@ -180,17 +180,26 @@ const MakePaymentView = ({ paymentType, clients, invoices, payments, loading, on
     const currentPayments = paymentType === "suppliers" ? supplierPayments : employeePayments
     let filtered = currentPayments
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(payment => {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((payment) => {
         const entityName = paymentType === "suppliers" 
           ? payment.supplier?.name 
           : payment.employee?.name
+        const dateStr = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString().toLowerCase() : ""
+        const amountStr = payment.amount != null ? String(payment.amount).toLowerCase() : ""
+        const balanceStr = payment.balance != null ? String(payment.balance).toLowerCase() : ""
         return (
-        payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          entityName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          payment.paid_to?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          payment.description?.toLowerCase().includes(searchTerm.toLowerCase())
+          payment.payment_number?.toLowerCase().includes(term) ||
+          entityName?.toLowerCase().includes(term) ||
+          payment.paid_to?.toLowerCase().includes(term) ||
+          payment.description?.toLowerCase().includes(term) ||
+          (payment.payment_method?.toLowerCase().includes(term)) ||
+          (payment.status?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term) ||
+          balanceStr.includes(term)
         )
       })
     }

@@ -135,13 +135,24 @@ const CompanyExpensesView = ({ clients }: CompanyExpensesViewProps) => {
   const getFilteredExpenses = () => {
     let filtered = expenses.filter(expense => expense.expense_type === "company")
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(expense => 
-        expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(expense => {
+        const dateStr = expense.date_created ? new Date(expense.date_created).toLocaleDateString().toLowerCase() : ""
+        const amountStr = expense.amount != null ? String(expense.amount).toLowerCase() : ""
+        const itemsStr = formatExpenseItems(expense.id).toLowerCase()
+        return (
+          expense.expense_number?.toLowerCase().includes(term) ||
+          expense.description?.toLowerCase().includes(term) ||
+          expense.category?.toLowerCase().includes(term) ||
+          (expense.department?.toLowerCase().includes(term)) ||
+          (expense.account_debited?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term) ||
+          itemsStr.includes(term)
+        )
+      })
     }
 
     // Category filter

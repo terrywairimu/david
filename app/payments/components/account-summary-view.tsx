@@ -1219,16 +1219,30 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
       )
     }
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(transaction => 
-        transaction.transaction_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.reference_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.reference_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.account_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((transaction) => {
+        const dateStr = transaction.transaction_date ? new Date(transaction.transaction_date).toLocaleDateString().toLowerCase() : ""
+        const amountStr = transaction.amount != null ? String(transaction.amount).toLowerCase() : ""
+        const moneyInStr = transaction.money_in != null ? String(transaction.money_in).toLowerCase() : ""
+        const moneyOutStr = transaction.money_out != null ? String(transaction.money_out).toLowerCase() : ""
+        const balanceStr = transaction.balance_after != null ? String(transaction.balance_after).toLowerCase() : ""
+        return (
+          transaction.transaction_number?.toLowerCase().includes(term) ||
+          transaction.description?.toLowerCase().includes(term) ||
+          transaction.reference_number?.toLowerCase().includes(term) ||
+          transaction.reference_description?.toLowerCase().includes(term) ||
+          transaction.account_type?.toLowerCase().includes(term) ||
+          transaction.client_name?.toLowerCase().includes(term) ||
+          (transaction.transaction_type?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term) ||
+          moneyInStr.includes(term) ||
+          moneyOutStr.includes(term) ||
+          balanceStr.includes(term)
+        )
+      })
     }
 
     // Client filter - filter by client_id

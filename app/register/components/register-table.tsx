@@ -190,11 +190,19 @@ const RegisterTable = ({
     ]
 
     let filtered = allData.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (item as any).email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (item as any).position?.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase()
+      const dateStr = item.date_added ? new Date(item.date_added).toLocaleDateString().toLowerCase() : ""
+      const typeStr = (item.displayType === "client" ? "client" : item.displayType === "supplier" ? "supplier" : "employee")
+      const matchesSearch = (
+        item.name.toLowerCase().includes(term) ||
+        item.phone?.toLowerCase().includes(term) ||
+        item.location?.toLowerCase().includes(term) ||
+        (item as any).email?.toLowerCase().includes(term) ||
+        (item as any).position?.toLowerCase().includes(term) ||
+        (item as any).pin?.toLowerCase().includes(term) ||
+        typeStr.includes(term) ||
+        dateStr.includes(term)
+      )
       
       const matchesType = !typeFilter || item.displayType === typeFilter
       const matchesLocation = !locationFilter || item.location === locationFilter

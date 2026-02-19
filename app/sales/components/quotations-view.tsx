@@ -175,14 +175,21 @@ const QuotationsView = () => {
   const getFilteredQuotations = () => {
     let filtered = [...quotations]
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(
-        (quotation) =>
-      quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          quotation.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          quotation.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((quotation) => {
+        const dateStr = quotation.date_created ? new Date(quotation.date_created).toLocaleDateString().toLowerCase() : ""
+        const amountStr = quotation.grand_total != null ? String(quotation.grand_total).toLowerCase() : ""
+        return (
+          quotation.quotation_number.toLowerCase().includes(term) ||
+          quotation.client?.name.toLowerCase().includes(term) ||
+          (quotation.notes?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term) ||
+          (quotation.status?.toLowerCase().includes(term))
+        )
+      })
     }
 
     // Client filter

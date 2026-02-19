@@ -276,14 +276,30 @@ const PurchasesPage = () => {
       filtered = filtered.filter(purchase => purchase.client_id == null)
     }
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(purchase =>
-        purchase.purchase_order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.supplier?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.items?.some(item => item.stock_item?.description?.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((purchase) => {
+        const dateStr = purchase.purchase_date ? new Date(purchase.purchase_date).toLocaleDateString().toLowerCase() : ""
+        const totalStr = purchase.total_amount != null ? String(purchase.total_amount).toLowerCase() : ""
+        const itemsStr = (purchase.items || [])
+          .map(item => (item.stock_item?.description || item.stock_item?.name || "").toLowerCase())
+          .join(" ")
+        return (
+          purchase.purchase_order_number.toLowerCase().includes(term) ||
+          purchase.supplier?.name.toLowerCase().includes(term) ||
+          purchase.client?.name.toLowerCase().includes(term) ||
+          (purchase.paid_to?.toLowerCase().includes(term)) ||
+          (purchase.payment_method?.toLowerCase().includes(term)) ||
+          (purchase.status?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          totalStr.includes(term) ||
+          itemsStr.includes(term) ||
+          purchase.items?.some(item =>
+            (item.stock_item?.description || item.stock_item?.name || "").toLowerCase().includes(term)
+          )
+        )
+      })
     }
 
     // Supplier filter

@@ -105,17 +105,23 @@ const CashSalesView: React.FC = () => {
   const getFilteredCashSales = () => {
     let filtered = [...cashSales]
 
-    // Search filter
+    // Search filter - search across ALL visible columns
     if (searchTerm) {
-      filtered = filtered.filter(
-        (sale) =>
-      sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.original_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.original_order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.original_invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter((sale) => {
+        const dateStr = sale.date_created ? new Date(sale.date_created).toLocaleDateString().toLowerCase() : ""
+        const amountStr = sale.grand_total != null ? String(sale.grand_total).toLowerCase() : ""
+        return (
+          sale.sale_number.toLowerCase().includes(term) ||
+          sale.client?.name.toLowerCase().includes(term) ||
+          (sale.original_quotation_number?.toLowerCase().includes(term)) ||
+          (sale.original_order_number?.toLowerCase().includes(term)) ||
+          (sale.original_invoice_number?.toLowerCase().includes(term)) ||
+          (sale.notes?.toLowerCase().includes(term)) ||
+          dateStr.includes(term) ||
+          amountStr.includes(term)
+        )
+      })
     }
 
     // Client filter

@@ -134,8 +134,25 @@ const StockPage = () => {
 
   const getFilteredItems = () => {
     return stockItems.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      const term = searchTerm.toLowerCase()
+      const amountStr = item.unit_price != null ? String(item.unit_price).toLowerCase() : ""
+      const qtyStr = item.quantity != null ? String(item.quantity).toLowerCase() : ""
+      const totalStr = item.quantity != null && item.unit_price != null ? String(item.quantity * item.unit_price).toLowerCase() : ""
+      const idStr = item.id != null ? String(item.id).toLowerCase() : ""
+      const dateStr = item.date_added ? new Date(item.date_added).toLocaleDateString().toLowerCase() : ""
+      const statusStr = (item.status || "").toLowerCase().replace("_", " ")
+      const matchesSearch = (
+        item.name.toLowerCase().includes(term) ||
+        (item.description && item.description.toLowerCase().includes(term)) ||
+        (item.category?.toLowerCase().includes(term)) ||
+        (item.unit?.toLowerCase().includes(term)) ||
+        idStr.includes(term) ||
+        amountStr.includes(term) ||
+        qtyStr.includes(term) ||
+        totalStr.includes(term) ||
+        dateStr.includes(term) ||
+        statusStr.includes(term)
+      )
       
       const matchesCategory = !categoryFilter || item.category === categoryFilter
       
