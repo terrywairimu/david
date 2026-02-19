@@ -1295,20 +1295,28 @@ const calculatePaymentsColumnWidths = (
   const totalGaps = (colCount - 1) * GAP_BETWEEN_COLUMNS;
   const availableWidth = tableWidth - totalGaps;
   const descColIdx = tableHeaders.indexOf('Description');
+  // Compact widths for many-column layouts (e.g. account-summary has 9 cols) - must fit within page
   const fixed: Record<string, number> = {
-    'Payment #': 20, 'Transaction #': 22, 'Client': 20, 'Date': 14, 'Paid To': 18,
-    'Amount': 22, 'Account Credited': 20, 'Supplier': 20, 'Employee': 20,
-    'Balance': 20, 'Method': 14, 'Status': 14, 'Account': 20, 'Money In': 18, 'Money Out': 18,
+    'Payment #': 18, 'Transaction #': 20, 'Client': 18, 'Date': 12, 'Paid To': 16,
+    'Amount': 18, 'Account Credited': 18, 'Supplier': 18, 'Employee': 18,
+    'Balance': 18, 'Method': 12, 'Status': 10, 'Account': 16, 'Money In': 16, 'Money Out': 16,
   };
   let fixedSum = 0;
   const widths = tableHeaders.map((h) => {
     if (h === 'Description') return 0;
-    const w = fixed[h] ?? 16;
+    const w = fixed[h] ?? 14;
     fixedSum += w;
     return w;
   });
-  const descWidth = descColIdx >= 0 ? Math.max(28, availableWidth - fixedSum) : 28;
-  return widths.map((w, i) => (i === descColIdx ? descWidth : w));
+  const descWidth = descColIdx >= 0 ? Math.max(24, availableWidth - fixedSum) : 24;
+  const result = widths.map((w, i) => (i === descColIdx ? descWidth : w));
+  // Enforce sum <= availableWidth - scale down if overflow
+  let sum = result.reduce((a, b) => a + b, 0);
+  if (sum > availableWidth && sum > 0) {
+    const scale = availableWidth / sum;
+    return result.map((w) => Math.max(MIN_COLUMN_WIDTH, Math.round(w * scale)));
+  }
+  return result;
 };
 
 /** Purchases: guaranteed-fit widths. Total Amount always visible. Items wraps in remainder. */
@@ -1357,6 +1365,28 @@ const computeExpenseRowHeights = (
   if (descColIdx < 0) return rowData.map(() => 6);
   const descKey = fieldKeys[descColIdx];
   const descWidthMm = dataDrivenWidths[descColIdx] ?? 40;
+  const charsPerLine = Math.max(8, Math.floor(descWidthMm / 1.2));
+  const lineHeightMm = 3.5;
+  const minRowHeight = 6;
+
+  return rowData.map((row) => {
+    const text = String(row[descKey] ?? '');
+    const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+    return Math.max(minRowHeight, Math.min(35, Math.round(lines * lineHeightMm)));
+  });
+};
+
+/** Estimate row height in mm from description text for payment variants (account-summary, receive-payments) */
+const computePaymentRowHeights = (
+  rowData: Record<string, string | number>[],
+  fieldKeys: string[],
+  tableHeaders: string[],
+  dataDrivenWidths: number[]
+): number[] => {
+  const descColIdx = tableHeaders.indexOf('Description');
+  if (descColIdx < 0) return rowData.map(() => 6);
+  const descKey = fieldKeys[descColIdx];
+  const descWidthMm = dataDrivenWidths[descColIdx] ?? 36;
   const charsPerLine = Math.max(8, Math.floor(descWidthMm / 1.2));
   const lineHeightMm = 3.5;
   const minRowHeight = 6;
@@ -1520,19 +1550,24 @@ const generateDynamicTemplateWithPagination = (
         : calculateColumnWidthsFromData(tableHeaders, rowData, fieldKeys))
     : undefined;
 
-  // Purchases: dynamic row heights from items text; expenses: from description; others fixed
+  // Purchases: dynamic row heights from items text; expenses: from description; payments (account-summary, receive-payments): from description
+  const hasDescriptionCol = tableHeaders.includes('Description');
   const purchaseRowHeights = (templateType === 'purchases' && rowData && dataDrivenWidths)
     ? computePurchaseRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
     : null;
   const expenseRowHeights = (templateType === 'expenses' && rowData && dataDrivenWidths)
     ? computeExpenseRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
     : null;
+  const paymentRowHeights = (isPaymentVariant && hasDescriptionCol && rowData && dataDrivenWidths)
+    ? computePaymentRowHeights(rowData, fieldKeys, tableHeaders, dataDrivenWidths)
+    : null;
 
   // Paginate rows
   const pages: Array<Array<number>> = [];
   const heightDrivenPagination = (templateType === 'purchases' && purchaseRowHeights) ||
-    (templateType === 'expenses' && expenseRowHeights);
-  const rowHeightsArr = purchaseRowHeights ?? expenseRowHeights;
+    (templateType === 'expenses' && expenseRowHeights) ||
+    (isPaymentVariant && paymentRowHeights);
+  const rowHeightsArr = purchaseRowHeights ?? expenseRowHeights ?? paymentRowHeights;
   if (heightDrivenPagination && rowHeightsArr) {
     // Height-based pagination for purchases - two-pass: continuation pages use full height
     let rowIndex = 0;
@@ -1672,7 +1707,7 @@ const generateDynamicTemplateWithPagination = (
     // Table header (every page) - positioned correctly for each page
     const tableHeaderY = (pageIdx === 0) ? firstPageTableStartY : topMargin;
     pageSchema.push(
-      { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: tableHeaderHeight, color: '#E5E5E5', radius: 3 }
+      { name: `tableHeaderBg_${pageIdx}`, type: 'rectangle', position: { x: 15, y: tableHeaderY }, width: 180, height: tableHeaderHeight, color: '#D3D3D3', radius: 3 }
     );
 
     // Add custom table headers - use data-driven widths when available
@@ -1977,13 +2012,15 @@ const generateDataFields = (
       const key = fieldKeys[colIdx];
       if (key) {
         const pos = positions[colIdx];
+        const isDescription = header === 'Description';
+        const cellHeight = (isDescription && rowHeightMm > 5) ? Math.max(5, rowHeightMm - 1) : 5;
         fields.push({
           name: `${key}_${rowIdx}`,
           type: 'text',
           position: { x: pos.x, y: yPosition },
           width: pos.width,
-          height: 5,
-          fontSize: FONT_SIZE_TABLE_ROW,
+          height: cellHeight,
+          fontSize: isDescription && cellHeight > 5 ? 7 : FONT_SIZE_TABLE_ROW,
           fontColor: '#000',
           fontName: 'Helvetica',
           alignment: getAlignment(header, colIdx)
