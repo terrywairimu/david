@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Receipt } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -13,6 +13,7 @@ import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 import { formatNumber, parseFormattedNumber } from "@/lib/format-number";
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
+import { CustomNormalSection, CustomWorktopSection } from "./custom-quotation-sections"
 import dynamic from 'next/dynamic'
 
 // Dynamically import MobilePDFViewer to avoid SSR issues
@@ -66,6 +67,7 @@ interface SalesOrderModalProps {
   salesOrder?: any
   mode: "view" | "edit" | "create"
   onProceedToInvoice?: (salesOrder: any) => Promise<void>
+  onProceedToCashSale?: (salesOrder: any) => Promise<void>
 }
 
 // Portal Dropdown Component
@@ -133,34 +135,106 @@ const PortalDropdown: React.FC<{
   )
 }
 
-// Quotation number generation logic (now using Supabase, not localStorage)
+// Add New Section button with dropdown (Normal section | Worktop section)
+const AddNewSectionButton: React.FC<{
+  anchorKey: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
+  addCustomSection: (anchorKey: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", type: "normal" | "worktop") => void
+  isOpen: boolean
+  onToggle: () => void
+}> = ({ anchorKey, addCustomSection, isOpen, onToggle }) => {
+  const btnRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) onToggle()
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isOpen, onToggle])
+
+  return (
+    <div ref={btnRef} className="position-relative">
+      <button
+        type="button"
+        className="btn btn-outline-light btn-sm d-flex align-items-center"
+        onClick={onToggle}
+        style={{ borderRadius: "10px", padding: "8px 14px", borderColor: "rgba(255,255,255,0.4)" }}
+      >
+        <Plus size={12} className="me-1" />
+        Add New Section
+        <ChevronDown size={12} className="ms-1" style={{ opacity: isOpen ? 1 : 0.7 }} />
+      </button>
+      {isOpen && (
+        <ul
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            marginTop: "4px",
+            minWidth: "180px",
+            backgroundColor: "white",
+            border: "1px solid #dee2e6",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            zIndex: 1050,
+            listStyle: "none",
+            padding: "4px 0"
+          }}
+        >
+          <li>
+            <button
+              type="button"
+              className="dropdown-item w-100 text-start px-3 py-2"
+              style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
+              onClick={() => addCustomSection(anchorKey, "normal")}
+            >
+              Normal section
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              className="dropdown-item w-100 text-start px-3 py-2"
+              style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px" }}
+              onClick={() => addCustomSection(anchorKey, "worktop")}
+            >
+              Worktop section
+            </button>
+          </li>
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// Sales order number generation logic (using Supabase)
 const generateSalesOrderNumber = async () => {
   try {
     const now = new Date()
     const year = now.getFullYear().toString().slice(-2)
     const month = (now.getMonth() + 1).toString().padStart(2, '0')
-    // Query Supabase for the latest salesOrder number for this year/month
     const { data, error } = await supabase
-      .from("salesOrders")
-      .select("salesOrder_number")
-      .ilike("salesOrder_number", `QT${year}${month}%`)
-      .order("salesOrder_number", { ascending: false })
+      .from("sales_orders")
+      .select("order_number")
+      .ilike("order_number", `SO${year}${month}%`)
+      .order("order_number", { ascending: false })
       .limit(1)
     if (error) throw error
     let nextNumber = 1
     if (data && data.length > 0) {
-      const match = data[0].salesOrder_number.match(/QT\d{4}(\d{3})/)
+      const match = data[0].order_number?.match(/SO\d{4}(\d{3})/)
       if (match) {
         nextNumber = parseInt(match[1]) + 1
       }
     }
-    return `QT${year}${month}${nextNumber.toString().padStart(3, '0')}`
+    return `SO${year}${month}${nextNumber.toString().padStart(3, '0')}`
   } catch (error) {
     const timestamp = Date.now().toString().slice(-3)
     const now = new Date()
     const year = now.getFullYear().toString().slice(-2)
     const month = (now.getMonth() + 1).toString().padStart(2, '0')
-    return `QT${year}${month}${timestamp}`
+    return `SO${year}${month}${timestamp}`
   }
 }
 
@@ -170,7 +244,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   onSave,
   salesOrder,
   mode = "create",
-  onProceedToInvoice
+  onProceedToInvoice,
+  onProceedToCashSale
 }) => {
   const [orderNumber, setOrderNumber] = useState("")
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -187,7 +262,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [includeTvUnit, setIncludeTvUnit] = useState(false)
   const [notes, setNotes] = useState("")
   const [termsConditions, setTermsConditions] = useState(
-    "1. All work to be completed within agreed timeframe.\n2. Client to provide necessary measurements and specifications.\n3. Final payment due upon completion.\n4. Any changes to the original design may incur additional charges."
+    "1. The quotation is based on the approved design and therefore any changes to the original design may attract additional charges.\n2. The project will take maximum of 21 days from the day the initial deposit is made.\n3. A Deposit of 70% of the project cost is required as the initial deposit, 20% is payable upon delivery of all materials and commencement of the project on site, then the balance 10% is payable upon completion and approval of the project.\n           PAYMENT DETAILS\nPAY BILL: 400200, ACCOUNT NUMBER: 845763\n          OR\nCOOPERATIVE BANK, KAMAKIS BRANCH\nACCOUNT NUMBER: 01100720015001\nACCOUNT NAME: Cabinet Master Styles and finishes ltd\n4. The cost of transportation of materials to site is not included in the above quote"
   )
   const [loading, setLoading] = useState(false)
   
@@ -244,6 +319,17 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const [rawQuantityValues, setRawQuantityValues] = useState<{[key: string]: string}>({})
   const [rawPriceValues, setRawPriceValues] = useState<{[key: string]: string}>({})
   
+  // Custom sections (e.g. Kitchen 2, multiple worktops)
+  type CustomSectionType = "normal" | "worktop"
+  type AnchorKey = "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
+  type CustomSection = { id: string; name: string; type: CustomSectionType; anchorKey: AnchorKey }
+  const [customSections, setCustomSections] = useState<CustomSection[]>([])
+  const [customSectionItems, setCustomSectionItems] = useState<Record<string, Record<string, SalesOrderItem[]>>>({})
+  const [includeCustomSection, setIncludeCustomSection] = useState<Record<string, boolean>>({})
+  const [customSectionIncludeLabour, setCustomSectionIncludeLabour] = useState<Record<string, boolean>>({})
+  const [customSectionLabourPercentage, setCustomSectionLabourPercentage] = useState<Record<string, number>>({})
+  const [addNewSectionDropdownOpen, setAddNewSectionDropdownOpen] = useState<string | null>(null)
+
   // Refs for dropdown positioning
   const clientInputRef = useRef<HTMLDivElement>(null)
   const itemInputRefs = useRef<{[key: string]: React.RefObject<HTMLDivElement | null>}>({})
@@ -254,6 +340,44 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       itemInputRefs.current[itemId] = { current: null }
     }
     return itemInputRefs.current[itemId]
+  }
+
+  // Custom section helpers
+  const getNextCustomSectionName = () => {
+    const n = customSections.length + 1
+    return `New Section ${n}`
+  }
+  const addCustomSection = (anchorKey: AnchorKey, type: CustomSectionType) => {
+    const id = `cs-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    setCustomSections(prev => [...prev, { id, name: getNextCustomSectionName(), type, anchorKey }])
+    setIncludeCustomSection(prev => ({ ...prev, [id]: true }))
+    setCustomSectionIncludeLabour(prev => ({ ...prev, [id]: true }))
+    setCustomSectionLabourPercentage(prev => ({ ...prev, [id]: 30 }))
+    if (type === "normal") {
+      setCustomSectionItems(prev => ({ ...prev, [id]: { cabinet: [createNewItem("cabinet")], worktop: [] } }))
+    } else {
+      setCustomSectionItems(prev => ({ ...prev, [id]: { cabinet: [], worktop: [] } }))
+    }
+    setAddNewSectionDropdownOpen(null)
+  }
+  const removeCustomSection = (id: string) => {
+    setCustomSections(prev => prev.filter(s => s.id !== id))
+    setCustomSectionItems(prev => { const n = { ...prev }; delete n[id]; return n })
+    setIncludeCustomSection(prev => { const n = { ...prev }; delete n[id]; return n })
+    setCustomSectionIncludeLabour(prev => { const n = { ...prev }; delete n[id]; return n })
+    setCustomSectionLabourPercentage(prev => { const n = { ...prev }; delete n[id]; return n })
+  }
+  const setIncludeCustomSectionById = (id: string, val: boolean) => {
+    setIncludeCustomSection(prev => ({ ...prev, [id]: val }))
+  }
+  const setCustomSectionIncludeLabourById = (id: string, val: boolean) => {
+    setCustomSectionIncludeLabour(prev => ({ ...prev, [id]: val }))
+  }
+  const setCustomSectionLabourPercentageById = (id: string, val: number) => {
+    setCustomSectionLabourPercentage(prev => ({ ...prev, [id]: val }))
+  }
+  const updateCustomSectionName = (id: string, name: string) => {
+    setCustomSections(prev => prev.map(s => s.id === id ? { ...s, name } : s))
   }
 
   // Function to handle section name editing
@@ -393,49 +517,20 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   // Function to fetch payment information
   const fetchPaymentInfo = async () => {
-    if (!salesOrder?.salesOrder_number) return;
+    const orderNum = salesOrder?.order_number;
+    if (!orderNum) return;
     
     try {
-      // First, check all payments for this salesOrder regardless of status - check both fields
-      const { data: allPayments } = await supabase
-        .from("payments")
-        .select("*")
-        .or(`salesOrder_number.eq.${salesOrder.salesOrder_number},paid_to.eq.${salesOrder.salesOrder_number}`)
-
-      // Then get only completed payments - check both salesOrder_number and paid_to fields
+      // Payments reference sales orders via paid_to or account_paid_to
       const { data: payments } = await supabase
         .from("payments")
         .select("amount, status")
-        .or(`salesOrder_number.eq.${salesOrder.salesOrder_number},paid_to.eq.${salesOrder.salesOrder_number}`)
+        .or(`paid_to.eq.${orderNum},account_paid_to.eq.${orderNum}`)
         .eq("status", "completed")
       
       const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
       const hasPaymentsValue = totalPaidAmount > 0
       const paymentPercentageValue = salesOrder.grand_total > 0 ? (totalPaidAmount / salesOrder.grand_total) * 100 : 0
-      
-      // Enhanced debug logging for payment detection
-      console.log('Payment Info Debug:', {
-        salesOrder_number: salesOrder.salesOrder_number,
-        salesOrder_status: salesOrder.status,
-        all_payments_found: allPayments?.length || 0,
-        all_payments_details: allPayments || [],
-        completed_payments_found: payments?.length || 0,
-        completed_payments_details: payments || [],
-        total_paid: totalPaidAmount,
-        has_payments: hasPaymentsValue,
-        payment_percentage: paymentPercentageValue,
-        grand_total: salesOrder.grand_total
-      })
-      
-      // Also check if there are payments with different salesOrder_number formats
-      const { data: similarPayments } = await supabase
-        .from("payments")
-        .select("*")
-        .ilike("salesOrder_number", `%${salesOrder.salesOrder_number.slice(-4)}%`)
-      
-      if (similarPayments && similarPayments.length > 0) {
-        console.log('Similar Payment Numbers Found:', similarPayments)
-      }
       
       setTotalPaid(totalPaidAmount)
       setHasPayments(hasPaymentsValue)
@@ -598,6 +693,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setEditingSectionName("")
     setFilteredStockItems({})
     setDiscountAmount(0)
+    setCustomSections([])
+    setCustomSectionItems({})
+    setIncludeCustomSection({})
+    setCustomSectionIncludeLabour({})
+    setCustomSectionLabourPercentage({})
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): SalesOrderItem => {
@@ -712,6 +812,42 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setIncludeLabourAppliances(salesOrder.items?.some((i: any) => i.category === "appliances" && i.description?.includes?.("Labour Charge")) ?? true);
     setIncludeLabourWardrobes(salesOrder.items?.some((i: any) => i.category === "wardrobes" && i.description?.includes?.("Labour Charge")) ?? true);
     setIncludeLabourTvUnit(salesOrder.items?.some((i: any) => i.category === "tvunit" && i.description?.includes?.("Labour Charge")) ?? true);
+
+    // Load custom sections and their items
+    const customSectionsData = ((salesOrder.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || []).map(s => ({
+      ...s,
+      anchorKey: (s.anchorKey || "cabinet") as AnchorKey
+    }))
+    setCustomSections(customSectionsData)
+    const items = salesOrder.items || []
+    const itemsBySection: Record<string, Record<string, SalesOrderItem[]>> = {}
+    const includeLabour: Record<string, boolean> = {}
+    const labourPct: Record<string, number> = {}
+    for (const sec of customSectionsData) {
+      if (sec.type === "normal") {
+        const cabinet = items.filter((i: any) => i.section_group === sec.id && (i.category === "cabinet" || i.category === "custom") && !String(i.description || "").includes("Labour Charge"))
+        itemsBySection[sec.id] = { cabinet: cabinet.length > 0 ? cabinet : [createNewItem("cabinet")] }
+        const hasLabourCharge = items.some((i: any) => i.section_group === sec.id && String(i.description || "").includes("Labour Charge"))
+        if (hasLabourCharge) {
+          includeLabour[sec.id] = true
+          const labourItem = items.find((i: any) => i.section_group === sec.id && String(i.description || "").includes("Labour Charge"))
+          if (labourItem && labourItem.unit_price > 0) {
+            const pctMatch = String(labourItem.description || "").match(/\((\d+)%\)/)
+            labourPct[sec.id] = pctMatch ? parseInt(pctMatch[1], 10) : 30
+          }
+        }
+      } else {
+        const worktop = items.filter((i: any) => i.section_group === sec.id && (i.category === "worktop" || i.category === "custom"))
+        itemsBySection[sec.id] = { worktop }
+      }
+    }
+    setCustomSectionItems(itemsBySection)
+    if (Object.keys(includeLabour).length > 0) {
+      setCustomSectionIncludeLabour(prev => ({ ...prev, ...includeLabour }))
+    }
+    if (Object.keys(labourPct).length > 0) {
+      setCustomSectionLabourPercentage(prev => ({ ...prev, ...labourPct }))
+    }
   }
 
   const handleClientSelect = (client: Client) => {
@@ -725,58 +861,54 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setClientDropdownVisible(searchTerm.length > 0)
   }
 
-  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit") => {
+  const addItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", sectionGroup?: string) => {
     const newItem = createNewItem(category)
-    
-    // Use functional updates for better performance and avoiding stale closures
-    switch (category) {
-      case "cabinet":
-        setCabinetItems(prev => [...prev, newItem])
-        break
-      case "worktop":
-        setWorktopItems(prev => [...prev, newItem])
-        break
-      case "accessories":
-        setAccessoriesItems(prev => [...prev, newItem])
-        break
-      case "appliances":
-        setAppliancesItems(prev => [...prev, newItem])
-        break
-      case "wardrobes":
-        setWardrobesItems(prev => [...prev, newItem])
-        break
-      case "tvunit":
-        setTvUnitItems(prev => [...prev, newItem])
-        break
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: [...arr, newItem] }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet": setCabinetItems(prev => [...prev, newItem]); break
+        case "worktop": setWorktopItems(prev => [...prev, newItem]); break
+        case "accessories": setAccessoriesItems(prev => [...prev, newItem]); break
+        case "appliances": setAppliancesItems(prev => [...prev, newItem]); break
+        case "wardrobes": setWardrobesItems(prev => [...prev, newItem]); break
+        case "tvunit": setTvUnitItems(prev => [...prev, newItem]); break
+      }
     }
   }
 
-  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number) => {
-    switch (category) {
-      case "cabinet":
-        if (cabinetItems.length > 1) {
-          setCabinetItems(cabinetItems.filter((_, i) => i !== index))
-        }
-        break
-      case "worktop":
-        setWorktopItems(worktopItems.filter((_, i) => i !== index))
-        break
-      case "accessories":
-        setAccessoriesItems(accessoriesItems.filter((_, i) => i !== index))
-        break
-      case "appliances":
-        setAppliancesItems(appliancesItems.filter((_, i) => i !== index))
-        break
-      case "wardrobes":
-        setWardrobesItems(wardrobesItems.filter((_, i) => i !== index))
-        break
-      case "tvunit":
-        setTvUnitItems(tvUnitItems.filter((_, i) => i !== index))
-        break
+  const removeItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, sectionGroup?: string) => {
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      const minLen = category === "cabinet" ? 1 : 0
+      if (arr.length <= minLen) return
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: arr.filter((_, i) => i !== index) }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet": if (cabinetItems.length > 1) setCabinetItems(cabinetItems.filter((_, i) => i !== index)); break
+        case "worktop": setWorktopItems(worktopItems.filter((_, i) => i !== index)); break
+        case "accessories": setAccessoriesItems(accessoriesItems.filter((_, i) => i !== index)); break
+        case "appliances": setAppliancesItems(appliancesItems.filter((_, i) => i !== index)); break
+        case "wardrobes": setWardrobesItems(wardrobesItems.filter((_, i) => i !== index)); break
+        case "tvunit": setTvUnitItems(tvUnitItems.filter((_, i) => i !== index)); break
+      }
     }
   }
 
-  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof SalesOrderItem, value: any) => {
+  const updateItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit", index: number, field: keyof SalesOrderItem, value: any, sectionGroup?: string) => {
     const updateItems = (items: SalesOrderItem[]) => {
       return items.map((item, i) => {
         if (i === index) {
@@ -803,25 +935,24 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       })
     }
 
-    switch (category) {
-      case "cabinet":
-        setCabinetItems(updateItems(cabinetItems))
-        break
-      case "worktop":
-        setWorktopItems(updateItems(worktopItems))
-        break
-      case "accessories":
-        setAccessoriesItems(updateItems(accessoriesItems))
-        break
-      case "appliances":
-        setAppliancesItems(updateItems(appliancesItems))
-        break
-      case "wardrobes":
-        setWardrobesItems(updateItems(wardrobesItems))
-        break
-      case "tvunit":
-        setTvUnitItems(updateItems(tvUnitItems))
-        break
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (!items) return
+      const catKey = category
+      const arr = items[catKey] || []
+      setCustomSectionItems(prev => ({
+        ...prev,
+        [sectionGroup]: { ...prev[sectionGroup], [catKey]: updateItems(arr) }
+      }))
+    } else {
+      switch (category) {
+        case "cabinet": setCabinetItems(updateItems(cabinetItems)); break
+        case "worktop": setWorktopItems(updateItems(worktopItems)); break
+        case "accessories": setAccessoriesItems(updateItems(accessoriesItems)); break
+        case "appliances": setAppliancesItems(updateItems(appliancesItems)); break
+        case "wardrobes": setWardrobesItems(updateItems(wardrobesItems)); break
+        case "tvunit": setTvUnitItems(updateItems(tvUnitItems)); break
+      }
     }
   }
 
@@ -833,65 +964,61 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     setItemDropdownVisible(prev => ({ ...prev, [itemId]: !prev[itemId] }))
   }
 
-  const selectStockItem = (itemId: string, stockItem: StockItem) => {
-    
-    
-    // Find which category this item belongs to and get the correct index within that category
+  const selectStockItem = (itemId: string, stockItem: StockItem, sectionGroup?: string) => {
     let category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit" | null = null
     let index = -1
-    
-    // Check cabinet items
-    const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
-    if (cabinetIndex !== -1) {
-      category = "cabinet"
-      index = cabinetIndex
-    } else {
-      // Check worktop items
-      const worktopIndex = worktopItems.findIndex(item => item.id?.toString() === itemId)
-      if (worktopIndex !== -1) {
-        category = "worktop"
-        index = worktopIndex
+
+    if (sectionGroup) {
+      const items = customSectionItems[sectionGroup]
+      if (items) {
+        for (const cat of ["cabinet", "worktop", "accessories", "appliances", "wardrobes", "tvunit"] as const) {
+          const arr = items[cat] || []
+          const idx = arr.findIndex(item => item.id?.toString() === itemId)
+          if (idx !== -1) {
+            category = cat
+            index = idx
+            break
+          }
+        }
+      }
+    }
+
+    if (!category || index === -1) {
+      const cabinetIndex = cabinetItems.findIndex(item => item.id?.toString() === itemId)
+      if (cabinetIndex !== -1) {
+        category = "cabinet"; index = cabinetIndex
       } else {
-        // Check accessories items
-        const accessoriesIndex = accessoriesItems.findIndex(item => item.id?.toString() === itemId)
-        if (accessoriesIndex !== -1) {
-          category = "accessories"
-          index = accessoriesIndex
+        const worktopIndex = worktopItems.findIndex(item => item.id?.toString() === itemId)
+        if (worktopIndex !== -1) {
+          category = "worktop"; index = worktopIndex
         } else {
-          // Check appliances items
-          const appliancesIndex = appliancesItems.findIndex(item => item.id?.toString() === itemId)
-          if (appliancesIndex !== -1) {
-            category = "appliances"
-            index = appliancesIndex
+          const accessoriesIndex = accessoriesItems.findIndex(item => item.id?.toString() === itemId)
+          if (accessoriesIndex !== -1) {
+            category = "accessories"; index = accessoriesIndex
           } else {
-            // Check wardrobes items
-            const wardrobesIndex = wardrobesItems.findIndex(item => item.id?.toString() === itemId)
-            if (wardrobesIndex !== -1) {
-              category = "wardrobes"
-              index = wardrobesIndex
+            const appliancesIndex = appliancesItems.findIndex(item => item.id?.toString() === itemId)
+            if (appliancesIndex !== -1) {
+              category = "appliances"; index = appliancesIndex
             } else {
-              // Check tvunit items
-              const tvunitIndex = tvUnitItems.findIndex(item => item.id?.toString() === itemId)
-              if (tvunitIndex !== -1) {
-                category = "tvunit"
-                index = tvunitIndex
+              const wardrobesIndex = wardrobesItems.findIndex(item => item.id?.toString() === itemId)
+              if (wardrobesIndex !== -1) {
+                category = "wardrobes"; index = wardrobesIndex
+              } else {
+                const tvunitIndex = tvUnitItems.findIndex(item => item.id?.toString() === itemId)
+                if (tvunitIndex !== -1) {
+                  category = "tvunit"; index = tvunitIndex
+                }
               }
             }
           }
         }
       }
     }
-    
-    if (category && index !== -1) {
 
-      
-      // Single call to updateItem with stock_item_id will automatically populate all fields
-      updateItem(category, index, "stock_item_id", stockItem.id)
-      
+    if (category && index !== -1) {
+      updateItem(category, index, "stock_item_id", stockItem.id, sectionGroup)
       setItemDropdownVisible(prev => ({ ...prev, [itemId]: false }))
       setItemSearches(prev => ({ ...prev, [itemId]: "" }))
-    } else {
-
     }
   }
 
@@ -1532,7 +1659,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         mobileNo: salesOrder.client?.phone || "",
         date: new Date(salesOrder.date_created).toLocaleDateString(),
         deliveryNoteNo: "Delivery Note No.",
-        quotationNumber: salesOrder.salesOrder_number,
+        quotationNumber: salesOrder.order_number,
         items,
         sectionTotals: [],
         total: salesOrder.grand_total || 0,
@@ -1637,7 +1764,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       return
     }
 
-    if (cabinetItems.length === 0 && worktopItems.length === 0 && accessoriesItems.length === 0 && appliancesItems.length === 0 && wardrobesItems.length === 0 && tvUnitItems.length === 0) {
+    const hasCustomItems = Object.values(customSectionItems).some(sec =>
+      (sec.cabinet || []).some(i => (i.description?.trim() || "").length > 0) ||
+      (sec.worktop || []).some(i => (i.description?.trim() || "").length > 0)
+    )
+    if (cabinetItems.length === 0 && worktopItems.length === 0 && accessoriesItems.length === 0 && appliancesItems.length === 0 && wardrobesItems.length === 0 && tvUnitItems.length === 0 && !hasCustomItems) {
       toast.error("Please add at least one item")
       return
     }
@@ -1699,8 +1830,9 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     const saveAppliancesLabour = includeLabourAppliances ? (totals.appliancesTotal * appliancesLabourPercentage) / 100 : 0;
     const saveWardrobesLabour = includeLabourWardrobes ? (totals.wardrobesTotal * wardrobesLabourPercentage) / 100 : 0;
     const saveTvUnitLabour = includeLabourTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
+    const saveCustomSectionsLabour = totals.customSectionsLabour ?? 0;
     
-    const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour;
+    const saveSubtotalWithLabour = totals.subtotal + saveCabinetLabour + saveAccessoriesLabour + saveAppliancesLabour + saveWardrobesLabour + saveTvUnitLabour + saveCustomSectionsLabour;
     const saveVatPercentageNum = Number(vatPercentage);
     // Reverse calculate VAT: if total includes VAT, extract the VAT amount
     const saveOriginalAmount = saveSubtotalWithLabour / (1 + (saveVatPercentageNum / 100));
@@ -1712,7 +1844,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     const dateToSave = orderDate ? dateInputToDateOnly(orderDate) : new Date()
     
     const salesOrderData = {
-      salesOrder_number: orderNumber,
+      order_number: orderNumber,
       client_id: selectedClient.id,
       date_created: dateToSave.toISOString(),
       cabinet_total: totals.cabinetTotal,
@@ -1736,7 +1868,42 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       status: "pending",
       notes,
       terms_conditions: termsConditions,
-      items: [...finalCabinetItems, ...worktopItems, ...finalAccessoriesItems, ...finalAppliancesItems, ...finalWardrobesItems, ...finalTvUnitItems],
+      items: (() => {
+        const main = [...finalCabinetItems, ...worktopItems, ...finalAccessoriesItems, ...finalAppliancesItems, ...finalWardrobesItems, ...finalTvUnitItems]
+        const custom: Array<{ category: string; description: string; unit: string; quantity: number; unit_price: number; total_price: number; stock_item_id?: number; section_group: string }> = []
+        for (const sec of customSections) {
+          const secItems = customSectionItems[sec.id] || {}
+          if (sec.type === "normal") {
+            const arr = (secItems.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
+            for (const item of arr) {
+              custom.push({ ...item, category: "cabinet", section_group: sec.id })
+            }
+            const includeLabour = customSectionIncludeLabour[sec.id] ?? true
+            const labourPct = customSectionLabourPercentage[sec.id] ?? 30
+            if (includeLabour && arr.length > 0) {
+              const cabSum = arr.reduce((s, i) => s + i.total_price, 0)
+              if (cabSum > 0) {
+                custom.push({
+                  category: "cabinet",
+                  description: `Labour Charge (${labourPct}%)`,
+                  unit: "sum",
+                  quantity: 1,
+                  unit_price: (cabSum * labourPct) / 100,
+                  total_price: (cabSum * labourPct) / 100,
+                  section_group: sec.id
+                })
+              }
+            }
+          } else {
+            const worktop = (secItems.worktop || [])
+            for (const item of worktop) {
+              custom.push({ ...item, category: "worktop", section_group: sec.id })
+            }
+          }
+        }
+        return [...main, ...custom]
+      })(),
+      custom_sections: customSections.map(s => ({ id: s.id, name: s.name, type: s.type, anchorKey: s.anchorKey })),
       cabinet_labour_percentage: cabinetLabourPercentage,
       accessories_labour_percentage: accessoriesLabourPercentage,
       appliances_labour_percentage: appliancesLabourPercentage,
@@ -1796,16 +1963,34 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     const wardrobesTotal = wardrobesItems.reduce((sum, item) => sum + item.total_price, 0)
     const tvUnitTotal = tvUnitItems.reduce((sum, item) => sum + item.total_price, 0)
     
-    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal
+    let customSectionsItemTotal = 0
+    let customSectionsLabour = 0
+    for (const sec of customSections) {
+      const items = customSectionItems[sec.id] || {}
+      if (sec.type === "normal") {
+        const cab = (items.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
+        const cabSum = cab.reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += cabSum
+        const includeLabour = customSectionIncludeLabour[sec.id] ?? true
+        const labourPct = customSectionLabourPercentage[sec.id] ?? 30
+        if (includeLabour && cabSum > 0) {
+          customSectionsLabour += (cabSum * labourPct) / 100
+        }
+      } else {
+        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0)
+        customSectionsItemTotal += workSum
+      }
+    }
     
-    // Calculate individual labour amounts (no worktopLabour); respect include labour toggles
+    const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal + customSectionsItemTotal
+    
     const cabinetLabour = includeLabourCabinet ? (cabinetTotal * cabinetLabourPercentage) / 100 : 0
     const accessoriesLabour = includeLabourAccessories ? (accessoriesTotal * accessoriesLabourPercentage) / 100 : 0
     const appliancesLabour = includeLabourAppliances ? (appliancesTotal * appliancesLabourPercentage) / 100 : 0
     const wardrobesLabour = includeLabourWardrobes ? (wardrobesTotal * wardrobesLabourPercentage) / 100 : 0
     const tvUnitLabour = includeLabourTvUnit ? (tvUnitTotal * tvUnitLabourPercentage) / 100 : 0
     
-    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour
+    const totalLabour = cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour + customSectionsLabour
     const grandTotal = subtotal + totalLabour
 
     return {
@@ -1815,6 +2000,8 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       appliancesTotal,
       wardrobesTotal,
       tvUnitTotal,
+      customSectionsItemTotal,
+      customSectionsLabour,
       subtotal,
       labourAmount: totalLabour,
       grandTotal,
@@ -1825,6 +2012,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       tvUnitLabour
     }
   }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
+      customSections, customSectionItems, customSectionIncludeLabour, customSectionLabourPercentage,
       includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
       accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage,
       includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit])
@@ -1844,7 +2032,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   const tvUnitLabour = includeLabourTvUnit ? (totals.tvUnitTotal * tvUnitLabourPercentage) / 100 : 0;
   
   // Calculate subtotal with all labour included (consistent with PDF generation)
-  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour;
+  const subtotalWithLabour = totals.subtotal + cabinetLabour + accessoriesLabour + appliancesLabour + wardrobesLabour + tvUnitLabour + (totals.customSectionsLabour ?? 0);
   
   // Calculate VAT using reverse calculation (extract VAT from total since items already include VAT)
   const originalAmount = subtotalWithLabour / (1 + (vatPercentage / 100));
@@ -2285,7 +2473,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                     {/* Add Item Button */}
                     {!isReadOnly && (
-                      <div className="mt-3">
+                      <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
                         <button
                           type="button"
                           className="btn btn-primary"
@@ -2300,11 +2488,51 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           <Plus size={14} className="me-1" />
                           Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="cabinet" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "cabinet"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "cabinet" ? null : "cabinet")} />
                       </div>
                     )}
                   </div>
                 </div>
               </div>
+
+                {/* Custom sections below Cabinet */}
+                {customSections.filter(s => s.anchorKey === "cabinet").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", borderBottom: "2px solid transparent", padding: "2px 4px", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && (
+                                  <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>
+                                )}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* Worktop Section with Animated Toggle */}
@@ -2641,7 +2869,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                       {/* Move the Add Item button to be the last element: */}
                       {!isReadOnly && (
-                        <div className="mt-3">
+                        <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
                         <button
                           type="button"
                             className="btn btn-primary"
@@ -2656,12 +2884,51 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           <Plus size={14} className="me-1" />
                             Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="worktop" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "worktop"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "worktop" ? null : "worktop")} />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+                {customSections.filter(s => s.anchorKey === "worktop").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && (
+                                  <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>
+                                )}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* Accessories Section with Animated Toggle */}
@@ -2949,27 +3216,53 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                       {/* Add Item Button */}
                       {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("accessories")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
+                        <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" className="btn btn-primary" onClick={() => addItem("accessories")} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+                          <Plus size={14} className="me-1" /> Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="accessories" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "accessories"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "accessories" ? null : "accessories")} />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+                {customSections.filter(s => s.anchorKey === "accessories").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* Appliances Section with Animated Toggle */}
@@ -3257,27 +3550,53 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                       {/* Add Item Button */}
                       {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("appliances")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
+                        <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" className="btn btn-primary" onClick={() => addItem("appliances")} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+                          <Plus size={14} className="me-1" /> Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="appliances" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "appliances"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "appliances" ? null : "appliances")} />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+                {customSections.filter(s => s.anchorKey === "appliances").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* Wardrobes Section with Animated Toggle */}
@@ -3566,27 +3885,53 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                       {/* Add Item Button */}
                       {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("wardrobes")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
+                        <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" className="btn btn-primary" onClick={() => addItem("wardrobes")} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+                          <Plus size={14} className="me-1" /> Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="wardrobes" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "wardrobes"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "wardrobes" ? null : "wardrobes")} />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+                {customSections.filter(s => s.anchorKey === "wardrobes").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* TV Unit Section with Animated Toggle */}
@@ -3875,27 +4220,53 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
                       {/* Add Item Button */}
                       {!isReadOnly && (
-                        <div className="mt-3">
-                        <button
-                          type="button"
-                            className="btn btn-primary"
-                            onClick={() => addItem("tvunit")}
-                            style={{ 
-                              borderRadius: "12px", 
-                              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              border: "none",
-                              padding: "10px 20px"
-                            }}
-                        >
-                          <Plus size={14} className="me-1" />
-                            Add Item
+                        <div className="mt-3 d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" className="btn btn-primary" onClick={() => addItem("tvunit")} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
+                          <Plus size={14} className="me-1" /> Add Item
                         </button>
+                        <AddNewSectionButton anchorKey="tvunit" addCustomSection={addCustomSection} isOpen={addNewSectionDropdownOpen === "tvunit"} onToggle={() => setAddNewSectionDropdownOpen(prev => prev === "tvunit" ? null : "tvunit")} />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+                {customSections.filter(s => s.anchorKey === "tvunit").map((sec) => {
+                  const included = includeCustomSection[sec.id] ?? true
+                  return (
+                    <div key={sec.id} className="mb-4">
+                      <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
+                        <div className="card-body p-4">
+                          <div className="d-flex align-items-center mb-3">
+                            {!isReadOnly ? (
+                              <div className="d-flex align-items-center w-100">
+                                <div style={{ display: included ? "flex" : "none", alignItems: "center", marginRight: "12px" }}>
+                                  <Calculator size={18} className="me-2" style={{ color: "#ffffff" }} />
+                                  <input type="text" value={sec.name} onChange={(e) => updateCustomSectionName(sec.id, e.target.value)} style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "16px", fontWeight: "bold", outline: "none", width: "140px" }} />
+                                </div>
+                                <div className="d-flex align-items-center" style={{ marginLeft: "auto" }}>
+                                  <span className="me-2 small fw-semibold" style={{ color: "#ffffff" }}>{included ? `Remove ${sec.name}` : `Include ${sec.name}`}</span>
+                                  <div className="position-relative" style={{ width: "44px", height: "24px", borderRadius: "12px", background: included ? "#667eea" : "#e9ecef", cursor: "pointer" }} onClick={() => setIncludeCustomSectionById(sec.id, !included)}>
+                                    <div style={{ position: "absolute", top: "2px", left: included ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+                                  </div>
+                                </div>
+                                {included && <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={() => removeCustomSection(sec.id)} style={{ borderRadius: "8px" }} title="Delete section"><Trash2 size={14} /></button>}
+                              </div>
+                            ) : (
+                              <h6 className="card-title mb-0 fw-bold d-flex align-items-center" style={{ color: "#ffffff" }}><Calculator size={18} className="me-2" />{sec.name}</h6>
+                            )}
+                          </div>
+                          {included && (sec.type === "normal" ? (
+                            <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ) : (
+                            <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
 
             {/* Totals Section */}
@@ -4114,23 +4485,32 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                 {/* Mobile layout: Proceed on its own row above; Close + Print/Share on next row, all right-aligned */}
                 <div className="d-flex d-md-none flex-column w-100 gap-2">
                   {(() => {
-                    const showButton = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
-                    return showButton ? (
-                      <div className="d-flex justify-content-end">
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => onProceedToInvoice && onProceedToInvoice(salesOrder)}
-                          style={{ 
-                            borderRadius: "12px", 
-                            padding: "10px 24px",
-                            background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                            border: "none"
-                          }}
-                        >
-                          <CreditCard className="me-2" size={16} />
-                          Proceed to Invoice
-                        </button>
+                    const showInvoice = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
+                    const showCashSale = hasPayments && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale;
+                    return (showInvoice || showCashSale) ? (
+                      <div className="d-flex justify-content-end gap-2 flex-wrap">
+                        {showInvoice && (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => onProceedToInvoice?.(salesOrder)}
+                            style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)", border: "none" }}
+                          >
+                            <CreditCard className="me-2" size={16} />
+                            Proceed to Invoice
+                          </button>
+                        )}
+                        {showCashSale && (
+                          <button
+                            type="button"
+                            className="btn btn-success"
+                            onClick={() => onProceedToCashSale?.(salesOrder)}
+                            style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)", border: "none" }}
+                          >
+                            <Receipt className="me-2" size={16} />
+                            Proceed to Cash Sale
+                          </button>
+                        )}
                       </div>
                     ) : null;
                   })()}
@@ -4171,22 +4551,21 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                   Close
                 </button>
                 {(() => {
-                  const showButton = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
-                  return showButton ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => onProceedToInvoice && onProceedToInvoice(salesOrder)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                          Proceed to Invoice
-                  </button>
+                  const showInvoice = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
+                  const showCashSale = hasPayments && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale;
+                  return (showInvoice || showCashSale) ? (
+                    <>
+                      {showInvoice && (
+                        <button type="button" className="btn btn-primary" onClick={() => onProceedToInvoice?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)", border: "none" }}>
+                          <CreditCard className="me-2" size={16} /> Proceed to Invoice
+                        </button>
+                      )}
+                      {showCashSale && (
+                        <button type="button" className="btn btn-success" onClick={() => onProceedToCashSale?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)", border: "none" }}>
+                          <Receipt className="me-2" size={16} /> Proceed to Cash Sale
+                        </button>
+                      )}
+                    </>
                   ) : null;
                 })()}
                 <button
@@ -4219,25 +4598,23 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                   Cancel
                 </button>
                 {(() => {
-                  const showButton = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
-                    return showButton ? (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onProceedToInvoice && onProceedToInvoice(salesOrder)}
-                        style={{ 
-                          borderRadius: "12px", 
-                          padding: "10px 24px",
-                          background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                          border: "none"
-                        }}
-                        disabled={loading}
-                      >
-                        <CreditCard className="me-2" size={16} />
-                          Proceed to Invoice
-                      </button>
-                    ) : null;
-                  })()}
+                  const showInvoice = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
+                  const showCashSale = hasPayments && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale;
+                  return (showInvoice || showCashSale) ? (
+                    <>
+                      {showInvoice && (
+                        <button type="button" className="btn btn-primary" onClick={() => onProceedToInvoice?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)", border: "none" }} disabled={loading}>
+                          <CreditCard className="me-2" size={16} /> Proceed to Invoice
+                        </button>
+                      )}
+                      {showCashSale && (
+                        <button type="button" className="btn btn-success" onClick={() => onProceedToCashSale?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)", border: "none" }} disabled={loading}>
+                          <Receipt className="me-2" size={16} /> Proceed to Cash Sale
+                        </button>
+                      )}
+                    </>
+                  ) : null;
+                })()}
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -4273,23 +4650,21 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                     Cancel
                   </button>
                   {(() => {
-                    const showButton = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
-                  return showButton ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => onProceedToInvoice && onProceedToInvoice(salesOrder)}
-                    style={{ 
-                      borderRadius: "12px", 
-                      padding: "10px 24px",
-                      background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)",
-                      border: "none"
-                    }}
-                    disabled={loading}
-                  >
-                    <CreditCard className="me-2" size={16} />
-                          Proceed to Invoice
-                  </button>
+                  const showInvoice = hasPayments && salesOrder?.status !== "converted_to_invoice" && onProceedToInvoice;
+                  const showCashSale = hasPayments && salesOrder?.status !== "converted_to_cash_sale" && onProceedToCashSale;
+                  return (showInvoice || showCashSale) ? (
+                    <>
+                      {showInvoice && (
+                        <button type="button" className="btn btn-primary" onClick={() => onProceedToInvoice?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #007bff 0%, #0056b3 100%)", border: "none" }} disabled={loading}>
+                          <CreditCard className="me-2" size={16} /> Proceed to Invoice
+                        </button>
+                      )}
+                      {showCashSale && (
+                        <button type="button" className="btn btn-success" onClick={() => onProceedToCashSale?.(salesOrder)} style={{ borderRadius: "12px", padding: "10px 24px", background: "linear-gradient(135deg, #28a745 0%, #20c997 100%)", border: "none" }} disabled={loading}>
+                          <Receipt className="me-2" size={16} /> Proceed to Cash Sale
+                        </button>
+                      )}
+                    </>
                   ) : null;
                 })()}
                 <button

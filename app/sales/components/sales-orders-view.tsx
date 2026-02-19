@@ -288,7 +288,8 @@ const SalesOrdersView = () => {
             worktop_labor_unit_price: salesOrderData.worktop_labor_unit_price,
             vat_amount: salesOrderData.vat_amount,
             vat_percentage: salesOrderData.vat_percentage,
-            section_names: salesOrderData.section_names
+            section_names: salesOrderData.section_names,
+            custom_sections: salesOrderData.custom_sections
           })
           .eq("id", selectedSalesOrder?.id)
 
@@ -312,7 +313,8 @@ const SalesOrdersView = () => {
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price,
-            stock_item_id: item.stock_item_id
+            stock_item_id: item.stock_item_id,
+            section_group: item.section_group ?? null
           }))
 
           const { error: itemsError } = await supabase
