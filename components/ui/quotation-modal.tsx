@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
 import { dateInputToDateOnly } from "@/lib/timezone"
-import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Upload } from "lucide-react"
+import { X, Plus, Trash2, Search, User, Calculator, FileText, ChevronDown, ChevronRight, Package, Calendar, Download, CreditCard, Printer, Upload, UserPlus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { createPortal } from "react-dom"
@@ -12,6 +12,7 @@ import type { QuotationData } from '@/lib/pdf-template';
 import { useIsMobile } from "@/hooks/use-mobile"
 import PrintModal from "./print-modal"
 import ImportQuotationModal from "./import-quotation-modal"
+import RegisterModals from "./register-modals"
 import { CustomNormalSection, CustomWorktopSection } from "./custom-quotation-sections"
 import dynamic from 'next/dynamic'
 
@@ -280,6 +281,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
 
   // Import modal state
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Add New Client modal state (opens on top of quotation when + button clicked)
+  const [showAddClientModal, setShowAddClientModal] = useState(false)
 
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
@@ -2520,8 +2524,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                           <User size={18} className="me-2" />
                           Client Information
                         </h6>
-                        <div className="position-relative" ref={clientInputRef}>
-                          <div className="input-group">
+                        <div className="position-relative d-flex align-items-center gap-2" ref={clientInputRef}>
+                          <div className="input-group flex-grow-1">
                             <input
                               type="text"
                               className="form-control"
@@ -2529,9 +2533,27 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                               value={clientSearchTerm}
                               onChange={(e) => handleClientSearch(e.target.value)}
                               onFocus={() => setClientDropdownVisible(true)}
-                              style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
+                              style={{ borderRadius: isReadOnly ? "16px" : "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#ffffff" }}
                               readOnly={isReadOnly}
                             />
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                className="btn btn-outline-light d-flex align-items-center justify-content-center"
+                                onClick={() => setShowAddClientModal(true)}
+                                style={{
+                                  borderRadius: "0 16px 16px 0",
+                                  height: "45px",
+                                  width: "45px",
+                                  padding: 0,
+                                  borderColor: "rgba(255,255,255,0.4)",
+                                  flexShrink: 0
+                                }}
+                                title="Add New Client"
+                              >
+                                <UserPlus size={18} />
+                              </button>
+                            )}
                           </div>
 
                           <PortalDropdown
@@ -5000,6 +5022,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         onImport={handleImportData}
         customSections={customSections.map(s => ({ id: s.id, name: s.name, type: s.type, anchorKey: s.anchorKey }))}
       />
+
+      {/* Add New Client Modal - opens on top of New Quotation when + button clicked */}
+      {showAddClientModal && (
+        <RegisterModals
+          showClientModal={true}
+          showSupplierModal={false}
+          showEmployeeModal={false}
+          showEditModal={false}
+          editEntity={null}
+          editEmployee={null}
+          editType={null}
+          onCloseClientModal={() => setShowAddClientModal(false)}
+          onCloseSupplierModal={() => {}}
+          onCloseEmployeeModal={() => {}}
+          onCloseEditModal={() => {}}
+          onRefreshData={fetchClients}
+        />
+      )}
     </>
   )
 }
