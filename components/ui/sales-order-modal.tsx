@@ -208,6 +208,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
   
   // Import modal state
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Accordion state for Notes and Terms & Conditions (collapsed by default)
+  const [notesExpanded, setNotesExpanded] = useState(false)
+  const [termsExpanded, setTermsExpanded] = useState(false)
+  const notesTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const termsTextareaRef = useRef<HTMLTextAreaElement>(null)
   
   // Custom section names state
   const [sectionNames, setSectionNames] = useState({
@@ -519,6 +525,22 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       }
     }
   }, [isOpen, mode, salesOrder?.id]);
+
+  // Auto-resize Notes/Terms textareas when expanded or content changes
+  useEffect(() => {
+    if (notesExpanded && notesTextareaRef.current) {
+      const el = notesTextareaRef.current
+      el.style.height = "auto"
+      el.style.height = Math.max(40, el.scrollHeight) + "px"
+    }
+  }, [notesExpanded, notes])
+  useEffect(() => {
+    if (termsExpanded && termsTextareaRef.current) {
+      const el = termsTextareaRef.current
+      el.style.height = "auto"
+      el.style.height = Math.max(40, el.scrollHeight) + "px"
+    }
+  }, [termsExpanded, termsConditions])
 
   const resetForm = () => {
     setSelectedClient(null)
@@ -3939,35 +3961,37 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                   </h6>
                   <div className="row">
                     <div className="col-md-6">
-                      <div className="d-flex justify-content-between mb-2">
-                        <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
-                        <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
-                      </div>
-                      {includeWorktop && (
+                      {(totals.cabinetTotal + cabinetLabour) > 0 && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{sectionNames.cabinet} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.cabinetTotal + cabinetLabour).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {includeWorktop && totals.worktopTotal > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>{sectionNames.worktop} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {totals.worktopTotal.toFixed(2)}</span>
                         </div>
                       )}
-                      {includeAccessories && (
+                      {includeAccessories && (totals.accessoriesTotal + accessoriesLabour) > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>{sectionNames.accessories} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.accessoriesTotal + accessoriesLabour).toFixed(2)}</span>
                         </div>
                       )}
-                      {includeAppliances && (
+                      {includeAppliances && (totals.appliancesTotal + appliancesLabour) > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>{sectionNames.appliances} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.appliancesTotal + appliancesLabour).toFixed(2)}</span>
                         </div>
                       )}
-                      {includeWardrobes && (
+                      {includeWardrobes && (totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100) > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>{sectionNames.wardrobes} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.wardrobesTotal + (totals.wardrobesTotal * (wardrobesLabourPercentage || 30)) / 100).toFixed(2)}</span>
                         </div>
                       )}
-                      {includeTvUnit && (
+                      {includeTvUnit && (totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100) > 0 && (
                         <div className="d-flex justify-content-between mb-2">
                           <span style={{ color: "#ffffff" }}>{sectionNames.tvunit} Total:</span>
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
@@ -4062,40 +4086,74 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
               </div>
             </div>
 
-            {/* Notes and Terms Section */}
+            {/* Notes and Terms Section - Accordion style, minimal */}
             <div className="row mb-4">
               <div className="col-md-6">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      Notes
-                    </h6>
-              <textarea
-                className="form-control"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Additional notes..."
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                readOnly={isReadOnly}
-              />
-                  </div>
+                <div className="card" style={{ borderRadius: "12px", border: "1px solid rgba(233,236,239,0.6)", boxShadow: "none", overflow: "hidden" }}>
+                  <button
+                    type="button"
+                    className="d-flex align-items-center justify-content-between w-100 p-3 border-0 bg-transparent text-white text-start"
+                    style={{ cursor: "pointer", transition: "background 0.2s" }}
+                    onClick={() => setNotesExpanded(prev => !prev)}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <span className="fw-semibold" style={{ fontSize: "14px" }}>Notes</span>
+                    <ChevronDown size={18} style={{ transform: notesExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.8 }} />
+                  </button>
+                  {notesExpanded && (
+                    <div className="px-3 pb-3 pt-0">
+                      <textarea
+                        className="form-control"
+                        value={notes}
+                        onChange={(e) => {
+                          setNotes(e.target.value)
+                          const el = e.target
+                          el.style.height = "auto"
+                          el.style.height = Math.max(40, el.scrollHeight) + "px"
+                        }}
+                        placeholder="Additional notes..."
+                        rows={1}
+                        ref={notesTextareaRef}
+                        style={{ borderRadius: "10px", border: "1px solid rgba(233,236,239,0.6)", minHeight: "40px", resize: "none", overflow: "hidden", fontSize: "14px" }}
+                        readOnly={isReadOnly}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="col-md-6">
-                <div className="card" style={{ borderRadius: "16px", border: "1px solid #e9ecef", boxShadow: "none" }}>
-                  <div className="card-body p-4">
-                    <h6 className="card-title mb-3 fw-bold" style={{ color: "#ffffff" }}>
-                      Terms & Conditions
-                    </h6>
-              <textarea
-                className="form-control"
-                      value={termsConditions}
-                      onChange={(e) => setTermsConditions(e.target.value)}
-                      placeholder="Terms and conditions..."
-                      style={{ borderRadius: "12px", border: "1px solid #e9ecef", minHeight: "100px" }}
-                readOnly={isReadOnly}
-              />
-          </div>
+                <div className="card" style={{ borderRadius: "12px", border: "1px solid rgba(233,236,239,0.6)", boxShadow: "none", overflow: "hidden" }}>
+                  <button
+                    type="button"
+                    className="d-flex align-items-center justify-content-between w-100 p-3 border-0 bg-transparent text-white text-start"
+                    style={{ cursor: "pointer", transition: "background 0.2s" }}
+                    onClick={() => setTermsExpanded(prev => !prev)}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <span className="fw-semibold" style={{ fontSize: "14px" }}>Terms & Conditions</span>
+                    <ChevronDown size={18} style={{ transform: termsExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.8 }} />
+                  </button>
+                  {termsExpanded && (
+                    <div className="px-3 pb-3 pt-0">
+                      <textarea
+                        className="form-control"
+                        value={termsConditions}
+                        onChange={(e) => {
+                          setTermsConditions(e.target.value)
+                          const el = e.target
+                          el.style.height = "auto"
+                          el.style.height = Math.max(40, el.scrollHeight) + "px"
+                        }}
+                        placeholder="Terms and conditions..."
+                        rows={1}
+                        ref={termsTextareaRef}
+                        style={{ borderRadius: "10px", border: "1px solid rgba(233,236,239,0.6)", minHeight: "40px", resize: "none", overflow: "hidden", fontSize: "14px" }}
+                        readOnly={isReadOnly}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
