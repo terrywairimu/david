@@ -721,91 +721,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 </div>
               </div>
 
-              {/* Status, Amount Paid, Balance, and Total Amount in one row */}
-              <div className="row mb-3">
-                {/* Status - Left - when Cash/M-Pesa/Petty Cash: read-only Fully Paid only */}
-                <div className="col-md-3" key={`payment-status-${purchaseType}`}>
-                  <label className="form-label">Payment Status</label>
-                  {isCashPurchase ? (
-                    <input
-                      type="text"
-                      className="form-control border-0 shadow-sm"
-                      value="Fully Paid"
-                      readOnly
-                      style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
-                    />
-                  ) : (
-                    <select
-                      className="form-select border-0 shadow-sm"
-                      value={paymentStatus}
-                      onChange={(e) => setPaymentStatus(e.target.value)}
-                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
-                      required
-                      disabled={mode === "view"}
-                    >
-                      <option value="not_yet_paid">Not Yet Paid</option>
-                      <option value="partially_paid">Partially Paid</option>
-                      <option value="fully_paid">Fully Paid</option>
-                    </select>
-                  )}
-                </div>
-                
-                {/* Amount Paid - Middle Left */}
-                <div className="col-md-3">
-                  <label className="form-label">Amount Paid</label>
-                  <FormattedNumberInput
-                    className="form-control border-0 shadow-sm"
-                    value={amountPaid === 0 ? '' : amountPaid}
-                    onChange={(v) => {
-                      if (paymentStatus === "partially_paid") {
-                        setAmountPaid(parseFormattedNumber(v) || 0)
-                      }
-                    }}
-                    style={{ 
-                      borderRadius: "16px", 
-                      height: "45px", 
-                      color: "#000000",
-                      backgroundColor: paymentStatus !== "partially_paid" ? "#f8f9fa" : "white"
-                    }}
-                    required={paymentStatus === "partially_paid"}
-                    readOnly={mode === "view" || paymentStatus !== "partially_paid"}
-                  />
-                </div>
-                
-                {/* Balance - Middle Right */}
-                <div className="col-md-3">
-                  <label className="form-label">Balance</label>
-                  <input
-                    type="text"
-                    className="form-control border-0 shadow-sm"
-                    value={formatNumber(balance)}
-                    style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
-                    readOnly
-                  />
-                </div>
-                
-                {/* Total Amount - Right */}
-                <div className="col-md-3">
-                  <label className="form-label">Total Amount</label>
-                  <div className="input-group shadow-sm">
-                    <span 
-                      className="input-group-text border-0"
-                      style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
-                    >
-                      KES
-                    </span>
-                    <input 
-                      type="text" 
-                      className="form-control border-0"
-                      value={formatNumber(total)}
-                      readOnly
-                      style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-                {/* Items Section */}
+              {/* Items Section */}
               <div className="mb-3">
                 <label className="form-label">Items</label>
                   
@@ -1030,6 +946,90 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 </button>
               </div>
                 )}
+
+              {/* Status, Amount Paid, Balance, and Total Amount - below Purchase Items */}
+              <div className="row mb-3 mt-3">
+                {/* Status - Left - when Cash/M-Pesa/Petty Cash: read-only Fully Paid only */}
+                <div className="col-md-3" key={`payment-status-${purchaseType}`}>
+                  <label className="form-label">Payment Status</label>
+                  {isCashPurchase ? (
+                    <input
+                      type="text"
+                      className="form-control border-0 shadow-sm"
+                      value="Fully Paid"
+                      readOnly
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
+                    />
+                  ) : (
+                    <select
+                      className="form-select border-0 shadow-sm"
+                      value={paymentStatus}
+                      onChange={(e) => setPaymentStatus(e.target.value)}
+                      style={{ borderRadius: "16px", height: "45px", color: "#000000" }}
+                      required
+                      disabled={mode === "view"}
+                    >
+                      <option value="not_yet_paid">Not Yet Paid</option>
+                      <option value="partially_paid">Partially Paid</option>
+                      <option value="fully_paid">Fully Paid</option>
+                    </select>
+                  )}
+                </div>
+                
+                {/* Amount Paid - Middle Left */}
+                <div className="col-md-3">
+                  <label className="form-label">Amount Paid</label>
+                  <FormattedNumberInput
+                    className="form-control border-0 shadow-sm"
+                    value={amountPaid === 0 ? '' : amountPaid}
+                    onChange={(v) => {
+                      if (paymentStatus === "partially_paid") {
+                        setAmountPaid(parseFormattedNumber(v) || 0)
+                      }
+                    }}
+                    style={{ 
+                      borderRadius: "16px", 
+                      height: "45px", 
+                      color: "#000000",
+                      backgroundColor: paymentStatus !== "partially_paid" ? "#f8f9fa" : "white"
+                    }}
+                    required={paymentStatus === "partially_paid"}
+                    readOnly={mode === "view" || paymentStatus !== "partially_paid"}
+                  />
+                </div>
+                
+                {/* Balance - Middle Right */}
+                <div className="col-md-3">
+                  <label className="form-label">Balance</label>
+                  <input
+                    type="text"
+                    className="form-control border-0 shadow-sm"
+                    value={formatNumber(balance)}
+                    style={{ borderRadius: "16px", height: "45px", color: "#000000", backgroundColor: "#f8f9fa" }}
+                    readOnly
+                  />
+                </div>
+                
+                {/* Total Amount - Right */}
+                <div className="col-md-3">
+                  <label className="form-label">Total Amount</label>
+                  <div className="input-group shadow-sm">
+                    <span 
+                      className="input-group-text border-0"
+                      style={{ background: "white", borderRadius: "16px 0 0 16px", height: "45px" }}
+                    >
+                      KES
+                    </span>
+                    <input 
+                      type="text" 
+                      className="form-control border-0"
+                      value={formatNumber(total)}
+                      readOnly
+                      style={{ borderRadius: "0 16px 16px 0", height: "45px", textAlign: "right", color: "#000000" }}
+                    />
+                  </div>
+                </div>
+              </div>
                 </div>
 
             </form>
