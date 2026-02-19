@@ -1539,21 +1539,22 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
   }
 
   const getAccountIcon = (accountType: string) => {
+    const iconSize = 18
     switch (accountType) {
       case 'cash':
-        return <Wallet size={24} />
+        return <Wallet size={iconSize} />
       case 'cooperative_bank':
-        return <Building size={24} />
+        return <Building size={iconSize} />
       case 'credit':
-        return <CreditIcon size={24} />
+        return <CreditIcon size={iconSize} />
       case 'cheque':
-        return <FileText size={24} />
+        return <FileText size={iconSize} />
       case 'mpesa':
-        return <Smartphone size={24} />
+        return <Smartphone size={iconSize} />
       case 'petty_cash':
-        return <Coins size={24} />
+        return <Coins size={iconSize} />
       default:
-        return <DollarSign size={24} />
+        return <DollarSign size={iconSize} />
     }
   }
 
@@ -1633,12 +1634,12 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
 
   return (
     <div>
-      {/* Account Summary Cards */}
-      <div className="row mb-4">
+      {/* Account Summary Cards - 6 per row, compact */}
+      <div className="row g-2 mb-3">
         {accountBalances.map((account) => (
-          <div key={account.account_type} className="col-md-3 mb-3">
+          <div key={account.account_type} className="col-6 col-md-2">
             <div 
-              className={`card text-white account-summary-card ${getAccountGradient(account.account_type)} ${
+              className={`card text-white account-summary-card account-summary-card-compact ${getAccountGradient(account.account_type)} ${
                 activeAccountFilter === account.account_type ? 'active-filter' : ''
               }`}
               style={{ 
@@ -1650,23 +1651,23 @@ const AccountSummaryView = ({ clients, payments, loading, onRefresh }: AccountSu
               onClick={() => handleAccountCardClick(account.account_type)}
               title={`Click to filter by ${getAccountTitle(account.account_type)}. Double-click to clear filter.`}
             >
-              <div className="card-body">
-                <div className="d-flex align-items-center justify-content-between">
-                  <div className="flex-grow-1">
-                    <div className="small opacity-90">{getAccountTitle(account.account_type)}</div>
-                    <div className="h5 mb-0 fw-bold">KES {formatNumber(account.current_balance)}</div>
-                    <div className="small mt-2 opacity-90">
+              <div className="card-body py-2 px-2">
+                <div className="d-flex align-items-start justify-content-between gap-1">
+                  <div className="flex-grow-1 min-w-0">
+                    <div className="account-card-title">{getAccountTitle(account.account_type)}</div>
+                    <div className="account-card-balance">KES {formatNumber(account.current_balance)}</div>
+                    <div className="account-card-inout">
                       <div>In: KES {formatNumber(account.total_in)}</div>
                       <div>Out: KES {formatNumber(account.total_out)}</div>
                     </div>
                   </div>
-                  <div className="ms-3">
+                  <div className="account-card-icon flex-shrink-0">
                     {getAccountIcon(account.account_type)}
                   </div>
                 </div>
                 {activeAccountFilter === account.account_type && (
-                  <div className="position-absolute top-0 end-0 p-2">
-                    <div className="badge bg-light text-dark">Active Filter</div>
+                  <div className="position-absolute top-0 end-0 p-1">
+                    <div className="badge bg-light text-dark" style={{ fontSize: '0.6rem', padding: '0.15rem 0.35rem' }}>Active</div>
                   </div>
                 )}
               </div>
