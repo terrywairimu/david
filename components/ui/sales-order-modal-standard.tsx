@@ -1252,6 +1252,40 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           });
         }
       }
+
+      // Add custom sections as independent sections (each with header, items, and summary)
+      for (const sec of customSections) {
+        if (!(includeCustomSection[sec.id] ?? true)) continue
+        const secItems = customSectionItems[sec.id] || {}
+        let secTotal = 0
+        if (sec.type === "normal") {
+          const cabItems = (secItems.cabinet || []).filter((i: SalesOrderItem) => !i.description?.includes("Labour Charge"))
+          const cabSum = cabItems.reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0)
+          const inclLabour = customSectionIncludeLabour[sec.id] ?? true
+          const labourPct = customSectionLabourPercentage[sec.id] ?? 30
+          const labour = inclLabour ? (cabSum * labourPct) / 100 : 0
+          secTotal = cabSum + labour
+          if (secTotal <= 0) continue
+          items.push({ isSection: true, description: sec.name, quantity: 0, unit: "", unitPrice: 0, total: 0 })
+          cabItems.forEach((item: SalesOrderItem) => {
+            items.push({ quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price, total: item.total_price })
+          })
+          items.push({ isSectionSummary: true, description: `${sec.name} Total`, quantity: 0, unit: "", unitPrice: secTotal, total: secTotal })
+        } else {
+          const workItems = secItems.worktop || []
+          const workSum = workItems.reduce((s: number, i: SalesOrderItem) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
+          secTotal = workSum
+          if (secTotal <= 0) continue
+          items.push({ isSection: true, description: sec.name, quantity: 0, unit: "", unitPrice: 0, total: 0 })
+          workItems.forEach((item: SalesOrderItem) => {
+            items.push({ quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price, total: item.total_price })
+          })
+          if (worktopLaborQty > 0 && worktopLaborUnitPrice > 0) {
+            items.push({ quantity: worktopLaborQty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: worktopLaborUnitPrice, total: worktopLaborQty * worktopLaborUnitPrice })
+          }
+          items.push({ isSectionSummary: true, description: `${sec.name} Total`, quantity: 0, unit: "", unitPrice: secTotal, total: secTotal })
+        }
+      }
       
       // Fetch watermark image as base64
       async function fetchImageAsBase64(url: string): Promise<string> {
@@ -1965,21 +1999,26 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
     
     let customSectionsItemTotal = 0
     let customSectionsLabour = 0
+    const customSectionTotals: Array<{ id: string; name: string; total: number }> = []
     for (const sec of customSections) {
+      if (!(includeCustomSection[sec.id] ?? true)) continue
       const items = customSectionItems[sec.id] || {}
+      let secTotal = 0
       if (sec.type === "normal") {
         const cab = (items.cabinet || []).filter(i => !i.description?.includes("Labour Charge"))
         const cabSum = cab.reduce((s, i) => s + i.total_price, 0)
         customSectionsItemTotal += cabSum
         const includeLabour = customSectionIncludeLabour[sec.id] ?? true
         const labourPct = customSectionLabourPercentage[sec.id] ?? 30
-        if (includeLabour && cabSum > 0) {
-          customSectionsLabour += (cabSum * labourPct) / 100
-        }
+        const labour = includeLabour && cabSum > 0 ? (cabSum * labourPct) / 100 : 0
+        customSectionsLabour += labour
+        secTotal = cabSum + labour
       } else {
-        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0)
+        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
         customSectionsItemTotal += workSum
+        secTotal = workSum
       }
+      customSectionTotals.push({ id: sec.id, name: sec.name, total: secTotal })
     }
     
     const subtotal = cabinetTotal + worktopTotal + accessoriesTotal + appliancesTotal + wardrobesTotal + tvUnitTotal + customSectionsItemTotal
@@ -2002,6 +2041,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       tvUnitTotal,
       customSectionsItemTotal,
       customSectionsLabour,
+      customSectionTotals,
       subtotal,
       labourAmount: totalLabour,
       grandTotal,
@@ -2012,7 +2052,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       tvUnitLabour
     }
   }, [cabinetItems, worktopItems, accessoriesItems, appliancesItems, wardrobesItems, tvUnitItems, 
-      customSections, customSectionItems, customSectionIncludeLabour, customSectionLabourPercentage,
+      customSections, customSectionItems, includeCustomSection, customSectionIncludeLabour, customSectionLabourPercentage,
       includeWorktop, worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage, 
       accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage,
       includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit])
@@ -4315,6 +4355,12 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
                           <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {(totals.tvUnitTotal + (totals.tvUnitTotal * (tvUnitLabourPercentage || 30)) / 100).toFixed(2)}</span>
                         </div>
                       )}
+                      {(totals.customSectionTotals || []).filter((cs: { id: string; name: string; total: number }) => cs.total > 0).map((cs: { id: string; name: string; total: number }) => (
+                        <div key={cs.id} className="d-flex justify-content-between mb-2">
+                          <span style={{ color: "#ffffff" }}>{cs.name} Total:</span>
+                          <span style={{ fontWeight: "600", color: "#ffffff" }}>KES {cs.total.toFixed(2)}</span>
+                        </div>
+                      ))}
                     </div>
                     <div className="col-md-6">
                       <div className="d-flex justify-content-between mb-2">
