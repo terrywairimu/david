@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { X, Plus, Truck, Package } from "lucide-react"
+import { X, Plus, Truck, Package, UserPlus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
@@ -9,6 +9,7 @@ import { dateInputToDateOnly } from "@/lib/timezone"
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
 import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
 import { createPortal } from "react-dom"
+import RegisterModals from "./register-modals"
 
 interface PurchaseModalProps {
   isOpen: boolean
@@ -105,6 +106,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
   const [supplierId, setSupplierId] = useState<number | null>(null)
   const [supplierName, setSupplierName] = useState("")
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false)
   const [supplierSearch, setSupplierSearch] = useState("")
   const [supplierDropdownVisible, setSupplierDropdownVisible] = useState(false)
   const [suppliers, setSuppliers] = useState<RegisteredEntity[]>([])
@@ -641,7 +643,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                           }
                       }}
                       style={{
-                        borderRadius: "0 16px 16px 0",
+                        borderRadius: mode === "view" ? "0 16px 16px 0" : 0,
                         height: "45px",
                         width: "20%",
                         background: "white",
@@ -650,6 +652,24 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     >
                         <Truck size={16} style={{ color: "#6c757d" }} />
                     </button>
+                    {mode !== "view" && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary border-0 d-flex align-items-center justify-content-center"
+                        onClick={() => setShowAddSupplierModal(true)}
+                        style={{
+                          borderRadius: "0 16px 16px 0",
+                          height: "45px",
+                          width: "45px",
+                          padding: 0,
+                          background: "white",
+                          transition: "all 0.3s ease"
+                        }}
+                        title="Add New Supplier"
+                      >
+                        <UserPlus size={18} style={{ color: "#6c757d" }} />
+                      </button>
+                    )}
                       
                       {/* Supplier Dropdown */}
                       <PortalDropdown
@@ -1059,8 +1079,24 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({
         </div>
       </div>
     </div>
-      
 
+      {/* Add New Supplier Modal - opens on top of Purchase modal when + button clicked */}
+      {showAddSupplierModal && (
+        <RegisterModals
+          showClientModal={false}
+          showSupplierModal={true}
+          showEmployeeModal={false}
+          showEditModal={false}
+          editEntity={null}
+          editEmployee={null}
+          editType={null}
+          onCloseClientModal={() => {}}
+          onCloseSupplierModal={() => setShowAddSupplierModal(false)}
+          onCloseEmployeeModal={() => {}}
+          onCloseEditModal={() => {}}
+          onRefreshData={fetchSuppliers}
+        />
+      )}
     </>
   )
 }

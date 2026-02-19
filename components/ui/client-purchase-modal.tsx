@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { X, Search, Plus, User, Trash2, Package } from "lucide-react"
+import { X, Search, Plus, User, Trash2, Package, UserPlus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { toast } from "sonner"
 import { RegisteredEntity, StockItem } from "@/lib/types"
@@ -9,6 +9,7 @@ import { dateInputToDateOnly } from "@/lib/timezone"
 import { createPortal } from "react-dom"
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input"
 import { formatNumber, parseFormattedNumber } from "@/lib/format-number"
+import RegisterModals from "./register-modals"
 
 interface ClientPurchaseModalProps {
   isOpen: boolean
@@ -111,6 +112,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
   const [purchaseDate, setPurchaseDate] = useState("")
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
   const [supplierId, setSupplierId] = useState<number | null>(null)
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false)
   const [clientId, setClientId] = useState<number | null>(null)
   const [paidTo, setPaidTo] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -646,6 +648,7 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
   if (!isOpen) return null
 
   return (
+    <>
     <div className="modal fade show" style={{ display: "block", zIndex: 1055, backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
       <div className="modal-dialog modal-xl modal-dialog-centered">
         <div className="modal-content" style={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
@@ -691,19 +694,42 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Supplier</label>
-                  <select
-                    className="form-select border-0 shadow-sm"
-                    value={supplierId || ""}
-                    onChange={(e) => setSupplierId(e.target.value ? parseInt(e.target.value) : null)}
-                    required
-                    style={{ borderRadius: "16px", height: "45px" }}
-                    disabled={mode === "view"}
-                  >
-                    <option value="">Select Supplier</option>
-                    {suppliers.map(supplier => (
-                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                    ))}
-                  </select>
+                  <div className="input-group shadow-sm">
+                    <select
+                      className="form-select border-0"
+                      value={supplierId || ""}
+                      onChange={(e) => setSupplierId(e.target.value ? parseInt(e.target.value) : null)}
+                      required
+                      style={{
+                        borderRadius: mode === "view" ? "16px" : "16px 0 0 16px",
+                        height: "45px"
+                      }}
+                      disabled={mode === "view"}
+                    >
+                      <option value="">Select Supplier</option>
+                      {suppliers.map(supplier => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                      ))}
+                    </select>
+                    {mode !== "view" && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary border-0 d-flex align-items-center justify-content-center"
+                        onClick={() => setShowAddSupplierModal(true)}
+                        style={{
+                          borderRadius: "0 16px 16px 0",
+                          height: "45px",
+                          width: "45px",
+                          padding: 0,
+                          background: "white",
+                          transition: "all 0.3s ease"
+                        }}
+                        title="Add New Supplier"
+                      >
+                        <UserPlus size={18} style={{ color: "#6c757d" }} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Payment Method</label>
@@ -1151,6 +1177,25 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
         </div>
       </div>
     </div>
+
+      {/* Add New Supplier Modal - opens on top of Purchase modal when + button clicked */}
+      {showAddSupplierModal && (
+        <RegisterModals
+          showClientModal={false}
+          showSupplierModal={true}
+          showEmployeeModal={false}
+          showEditModal={false}
+          editEntity={null}
+          editEmployee={null}
+          editType={null}
+          onCloseClientModal={() => {}}
+          onCloseSupplierModal={() => setShowAddSupplierModal(false)}
+          onCloseEmployeeModal={() => {}}
+          onCloseEditModal={() => {}}
+          onRefreshData={fetchSuppliers}
+        />
+      )}
+    </>
   )
 }
 
