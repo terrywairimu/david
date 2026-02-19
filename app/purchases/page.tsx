@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { ShoppingCart, Plus, Search, Download, Eye, FileText, Printer, Edit } from "lucide-react"
 import { SectionHeader } from "@/components/ui/section-header"
 import { ActionGuard } from "@/components/ActionGuard"
@@ -45,6 +45,7 @@ interface Purchase {
 
 const PurchasesPage = () => {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { canPerformAction } = useAuth()
   const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -849,13 +850,23 @@ const PurchasesPage = () => {
       >
         <button
           className={`btn-add ${currentView === "client" ? "active" : ""}`}
-          onClick={() => setCurrentView("client")}
+          onClick={() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set("view", "client")
+            if (paymentType !== "all") params.set("type", paymentType)
+            router.replace(`/purchases?${params.toString()}`)
+          }}
         >
           Client Purchase
         </button>
         <button
           className={`btn-add ${currentView === "general" ? "active" : ""}`}
-          onClick={() => setCurrentView("general")}
+          onClick={() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set("view", "general")
+            if (paymentType !== "all") params.set("type", paymentType)
+            router.replace(`/purchases?${params.toString()}`)
+          }}
         >
           General Purchase
         </button>
