@@ -885,7 +885,7 @@ export default function AnalyticsPage() {
     if (!el || !el.offsetParent) return undefined
     try {
       const canvas = await html2canvas(el, {
-        scale: options?.scale ?? 2,
+        scale: options?.scale ?? 3,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,

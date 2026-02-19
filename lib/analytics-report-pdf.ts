@@ -161,20 +161,19 @@ export async function generateAnalyticsReportPDF(
     y += statRows.length * 7 + 12
   }
 
-  // Main chart visualization - only include when we have real chart image or chart data
+  // Main chart visualization - only include when we have a REAL chart image (skip tiny placeholder to avoid empty/malformed area)
   const hasMainChart = !!(params.mainChartImage && params.mainChartImage.length > 300)
-  const hasChartData = params.comprehensiveChartData.length > 0
-  if (hasMainChart || hasChartData) {
-    const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    const mainChartImg = params.mainChartImage || mainChartPlaceholder
+  if (hasMainChart) {
+    const chartWidth = PAGE.width - MARGIN.left - MARGIN.right
+    const chartHeight = 95
     page1Schema.push(
-      { name: 'mainChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 5, fontSize: 9, fontColor: '#666666', alignment: 'left' },
-      { name: 'mainChartImage', type: 'image', position: { x: MARGIN.left, y: y + 6 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 55 }
+      { name: 'mainChartLabel', type: 'text', position: { x: MARGIN.left, y }, width: chartWidth, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' },
+      { name: 'mainChartImage', type: 'image', position: { x: MARGIN.left, y: y + 8 }, width: chartWidth, height: chartHeight }
     )
-    y += 68
+    y += 8 + chartHeight + 8
   }
 
-  // Chart data table header (Time Series / Performance Over Time)
+  // Chart data table (Performance Over Time) - directly below chart when present, aligns with x-axis dates
   let dataKey = 'amount'
   if (params.comprehensiveChartData.length > 0) {
     const firstRow = params.comprehensiveChartData[0] as Record<string, unknown> | undefined
@@ -183,11 +182,14 @@ export async function generateAnalyticsReportPDF(
       ? metricToKey[params.analyticsMetric]
       : firstRow && 'amount' in firstRow ? 'amount' : firstRow && 'net_profit' in firstRow ? 'net_profit' : 'amount'
 
+    const tableWidth = PAGE.width - MARGIN.left - MARGIN.right
+    const colDateWidth = 95
+    const colValueWidth = 75
     page1Schema.push(
-      { name: 'tableSectionTitle', type: 'text', position: { x: MARGIN.left, y }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' },
-      { name: 'tableHeader', type: 'rectangle', position: { x: MARGIN.left, y: y + 8 }, width: PAGE.width - MARGIN.left - MARGIN.right, height: 8, color: '#E8E8E8', borderRadius: 2 },
-      { name: 'colDate', type: 'text', position: { x: MARGIN.left + 3, y: y + 10 }, width: 50, height: 6, fontSize: 9, fontColor: '#000000', alignment: 'left' },
-      { name: 'colValue', type: 'text', position: { x: PAGE.width - MARGIN.right - 70, y: y + 10 }, width: 70, height: 6, fontSize: 9, fontColor: '#000000', alignment: 'right' }
+      { name: 'tableSectionTitle', type: 'text', position: { x: MARGIN.left, y }, width: tableWidth, height: 6, fontSize: 10, fontColor: '#333333', alignment: 'left' },
+      { name: 'tableHeader', type: 'rectangle', position: { x: MARGIN.left, y: y + 8 }, width: tableWidth, height: 8, color: '#E8E8E8', borderRadius: 2 },
+      { name: 'colDate', type: 'text', position: { x: MARGIN.left + 4, y: y + 10 }, width: colDateWidth, height: 6, fontSize: 9, fontColor: '#000000', alignment: 'left' },
+      { name: 'colValue', type: 'text', position: { x: MARGIN.left + tableWidth - colValueWidth - 4, y: y + 10 }, width: colValueWidth, height: 6, fontSize: 9, fontColor: '#000000', alignment: 'right' }
     )
     y += 20
 
@@ -199,8 +201,8 @@ export async function generateAnalyticsReportPDF(
         ? `KES ${Number(val).toLocaleString()}`
         : String(val)
       page1Schema.push(
-        { name: `rowDate_${i}`, type: 'text', position: { x: MARGIN.left + 3, y: rowY }, width: 50, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'left' },
-        { name: `rowVal_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 70, y: rowY }, width: 70, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' }
+        { name: `rowDate_${i}`, type: 'text', position: { x: MARGIN.left + 4, y: rowY }, width: colDateWidth, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'left' },
+        { name: `rowVal_${i}`, type: 'text', position: { x: MARGIN.left + tableWidth - colValueWidth - 4, y: rowY }, width: colValueWidth, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' }
       )
     })
     y += chartRows.length * 6 + 8
@@ -266,10 +268,9 @@ export async function generateAnalyticsReportPDF(
     tableSectionTitle: params.comprehensiveChartData.length > 0 ? 'Performance Over Time (Time Series Data)' : '',
     watermark: watermarkBase64,
   }
-  if (hasMainChart || hasChartData) {
-    const mainChartPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  if (hasMainChart) {
     page1Input.mainChartLabel = 'Performance Trend Chart'
-    page1Input.mainChartImage = params.mainChartImage || mainChartPlaceholder
+    page1Input.mainChartImage = params.mainChartImage
   }
   if (statRows.length > 0) {
     page1Input.execHeader = ''
@@ -341,11 +342,18 @@ export async function generateAnalyticsReportPDF(
   )
   y += 10
 
+  // Color legend for profitability: Paid=green, Expenses=red, Net=blue
+  const distColors = params.section === 'profitability'
+    ? ['#22c55e', '#ef4444', '#3b82f6'] as const
+    : params.segmentationSegments.slice(0, 10).map((s) => s.color ?? '#6b7280')
   distItems.slice(0, 10).forEach((item, i) => {
+    const rowY = y + i * 6
+    const color = distColors[i] ?? '#6b7280'
     page2Schema.push(
-      { name: `distName_${i}`, type: 'text', position: { x: MARGIN.left + 3, y: y + i * 6 }, width: 120, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'left' },
-      { name: `distPct_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 100, y: y + i * 6 }, width: 50, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' },
-      { name: `distAmt_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 45, y: y + i * 6 }, width: 45, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' }
+      { name: `distColor_${i}`, type: 'rectangle', position: { x: MARGIN.left + 2, y: rowY + 1 }, width: 4, height: 4, color, borderRadius: 1 },
+      { name: `distName_${i}`, type: 'text', position: { x: MARGIN.left + 10, y: rowY }, width: 110, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'left' },
+      { name: `distPct_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 100, y: rowY }, width: 50, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' },
+      { name: `distAmt_${i}`, type: 'text', position: { x: PAGE.width - MARGIN.right - 45, y: rowY }, width: 45, height: 5, fontSize: 8, fontColor: '#333333', alignment: 'right' }
     )
   })
   y += Math.max(distItems.length, 1) * 6 + 10
