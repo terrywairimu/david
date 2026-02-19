@@ -150,57 +150,21 @@ const ClientPurchaseModal: React.FC<ClientPurchaseModalProps> = ({
 
   const fetchLastPurchasePrices = async () => {
     try {
-      console.log('Attempting to fetch last purchase prices...')
-      
-      // First, try a simple count query to test access
-      const { count, error: countError } = await supabase
-        .from('purchase_items')
-        .select('*', { count: 'exact', head: true })
-      
-      if (countError) {
-        console.warn('Cannot access purchase_items table:', countError)
-        return {}
-      }
-      
-      console.log('Purchase items table accessible, count:', count)
-      
-      const { data, error } = await supabase
-        .from('purchase_items')
-        .select('stock_item_id, unit_price, created_at')
-        .not('stock_item_id', 'is', null)
-        .not('unit_price', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1000) // Add limit to prevent large queries
+      // Use same RPC as general purchase modal - joins purchase_items with purchases
+      // and gets last price per stock_item by purchase_date (correct semantics)
+      const { data, error } = await supabase.rpc('get_last_purchase_prices')
 
       if (error) {
         console.warn('Supabase error fetching last purchase prices (non-critical):', error)
-        console.warn('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        return {}
-      }
-
-      console.log('Successfully fetched purchase items:', data?.length || 0)
-
-      if (!data || data.length === 0) {
-        console.log('No purchase items found')
         return {}
       }
 
       const lastPrices: { [key: number]: number } = {}
-      const processedItems = new Set<number>()
-
-      data.forEach(item => {
-        if (item.stock_item_id && !processedItems.has(item.stock_item_id)) {
-          lastPrices[item.stock_item_id] = item.unit_price
-          processedItems.add(item.stock_item_id)
-        }
-      })
-
-      console.log('Processed last prices for items:', Object.keys(lastPrices).length)
+      if (data) {
+        data.forEach((item: { stock_item_id: number; unit_price: string | number }) => {
+          lastPrices[item.stock_item_id] = parseFloat(String(item.unit_price))
+        })
+      }
       setLastPurchasePrices(lastPrices)
       return lastPrices
     } catch (error) {
