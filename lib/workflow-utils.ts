@@ -1024,13 +1024,14 @@ export const exportPurchasesReport = async (purchases: any[], format: 'pdf' | 'c
 
 export interface WorkflowItem {
   id?: number
-  category: "cabinet" | "worktop" | "accessories"
+  category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"
   description: string
   unit: string
   quantity: number
   unit_price: number
   total_price: number
   stock_item_id?: number
+  section_group?: string | null
 }
 
 export interface QuotationData {
@@ -1102,6 +1103,7 @@ export interface SalesOrderData {
     wardrobes: string;
     tvunit: string;
   }
+  custom_sections?: Array<{ id: string; name: string; type: string; anchorKey?: string }>
   client?: {
     id: number
     name: string
@@ -1323,8 +1325,9 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
       notes: quotation.notes,
       terms_conditions: quotation.terms_conditions,
       section_names: quotation.section_names,
+      custom_sections: quotation.custom_sections ?? [],
       client: quotation.client,
-      items: quotation.items
+      items: quotation.items ?? []
     }
 
     // Insert sales order
@@ -1361,19 +1364,20 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         tvunit_labour_percentage: salesOrderData.tvunit_labour_percentage,
         worktop_labor_qty: salesOrderData.worktop_labor_qty,
         worktop_labor_unit_price: salesOrderData.worktop_labor_unit_price,
-        status: salesOrderData.status,
-        notes: salesOrderData.notes,
-        terms_conditions: salesOrderData.terms_conditions,
-        section_names: salesOrderData.section_names
-      })
+      status: salesOrderData.status,
+      notes: salesOrderData.notes,
+      terms_conditions: salesOrderData.terms_conditions,
+      section_names: salesOrderData.section_names,
+      custom_sections: salesOrderData.custom_sections ?? []
+    })
       .select()
       .single()
 
     if (salesOrderError) throw salesOrderError
 
-    // Insert sales order items
+    // Insert sales order items (preserve section_group for custom sections)
     if (salesOrderData.items && salesOrderData.items.length > 0) {
-      const salesOrderItems = salesOrderData.items.map(item => ({
+      const salesOrderItems = salesOrderData.items.map((item: any) => ({
         sales_order_id: newSalesOrder.id,
         category: item.category,
         description: item.description,
@@ -1381,7 +1385,8 @@ export const proceedToSalesOrder = async (quotationId: number): Promise<SalesOrd
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total_price,
-        stock_item_id: item.stock_item_id
+        stock_item_id: item.stock_item_id ?? null,
+        section_group: item.section_group ?? null
       }))
 
       const { error: itemsError } = await supabase
