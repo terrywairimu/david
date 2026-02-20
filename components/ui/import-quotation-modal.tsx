@@ -61,6 +61,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     total: ''
   })
   const [mappedData, setMappedData] = useState<{[key: string]: any[]}>({})
+  const [worktopLabor, setWorktopLabor] = useState<{ qty: number; unitPrice: number } | null>(null)
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -151,9 +152,9 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       
       // Check if we have the required mappings
       if (autoMappedColumns.description && autoMappedColumns.quantity && autoMappedColumns.unitPrice) {
-        // Auto-proceed to preview if all required fields are mapped
         setMappedData(sectionData.mappedData)
         setSelectedSections(sectionData.defaultSections)
+        setWorktopLabor(sectionData.worktopLabor || null)
         setStep('preview')
       } else {
         // Go to mapping step if auto-mapping failed
@@ -258,6 +259,10 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   }
 
   const isTotalRow = (row: any[]) => {
+    const rowText = row.map(c => String(c ?? '').toLowerCase().trim()).join(' ')
+    if (rowText.includes('worktop') && (rowText.includes('installation') || rowText.includes('labor') || rowText.includes('labour'))) {
+      return false
+    }
     return row.some(cell => {
       const cellStr = String(cell).toLowerCase().trim()
       return cellStr === 'total' || cellStr === 'subtotal' || cellStr === 'grand total' || 
@@ -288,11 +293,17 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   const processDataByDetectedSections = (sectionAnalysis: any, columnMapping: ColumnMapping) => {
     const sectionData: {[key: string]: any[]} = {}
     const defaultSections: {[key: string]: string} = {}
-    
-    // Default: always create new section. User can manually select main/existing via dropdown to append.
+    let worktopLabor: { qty: number; unitPrice: number } | null = null
+
+    const isWorktopLaborRow = (desc: string) => {
+      const d = String(desc || '').toLowerCase()
+      return d.includes('worktop') && (d.includes('installation') || d.includes('labor') || d.includes('labour'))
+    }
+
     sectionAnalysis.sections.forEach((section: any, index: number) => {
       const uniqueKey = `section_${index}`
-      
+      const sectionType = detectSectionType(section.title)
+
       const mappedRows = section.dataRows.map((row: any[]) => {
         const mappedRow: any = {}
         Object.entries(columnMapping).forEach(([field, headerName]) => {
@@ -304,10 +315,23 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
           }
         })
         return mappedRow
-      }).filter((row: any) => row.description && row.quantity && row.unitPrice)
-      
-      sectionData[uniqueKey] = mappedRows
-      // Always default to create new section. User can override via dropdown to append to main/existing.
+      })
+
+      if (sectionType === 'worktop') {
+        const laborRow = mappedRows.find((r: any) => isWorktopLaborRow(r.description))
+        if (laborRow && !worktopLabor) {
+          const qty = parseInt(String(laborRow.quantity || 1), 10) || 1
+          const unitPrice = parseFloat(String(laborRow.unitPrice || 3000)) || 3000
+          worktopLabor = { qty, unitPrice }
+        }
+      }
+
+      const itemRows = mappedRows.filter((row: any) => {
+        if (isWorktopLaborRow(row.description)) return false
+        return row.description && row.quantity && row.unitPrice
+      })
+
+      sectionData[uniqueKey] = itemRows
       defaultSections[uniqueKey] = `create_new:${uniqueKey}`
     })
     
@@ -328,7 +352,8 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     return {
       sections: sectionsArray,
       mappedData: sectionData,
-      defaultSections
+      defaultSections,
+      worktopLabor
     }
   }
 
@@ -534,12 +559,11 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
   const proceedToPreview = () => {
     if (!parsedData) return
 
-    // For manual mapping, we need to re-analyze the data
-    // This is a simplified approach - in a real implementation, you'd want to preserve the original analysis
     const sectionData = processDataBySections(parsedData.rows, parsedData.headers, columnMapping, parsedData.detectedSections)
     
     setMappedData(sectionData.mappedData)
     setSelectedSections(sectionData.defaultSections)
+    setWorktopLabor(null)
     setStep('preview')
   }
 
@@ -629,7 +653,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       }
     })
 
-    onImport({ main, custom, createNew })
+    onImport({ main, custom, createNew, worktopLabor: worktopLabor || undefined })
     resetModal()
     onClose()
   }
@@ -639,6 +663,7 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     setFile(null)
     setParsedData(null)
     setSelectedSections({})
+    setWorktopLabor(null)
     setColumnMapping({
       description: '',
       unit: '',

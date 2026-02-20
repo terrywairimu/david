@@ -259,6 +259,10 @@ interface CustomWorktopSectionProps {
   setWorktopLaborQty: React.Dispatch<React.SetStateAction<number>>
   worktopLaborUnitPrice: number
   setWorktopLaborUnitPrice: React.Dispatch<React.SetStateAction<number>>
+  rawWorktopLaborQty?: string | undefined
+  setRawWorktopLaborQty?: React.Dispatch<React.SetStateAction<string | undefined>>
+  rawWorktopLaborUnitPrice?: string | undefined
+  setRawWorktopLaborUnitPrice?: React.Dispatch<React.SetStateAction<string | undefined>>
   rawQuantityValues: Record<string, string>
   setRawQuantityValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
   rawPriceValues: Record<string, string>
@@ -269,29 +273,72 @@ interface CustomWorktopSectionProps {
 }
 
 export function CustomWorktopSection(props: CustomWorktopSectionProps) {
-  const { sectionId, items, addItem, removeItem, updateItem, getItemInputRef, itemDropdownVisible, setItemDropdownVisible, handleItemSearch, selectStockItem, getFilteredItems, worktopLaborQty, setWorktopLaborQty, worktopLaborUnitPrice, setWorktopLaborUnitPrice, rawQuantityValues, setRawQuantityValues, rawPriceValues, setRawPriceValues, isReadOnly, isMobile, PortalDropdown } = props
+  const { sectionId, items, addItem, removeItem, updateItem, getItemInputRef, itemDropdownVisible, setItemDropdownVisible, handleItemSearch, selectStockItem, getFilteredItems, worktopLaborQty, setWorktopLaborQty, worktopLaborUnitPrice, setWorktopLaborUnitPrice, rawWorktopLaborQty, setRawWorktopLaborQty, rawWorktopLaborUnitPrice, setRawWorktopLaborUnitPrice, rawQuantityValues, setRawQuantityValues, rawPriceValues, setRawPriceValues, isReadOnly, isMobile, PortalDropdown } = props
 
   const itemRowProps = { sectionGroup: sectionId, isMobile, isReadOnly, getItemInputRef, itemDropdownVisible, setItemDropdownVisible, handleItemSearch, selectStockItem, getFilteredItems, updateItem, removeItem, rawQuantityValues, setRawQuantityValues, rawPriceValues, setRawPriceValues, PortalDropdown }
 
   return (
     <div>
       <div className="d-flex mb-3 worktop-headers" style={{ fontSize: "13px", fontWeight: "600", color: "white" }}>
-        <div style={{ flex: "2", marginRight: "16px" }}>Item</div>
-        <div style={{ flex: "1", marginRight: "16px" }}>Units</div>
-        <div style={{ flex: "1", marginRight: "16px" }}>Qty</div>
-        <div style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
-        <div style={{ flex: "1", marginRight: "16px" }}>Total</div>
-        {!isReadOnly && <div style={{ flex: "0 0 40px" }} />}
+        <div className="d-none d-md-block" style={{ flex: "2", marginRight: "16px" }}>Item</div>
+        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Units</div>
+        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Qty</div>
+        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Unit Price</div>
+        <div className="d-none d-md-block" style={{ flex: "1", marginRight: "16px" }}>Total</div>
+        {!isReadOnly && <div className="d-none d-md-block" style={{ flex: "0 0 40px" }} />}
       </div>
       {items.map((item, idx) => (
         <ItemRow key={item.id || `worktop-${idx}`} item={item} index={idx} category="worktop" {...itemRowProps} />
       ))}
       {!isReadOnly && (
         <>
-          <div className="d-flex align-items-center mt-2 p-2" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
-            <span className="me-2 small" style={{ color: "#fff" }}>Labour:</span>
-            <input type="number" value={worktopLaborQty} onChange={(e) => setWorktopLaborQty(parseInt(e.target.value, 10) || 1)} style={{ width: "60px", marginRight: "12px", borderRadius: "8px", background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }} min={1} />
-            <input type="number" value={worktopLaborUnitPrice} onChange={(e) => setWorktopLaborUnitPrice(parseFloat(e.target.value) || 0)} style={{ width: "100px", borderRadius: "8px", background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }} min={0} step="0.01" />
+          <div className="d-flex align-items-center mt-2 p-2 quotation-item-row worktop-row worktop-labor-row" style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px" }}>
+            <div style={{ flex: "2", marginRight: "16px", fontWeight: 600, color: "#fff" }}>Worktop Installation Labor</div>
+            <div className="col-units" style={{ flex: "1", marginRight: "16px", color: "#fff" }}>per slab</div>
+            <div className="col-qty" style={{ flex: "1", marginRight: "16px" }}>
+              <input
+                type="number"
+                value={setRawWorktopLaborQty ? (rawWorktopLaborQty !== undefined ? rawWorktopLaborQty : (worktopLaborQty === 1 ? "" : worktopLaborQty)) : worktopLaborQty}
+                onFocus={() => setRawWorktopLaborQty?.(worktopLaborQty === 1 ? "" : String(worktopLaborQty))}
+                onChange={(e) => setRawWorktopLaborQty ? setRawWorktopLaborQty(e.target.value) : setWorktopLaborQty(parseInt(e.target.value, 10) || 1)}
+                onBlur={() => {
+                  if (setRawWorktopLaborQty) {
+                    const val = rawWorktopLaborQty ?? ""
+                    const num = val === "" ? 1 : Number(val)
+                    setWorktopLaborQty(isNaN(num) ? 1 : num)
+                    setRawWorktopLaborQty(undefined)
+                  }
+                }}
+                placeholder={setRawWorktopLaborQty ? "1" : undefined}
+                style={{ width: "auto", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none", textAlign: "left" }}
+                min={1}
+                step="1"
+              />
+            </div>
+            <div className="col-unit-price" style={{ flex: "1", marginRight: "16px" }}>
+              <input
+                type="number"
+                value={setRawWorktopLaborUnitPrice ? (rawWorktopLaborUnitPrice !== undefined ? rawWorktopLaborUnitPrice : (worktopLaborUnitPrice === 3000 ? "" : worktopLaborUnitPrice)) : worktopLaborUnitPrice}
+                onFocus={() => setRawWorktopLaborUnitPrice?.(worktopLaborUnitPrice === 3000 ? "" : String(worktopLaborUnitPrice))}
+                onChange={(e) => setRawWorktopLaborUnitPrice ? setRawWorktopLaborUnitPrice(e.target.value) : setWorktopLaborUnitPrice(parseFloat(e.target.value) || 3000)}
+                onBlur={() => {
+                  if (setRawWorktopLaborUnitPrice) {
+                    const val = rawWorktopLaborUnitPrice ?? ""
+                    const num = val === "" ? 3000 : Number(val)
+                    setWorktopLaborUnitPrice(isNaN(num) ? 3000 : num)
+                    setRawWorktopLaborUnitPrice(undefined)
+                  }
+                }}
+                placeholder={setRawWorktopLaborUnitPrice ? "3000" : undefined}
+                style={{ width: "auto", borderRadius: "8px", fontSize: "13px", background: "transparent", color: "#fff", border: "none", padding: "8px 0", boxShadow: "none", WebkitAppearance: "none", MozAppearance: "textfield", outline: "none", textAlign: "left" }}
+                min={0}
+                step="0.01"
+              />
+            </div>
+            <div className="col-total" style={{ flex: "1", marginRight: "16px", color: "#fff", fontWeight: 600 }}>
+              KES {(worktopLaborQty * worktopLaborUnitPrice).toFixed(2)}
+            </div>
+            <div className="col-delete" style={{ flex: "0 0 40px" }} />
           </div>
           <div className="mt-3">
             <button type="button" className="btn btn-primary d-inline-flex align-items-center" onClick={() => addItem("worktop", sectionId)} style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", border: "none", padding: "10px 20px" }}>
