@@ -46,6 +46,8 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
   const [showPaidToDropdown, setShowPaidToDropdown] = useState(false)
   const [creditPurchaseOrders, setCreditPurchaseOrders] = useState<any[]>([])
   const [filteredCreditOrders, setFilteredCreditOrders] = useState<any[]>([])
+  const [allUnpaidPurchases, setAllUnpaidPurchases] = useState<any[]>([])
+  const [totalBalanceOwed, setTotalBalanceOwed] = useState(0)
 
   const supplierInputGroupRef = useRef<HTMLDivElement>(null);
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
@@ -56,7 +58,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     if (payment && mode !== "create") {
       setFormData({
         payment_number: payment.payment_number || "",
-        supplier_id: payment.supplier_id || "",
+        supplier_id: payment.supplier_id != null ? String(payment.supplier_id) : "",
         date_created: payment.date_created ? new Date(payment.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         description: payment.description || "",
         amount: (payment.amount != null && payment.amount !== 0) ? String(payment.amount).replace(/,/g, '') : "",
@@ -105,18 +107,25 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     return () => clearTimeout(timeoutId)
   }, [supplierSearch, suppliers])
 
-  useEffect(() => {
-    fetchCreditPurchaseOrders()
-  }, [])
 
   useEffect(() => {
     if (formData.supplier_id) {
       fetchCreditPurchaseOrders(formData.supplier_id)
     } else {
-      // If no supplier selected, show all credit orders
-      fetchCreditPurchaseOrders()
+      setCreditPurchaseOrders([])
+      setFilteredCreditOrders([])
+      setAllUnpaidPurchases([])
     }
   }, [formData.supplier_id])
+
+  useEffect(() => {
+    if (!formData.supplier_id || allUnpaidPurchases.length === 0) {
+      setTotalBalanceOwed(0)
+      return
+    }
+    const total = allUnpaidPurchases.reduce((sum, p) => sum + (parseFloat(p.balance) || 0), 0)
+    setTotalBalanceOwed(total)
+  }, [formData.supplier_id, allUnpaidPurchases])
 
   useEffect(() => {
     if (formData.supplier_id) {
@@ -175,11 +184,10 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
     try {
       let query = supabase
         .from("purchases")
-        .select("purchase_order_number, total_amount, purchase_date, supplier_id, balance")
+        .select("id, purchase_order_number, total_amount, purchase_date, supplier_id, balance, amount_paid")
         .in("payment_status", ["not_yet_paid", "partially_paid"])
-        .order("purchase_date", { ascending: false })
+        .order("purchase_date", { ascending: true })
 
-      // If supplierId is provided, filter by supplier
       if (supplierId) {
         query = query.eq("supplier_id", supplierId)
       }
@@ -187,12 +195,15 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
       const { data, error } = await query
 
       if (error) throw error
-      setCreditPurchaseOrders(data || [])
-      setFilteredCreditOrders(data || [])
+      const withBalance = (data || []).filter((p: any) => (parseFloat(p.balance) || 0) > 0)
+      setCreditPurchaseOrders(withBalance)
+      setFilteredCreditOrders(withBalance)
+      setAllUnpaidPurchases(withBalance)
     } catch (error) {
       console.error("Error fetching credit purchase orders:", error)
       setCreditPurchaseOrders([])
       setFilteredCreditOrders([])
+      setAllUnpaidPurchases([])
     }
   }
 
@@ -202,9 +213,9 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
   }
 
   const handleSupplierSelect = (supplier: any) => {
-    setFormData(prev => ({ ...prev, supplier_id: supplier.id, paid_to: "" }))
+    setFormData(prev => ({ ...prev, supplier_id: supplier.id.toString(), paid_to: "" }))
     setSupplierSearch(supplier.name)
-    setPaidToSearch("") // Clear paid to search when supplier changes
+    setPaidToSearch("")
     setShowSupplierDropdown(false)
   }
 
@@ -216,6 +227,12 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
   const handlePaidToSelect = (order: any) => {
     setFormData(prev => ({ ...prev, paid_to: order.purchase_order_number }))
     setPaidToSearch(order.purchase_order_number)
+    setShowPaidToDropdown(false)
+  }
+
+  const handleClearPaidTo = () => {
+    setFormData(prev => ({ ...prev, paid_to: "" }))
+    setPaidToSearch("")
     setShowPaidToDropdown(false)
   }
 
@@ -246,19 +263,81 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
         return
       }
 
-      const paymentData: Record<string, unknown> = {
-        payment_number: formData.payment_number,
-        supplier_id: supplierIdNum,
-        amount: amountNum,
-        date_created: dateInputToDateOnly(formData.date_created).toISOString(),
-        description: formData.description || null,
-        paid_to: formData.paid_to || null,
-        account_debited: formData.account_debited || null,
-        status: formData.status || "completed",
-        balance: formData.balance != null ? Number(formData.balance) : 0
-      }
+      let paymentData: Record<string, unknown> = {}
 
       if (mode === "create") {
+        let paidToRef = formData.paid_to || ""
+        let description = formData.description || null
+        let balanceAfter = 0
+
+        if (formData.paid_to) {
+          const targetOrder = allUnpaidPurchases.find((p: any) => p.purchase_order_number === formData.paid_to)
+          if (!targetOrder) {
+            toast.error(`Purchase order ${formData.paid_to} not found or already paid`)
+            setLoading(false)
+            return
+          }
+          const orderBalance = parseFloat(targetOrder.balance) || 0
+          const newAmountPaid = (parseFloat(targetOrder.amount_paid) || 0) + amountNum
+          const newBalance = orderBalance - amountNum
+          const newStatus = newBalance <= 0 ? "fully_paid" : "partially_paid"
+
+          const { error: updateError } = await supabase
+            .from("purchases")
+            .update({ amount_paid: newAmountPaid, balance: newBalance, payment_status: newStatus })
+            .eq("id", targetOrder.id)
+          if (updateError) throw updateError
+
+          paidToRef = targetOrder.purchase_order_number
+          balanceAfter = Math.max(0, newBalance)
+          description = description || `Payment for purchase ${targetOrder.purchase_order_number}`
+        } else {
+          const orderedPurchases = [...allUnpaidPurchases].sort(
+            (a, b) => new Date(a.purchase_date).getTime() - new Date(b.purchase_date).getTime()
+          )
+          let remainingPayment = amountNum
+          const settledOrders: string[] = []
+
+          for (const purchase of orderedPurchases) {
+            if (remainingPayment <= 0) break
+            const purchaseBalance = parseFloat(purchase.balance) || 0
+            if (purchaseBalance <= 0) continue
+
+            const apply = Math.min(remainingPayment, purchaseBalance)
+            const newAmountPaid = (parseFloat(purchase.amount_paid) || 0) + apply
+            const newBalance = purchaseBalance - apply
+            const newStatus = newBalance <= 0 ? "fully_paid" : "partially_paid"
+
+            const { error: updateError } = await supabase
+              .from("purchases")
+              .update({ amount_paid: newAmountPaid, balance: newBalance, payment_status: newStatus })
+              .eq("id", purchase.id)
+            if (updateError) throw updateError
+
+            settledOrders.push(purchase.purchase_order_number)
+            remainingPayment -= apply
+          }
+
+          paidToRef = settledOrders.length > 0 ? settledOrders.join(", ") : "FIFO allocation"
+          description = settledOrders.length > 0
+            ? `Payment for purchases: ${settledOrders.join(", ")} (oldest first)`
+            : (formData.description || `Supplier payment KES ${amountNum.toFixed(2)}`)
+          balanceAfter = Math.max(0, totalBalanceOwed - amountNum)
+        }
+
+        paymentData = {
+          payment_number: formData.payment_number,
+          supplier_id: supplierIdNum,
+          amount: amountNum,
+          date_created: dateInputToDateOnly(formData.date_created).toISOString(),
+          description,
+          paid_to: paidToRef,
+          account_debited: formData.account_debited || "cash",
+          payment_method: formData.account_debited || "cash",
+          status: formData.status || "completed",
+          balance: balanceAfter
+        }
+
         const { error } = await supabase
           .from("supplier_payments")
           .insert([paymentData])
@@ -267,8 +346,21 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
           console.error("Supplier payment insert error:", error)
           throw error
         }
-        toast.success("Supplier payment created successfully")
+        const settledCount = paidToRef.includes(", ") ? paidToRef.split(", ").length : (paidToRef && paidToRef !== "FIFO allocation" ? 1 : 0)
+        toast.success(settledCount > 0 ? `Payment of KES ${amountNum.toFixed(2)} applied. Settled: ${settledCount} order(s)` : "Supplier payment created successfully")
       } else if (mode === "edit") {
+        paymentData = {
+          payment_number: formData.payment_number,
+          supplier_id: supplierIdNum,
+          amount: amountNum,
+          date_created: dateInputToDateOnly(formData.date_created).toISOString(),
+          description: formData.description || null,
+          paid_to: formData.paid_to || null,
+          account_debited: formData.account_debited || null,
+          payment_method: formData.account_debited || "cash",
+          status: formData.status || "completed",
+          balance: formData.balance != null ? Number(formData.balance) : 0
+        }
         const { error } = await supabase
           .from("supplier_payments")
           .update(paymentData)
@@ -433,13 +525,12 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                         type="text"
                         className="form-control border-0" 
                         id="paidTo"
-                        placeholder={formData.supplier_id ? "Search order number for this supplier..." : "Select supplier first..."}
+                        placeholder={formData.supplier_id ? "Optional - payment auto-applies to oldest unpaid orders first" : "Select supplier first..."}
                         value={paidToSearch}
                         onChange={(e) => handlePaidToSearch(e.target.value)}
                         onFocus={() => setShowPaidToDropdown(true)}
                         style={{ borderRadius: "16px 0 0 16px", height: "45px", paddingLeft: "15px", color: "#000000" }}
                         autoComplete="off"
-                        required
                         readOnly={mode === "view" || !formData.supplier_id}
                       />
                       <button
@@ -468,6 +559,15 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                           border: "1px solid #e0e0e0"
                         }}
                       >
+                        {formData.paid_to && (
+                          <div
+                            className="dropdown-item"
+                            onClick={handleClearPaidTo}
+                            style={{ cursor: "pointer", padding: "10px 15px", color: "#6c757d", borderBottom: "1px solid #eee" }}
+                          >
+                            <em>— Clear (use FIFO) —</em>
+                          </div>
+                        )}
                         {filteredCreditOrders.map((order) => (
                           <div
                             key={order.purchase_order_number}
@@ -477,7 +577,7 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
                           >
                             <strong style={{ color: "#000000" }}>{order.purchase_order_number}</strong>
                             <div className="small" style={{ color: "#6c757d" }}>
-                              Total: KES {formatNumber(order.total_amount)} • Balance: KES {formatNumber(order.balance || order.total_amount)} • {new Date(order.purchase_date).toLocaleDateString()}
+                              Balance: KES {formatNumber(order.balance || order.total_amount)} • {new Date(order.purchase_date).toLocaleDateString()}
                             </div>
                           </div>
                         ))}
@@ -508,14 +608,32 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
 
               <div className="row mb-3">
                 <div className="col-md-6">
-                  <label htmlFor="balance" className="form-label">Balance (KES)</label>
-                  <FormattedNumberInput
-                    id="balance"
+                  <label htmlFor="balance" className="form-label">Balance Owed (KES)</label>
+                  <input
+                    type="text"
                     className="form-control"
-                    value={formData.balance === 0 ? '' : String(formData.balance)}
-                    onChange={(v) => handleInputChange("balance", parseFormattedNumber(v))}
-                    readOnly={mode === "view"}
+                    id="balance"
+                    value={mode !== "create" && payment
+                      ? (formData.balance != null ? Number(formData.balance) : 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : formData.supplier_id 
+                        ? (() => {
+                            const amt = parseFormattedNumber(formData.amount) || 0
+                            const base = formData.paid_to 
+                              ? (creditPurchaseOrders.find(o => o.purchase_order_number === formData.paid_to)?.balance ?? 0)
+                              : totalBalanceOwed
+                            return Math.max(0, parseFloat(String(base)) - amt).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          })()
+                        : '0.00'}
+                    readOnly
+                    style={{ backgroundColor: "#f8f9fa", fontWeight: 600 }}
                   />
+                  <small className="text-muted">
+                    {mode !== "create" && payment
+                      ? "Stored balance after this payment"
+                      : formData.amount && parseFormattedNumber(formData.amount) > 0 
+                        ? `Remaining after paying KES ${parseFormattedNumber(formData.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                        : formData.paid_to ? `Balance for ${formData.paid_to}` : 'Total unpaid balance we owe this supplier'}
+                  </small>
                 </div>
                 <div className="col-md-6">
                   <label htmlFor="status" className="form-label">Status</label>
