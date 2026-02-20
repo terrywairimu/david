@@ -238,11 +238,24 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
 
     setLoading(true)
     try {
-      const paymentData = {
-        ...formData,
-        amount: parseFormattedNumber(formData.amount),
+      const amountNum = parseFormattedNumber(formData.amount)
+      const supplierIdNum = Number(formData.supplier_id)
+      if (isNaN(supplierIdNum) || supplierIdNum <= 0) {
+        toast.error("Invalid supplier selection")
+        setLoading(false)
+        return
+      }
+
+      const paymentData: Record<string, unknown> = {
+        payment_number: formData.payment_number,
+        supplier_id: supplierIdNum,
+        amount: amountNum,
         date_created: dateInputToDateOnly(formData.date_created).toISOString(),
-        type: "supplier_payment"
+        description: formData.description || null,
+        paid_to: formData.paid_to || null,
+        account_debited: formData.account_debited || null,
+        status: formData.status || "completed",
+        balance: formData.balance != null ? Number(formData.balance) : 0
       }
 
       if (mode === "create") {
@@ -250,7 +263,10 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
           .from("supplier_payments")
           .insert([paymentData])
 
-        if (error) throw error
+        if (error) {
+          console.error("Supplier payment insert error:", error)
+          throw error
+        }
         toast.success("Supplier payment created successfully")
       } else if (mode === "edit") {
         const { error } = await supabase
@@ -258,14 +274,18 @@ const SupplierPaymentModal: React.FC<SupplierPaymentModalProps> = ({
           .update(paymentData)
           .eq("id", payment.id)
 
-        if (error) throw error
+        if (error) {
+          console.error("Supplier payment update error:", error)
+          throw error
+        }
         toast.success("Supplier payment updated successfully")
       }
 
-      onSave(paymentData)
-    } catch (error) {
+      onSave({ ...paymentData, id: payment?.id })
+    } catch (error: unknown) {
+      const err = error as { message?: string; details?: string }
       console.error("Error saving supplier payment:", error)
-      toast.error("Failed to save supplier payment")
+      toast.error(err?.message ? `Failed to save supplier payment: ${err.message}` : "Failed to save supplier payment")
     } finally {
       setLoading(false)
     }
