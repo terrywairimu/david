@@ -260,7 +260,10 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
 
   const isTotalRow = (row: any[]) => {
     const rowText = row.map(c => String(c ?? '').toLowerCase().trim()).join(' ')
-    if (rowText.includes('worktop') && (rowText.includes('installation') || rowText.includes('labor') || rowText.includes('labour'))) {
+    if ((rowText.includes('worktop') || rowText.includes('installation')) && (rowText.includes('labor') || rowText.includes('labour'))) {
+      return false
+    }
+    if (rowText.includes('installation') && (rowText.includes('labor') || rowText.includes('labour')) && (rowText.includes('slab') || rowText.includes('per'))) {
       return false
     }
     return row.some(cell => {
@@ -295,9 +298,11 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
     const defaultSections: {[key: string]: string} = {}
     let worktopLabor: { qty: number; unitPrice: number } | null = null
 
-    const isWorktopLaborRow = (desc: string) => {
-      const d = String(desc || '').toLowerCase()
-      return d.includes('worktop') && (d.includes('installation') || d.includes('labor') || d.includes('labour'))
+    const isWorktopLaborRow = (row: any) => {
+      const desc = String(row.description ?? row.unit ?? '').toLowerCase()
+      const hasLabor = desc.includes('labor') || desc.includes('labour')
+      const hasWorktopOrInstall = desc.includes('worktop') || desc.includes('installation') || desc.includes('slab') || desc.includes('per slab')
+      return hasLabor && (hasWorktopOrInstall || row.unit?.toLowerCase().includes('slab'))
     }
 
     sectionAnalysis.sections.forEach((section: any, index: number) => {
@@ -318,28 +323,32 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       })
 
       if (sectionType === 'worktop') {
-        const laborRow = mappedRows.find((r: any) => isWorktopLaborRow(r.description))
+        const laborRow = mappedRows.find((r: any) => isWorktopLaborRow(r))
         if (laborRow && !worktopLabor) {
-          const qty = parseInt(String(laborRow.quantity || 1), 10) || 1
-          const unitPrice = parseFloat(String(laborRow.unitPrice || 3000)) || 3000
+          let qty = parseInt(String(laborRow.quantity || 1), 10) || 1
+          let unitPrice = parseFloat(String(laborRow.unitPrice || 3000)) || 3000
+          if (unitPrice > 0 && laborRow.total != null && laborRow.total !== '') {
+            const total = parseFloat(String(laborRow.total))
+            if (!isNaN(total) && total > 0) qty = Math.round(total / unitPrice) || qty
+          }
           worktopLabor = { qty, unitPrice }
         }
       }
 
       const itemRows = mappedRows.filter((row: any) => {
-        if (isWorktopLaborRow(row.description)) return false
-        return row.description && row.quantity && row.unitPrice
+        if (isWorktopLaborRow(row)) return false
+        return row.description && row.quantity != null && row.unitPrice != null
       })
 
       sectionData[uniqueKey] = itemRows
       defaultSections[uniqueKey] = `create_new:${uniqueKey}`
     })
     
-    // Create sections array for display - each physical section listed
     const sectionsArray: ParsedSection[] = sectionAnalysis.sections.map((section: any, index: number) => {
       const uniqueKey = `section_${index}`
       const sectionType = detectSectionType(section.title)
-      const count = sectionData[uniqueKey]?.length || 0
+      let count = sectionData[uniqueKey]?.length || 0
+      if (sectionType === 'worktop' && worktopLabor) count += 1
       return {
         value: uniqueKey,
         label: section.title || mainLabelForType(sectionType),
@@ -523,10 +532,11 @@ const ImportQuotationModal: React.FC<ImportQuotationModalProps> = ({
       }
       // Quantity mapping
       else if (lowerHeader === 'qty' || lowerHeader === 'quantity' || lowerHeader === 'count' || 
-               lowerHeader === 'amount' || lowerHeader === 'pieces') {
+               lowerHeader === 'amount' || lowerHeader === 'pieces' || lowerHeader === 'no. of slabs' ||
+               lowerHeader === 'no of slabs' || lowerHeader === 'slabs' || lowerHeader === 'number of slabs') {
         mapping.quantity = header
       } else if (!mapping.quantity && (lowerHeader.includes('qty') || lowerHeader.includes('quantity') || 
-               lowerHeader.includes('amount') || lowerHeader.includes('count'))) {
+               lowerHeader.includes('amount') || lowerHeader.includes('count') || lowerHeader.includes('slab'))) {
         mapping.quantity = header
       }
       // Unit Price mapping - prioritize exact matches
