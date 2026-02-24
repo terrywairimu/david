@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { Package, Plus, Edit, Trash2, Search, Download, Eye } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { ActionGuard } from "@/components/ActionGuard"
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
@@ -37,6 +38,7 @@ const StockPage = () => {
     unit: "",
     minimumLevel: "",
     buyingPrice: "",
+    buyingVatPercent: "16",
     sellingPrice: "",
     description: ""
   })
@@ -48,9 +50,16 @@ const StockPage = () => {
     unit: "",
     minimumLevel: "",
     buyingPrice: "",
+    buyingVatPercent: "16",
     sellingPrice: "",
     description: ""
   })
+
+  // Custom category for stock (like expenses)
+  const [stockCategories, setStockCategories] = useState<{ value: string; label: string }[]>([])
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [creatingCategory, setCreatingCategory] = useState(false)
   
   // Stock in form
   const [stockInData, setStockInData] = useState({
@@ -66,8 +75,52 @@ const StockPage = () => {
     reason: ""
   })
 
+  const fetchStockCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("stock_categories")
+        .select("name, value")
+        .order("name", { ascending: true })
+      if (error) throw error
+      setStockCategories((data || []).map((c) => ({ value: c.value, label: c.name })))
+    } catch (err) {
+      console.error("Error fetching stock categories:", err)
+      setStockCategories([
+        { value: "electronics", label: "Electronics" },
+        { value: "office", label: "Office Supplies" },
+        { value: "furniture", label: "Furniture" },
+        { value: "tools", label: "Tools & Equipment" },
+        { value: "consumables", label: "Consumables" },
+        { value: "other", label: "Other" },
+      ])
+    }
+  }
+
+  const handleCreateStockCategory = async () => {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) return
+    setCreatingCategory(true)
+    try {
+      const value = trimmed.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") || "custom"
+      const { error } = await supabase.from("stock_categories").insert([{ name: trimmed, value }])
+      if (error) throw error
+      const newCat = { value, label: trimmed }
+      setStockCategories((prev) => [...prev, newCat].sort((a, b) => a.label.localeCompare(b.label)))
+      setNewItemData((prev) => ({ ...prev, category: value }))
+      setEditItemData((prev) => ({ ...prev, category: value }))
+      setShowCreateCategoryModal(false)
+      setNewCategoryName("")
+      toast.success("Category created")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create category")
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
   useEffect(() => {
     fetchStockItems()
+    fetchStockCategories()
     
     // Set up real-time subscription for stock updates
     const stockSubscription = supabase
@@ -211,8 +264,11 @@ const StockPage = () => {
         .insert([{
           name: newItemData.name,
           description: newItemData.description,
+          category: newItemData.category || null,
+          unit: newItemData.unit || "pieces",
           unit_price: parseFloat(newItemData.sellingPrice),
           buying_price: parseFloat(newItemData.buyingPrice || "0") || 0,
+          buying_vat_percent: parseFloat(newItemData.buyingVatPercent || "16") || 16,
           quantity: 0,
           reorder_level: parseInt(newItemData.minimumLevel),
           status: "active"
@@ -329,6 +385,7 @@ const StockPage = () => {
       unit: "",
       minimumLevel: "",
       buyingPrice: "",
+      buyingVatPercent: "16",
       sellingPrice: "",
       description: ""
     })
@@ -374,6 +431,7 @@ const StockPage = () => {
       unit: item.unit || "",
       minimumLevel: item.reorder_level.toString(),
       buyingPrice: (item.buying_price ?? 0).toString(),
+      buyingVatPercent: String(item.buying_vat_percent ?? 16),
       sellingPrice: item.unit_price.toString(),
       description: item.description || ""
     })
@@ -396,6 +454,7 @@ const StockPage = () => {
           unit: editItemData.unit,
           reorder_level: parseInt(editItemData.minimumLevel),
           buying_price: parseFloat(editItemData.buyingPrice || "0") || 0,
+          buying_vat_percent: parseFloat(editItemData.buyingVatPercent || "16") || 16,
           unit_price: parseFloat(editItemData.sellingPrice),
           description: editItemData.description
         })
@@ -725,21 +784,29 @@ const StockPage = () => {
                       </div>
                       <div className="col-md-6">
                         <label className="form-label">Category</label>
-                        <select
-                          className="form-select border-0 shadow-sm"
-                          value={newItemData.category}
-                          onChange={(e) => setNewItemData({ ...newItemData, category: e.target.value })}
-                          style={{ borderRadius: "16px", height: "45px" }}
-                          required
-                        >
-                          <option value="">Select Category</option>
-                          <option value="electronics">Electronics</option>
-                          <option value="office">Office Supplies</option>
-                          <option value="furniture">Furniture</option>
-                          <option value="tools">Tools & Equipment</option>
-                          <option value="consumables">Consumables</option>
-                          <option value="other">Other</option>
-                        </select>
+                        <div className="input-group shadow-sm">
+                          <select
+                            className="form-select border-0"
+                            value={newItemData.category}
+                            onChange={(e) => setNewItemData({ ...newItemData, category: e.target.value })}
+                            style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+                            required
+                          >
+                            <option value="">Select Category</option>
+                            {stockCategories.map((cat) => (
+                              <option key={cat.value} value={cat.value}>{cat.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setShowCreateCategoryModal(true)}
+                            className="btn border-0 d-flex align-items-center justify-content-center"
+                            style={{ borderRadius: "0 16px 16px 0", height: "45px", width: "45px", background: "white", color: "#B06A2B" }}
+                            title="Create new category"
+                          >
+                            <Plus size={20} strokeWidth={2.5} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -777,17 +844,35 @@ const StockPage = () => {
                   <div className="mb-4">
                     <div className="row">
                       <div className="col-md-6">
-                        <label className="form-label">Buying Price (KES)</label>
-                        <input
-                          type="number"
-                          className="form-control border-0 shadow-sm"
-                          placeholder="Enter buying price"
-                          value={newItemData.buyingPrice}
-                          onChange={(e) => setNewItemData({ ...newItemData, buyingPrice: e.target.value })}
-                          min="0"
-                          step="0.01"
-                          style={{ borderRadius: "16px", height: "45px" }}
-                        />
+                        <div className="row g-2">
+                          <div className="col-4">
+                            <label className="form-label">V.A.T %</label>
+                            <input
+                              type="number"
+                              className="form-control border-0 shadow-sm"
+                              placeholder="16"
+                              value={newItemData.buyingVatPercent}
+                              onChange={(e) => setNewItemData({ ...newItemData, buyingVatPercent: e.target.value })}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              style={{ borderRadius: "16px", height: "45px" }}
+                            />
+                          </div>
+                          <div className="col-8">
+                            <label className="form-label">Buying Price (KES)</label>
+                            <input
+                              type="number"
+                              className="form-control border-0 shadow-sm"
+                              placeholder="Enter buying price"
+                              value={newItemData.buyingPrice}
+                              onChange={(e) => setNewItemData({ ...newItemData, buyingPrice: e.target.value })}
+                              min="0"
+                              step="0.01"
+                              style={{ borderRadius: "16px", height: "45px" }}
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div className="col-md-6">
                         <label className="form-label">Selling Price (KES)</label>
@@ -870,21 +955,29 @@ const StockPage = () => {
                       </div>
                       <div className="col-md-6">
                         <label className="form-label">Category</label>
-                        <select
-                          className="form-select border-0 shadow-sm"
-                          value={editItemData.category}
-                          onChange={(e) => setEditItemData({ ...editItemData, category: e.target.value })}
-                          style={{ borderRadius: "16px", height: "45px" }}
-                          required
-                        >
-                          <option value="">Select Category</option>
-                          <option value="electronics">Electronics</option>
-                          <option value="office">Office Supplies</option>
-                          <option value="furniture">Furniture</option>
-                          <option value="tools">Tools & Equipment</option>
-                          <option value="consumables">Consumables</option>
-                          <option value="other">Other</option>
-                        </select>
+                        <div className="input-group shadow-sm">
+                          <select
+                            className="form-select border-0"
+                            value={editItemData.category}
+                            onChange={(e) => setEditItemData({ ...editItemData, category: e.target.value })}
+                            style={{ borderRadius: "16px 0 0 16px", height: "45px" }}
+                            required
+                          >
+                            <option value="">Select Category</option>
+                            {stockCategories.map((cat) => (
+                              <option key={cat.value} value={cat.value}>{cat.label}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setShowCreateCategoryModal(true)}
+                            className="btn border-0 d-flex align-items-center justify-content-center"
+                            style={{ borderRadius: "0 16px 16px 0", height: "45px", width: "45px", background: "white", color: "#B06A2B" }}
+                            title="Create new category"
+                          >
+                            <Plus size={20} strokeWidth={2.5} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -922,17 +1015,35 @@ const StockPage = () => {
                   <div className="mb-4">
                     <div className="row">
                       <div className="col-md-6">
-                        <label className="form-label">Buying Price (KES)</label>
-                        <input
-                          type="number"
-                          className="form-control border-0 shadow-sm"
-                          placeholder="Enter buying price"
-                          value={editItemData.buyingPrice}
-                          onChange={(e) => setEditItemData({ ...editItemData, buyingPrice: e.target.value })}
-                          min="0"
-                          step="0.01"
-                          style={{ borderRadius: "16px", height: "45px" }}
-                        />
+                        <div className="row g-2">
+                          <div className="col-4">
+                            <label className="form-label">V.A.T %</label>
+                            <input
+                              type="number"
+                              className="form-control border-0 shadow-sm"
+                              placeholder="16"
+                              value={editItemData.buyingVatPercent}
+                              onChange={(e) => setEditItemData({ ...editItemData, buyingVatPercent: e.target.value })}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              style={{ borderRadius: "16px", height: "45px" }}
+                            />
+                          </div>
+                          <div className="col-8">
+                            <label className="form-label">Buying Price (KES)</label>
+                            <input
+                              type="number"
+                              className="form-control border-0 shadow-sm"
+                              placeholder="Enter buying price"
+                              value={editItemData.buyingPrice}
+                              onChange={(e) => setEditItemData({ ...editItemData, buyingPrice: e.target.value })}
+                              min="0"
+                              step="0.01"
+                              style={{ borderRadius: "16px", height: "45px" }}
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div className="col-md-6">
                         <label className="form-label">Selling Price (KES)</label>
@@ -1161,6 +1272,56 @@ const StockPage = () => {
           </div>
         </div>
       )}
+
+      {/* Create new stock category modal */}
+      <Dialog open={showCreateCategoryModal} onOpenChange={setShowCreateCategoryModal}>
+        <DialogContent className="sm:max-w-[400px] p-6">
+          <DialogHeader>
+            <DialogTitle className="text-left">Create new category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label htmlFor="newStockCategoryName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Category name
+              </label>
+              <input
+                id="newStockCategoryName"
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g. Kitchen Cabinets"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B06A2B]/30 focus:border-[#B06A2B]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleCreateStockCategory()
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 mt-6 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateCategoryModal(false)
+                setNewCategoryName("")
+              }}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateStockCategory}
+              disabled={!newCategoryName.trim() || creatingCategory}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#B06A2B] hover:bg-[#9a5a24] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingCategory ? "Saving..." : "Save"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
