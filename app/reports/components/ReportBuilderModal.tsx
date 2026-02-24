@@ -302,7 +302,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
   const [clientFilter, setClientFilter] = useState<string>('')
   const [clientSearchFilter, setClientSearchFilter] = useState('')
   const [showClientFilterDropdown, setShowClientFilterDropdown] = useState(false)
-  const [clientReportType, setClientReportType] = useState<'list'|'profitLoss'|'clientExpenses'|'paymentStatus'|'analytics'>('list')
+  const [clientReportType, setClientReportType] = useState<'list'|'profitLoss'|'clientExpenses'|'paymentStatus'|'analytics'|'clientStatementAccount'>('list')
   
   // Custom
   const [includeSales, setIncludeSales] = useState(true)
@@ -312,7 +312,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
 
   // Auto-select Specific Client when report type requires it
   useEffect(() => {
-    if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)) {
+    if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics', 'clientStatementAccount'].includes(clientReportType)) {
       setClientFilterType('specific')
     }
   }, [clientReportType])
@@ -796,7 +796,67 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       const clientId = clientFilter || (clientFilterType === 'specific' ? clientFilter : null)
       const clientName = clientId ? clientOptions.find(c => c.id.toString() === clientId)?.name : null
 
-      if (clientReportType === 'profitLoss') {
+      if (clientReportType === 'clientStatementAccount') {
+        if (!clientId) throw new Error('Please select a client for Client Statement Account report')
+        title = `CLIENT STATEMENT ACCOUNT - ${(clientName || 'CLIENT').toUpperCase()}`
+        const cid = parseInt(clientId)
+        const [invRes, payRes] = await Promise.all([
+          supabase.from('invoices')
+            .select('id, invoice_number, date_created, grand_total, original_quotation_number')
+            .eq('client_id', cid)
+            .gte('date_created', start.toISOString())
+            .lte('date_created', end.toISOString())
+            .order('date_created', { ascending: true }),
+          supabase.from('payments')
+            .select('id, payment_number, payment_date, date_created, amount, account_credited, payment_method, quotation_number, reference, notes')
+            .eq('client_id', cid)
+            .eq('status', 'completed')
+            .gte('payment_date', start.toISOString().split('T')[0])
+            .lte('payment_date', end.toISOString().split('T')[0])
+        ])
+        const invoices = invRes.data || []
+        const payments = payRes.data || []
+        const ledger: { date: string; details: string; account: string; in: number; out: number; balance: number }[] = []
+        const invRows = invoices.map((inv: any) => ({
+          sortDate: new Date(inv.date_created).getTime(),
+          date: new Date(inv.date_created).toLocaleDateString(),
+          details: `Invoice ${inv.invoice_number || inv.id}${inv.original_quotation_number ? ` (${inv.original_quotation_number})` : ''}`,
+          account: 'Invoice',
+          in: parseFloat(inv.grand_total || 0),
+          out: 0
+        }))
+        const payRows = payments.map((p: any) => {
+          const pd = p.payment_date || p.date_created
+          return {
+            sortDate: new Date(pd).getTime(),
+            date: new Date(pd).toLocaleDateString(),
+            details: [p.payment_number, p.quotation_number || p.reference, p.notes].filter(Boolean).join(' - ').slice(0, 60) || 'Payment',
+            account: p.account_credited || p.payment_method || 'Payment',
+            in: 0,
+            out: parseFloat(p.amount || 0)
+          }
+        })
+        const merged = [...invRows, ...payRows].sort((a, b) => a.sortDate - b.sortDate)
+        let runningBalance = 0
+        merged.forEach((r: any) => {
+          runningBalance += r.in - r.out
+          ledger.push({
+            date: r.date,
+            details: r.details,
+            account: r.account,
+            in: r.in,
+            out: r.out,
+            balance: runningBalance
+          })
+        })
+        rows = ledger
+        columns = REPORT_COLUMNS.clientStatement
+        totals = {
+          in: ledger.reduce((s, r) => s + r.in, 0),
+          out: ledger.reduce((s, r) => s + r.out, 0),
+          balance: ledger.length > 0 ? ledger[ledger.length - 1].balance : 0
+        }
+      } else if (clientReportType === 'profitLoss') {
         if (!clientId) throw new Error('Please select a client for Profit & Loss report')
         title = `PROFIT & LOSS STATEMENT - ${(clientName || 'CLIENT').toUpperCase()}`
         const cid = parseInt(clientId)
@@ -1027,7 +1087,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
       // Generate report data
       const { rows, columns, title, totals } = await generateReportData()
       
-      const allowEmptyClientReports = type === 'clients' && ['clientExpenses', 'analytics'].includes(clientReportType)
+      const allowEmptyClientReports = type === 'clients' && ['clientExpenses', 'analytics', 'clientStatementAccount'].includes(clientReportType)
       if (rows.length === 0 && !allowEmptyClientReports) {
         alert('No data found for the selected criteria.')
         setLoading(false)
@@ -1525,13 +1585,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                       value={clientReportType} 
                       onChange={e => {
                         setClientReportType(e.target.value as any)
-                        if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(e.target.value)) {
+                        if (['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics', 'clientStatementAccount'].includes(e.target.value)) {
                           setClientFilterType('specific')
                         }
                       }}
                       style={dropdownStyle}
                     >
                       <option value="list">Client List (Summary)</option>
+                      <option value="clientStatementAccount">Client Statement Account</option>
                       <option value="profitLoss">Profit & Loss Statement</option>
                       <option value="clientExpenses">Client Expenses</option>
                       <option value="paymentStatus">Client Payment Status</option>
@@ -1551,14 +1612,14 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
                         }
                       }}
                       style={dropdownStyle}
-                      disabled={['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)}
+                      disabled={['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics', 'clientStatementAccount'].includes(clientReportType)}
                     >
                       <option value="all">All Clients</option>
                       <option value="specific">Specific Client</option>
                     </select>
                   </div>
                   
-                  {(clientFilterType === 'specific' || ['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics'].includes(clientReportType)) && (
+                  {(clientFilterType === 'specific' || ['profitLoss', 'clientExpenses', 'paymentStatus', 'analytics', 'clientStatementAccount'].includes(clientReportType)) && (
                     <div className="col-md-4">
                       <label className="form-label fw-semibold" style={labelStyle}>Select Client</label>
                       <ClientSearchDropdown 

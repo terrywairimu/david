@@ -491,5 +491,13 @@ export const REPORT_COLUMNS = {
     { key: 'debit', label: 'Debit (Dr)', width: 12, align: 'right' as const },
     { key: 'credit', label: 'Credit (Cr)', width: 12, align: 'right' as const },
     { key: 'balance', label: 'Balance', width: 10, align: 'right' as const }
+  ],
+  clientStatement: [
+    { key: 'date', label: 'Date', width: 12, align: 'left' as const },
+    { key: 'details', label: 'Details', width: 30, align: 'left' as const },
+    { key: 'account', label: 'Account', width: 14, align: 'left' as const },
+    { key: 'in', label: 'In', width: 14, align: 'right' as const },
+    { key: 'out', label: 'Out', width: 14, align: 'right' as const },
+    { key: 'balance', label: 'Balance', width: 16, align: 'right' as const }
   ]
 };
