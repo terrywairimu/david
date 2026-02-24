@@ -800,43 +800,57 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         if (!clientId) throw new Error('Please select a client for Client Statement Account report')
         title = `CLIENT STATEMENT ACCOUNT - ${(clientName || 'CLIENT').toUpperCase()}`
         const cid = parseInt(clientId)
-        const [soRes, payRes] = await Promise.all([
-          supabase.from('sales_orders')
-            .select('id, order_number, date_created, total_amount, grand_total, original_quotation_number')
+        const [quotRes, soRes, payRes] = await Promise.all([
+          supabase.from('quotations')
+            .select('id, quotation_number, date_created, grand_total')
             .eq('client_id', cid)
             .gte('date_created', start.toISOString())
             .lte('date_created', end.toISOString())
             .order('date_created', { ascending: true }),
+          supabase.from('sales_orders')
+            .select('order_number, original_quotation_number, grand_total, date_created')
+            .eq('client_id', cid)
+            .gte('date_created', start.toISOString())
+            .lte('date_created', end.toISOString()),
           supabase.from('payments')
-            .select('id, payment_number, payment_date, date_created, amount, account_credited, payment_method, quotation_number, reference, notes')
+            .select('id, payment_number, payment_date, date_created, amount, account_credited, payment_method, quotation_number, paid_to, reference, notes')
             .eq('client_id', cid)
             .eq('status', 'completed')
             .gte('payment_date', start.toISOString().split('T')[0])
             .lte('payment_date', end.toISOString().split('T')[0])
         ])
+        const quotations = quotRes.data || []
         const salesOrders = soRes.data || []
         const payments = payRes.data || []
+        const soByQuot = Object.fromEntries((salesOrders || []).map((so: any) => [so.original_quotation_number, so]))
         const ledger: { date: string; details: string; account: string; in: number; out: number; balance: number }[] = []
-        const soRows = salesOrders.map((so: any) => ({
-          sortDate: new Date(so.date_created).getTime(),
-          date: new Date(so.date_created).toLocaleDateString(),
-          details: `Sales Order ${so.order_number || so.id}${so.original_quotation_number ? ` (${so.original_quotation_number})` : ''}`,
-          account: 'Sales Order',
-          in: parseFloat(so.total_amount || so.grand_total || 0),
-          out: 0
-        }))
+        const invRows = quotations.map((q: any) => {
+          const so = soByQuot[q.quotation_number]
+          const qTotal = parseFloat(q.grand_total || 0)
+          const soTotal = so ? parseFloat(so.grand_total || 0) : null
+          const amount = so && Math.abs(qTotal - soTotal) > 0.01 ? soTotal : qTotal
+          return {
+            sortDate: new Date(q.date_created).getTime(),
+            date: new Date(q.date_created).toLocaleDateString(),
+            details: `Quotation ${q.quotation_number}${so ? ` → ${so.order_number}` : ''}`,
+            account: 'Quotation',
+            in: amount,
+            out: 0
+          }
+        })
         const payRows = payments.map((p: any) => {
           const pd = p.payment_date || p.date_created
+          const paidTo = p.paid_to || p.quotation_number || ''
           return {
             sortDate: new Date(pd).getTime(),
             date: new Date(pd).toLocaleDateString(),
-            details: [p.payment_number, p.quotation_number || p.reference, p.notes].filter(Boolean).join(' - ').slice(0, 60) || 'Payment',
+            details: [p.payment_number, paidTo || p.reference, p.notes].filter(Boolean).join(' - ').slice(0, 60) || 'Payment',
             account: p.account_credited || p.payment_method || 'Payment',
             in: 0,
             out: parseFloat(p.amount || 0)
           }
         })
-        const merged = [...soRows, ...payRows].sort((a, b) => a.sortDate - b.sortDate)
+        const merged = [...invRows, ...payRows].sort((a, b) => a.sortDate - b.sortDate)
         let runningBalance = 0
         merged.forEach((r: any) => {
           runningBalance += r.in - r.out
