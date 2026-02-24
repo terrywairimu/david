@@ -62,6 +62,7 @@ export interface StockItem {
   name: string
   description?: string
   unit_price: number
+  buying_price?: number
   quantity: number
   reorder_level: number
   date_added: string

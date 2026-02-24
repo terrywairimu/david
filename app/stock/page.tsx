@@ -36,6 +36,7 @@ const StockPage = () => {
     category: "",
     unit: "",
     minimumLevel: "",
+    buyingPrice: "",
     sellingPrice: "",
     description: ""
   })
@@ -46,6 +47,7 @@ const StockPage = () => {
     category: "",
     unit: "",
     minimumLevel: "",
+    buyingPrice: "",
     sellingPrice: "",
     description: ""
   })
@@ -210,6 +212,7 @@ const StockPage = () => {
           name: newItemData.name,
           description: newItemData.description,
           unit_price: parseFloat(newItemData.sellingPrice),
+          buying_price: parseFloat(newItemData.buyingPrice || "0") || 0,
           quantity: 0,
           reorder_level: parseInt(newItemData.minimumLevel),
           status: "active"
@@ -325,6 +328,7 @@ const StockPage = () => {
       category: "",
       unit: "",
       minimumLevel: "",
+      buyingPrice: "",
       sellingPrice: "",
       description: ""
     })
@@ -369,6 +373,7 @@ const StockPage = () => {
       category: item.category || "",
       unit: item.unit || "",
       minimumLevel: item.reorder_level.toString(),
+      buyingPrice: (item.buying_price ?? 0).toString(),
       sellingPrice: item.unit_price.toString(),
       description: item.description || ""
     })
@@ -390,6 +395,7 @@ const StockPage = () => {
           category: editItemData.category,
           unit: editItemData.unit,
           reorder_level: parseInt(editItemData.minimumLevel),
+          buying_price: parseFloat(editItemData.buyingPrice || "0") || 0,
           unit_price: parseFloat(editItemData.sellingPrice),
           description: editItemData.description
         })
@@ -771,6 +777,19 @@ const StockPage = () => {
                   <div className="mb-4">
                     <div className="row">
                       <div className="col-md-6">
+                        <label className="form-label">Buying Price (KES)</label>
+                        <input
+                          type="number"
+                          className="form-control border-0 shadow-sm"
+                          placeholder="Enter buying price"
+                          value={newItemData.buyingPrice}
+                          onChange={(e) => setNewItemData({ ...newItemData, buyingPrice: e.target.value })}
+                          min="0"
+                          step="0.01"
+                          style={{ borderRadius: "16px", height: "45px" }}
+                        />
+                      </div>
+                      <div className="col-md-6">
                         <label className="form-label">Selling Price (KES)</label>
                         <input
                           type="number"
@@ -902,6 +921,19 @@ const StockPage = () => {
 
                   <div className="mb-4">
                     <div className="row">
+                      <div className="col-md-6">
+                        <label className="form-label">Buying Price (KES)</label>
+                        <input
+                          type="number"
+                          className="form-control border-0 shadow-sm"
+                          placeholder="Enter buying price"
+                          value={editItemData.buyingPrice}
+                          onChange={(e) => setEditItemData({ ...editItemData, buyingPrice: e.target.value })}
+                          min="0"
+                          step="0.01"
+                          style={{ borderRadius: "16px", height: "45px" }}
+                        />
+                      </div>
                       <div className="col-md-6">
                         <label className="form-label">Selling Price (KES)</label>
                         <input
