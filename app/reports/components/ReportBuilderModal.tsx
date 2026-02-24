@@ -800,9 +800,9 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
         if (!clientId) throw new Error('Please select a client for Client Statement Account report')
         title = `CLIENT STATEMENT ACCOUNT - ${(clientName || 'CLIENT').toUpperCase()}`
         const cid = parseInt(clientId)
-        const [invRes, payRes] = await Promise.all([
-          supabase.from('invoices')
-            .select('id, invoice_number, date_created, grand_total, original_quotation_number')
+        const [soRes, payRes] = await Promise.all([
+          supabase.from('sales_orders')
+            .select('id, order_number, date_created, total_amount, grand_total, original_quotation_number')
             .eq('client_id', cid)
             .gte('date_created', start.toISOString())
             .lte('date_created', end.toISOString())
@@ -814,15 +814,15 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             .gte('payment_date', start.toISOString().split('T')[0])
             .lte('payment_date', end.toISOString().split('T')[0])
         ])
-        const invoices = invRes.data || []
+        const salesOrders = soRes.data || []
         const payments = payRes.data || []
         const ledger: { date: string; details: string; account: string; in: number; out: number; balance: number }[] = []
-        const invRows = invoices.map((inv: any) => ({
-          sortDate: new Date(inv.date_created).getTime(),
-          date: new Date(inv.date_created).toLocaleDateString(),
-          details: `Invoice ${inv.invoice_number || inv.id}${inv.original_quotation_number ? ` (${inv.original_quotation_number})` : ''}`,
-          account: 'Invoice',
-          in: parseFloat(inv.grand_total || 0),
+        const soRows = salesOrders.map((so: any) => ({
+          sortDate: new Date(so.date_created).getTime(),
+          date: new Date(so.date_created).toLocaleDateString(),
+          details: `Sales Order ${so.order_number || so.id}${so.original_quotation_number ? ` (${so.original_quotation_number})` : ''}`,
+          account: 'Sales Order',
+          in: parseFloat(so.total_amount || so.grand_total || 0),
           out: 0
         }))
         const payRows = payments.map((p: any) => {
@@ -836,7 +836,7 @@ export default function ReportBuilderModal({ isOpen, onClose, type }: ReportBuil
             out: parseFloat(p.amount || 0)
           }
         })
-        const merged = [...invRows, ...payRows].sort((a, b) => a.sortDate - b.sortDate)
+        const merged = [...soRows, ...payRows].sort((a, b) => a.sortDate - b.sortDate)
         let runningBalance = 0
         merged.forEach((r: any) => {
           runningBalance += r.in - r.out
