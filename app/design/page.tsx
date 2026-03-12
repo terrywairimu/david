@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import React, { useState, useCallback, useRef } from "react"
+import { motion } from "framer-motion"
 import { Palette, Image as ImageIcon, Download, Trash2, Upload, GripVertical, Plus } from "lucide-react"
 import { generateImageToPdf, type ImageToPdfPage } from "@/lib/image-to-pdf"
 import { toast } from "sonner"
@@ -21,6 +21,8 @@ export default function DesignPage() {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const [previewOrder, setPreviewOrder] = useState<number[] | null>(null)
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const appliedForHoverRef = useRef<number | null>(null)
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -86,37 +88,60 @@ export default function DesignPage() {
     })
   }
 
-  const handleCardDragStart = (idx: number) => setDraggedIdx(idx)
+  const handleCardDragStart = (idx: number) => {
+    setDraggedIdx(idx)
+    setPreviewOrder(null)
+    appliedForHoverRef.current = null
+  }
   const handleCardDragEnd = () => {
     setDraggedIdx(null)
     setDragOverIdx(null)
     setPreviewOrder(null)
+    appliedForHoverRef.current = null
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
   }
   const handleCardDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault()
     if (draggedIdx === null) return
     setDragOverIdx(idx)
-    if (draggedIdx !== idx) {
-      setPreviewOrder((prev) => {
-        const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
-        const newOrder = [...order]
-        const fromPos = newOrder.indexOf(draggedIdx)
-        const toPos = newOrder.indexOf(idx)
-        if (fromPos >= 0 && toPos >= 0) {
-          ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
-        }
-        return newOrder
-      })
+    if (draggedIdx !== idx && appliedForHoverRef.current === null) {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = setTimeout(() => {
+        previewTimerRef.current = null
+        appliedForHoverRef.current = idx
+        setPreviewOrder((prev) => {
+          const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
+          const newOrder = [...order]
+          const fromPos = newOrder.indexOf(draggedIdx)
+          const toPos = newOrder.indexOf(idx)
+          if (fromPos >= 0 && toPos >= 0) {
+            ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
+          }
+          return newOrder
+        })
+      }, 100)
     }
   }
   const handleCardDragLeave = () => {
     setDragOverIdx(null)
+    appliedForHoverRef.current = null
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
     setPreviewOrder(null)
   }
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
     setDragOverIdx(null)
     setPreviewOrder(null)
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
     const fromStr = e.dataTransfer.getData("text/plain")
     if (fromStr === "") return
     const fromIdx = parseInt(fromStr, 10)
@@ -302,8 +327,9 @@ export default function DesignPage() {
               <div className="mt-4">
                 <h6 className="fw-semibold mb-3">Pages ({pages.length})</h6>
                 <div className="row g-3">
-                  <AnimatePresence mode="popLayout">
-                  {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx, displayPos) => (
+                  {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx) => {
+                    const page = pages[pageIdx]
+                    return (
                     <motion.div
                       key={pageIdx}
                       layout
@@ -327,129 +353,127 @@ export default function DesignPage() {
                       }}
                       className="col-12 col-md-6 col-lg-4"
                       style={{
-                        border: "1px solid #e5e7eb",
                         borderRadius: "12px",
                         overflow: "hidden",
-                        backgroundColor: "#fff",
-                        opacity: draggedIdx === pageIdx ? 0.6 : 1,
-                        borderColor: dragOverIdx === pageIdx ? "#8b5cf6" : undefined,
-                        boxShadow: dragOverIdx === pageIdx ? "0 0 0 2px #8b5cf6" : undefined,
+                        backgroundColor: "#0a0a0a",
+                        opacity: draggedIdx === pageIdx ? 0.7 : 1,
+                        boxShadow: dragOverIdx === pageIdx ? "0 0 0 2px rgba(139,92,246,0.6)" : "0 2px 8px rgba(0,0,0,0.08)",
                         cursor: "grab",
                       }}
                     >
                       <div
-                        className="d-flex align-items-center justify-content-center px-2 py-1"
-                        style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}
-                      >
-                        <GripVertical size={18} className="text-muted" style={{ cursor: "grab" }} />
-                      </div>
-                      <div
                         style={{
-                          height: 120,
+                          position: "relative",
+                          aspectRatio: "4/3",
                           overflow: "hidden",
-                          background: "#f3f4f6",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
                         <img
-                          src={pages[pageIdx].imageDataUrl}
-                          alt={pages[pageIdx].designName}
+                          src={page.imageDataUrl}
+                          alt={page.designName}
                           draggable={false}
                           style={{
-                            maxHeight: "100%",
-                            maxWidth: "100%",
-                            objectFit: "contain",
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
                           }}
                         />
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 6,
+                            left: 6,
+                            padding: "4px 8px",
+                            background: "rgba(0,0,0,0.4)",
+                            borderRadius: "6px",
+                            cursor: "grab",
+                          }}
+                        >
+                          <GripVertical size={14} style={{ color: "rgba(255,255,255,0.9)" }} />
+                        </div>
                       </div>
-                      <div className="p-3">
-                        <div className="mb-2">
-                          <label className="form-label small mb-1">
-                            Design name
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm border-0 shadow-sm"
-                            value={pages[pageIdx].designName}
-                            onChange={(e) =>
-                              updatePage(pageIdx, { designName: e.target.value })
-                            }
-                            placeholder="Design name"
-                            style={{ borderRadius: "8px" }}
-                          />
-                        </div>
-                        <div className="row g-2 mb-2">
-                          <div className="col-6">
-                            <label className="form-label small mb-1">
-                              Font size
-                            </label>
-                            <input
-                              type="number"
-                              className="form-control form-control-sm border-0 shadow-sm"
-                              min={8}
-                              max={24}
-                              value={pages[pageIdx].fontSize}
-                              onChange={(e) =>
-                                updatePage(pageIdx, {
-                                  fontSize: parseInt(e.target.value) || 12,
-                                })
-                              }
-                              style={{ borderRadius: "8px" }}
-                            />
-                          </div>
-                          <div className="col-6">
-                            <label className="form-label small mb-1">
-                              Color
-                            </label>
-                            <div className="d-flex gap-1">
-                              <input
-                                type="color"
-                                value={pages[pageIdx].fontColor}
-                                onChange={(e) =>
-                                  updatePage(pageIdx, {
-                                    fontColor: e.target.value,
-                                  })
-                                }
-                                style={{
-                                  width: 36,
-                                  height: 32,
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  cursor: "pointer",
-                                }}
-                              />
-                              <input
-                                type="text"
-                                className="form-control form-control-sm border-0 shadow-sm"
-                                value={pages[pageIdx].fontColor}
-                                onChange={(e) =>
-                                  updatePage(pageIdx, { fontColor: e.target.value })
-                                }
-                                style={{
-                                  borderRadius: "8px",
-                                  flex: 1,
-                                  fontFamily: "monospace",
-                                  fontSize: 11,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "8px 10px",
+                          background: "rgba(0,0,0,0.03)",
+                          borderTop: "1px solid rgba(0,0,0,0.06)",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={page.designName}
+                          onChange={(e) => updatePage(pageIdx, { designName: e.target.value })}
+                          placeholder="Name"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            border: "none",
+                            background: "transparent",
+                            fontSize: 12,
+                            color: "#374151",
+                            outline: "none",
+                          }}
+                        />
+                        <input
+                          type="number"
+                          min={8}
+                          max={24}
+                          value={page.fontSize}
+                          onChange={(e) =>
+                            updatePage(pageIdx, { fontSize: parseInt(e.target.value) || 12 })
+                          }
+                          style={{
+                            width: 42,
+                            border: "none",
+                            background: "rgba(0,0,0,0.05)",
+                            borderRadius: 6,
+                            padding: "4px 6px",
+                            fontSize: 11,
+                            textAlign: "center",
+                          }}
+                        />
+                        <input
+                          type="color"
+                          value={page.fontColor}
+                          onChange={(e) => updatePage(pageIdx, { fontColor: e.target.value })}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            border: "none",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        />
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-danger w-100"
                           onClick={() => removePage(pageIdx)}
-                          style={{ borderRadius: "8px" }}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "none",
+                            borderRadius: 8,
+                            background: "rgba(239,68,68,0.1)",
+                            color: "#dc2626",
+                            cursor: "pointer",
+                          }}
+                          title="Remove"
                         >
-                          <Trash2 size={14} className="me-1" />
-                          Remove
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </motion.div>
-                  ))}
-                  </AnimatePresence>
+                  )
+                  })}
                   {/* Add more images card - Dribbble-style minimal */}
                   <div
                     className="col-12 col-md-6 col-lg-4"
@@ -469,7 +493,6 @@ export default function DesignPage() {
                     onDragOver={onDragOver}
                     onClick={() => document.getElementById("design-file-input")?.click()}
                     style={{
-                      border: "1px solid #e5e7eb",
                       borderRadius: "12px",
                       minHeight: 180,
                       display: "flex",
@@ -482,12 +505,10 @@ export default function DesignPage() {
                       boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#d1d5db"
                       e.currentTarget.style.backgroundColor = "#f5f5f5"
-                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)"
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#e5e7eb"
                       e.currentTarget.style.backgroundColor = "#fafafa"
                       e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"
                     }}

@@ -53,10 +53,16 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     logoBase64 = await fetchImageAsBase64('/logowatermark.png')
   }
 
-  // Filter out empty/invalid pages (no valid image data)
-  const validPages = input.pages.filter(
-    (p) => p?.imageDataUrl && typeof p.imageDataUrl === 'string' && p.imageDataUrl.startsWith('data:') && p.imageDataUrl.length > 100
-  )
+  // Filter out empty/invalid pages - only valid image data URLs (strict: must have real base64 payload)
+  const validPages = input.pages.filter((p) => {
+    if (!p?.imageDataUrl || typeof p.imageDataUrl !== 'string') return false
+    const s = p.imageDataUrl
+    if (!s.startsWith('data:image/')) return false
+    const base64Idx = s.indexOf('base64,')
+    if (base64Idx < 0) return false
+    const payload = s.slice(base64Idx + 7)
+    return payload.length >= 100 // ensure real image data, not placeholder
+  })
 
   if (validPages.length === 0) {
     throw new Error('No valid images to include in PDF')
@@ -70,8 +76,8 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     const inputs: Record<string, string> = {}
 
     if (idx === 0) {
-      // First page: header block (like quotation) - Client, Project Location, Date compact
-      if (logoBase64 && logoBase64.length > 200) {
+      // First page: header block - only add logo if we have real image (avoid 1x1 fallback)
+      if (logoBase64 && logoBase64.length > 500) {
         schemas.push({ name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 })
       }
       schemas.push(
@@ -90,7 +96,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'dateLabel', type: 'text', position: { x: 18, y: 75 }, width: 14, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'dateValue', type: 'text', position: { x: 32, y: 75 }, width: 50, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
       )
-      if (logoBase64 && logoBase64.length > 200) inputs.logo = logoBase64
+      if (logoBase64 && logoBase64.length > 500) inputs.logo = logoBase64
       inputs.companyName = company.companyName
       inputs.companyLocation = company.companyLocation
       inputs.companyPhone = company.companyPhone
@@ -138,10 +144,10 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       schemas.push({
         name: `designName${idx}`,
         type: 'text',
-        position: { x: 0, y: 5 },
+        position: { x: 0, y: 4 },
         width: PAGE_WIDTH,
         height: 14,
-        fontSize: 36,
+        fontSize: 30,
         fontColor: page.fontColor,
         fontName: 'Helvetica-Bold',
         alignment: 'center'
