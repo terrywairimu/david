@@ -1,7 +1,8 @@
 // Image to PDF - Uses quotation-style header, one image per page with editable design name
 // Images stored locally (client-side), not in database
 
-import { defaultValues, imageToBase64 } from './pdf-template'
+import { defaultValues } from './pdf-template'
+import { fetchImageAsBase64 } from './dynamic-report-pdf'
 
 const PAGE_WIDTH = 210
 const PAGE_HEIGHT = 297
@@ -46,17 +47,16 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
 
   const date = input.date || new Date().toLocaleDateString('en-KE')
 
-  // Load Cabinet Master logo from /logo.png (same as quotations), fallback to logowatermark
+  // Use same logo approach as Reports - /logowatermark.png (avoids malformed /logo.png)
   let logoBase64 = input.companyLogo || ''
   if (!logoBase64) {
-    logoBase64 = await imageToBase64('/logo.png')
-  }
-  if (!logoBase64) {
-    logoBase64 = await imageToBase64('/logowatermark.png')
+    logoBase64 = await fetchImageAsBase64('/logowatermark.png')
   }
 
-  // Filter out empty pages (no valid image)
-  const validPages = input.pages.filter((p) => p?.imageDataUrl && p.imageDataUrl.startsWith('data:'))
+  // Filter out empty/invalid pages (no valid image data)
+  const validPages = input.pages.filter(
+    (p) => p?.imageDataUrl && typeof p.imageDataUrl === 'string' && p.imageDataUrl.startsWith('data:') && p.imageDataUrl.length > 100
+  )
 
   if (validPages.length === 0) {
     throw new Error('No valid images to include in PDF')
@@ -70,8 +70,8 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     const inputs: Record<string, string> = {}
 
     if (idx === 0) {
-      // First page: header block (like quotation) - Client, Project Location, Date vertically
-      if (logoBase64) {
+      // First page: header block (like quotation) - Client, Project Location, Date compact
+      if (logoBase64 && logoBase64.length > 200) {
         schemas.push({ name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 })
       }
       schemas.push(
@@ -81,15 +81,16 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'headerBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
         { name: 'docTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 38, color: '#E5E5E5', radius: 4 },
-        { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 30, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientValue', type: 'text', position: { x: 55, y: 67 }, width: 130, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'locationLabel', type: 'text', position: { x: 18, y: 79 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'locationValue', type: 'text', position: { x: 75, y: 79 }, width: 110, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'dateLabel', type: 'text', position: { x: 18, y: 91 }, width: 25, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'dateValue', type: 'text', position: { x: 47, y: 91 }, width: 55, height: 5, fontSize: 9, fontColor: '#000', fontName: 'Helvetica', alignment: 'left' }
+        // Compact client info: Row1 = Client | Project Location (50/50), Row2 = Date
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 18, color: '#E8E8E8', radius: 4 },
+        { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 18, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientValue', type: 'text', position: { x: 36, y: 67 }, width: 72, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'locationLabel', type: 'text', position: { x: 98, y: 67 }, width: 38, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'locationValue', type: 'text', position: { x: 136, y: 67 }, width: 56, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'dateLabel', type: 'text', position: { x: 18, y: 75 }, width: 14, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'dateValue', type: 'text', position: { x: 32, y: 75 }, width: 50, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
       )
-      if (logoBase64) inputs.logo = logoBase64
+      if (logoBase64 && logoBase64.length > 200) inputs.logo = logoBase64
       inputs.companyName = company.companyName
       inputs.companyLocation = company.companyLocation
       inputs.companyPhone = company.companyPhone
@@ -105,9 +106,9 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.dateValue = date
     }
 
-    // Image: full width, no margins - entire page width
-    const imgTop = idx === 0 ? 108 : 0
-    const imgHeight = idx === 0 ? 150 : PAGE_HEIGHT - 40
+    // Image: full width; non-first pages start below header (design name)
+    const imgTop = idx === 0 ? 85 : 22
+    const imgHeight = idx === 0 ? PAGE_HEIGHT - 95 : PAGE_HEIGHT - 27
     const imgWidth = PAGE_WIDTH
     const imgX = 0
 
@@ -120,19 +121,32 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     })
     inputs[`img${idx}`] = page.imageDataUrl
 
-    // Design name: below image, editable styling
-    const nameTop = idx === 0 ? 262 : PAGE_HEIGHT - 35
-    schemas.push({
-      name: `designName${idx}`,
-      type: 'text',
-      position: { x: 0, y: nameTop },
-      width: PAGE_WIDTH,
-      height: 10,
-      fontSize: page.fontSize,
-      fontColor: page.fontColor,
-      fontName: 'Helvetica',
-      alignment: 'center'
-    })
+    // Design name: first page = below image; other pages = header position, font 36 default
+    if (idx === 0) {
+      schemas.push({
+        name: `designName${idx}`,
+        type: 'text',
+        position: { x: 0, y: PAGE_HEIGHT - 25 },
+        width: PAGE_WIDTH,
+        height: 12,
+        fontSize: page.fontSize,
+        fontColor: page.fontColor,
+        fontName: 'Helvetica',
+        alignment: 'center'
+      })
+    } else {
+      schemas.push({
+        name: `designName${idx}`,
+        type: 'text',
+        position: { x: 0, y: 5 },
+        width: PAGE_WIDTH,
+        height: 14,
+        fontSize: 36,
+        fontColor: page.fontColor,
+        fontName: 'Helvetica-Bold',
+        alignment: 'center'
+      })
+    }
     inputs[`designName${idx}`] = page.designName || `Design ${idx + 1}`
 
     pageSchemas.push(schemas)

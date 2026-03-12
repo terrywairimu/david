@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Palette, Image as ImageIcon, Download, Trash2, Upload, GripVertical, Plus } from "lucide-react"
 import { generateImageToPdf, type ImageToPdfPage } from "@/lib/image-to-pdf"
 import { toast } from "sonner"
@@ -19,6 +20,7 @@ export default function DesignPage() {
   const [generating, setGenerating] = useState(false)
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+  const [previewOrder, setPreviewOrder] = useState<number[] | null>(null)
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -75,25 +77,51 @@ export default function DesignPage() {
     })
   }
 
+  const swapPages = (a: number, b: number) => {
+    if (a === b) return
+    setPages((prev) => {
+      const next = [...prev]
+      ;[next[a], next[b]] = [next[b], next[a]]
+      return next
+    })
+  }
+
   const handleCardDragStart = (idx: number) => setDraggedIdx(idx)
   const handleCardDragEnd = () => {
     setDraggedIdx(null)
     setDragOverIdx(null)
+    setPreviewOrder(null)
   }
   const handleCardDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault()
     if (draggedIdx === null) return
     setDragOverIdx(idx)
+    if (draggedIdx !== idx) {
+      setPreviewOrder((prev) => {
+        const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
+        const newOrder = [...order]
+        const fromPos = newOrder.indexOf(draggedIdx)
+        const toPos = newOrder.indexOf(idx)
+        if (fromPos >= 0 && toPos >= 0) {
+          ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
+        }
+        return newOrder
+      })
+    }
   }
-  const handleCardDragLeave = () => setDragOverIdx(null)
+  const handleCardDragLeave = () => {
+    setDragOverIdx(null)
+    setPreviewOrder(null)
+  }
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
     setDragOverIdx(null)
+    setPreviewOrder(null)
     const fromStr = e.dataTransfer.getData("text/plain")
     if (fromStr === "") return
     const fromIdx = parseInt(fromStr, 10)
     if (Number.isNaN(fromIdx)) return
-    movePage(fromIdx, toIdx)
+    swapPages(fromIdx, toIdx)
     setDraggedIdx(null)
   }
 
@@ -274,17 +302,20 @@ export default function DesignPage() {
               <div className="mt-4">
                 <h6 className="fw-semibold mb-3">Pages ({pages.length})</h6>
                 <div className="row g-3">
-                  {pages.map((page, idx) => (
-                    <div
-                      key={idx}
+                  <AnimatePresence mode="popLayout">
+                  {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx, displayPos) => (
+                    <motion.div
+                      key={pageIdx}
+                      layout
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
                       draggable
                       onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", String(idx))
+                        e.dataTransfer.setData("text/plain", String(pageIdx))
                         e.dataTransfer.effectAllowed = "move"
-                        handleCardDragStart(idx)
+                        handleCardDragStart(pageIdx)
                       }}
                       onDragEnd={handleCardDragEnd}
-                      onDragOver={(e) => handleCardDragOver(e, idx)}
+                      onDragOver={(e) => handleCardDragOver(e, pageIdx)}
                       onDragLeave={handleCardDragLeave}
                       onDrop={(e) => {
                         e.preventDefault()
@@ -292,7 +323,7 @@ export default function DesignPage() {
                           handleFiles(e.dataTransfer.files)
                           return
                         }
-                        handleCardDrop(e, idx)
+                        handleCardDrop(e, pageIdx)
                       }}
                       className="col-12 col-md-6 col-lg-4"
                       style={{
@@ -300,9 +331,9 @@ export default function DesignPage() {
                         borderRadius: "12px",
                         overflow: "hidden",
                         backgroundColor: "#fff",
-                        opacity: draggedIdx === idx ? 0.6 : 1,
-                        borderColor: dragOverIdx === idx ? "#8b5cf6" : undefined,
-                        boxShadow: dragOverIdx === idx ? "0 0 0 2px #8b5cf6" : undefined,
+                        opacity: draggedIdx === pageIdx ? 0.6 : 1,
+                        borderColor: dragOverIdx === pageIdx ? "#8b5cf6" : undefined,
+                        boxShadow: dragOverIdx === pageIdx ? "0 0 0 2px #8b5cf6" : undefined,
                         cursor: "grab",
                       }}
                     >
@@ -323,8 +354,8 @@ export default function DesignPage() {
                         }}
                       >
                         <img
-                          src={page.imageDataUrl}
-                          alt={page.designName}
+                          src={pages[pageIdx].imageDataUrl}
+                          alt={pages[pageIdx].designName}
                           draggable={false}
                           style={{
                             maxHeight: "100%",
@@ -341,9 +372,9 @@ export default function DesignPage() {
                           <input
                             type="text"
                             className="form-control form-control-sm border-0 shadow-sm"
-                            value={page.designName}
+                            value={pages[pageIdx].designName}
                             onChange={(e) =>
-                              updatePage(idx, { designName: e.target.value })
+                              updatePage(pageIdx, { designName: e.target.value })
                             }
                             placeholder="Design name"
                             style={{ borderRadius: "8px" }}
@@ -359,9 +390,9 @@ export default function DesignPage() {
                               className="form-control form-control-sm border-0 shadow-sm"
                               min={8}
                               max={24}
-                              value={page.fontSize}
+                              value={pages[pageIdx].fontSize}
                               onChange={(e) =>
-                                updatePage(idx, {
+                                updatePage(pageIdx, {
                                   fontSize: parseInt(e.target.value) || 12,
                                 })
                               }
@@ -375,9 +406,9 @@ export default function DesignPage() {
                             <div className="d-flex gap-1">
                               <input
                                 type="color"
-                                value={page.fontColor}
+                                value={pages[pageIdx].fontColor}
                                 onChange={(e) =>
-                                  updatePage(idx, {
+                                  updatePage(pageIdx, {
                                     fontColor: e.target.value,
                                   })
                                 }
@@ -392,9 +423,9 @@ export default function DesignPage() {
                               <input
                                 type="text"
                                 className="form-control form-control-sm border-0 shadow-sm"
-                                value={page.fontColor}
+                                value={pages[pageIdx].fontColor}
                                 onChange={(e) =>
-                                  updatePage(idx, { fontColor: e.target.value })
+                                  updatePage(pageIdx, { fontColor: e.target.value })
                                 }
                                 style={{
                                   borderRadius: "8px",
@@ -409,16 +440,17 @@ export default function DesignPage() {
                         <button
                           type="button"
                           className="btn btn-sm btn-outline-danger w-100"
-                          onClick={() => removePage(idx)}
+                          onClick={() => removePage(pageIdx)}
                           style={{ borderRadius: "8px" }}
                         >
                           <Trash2 size={14} className="me-1" />
                           Remove
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                  {/* Add more images card */}
+                  </AnimatePresence>
+                  {/* Add more images card - Dribbble-style minimal */}
                   <div
                     className="col-12 col-md-6 col-lg-4"
                     onDrop={(e) => {
@@ -437,7 +469,7 @@ export default function DesignPage() {
                     onDragOver={onDragOver}
                     onClick={() => document.getElementById("design-file-input")?.click()}
                     style={{
-                      border: "2px dashed #d1d5db",
+                      border: "1px solid #e5e7eb",
                       borderRadius: "12px",
                       minHeight: 180,
                       display: "flex",
@@ -445,25 +477,37 @@ export default function DesignPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      backgroundColor: "#f9fafb",
-                      transition: "all 0.2s",
+                      backgroundColor: "#fafafa",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#8b5cf6"
-                      e.currentTarget.style.backgroundColor = "#f5f3ff"
+                      e.currentTarget.style.borderColor = "#d1d5db"
+                      e.currentTarget.style.backgroundColor = "#f5f5f5"
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)"
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#d1d5db"
-                      e.currentTarget.style.backgroundColor = "#f9fafb"
+                      e.currentTarget.style.borderColor = "#e5e7eb"
+                      e.currentTarget.style.backgroundColor = "#fafafa"
+                      e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"
                     }}
                   >
-                    <Plus size={32} style={{ color: "#8b5cf6" }} />
-                    <p className="mb-0 fw-semibold mt-2 text-dark small">
-                      Add more images
-                    </p>
-                    <p className="mb-0 text-muted" style={{ fontSize: "0.75rem" }}>
-                      Click or drop here
-                    </p>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        background: "rgba(139, 92, 246, 0.08)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Plus size={20} strokeWidth={2.5} style={{ color: "#8b5cf6" }} />
+                    </div>
+                    <span className="mt-2" style={{ fontSize: "13px", fontWeight: 500, color: "#64748b" }}>
+                      Add more
+                    </span>
                   </div>
                 </div>
               </div>
