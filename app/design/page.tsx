@@ -133,6 +133,7 @@ export default function DesignPage() {
   const [previewOrder, setPreviewOrder] = useState<number[] | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const appliedForHoverRef = useRef<number | null>(null)
+  const draggedIdxRef = useRef<number | null>(null)
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -200,11 +201,13 @@ export default function DesignPage() {
 
   const handleCardDragStart = (idx: number) => {
     setDraggedIdx(idx)
+    draggedIdxRef.current = idx
     setPreviewOrder(null)
     appliedForHoverRef.current = null
   }
   const handleCardDragEnd = () => {
     setDraggedIdx(null)
+    draggedIdxRef.current = null
     setDragOverIdx(null)
     setPreviewOrder(null)
     appliedForHoverRef.current = null
@@ -257,16 +260,23 @@ export default function DesignPage() {
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
     e.stopPropagation()
+    let fromIdx: number | null = null
     const fromStr = e.dataTransfer.getData("text/plain")
-    if (fromStr === "") return
-    const fromIdx = parseInt(fromStr, 10)
-    if (Number.isNaN(fromIdx)) return
+    if (fromStr !== "") {
+      const parsed = parseInt(fromStr, 10)
+      if (!Number.isNaN(parsed)) fromIdx = parsed
+    }
+    if (fromIdx === null && draggedIdxRef.current !== null) {
+      fromIdx = draggedIdxRef.current
+    }
+    if (fromIdx === null) return
     if (fromIdx !== toIdx) {
-      swapPages(fromIdx, toIdx)
+      movePage(fromIdx, toIdx)
     }
     setDragOverIdx(null)
     setPreviewOrder(null)
     setDraggedIdx(null)
+    draggedIdxRef.current = null
     if (previewTimerRef.current) {
       clearTimeout(previewTimerRef.current)
       previewTimerRef.current = null
@@ -452,7 +462,7 @@ export default function DesignPage() {
               <div className="mt-4">
                 <h6 className="fw-semibold mb-3">Pages ({pages.length})</h6>
                 <div className="row g-2">
-                  {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx) => {
+                  {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx, displayIdx) => {
                     const page = pages[pageIdx]
                     return (
                     <motion.div
@@ -475,7 +485,7 @@ export default function DesignPage() {
                           handleFiles(e.dataTransfer.files)
                           return
                         }
-                        handleCardDrop(e, pageIdx)
+                        handleCardDrop(e, displayIdx)
                       }}
                       className="col-12 col-md-6 col-lg-4"
                       style={{
@@ -540,11 +550,19 @@ export default function DesignPage() {
                         handleFiles(e.dataTransfer.files)
                         return
                       }
+                      let fromIdx: number | null = null
                       const fromStr = e.dataTransfer.getData("text/plain")
                       if (fromStr !== "") {
-                        const fromIdx = parseInt(fromStr, 10)
-                        if (!Number.isNaN(fromIdx)) movePage(fromIdx, pages.length)
+                        const parsed = parseInt(fromStr, 10)
+                        if (!Number.isNaN(parsed)) fromIdx = parsed
+                      }
+                      if (fromIdx === null && draggedIdxRef.current !== null) {
+                        fromIdx = draggedIdxRef.current
+                      }
+                      if (fromIdx !== null) {
+                        movePage(fromIdx, pages.length)
                         setDraggedIdx(null)
+                        draggedIdxRef.current = null
                       }
                     }}
                     onDragOver={onDragOver}
