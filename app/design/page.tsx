@@ -9,6 +9,7 @@ import { useGlobalProgress } from "@/components/GlobalProgressManager"
 export default function DesignPage() {
   const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [clientName, setClientName] = useState("")
+  const [projectLocation, setProjectLocation] = useState("")
   const [pages, setPages] = useState<ImageToPdfPage[]>([])
   const [generating, setGenerating] = useState(false)
 
@@ -81,6 +82,7 @@ export default function DesignPage() {
     try {
       const pdfBytes = await generateImageToPdf({
         clientName: clientName.trim(),
+        projectLocation: projectLocation.trim(),
         date: new Date().toLocaleDateString("en-KE"),
         pages,
       })
@@ -158,17 +160,30 @@ export default function DesignPage() {
               and editable design labels per page.
             </p>
 
-            {/* Client name */}
-            <div className="mb-4">
-              <label className="form-label fw-semibold">Client Name</label>
-              <input
-                type="text"
-                className="form-control border-0 shadow-sm"
-                placeholder="Enter client name"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                style={{ borderRadius: "12px", height: "45px" }}
-              />
+            {/* Client name & Project location - same row, half each */}
+            <div className="row g-3 mb-4">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Client Name</label>
+                <input
+                  type="text"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="Enter client name"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  style={{ borderRadius: "12px", height: "45px" }}
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Project Location</label>
+                <input
+                  type="text"
+                  className="form-control border-0 shadow-sm"
+                  placeholder="Enter project location"
+                  value={projectLocation}
+                  onChange={(e) => setProjectLocation(e.target.value)}
+                  style={{ borderRadius: "12px", height: "45px" }}
+                />
+              </div>
             </div>
 
             {/* Upload zone */}
