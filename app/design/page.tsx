@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { Palette, Image as ImageIcon, Download, Trash2, Upload, GripVertical, Plus } from "lucide-react"
+import { Palette, Image as ImageIcon, Download, Trash2, Upload, Plus } from "lucide-react"
 import { generateImageToPdf, type ImageToPdfPage } from "@/lib/image-to-pdf"
 import { toast } from "sonner"
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
@@ -136,6 +136,72 @@ export default function DesignPage() {
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const appliedForHoverRef = useRef<number | null>(null)
   const draggedIdxRef = useRef<number | null>(null)
+  const touchDragRef = useRef<{ fromIdx: number; startX: number; startY: number; activated: boolean } | null>(null)
+  const lastTouchRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleTouchStart = useCallback((pageIdx: number, e: React.TouchEvent) => {
+    if (e.touches.length === 0) return
+    const touch = e.touches[0]
+    touchDragRef.current = { fromIdx: pageIdx, startX: touch.clientX, startY: touch.clientY, activated: false }
+    lastTouchRef.current = { x: touch.clientX, y: touch.clientY }
+    const handleTouchMove = (ev: TouchEvent) => {
+      const t = touchDragRef.current
+      if (!t || !ev.touches.length) return
+      const te = ev.touches[0]
+      lastTouchRef.current = { x: te.clientX, y: te.clientY }
+      if (!t.activated) {
+        if (Math.abs(te.clientX - t.startX) > 8 || Math.abs(te.clientY - t.startY) > 8) {
+          t.activated = true
+          setDraggedIdx(t.fromIdx)
+          draggedIdxRef.current = t.fromIdx
+        }
+      }
+      if (t.activated) {
+        ev.preventDefault()
+        const el = document.elementFromPoint(te.clientX, te.clientY)
+        const dropEl = el?.closest?.("[data-drop-slot]")
+        if (dropEl) {
+          const slot = dropEl.getAttribute("data-drop-slot")
+          if (slot === "add") setDragOverIdx(-1)
+          else {
+            const pageIdxAttr = dropEl.getAttribute("data-page-idx")
+            const idx = pageIdxAttr !== null ? parseInt(pageIdxAttr, 10) : parseInt(slot ?? "", 10)
+            if (!Number.isNaN(idx)) setDragOverIdx(idx)
+          }
+        }
+      }
+    }
+    const handleTouchEnd = (ev: TouchEvent) => {
+      const t = touchDragRef.current
+      if (!t) return
+      const pos = lastTouchRef.current ?? (ev.changedTouches[0] ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY } : null)
+      document.removeEventListener("touchmove", handleTouchMove, { passive: false } as any)
+      document.removeEventListener("touchend", handleTouchEnd)
+      document.removeEventListener("touchcancel", handleTouchEnd)
+      touchDragRef.current = null
+      lastTouchRef.current = null
+      setDraggedIdx(null)
+      draggedIdxRef.current = null
+      if (t.activated && pos) {
+        const el = document.elementFromPoint(pos.x, pos.y)
+        const dropEl = el?.closest?.("[data-drop-slot]")
+        if (dropEl) {
+          const slot = dropEl.getAttribute("data-drop-slot")
+          if (slot === "add") {
+            movePage(t.fromIdx, pages.length)
+          } else {
+            const toIdx = parseInt(slot ?? "", 10)
+            if (!Number.isNaN(toIdx) && toIdx !== t.fromIdx) movePage(t.fromIdx, toIdx)
+          }
+        }
+      }
+      setDragOverIdx(null)
+      setPreviewOrder(null)
+    }
+    document.addEventListener("touchmove", handleTouchMove, { passive: false })
+    document.addEventListener("touchend", handleTouchEnd)
+    document.addEventListener("touchcancel", handleTouchEnd)
+  }, [pages.length])
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -231,12 +297,12 @@ export default function DesignPage() {
           previewTimerRef.current = null
           setPreviewOrder((prev) => {
             const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
+            const fromPos = order.indexOf(draggedIdx)
+            const toPos = order.indexOf(idx)
+            if (fromPos < 0 || toPos < 0 || fromPos === toPos) return prev
             const newOrder = [...order]
-            const fromPos = newOrder.indexOf(draggedIdx)
-            const toPos = newOrder.indexOf(idx)
-            if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
-              ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
-            }
+            const [removed] = newOrder.splice(fromPos, 1)
+            newOrder.splice(toPos, 0, removed)
             return newOrder
           })
         }, 50)
@@ -259,6 +325,15 @@ export default function DesignPage() {
       setPreviewOrder(null)
     }, 0)
   }
+  const performMove = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return
+    movePage(fromIdx, toIdx)
+    setDragOverIdx(null)
+    setPreviewOrder(null)
+    setDraggedIdx(null)
+    draggedIdxRef.current = null
+  }
+
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
     e.stopPropagation()
@@ -272,13 +347,7 @@ export default function DesignPage() {
       fromIdx = draggedIdxRef.current
     }
     if (fromIdx === null) return
-    if (fromIdx !== toIdx) {
-      movePage(fromIdx, toIdx)
-    }
-    setDragOverIdx(null)
-    setPreviewOrder(null)
-    setDraggedIdx(null)
-    draggedIdxRef.current = null
+    performMove(fromIdx, toIdx)
     if (previewTimerRef.current) {
       clearTimeout(previewTimerRef.current)
       previewTimerRef.current = null
@@ -499,6 +568,9 @@ export default function DesignPage() {
                       key={pageIdx}
                       layout
                       data-design-card
+                      data-drop-slot={displayIdx}
+                      data-page-idx={pageIdx}
+                      onTouchStart={(e) => handleTouchStart(pageIdx, e)}
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                       draggable
                       onDragStart={(e) => {
@@ -552,13 +624,21 @@ export default function DesignPage() {
                             position: "absolute",
                             top: 6,
                             left: 6,
-                            padding: "4px 8px",
-                            background: "rgba(0,0,0,0.35)",
-                            borderRadius: "6px",
+                            minWidth: 28,
+                            height: 28,
+                            padding: "0 8px",
+                            background: "rgba(0,0,0,0.4)",
+                            borderRadius: "8px",
                             cursor: "grab",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "white",
                           }}
                         >
-                          <GripVertical size={14} style={{ color: "rgba(255,255,255,0.9)" }} />
+                          {displayIdx + 1}
                         </div>
                       </div>
                       <CardBottomBar
@@ -596,6 +676,7 @@ export default function DesignPage() {
                       }
                     }}
                     onDragOver={onDragOver}
+                    data-drop-slot="add"
                     onClick={() => document.getElementById("design-file-input")?.click()}
                     style={{
                       borderRadius: "12px",
