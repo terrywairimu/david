@@ -301,7 +301,9 @@ export default function DesignPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `design-catalogue-${clientName.replace(/\s+/g, "-")}.pdf`
+      const parts = [clientName.trim(), projectLocation.trim()].filter(Boolean)
+      const fn = parts.length ? `3d design catalogue for ${parts.join(" ")}.pdf` : "3d-design-catalogue.pdf"
+      a.download = fn
       a.click()
       URL.revokeObjectURL(url)
       completeDownload()

@@ -87,14 +87,14 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'headerBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
         { name: 'docTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        // Compact client info: Row1 = Client | Project Location (50/50), Row2 = Date
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 18, color: '#E8E8E8', radius: 4 },
-        { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 18, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientValue', type: 'text', position: { x: 36, y: 67 }, width: 72, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'locationLabel', type: 'text', position: { x: 98, y: 67 }, width: 38, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'locationValue', type: 'text', position: { x: 136, y: 67 }, width: 56, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'dateLabel', type: 'text', position: { x: 18, y: 75 }, width: 14, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'dateValue', type: 'text', position: { x: 32, y: 75 }, width: 50, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
+        // Client info: vertical block - Client, Project Location, Date. All values aligned at x:52.
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 24, color: '#E8E8E8', radius: 4 },
+        { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientValue', type: 'text', position: { x: 52, y: 67 }, width: 140, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'locationLabel', type: 'text', position: { x: 18, y: 73 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'locationValue', type: 'text', position: { x: 52, y: 73 }, width: 140, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'dateLabel', type: 'text', position: { x: 18, y: 79 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'dateValue', type: 'text', position: { x: 52, y: 79 }, width: 60, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
       )
       if (logoBase64 && logoBase64.length > 500) inputs.logo = logoBase64
       inputs.companyName = company.companyName
@@ -112,12 +112,23 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.dateValue = date
     }
 
-    // Image: full width; non-first pages start below header (design name)
-    const imgTop = idx === 0 ? 85 : 22
-    const imgHeight = idx === 0 ? PAGE_HEIGHT - 95 : PAGE_HEIGHT - 27
+    // Image: full width; first page imgTop after client box (y:64+24=88)
+    const imgTop = idx === 0 ? 90 : 22
+    const imgHeight = idx === 0 ? PAGE_HEIGHT - 100 : PAGE_HEIGHT - 27
     const imgWidth = PAGE_WIDTH
     const imgX = 0
 
+    // White background behind image (prevents black from transparent areas)
+    schemas.push({
+      name: `imgBg${idx}`,
+      type: 'rectangle',
+      position: { x: imgX, y: imgTop },
+      width: imgWidth,
+      height: imgHeight,
+      color: '#FFFFFF',
+      radius: 0
+    })
+    inputs[`imgBg${idx}`] = ''
     schemas.push({
       name: `img${idx}`,
       type: 'image',
@@ -158,6 +169,12 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     pageSchemas.push(schemas)
     pageInputs.push(inputs)
   })
+
+  // Reports-style: ensure inputs.length === schemas.length, never pad (causes blank pages)
+  const schemasCount = pageSchemas.length
+  if (pageInputs.length > schemasCount) {
+    pageInputs.length = schemasCount
+  }
 
   const template = {
     basePdf: { width: PAGE_WIDTH, height: PAGE_HEIGHT, padding: [0, 0, 0, 0] as [number, number, number, number] },
