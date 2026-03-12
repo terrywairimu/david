@@ -1,10 +1,15 @@
 "use client"
 
 import React, { useState, useCallback } from "react"
-import { Palette, Image as ImageIcon, Download, Trash2, Upload } from "lucide-react"
+import { Palette, Image as ImageIcon, Download, Trash2, Upload, GripVertical, Plus } from "lucide-react"
 import { generateImageToPdf, type ImageToPdfPage } from "@/lib/image-to-pdf"
 import { toast } from "sonner"
 import { useGlobalProgress } from "@/components/GlobalProgressManager"
+
+function fileNameWithoutExt(name: string): string {
+  const lastDot = name.lastIndexOf(".")
+  return lastDot > 0 ? name.slice(0, lastDot) : name
+}
 
 export default function DesignPage() {
   const { startDownload, completeDownload, setError } = useGlobalProgress()
@@ -12,6 +17,8 @@ export default function DesignPage() {
   const [projectLocation, setProjectLocation] = useState("")
   const [pages, setPages] = useState<ImageToPdfPage[]>([])
   const [generating, setGenerating] = useState(false)
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -33,9 +40,9 @@ export default function DesignPage() {
       }
       try {
         const newPages: ImageToPdfPage[] = await Promise.all(
-          imageFiles.map(async (file, i) => ({
+          imageFiles.map(async (file) => ({
             imageDataUrl: await readFileAsDataUrl(file),
-            designName: `Design ${pages.length + i + 1}`,
+            designName: fileNameWithoutExt(file.name),
             fontSize: 12,
             fontColor: "#1f2937",
           }))
@@ -46,7 +53,7 @@ export default function DesignPage() {
         toast.error("Failed to read images")
       }
     },
-    [pages.length]
+    []
   )
 
   const onDrop = useCallback(
@@ -57,6 +64,38 @@ export default function DesignPage() {
     [handleFiles]
   )
   const onDragOver = useCallback((e: React.DragEvent) => e.preventDefault(), [])
+
+  const movePage = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return
+    setPages((prev) => {
+      const next = [...prev]
+      const [removed] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, removed)
+      return next
+    })
+  }
+
+  const handleCardDragStart = (idx: number) => setDraggedIdx(idx)
+  const handleCardDragEnd = () => {
+    setDraggedIdx(null)
+    setDragOverIdx(null)
+  }
+  const handleCardDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (draggedIdx === null) return
+    setDragOverIdx(idx)
+  }
+  const handleCardDragLeave = () => setDragOverIdx(null)
+  const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
+    e.preventDefault()
+    setDragOverIdx(null)
+    const fromStr = e.dataTransfer.getData("text/plain")
+    if (fromStr === "") return
+    const fromIdx = parseInt(fromStr, 10)
+    if (Number.isNaN(fromIdx)) return
+    movePage(fromIdx, toIdx)
+    setDraggedIdx(null)
+  }
 
   const updatePage = (index: number, updates: Partial<ImageToPdfPage>) => {
     setPages((prev) =>
@@ -186,47 +225,51 @@ export default function DesignPage() {
               </div>
             </div>
 
-            {/* Upload zone */}
-            <div
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              onClick={() => document.getElementById("design-file-input")?.click()}
-              style={{
-                border: "2px dashed #d1d5db",
-                borderRadius: "16px",
-                padding: "32px",
-                textAlign: "center",
-                cursor: "pointer",
-                backgroundColor: "#f9fafb",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#8b5cf6"
-                e.currentTarget.style.backgroundColor = "#f5f3ff"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#d1d5db"
-                e.currentTarget.style.backgroundColor = "#f9fafb"
-              }}
-            >
-              <input
-                id="design-file-input"
-                type="file"
-                accept="image/*"
-                multiple
-                className="d-none"
-                onChange={(e) => handleFiles(e.target.files)}
-              />
-              <Upload size={40} className="mb-2" style={{ color: "#8b5cf6" }} />
-              <p className="mb-0 fw-semibold text-dark">
-                Drop images here or click to upload
-              </p>
-              <p className="mb-0 text-muted small mt-1">
-                PNG, JPG, WebP supported
-              </p>
-            </div>
+            {/* Upload zone - only shown when no images yet */}
+            {pages.length === 0 && (
+              <div
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onClick={() => document.getElementById("design-file-input")?.click()}
+                style={{
+                  border: "2px dashed #d1d5db",
+                  borderRadius: "16px",
+                  padding: "32px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  backgroundColor: "#f9fafb",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#8b5cf6"
+                  e.currentTarget.style.backgroundColor = "#f5f3ff"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#d1d5db"
+                  e.currentTarget.style.backgroundColor = "#f9fafb"
+                }}
+              >
+                <Upload size={40} className="mb-2" style={{ color: "#8b5cf6" }} />
+                <p className="mb-0 fw-semibold text-dark">
+                  Drop images here or click to upload
+                </p>
+                <p className="mb-0 text-muted small mt-1">
+                  PNG, JPG, WebP supported
+                </p>
+              </div>
+            )}
 
-            {/* Image list with editable design names */}
+            {/* Hidden file input for adding more images */}
+            <input
+              id="design-file-input"
+              type="file"
+              accept="image/*"
+              multiple
+              className="d-none"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+
+            {/* Image list with editable design names (reorderable) */}
             {pages.length > 0 && (
               <div className="mt-4">
                 <h6 className="fw-semibold mb-3">Pages ({pages.length})</h6>
@@ -234,14 +277,41 @@ export default function DesignPage() {
                   {pages.map((page, idx) => (
                     <div
                       key={idx}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", String(idx))
+                        e.dataTransfer.effectAllowed = "move"
+                        handleCardDragStart(idx)
+                      }}
+                      onDragEnd={handleCardDragEnd}
+                      onDragOver={(e) => handleCardDragOver(e, idx)}
+                      onDragLeave={handleCardDragLeave}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        if (e.dataTransfer.files?.length) {
+                          handleFiles(e.dataTransfer.files)
+                          return
+                        }
+                        handleCardDrop(e, idx)
+                      }}
                       className="col-12 col-md-6 col-lg-4"
                       style={{
                         border: "1px solid #e5e7eb",
                         borderRadius: "12px",
                         overflow: "hidden",
                         backgroundColor: "#fff",
+                        opacity: draggedIdx === idx ? 0.6 : 1,
+                        borderColor: dragOverIdx === idx ? "#8b5cf6" : undefined,
+                        boxShadow: dragOverIdx === idx ? "0 0 0 2px #8b5cf6" : undefined,
+                        cursor: "grab",
                       }}
                     >
+                      <div
+                        className="d-flex align-items-center justify-content-center px-2 py-1"
+                        style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}
+                      >
+                        <GripVertical size={18} className="text-muted" style={{ cursor: "grab" }} />
+                      </div>
                       <div
                         style={{
                           height: 120,
@@ -254,7 +324,8 @@ export default function DesignPage() {
                       >
                         <img
                           src={page.imageDataUrl}
-                          alt={`Design ${idx + 1}`}
+                          alt={page.designName}
+                          draggable={false}
                           style={{
                             maxHeight: "100%",
                             maxWidth: "100%",
@@ -347,6 +418,53 @@ export default function DesignPage() {
                       </div>
                     </div>
                   ))}
+                  {/* Add more images card */}
+                  <div
+                    className="col-12 col-md-6 col-lg-4"
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      if (e.dataTransfer.files?.length) {
+                        handleFiles(e.dataTransfer.files)
+                        return
+                      }
+                      const fromStr = e.dataTransfer.getData("text/plain")
+                      if (fromStr !== "") {
+                        const fromIdx = parseInt(fromStr, 10)
+                        if (!Number.isNaN(fromIdx)) movePage(fromIdx, pages.length)
+                        setDraggedIdx(null)
+                      }
+                    }}
+                    onDragOver={onDragOver}
+                    onClick={() => document.getElementById("design-file-input")?.click()}
+                    style={{
+                      border: "2px dashed #d1d5db",
+                      borderRadius: "12px",
+                      minHeight: 180,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      backgroundColor: "#f9fafb",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#8b5cf6"
+                      e.currentTarget.style.backgroundColor = "#f5f3ff"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#d1d5db"
+                      e.currentTarget.style.backgroundColor = "#f9fafb"
+                    }}
+                  >
+                    <Plus size={32} style={{ color: "#8b5cf6" }} />
+                    <p className="mb-0 fw-semibold mt-2 text-dark small">
+                      Add more images
+                    </p>
+                    <p className="mb-0 text-muted" style={{ fontSize: "0.75rem" }}>
+                      Click or drop here
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
