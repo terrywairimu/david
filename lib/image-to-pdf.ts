@@ -1,11 +1,19 @@
 // Image to PDF - Uses quotation-style header, one image per page with editable design name
-// Images stored locally (client-side), not in database
+// Each page height matches the image height (width constant); pages merged into one PDF
 
 import { defaultValues } from './pdf-template'
 import { fetchImageAsBase64 } from './dynamic-report-pdf'
 
 const PAGE_WIDTH = 210
-const PAGE_HEIGHT = 297
+
+function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = dataUrl
+  })
+}
 
 export interface ImageToPdfPage {
   imageDataUrl: string
@@ -36,6 +44,7 @@ const defaultCompany = {
 export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8Array> {
   const { generate } = await import('@pdfme/generator')
   const { text, rectangle, image } = await import('@pdfme/schemas')
+  const { PDFDocument } = await import('@pdfme/pdf-lib')
 
   const company = {
     ...defaultCompany,
@@ -47,13 +56,11 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
 
   const date = input.date || new Date().toLocaleDateString('en-KE')
 
-  // Use same logo approach as Reports - /logowatermark.png (avoids malformed /logo.png)
   let logoBase64 = input.companyLogo || ''
   if (!logoBase64) {
     logoBase64 = await fetchImageAsBase64('/logowatermark.png')
   }
 
-  // Filter out empty/invalid pages - only valid image data URLs (strict: must have real base64 payload)
   const validPages = input.pages.filter((p) => {
     if (!p?.imageDataUrl || typeof p.imageDataUrl !== 'string') return false
     const s = p.imageDataUrl.trim()
@@ -68,15 +75,26 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     throw new Error('No valid images to include in PDF')
   }
 
-  const pageSchemas: any[][] = []
-  const pageInputs: Record<string, string>[] = []
+  const pageHeights: number[] = []
+  for (let i = 0; i < validPages.length; i++) {
+    const dims = await getImageDimensions(validPages[i].imageDataUrl)
+    const imgHeightMm = PAGE_WIDTH * (dims.height / dims.width)
+    if (i === 0) {
+      pageHeights.push(90 + imgHeightMm + 20)
+    } else {
+      pageHeights.push(22 + imgHeightMm)
+    }
+  }
 
-  validPages.forEach((page, idx) => {
+  const pdfBuffers: Uint8Array[] = []
+
+  for (let idx = 0; idx < validPages.length; idx++) {
+    const page = validPages[idx]
+    const PAGE_HEIGHT = pageHeights[idx]
     const schemas: any[] = []
     const inputs: Record<string, string> = {}
 
     if (idx === 0) {
-      // First page: header block - only add logo if we have real image (avoid 1x1 fallback)
       if (logoBase64 && logoBase64.length > 500) {
         schemas.push({ name: 'logo', type: 'image', position: { x: 15, y: 5 }, width: 38, height: 38 })
       }
@@ -87,7 +105,6 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'headerBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
         { name: 'docTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        // Client info: vertical block - Client, Project Location, Date. All values aligned at x:52.
         { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 24, color: '#E8E8E8', radius: 4 },
         { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'clientValue', type: 'text', position: { x: 52, y: 67 }, width: 140, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
@@ -112,15 +129,13 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.dateValue = date
     }
 
-    // Image: full width; first page imgTop after client box (y:64+24=88)
     const imgTop = idx === 0 ? 90 : 22
-    const imgHeight = idx === 0 ? PAGE_HEIGHT - 100 : PAGE_HEIGHT - 27
+    const imgHeight = idx === 0 ? PAGE_HEIGHT - 110 : PAGE_HEIGHT - 27
     const imgWidth = PAGE_WIDTH
     const imgX = 0
 
-    // White background behind image (prevents black from transparent areas)
     schemas.push({
-      name: `imgBg${idx}`,
+      name: 'imgBg',
       type: 'rectangle',
       position: { x: imgX, y: imgTop },
       width: imgWidth,
@@ -128,20 +143,19 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       color: '#FFFFFF',
       radius: 0
     })
-    inputs[`imgBg${idx}`] = ''
+    inputs.imgBg = ''
     schemas.push({
-      name: `img${idx}`,
+      name: 'img',
       type: 'image',
       position: { x: imgX, y: imgTop },
       width: imgWidth,
       height: imgHeight
     })
-    inputs[`img${idx}`] = page.imageDataUrl
+    inputs.img = page.imageDataUrl
 
-    // Design name: first page = below image; other pages = header. Use page.fontSize (card shows actual value)
     if (idx === 0) {
       schemas.push({
-        name: `designName${idx}`,
+        name: 'designName',
         type: 'text',
         position: { x: 0, y: PAGE_HEIGHT - 25 },
         width: PAGE_WIDTH,
@@ -153,7 +167,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       })
     } else {
       schemas.push({
-        name: `designName${idx}`,
+        name: 'designName',
         type: 'text',
         position: { x: 0, y: 10 },
         width: PAGE_WIDTH,
@@ -164,25 +178,28 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         alignment: 'center'
       })
     }
-    inputs[`designName${idx}`] = page.designName || `Design ${idx + 1}`
+    inputs.designName = page.designName || `Design ${idx + 1}`
 
-    pageSchemas.push(schemas)
-    pageInputs.push(inputs)
-  })
+    const template = {
+      basePdf: { width: PAGE_WIDTH, height: PAGE_HEIGHT, padding: [0, 0, 0, 0] as [number, number, number, number] },
+      schemas: [schemas]
+    }
 
-  // pdfme: pass ONE merged input object for multi-page (array of inputs = duplicate docs/pages)
-  const mergedInputs = Object.assign({}, ...pageInputs)
+    const pdfBytes = await generate({
+      template,
+      inputs: [inputs],
+      plugins: { text, rectangle, image }
+    })
 
-  const template = {
-    basePdf: { width: PAGE_WIDTH, height: PAGE_HEIGHT, padding: [0, 0, 0, 0] as [number, number, number, number] },
-    schemas: pageSchemas
+    pdfBuffers.push(pdfBytes)
   }
 
-  const pdf = await generate({
-    template,
-    inputs: [mergedInputs],
-    plugins: { text, rectangle, image }
-  })
+  const mergedPdf = await PDFDocument.create()
+  for (const buf of pdfBuffers) {
+    const doc = await PDFDocument.load(buf)
+    const [copiedPage] = await mergedPdf.copyPages(doc, [0])
+    mergedPdf.addPage(copiedPage)
+  }
 
-  return pdf
+  return new Uint8Array(await mergedPdf.save())
 }
