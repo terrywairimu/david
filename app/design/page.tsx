@@ -368,47 +368,73 @@ export default function DesignPage() {
         </div>
       </div>
 
-      {/* Tools section */}
-      <div className="mb-4">
-        <h5
-          className="fw-bold mb-3"
-          style={{ color: "#4b5563", fontSize: "0.95rem" }}
-        >
-          Tools
-        </h5>
+      {/* Tools section - compact */}
+      <div className="mb-3">
         <div className="card border-0 shadow-sm" style={{ borderRadius: "16px" }}>
-          <div className="card-body p-4">
-            <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
-              <ImageIcon size={20} style={{ color: "#8b5cf6" }} />
-              Image to PDF
-            </h6>
-            <p className="text-muted small mb-4">
-              Upload images to create a PDF catalogue with header, client name,
-              and editable design labels per page.
-            </p>
+          <div className="card-body p-3">
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-1 gap-md-2">
+                <h6 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "0.9rem", color: "#4b5563" }}>
+                  <ImageIcon size={18} style={{ color: "#8b5cf6" }} />
+                  Image to PDF
+                </h6>
+                <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                  Upload images to create a PDF catalogue with header, client name, and editable design labels.
+                </span>
+              </div>
+              {pages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setPages([]); setDraggedIdx(null); setPreviewOrder(null); toast.success("Starting new PDF") }}
+                  className="btn btn-sm d-flex align-items-center gap-1.5"
+                  style={{
+                    background: "linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "6px 12px",
+                    fontSize: "0.8rem",
+                    fontWeight: 500,
+                    boxShadow: "0 2px 8px rgba(139,92,246,0.3)",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)"
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(139,92,246,0.4)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)"
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(139,92,246,0.3)"
+                  }}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  New PDF
+                </button>
+              )}
+            </div>
 
-            {/* Client name & Project location - same row, half each */}
-            <div className="row g-3 mb-4">
+            {/* Client name & Project location - compact row */}
+            <div className="row g-2 mb-0">
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Client Name</label>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem" }}>Client Name</label>
                 <input
                   type="text"
                   className="form-control border-0 shadow-sm"
                   placeholder="Enter client name"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  style={{ borderRadius: "12px", height: "45px" }}
+                  style={{ borderRadius: "10px", height: "36px", fontSize: "0.875rem" }}
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Project Location</label>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem" }}>Project Location</label>
                 <input
                   type="text"
                   className="form-control border-0 shadow-sm"
                   placeholder="Enter project location"
                   value={projectLocation}
                   onChange={(e) => setProjectLocation(e.target.value)}
-                  style={{ borderRadius: "12px", height: "45px" }}
+                  style={{ borderRadius: "10px", height: "36px", fontSize: "0.875rem" }}
                 />
               </div>
             </div>
