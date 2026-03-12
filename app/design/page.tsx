@@ -33,9 +33,8 @@ function CardBottomBar({
         display: "flex",
         alignItems: "center",
         gap: 8,
-        padding: "8px 10px",
-        background: "#f8f9fa",
-        borderTop: "1px solid rgba(0,0,0,0.06)",
+        padding: "6px 10px",
+        background: "transparent",
       }}
     >
       <input
@@ -63,7 +62,7 @@ function CardBottomBar({
         style={{
           display: expandName ? "none" : "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 6,
           flexShrink: 0,
         }}
       >
@@ -76,13 +75,14 @@ function CardBottomBar({
             updatePage(pageIdx, { fontSize: parseInt(e.target.value) || 12 })
           }
           style={{
-            width: 42,
+            width: 40,
             border: "none",
-            background: "rgba(0,0,0,0.05)",
-            borderRadius: 6,
+            background: "rgba(241,245,249,0.95)",
+            borderRadius: 8,
             padding: "4px 6px",
             fontSize: 11,
             textAlign: "center",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         />
         <input
@@ -90,32 +90,34 @@ function CardBottomBar({
           value={page.fontColor}
           onChange={(e) => updatePage(pageIdx, { fontColor: e.target.value })}
           style={{
-            width: 24,
-            height: 24,
+            width: 22,
+            height: 22,
             border: "none",
-            borderRadius: 6,
+            borderRadius: 8,
             cursor: "pointer",
             padding: 0,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         />
         <button
           type="button"
           onClick={() => removePage(pageIdx)}
           style={{
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             border: "none",
             borderRadius: 8,
-            background: "rgba(239,68,68,0.1)",
+            background: "rgba(254,226,226,0.8)",
             color: "#dc2626",
             cursor: "pointer",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
           title="Remove"
         >
-          <Trash2 size={16} />
+          <Trash2 size={14} />
         </button>
       </div>
     </div>
@@ -158,7 +160,7 @@ export default function DesignPage() {
           imageFiles.map(async (file, i) => ({
             imageDataUrl: await readFileAsDataUrl(file),
             designName: fileNameWithoutExt(file.name),
-            fontSize: pages.length + i === 0 ? 12 : 30,
+            fontSize: pages.length + i === 0 ? 12 : 24,
             fontColor: "#1f2937",
           }))
         )
@@ -368,9 +370,10 @@ export default function DesignPage() {
         </div>
       </div>
 
-      {/* Tools section - compact */}
-      <div className="mb-3">
-        <div className="card border-0 shadow-sm" style={{ borderRadius: "16px" }}>
+      {/* Tools section - compact, aligned with header */}
+      <div className="row mb-3">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm" style={{ borderRadius: "16px" }}>
           <div className="card-body p-3">
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
               <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-1 gap-md-2">
@@ -416,7 +419,7 @@ export default function DesignPage() {
             {/* Client name & Project location - compact row */}
             <div className="row g-2 mb-0">
               <div className="col-md-6">
-                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem" }}>Client Name</label>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem", color: "#374151" }}>Client Name</label>
                 <input
                   type="text"
                   className="form-control border-0 shadow-sm"
@@ -427,7 +430,7 @@ export default function DesignPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem" }}>Project Location</label>
+                <label className="form-label fw-semibold mb-1" style={{ fontSize: "0.8rem", color: "#374151" }}>Project Location</label>
                 <input
                   type="text"
                   className="form-control border-0 shadow-sm"
@@ -667,6 +670,7 @@ export default function DesignPage() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

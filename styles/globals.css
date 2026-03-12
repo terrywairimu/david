@@ -2191,6 +2191,10 @@ input[type="text"]:focus, input[type="tel"]:focus, select:focus {
     color: var(--text-tertiary);
 }
 
+#designSection .form-label {
+    color: #374151 !important;
+}
+
 #registerTable tbody tr {
     transition: all 0.2s ease;
 }
