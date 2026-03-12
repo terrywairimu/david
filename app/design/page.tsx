@@ -494,10 +494,11 @@ export default function DesignPage() {
                   {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx, displayIdx) => {
                     const page = pages[pageIdx]
                     return (
+                    <div key={pageIdx} className="col-12 col-md-6 col-lg-4">
                     <motion.div
                       key={pageIdx}
-                      data-design-card
                       layout
+                      data-design-card
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                       draggable
                       onDragStart={(e) => {
@@ -516,7 +517,6 @@ export default function DesignPage() {
                         }
                         handleCardDrop(e, displayIdx)
                       }}
-                      className="col-12 col-md-6 col-lg-4"
                       style={{
                         borderRadius: "12px",
                         overflow: "hidden",
@@ -568,6 +568,7 @@ export default function DesignPage() {
                         removePage={removePage}
                       />
                     </motion.div>
+                    </div>
                   )
                   })}
                   {/* Add more images card - Dribbble-style minimal */}
