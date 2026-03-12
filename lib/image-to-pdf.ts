@@ -102,7 +102,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.companyPhone = company.companyPhone
       inputs.companyEmail = company.companyEmail
       inputs.headerBg = ''
-      inputs.docTitle = 'DESIGN CATALOGUE'
+      inputs.docTitle = '3D DESIGN VISUALIZATION'
       inputs.clientInfoBox = ''
       inputs.clientLabel = 'Client:'
       inputs.clientValue = input.clientName
@@ -155,7 +155,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       schemas.push({
         name: `designName${idx}`,
         type: 'text',
-        position: { x: 0, y: 4 },
+        position: { x: 0, y: 10 },
         width: PAGE_WIDTH,
         height: 14,
         fontSize: page.fontSize,

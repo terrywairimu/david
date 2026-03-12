@@ -306,7 +306,7 @@ export default function DesignPage() {
       const a = document.createElement("a")
       a.href = url
       const parts = [clientName.trim(), projectLocation.trim()].filter(Boolean)
-      const fn = parts.length ? `3d design catalogue for ${parts.join(" ")}.pdf` : "3d-design-catalogue.pdf"
+      const fn = parts.length ? `3d design visualization for ${parts.join(" ")}.pdf` : "3d-design-visualization.pdf"
       a.download = fn
       a.click()
       URL.revokeObjectURL(url)
