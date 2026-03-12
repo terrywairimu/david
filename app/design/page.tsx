@@ -332,7 +332,7 @@ export default function DesignPage() {
   }
 
   return (
-    <div className="container-fluid p-4">
+    <div id="designSection">
       {/* Header */}
       <div className="row mb-4">
         <div className="col-12">
