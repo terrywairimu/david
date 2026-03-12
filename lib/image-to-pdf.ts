@@ -35,7 +35,7 @@ const defaultCompany = {
 
 export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8Array> {
   const { generate } = await import('@pdfme/generator')
-  const { text, rectangle, line, image } = await import('@pdfme/schemas')
+  const { text, rectangle, image } = await import('@pdfme/schemas')
 
   const company = {
     ...defaultCompany,
@@ -56,12 +56,12 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
   // Filter out empty/invalid pages - only valid image data URLs (strict: must have real base64 payload)
   const validPages = input.pages.filter((p) => {
     if (!p?.imageDataUrl || typeof p.imageDataUrl !== 'string') return false
-    const s = p.imageDataUrl
+    const s = p.imageDataUrl.trim()
     if (!s.startsWith('data:image/')) return false
     const base64Idx = s.indexOf('base64,')
     if (base64Idx < 0) return false
     const payload = s.slice(base64Idx + 7)
-    return payload.length >= 100 // ensure real image data, not placeholder
+    return payload.length >= 200
   })
 
   if (validPages.length === 0) {
@@ -167,7 +167,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
   const pdf = await generate({
     template,
     inputs: pageInputs,
-    plugins: { text, rectangle, line, image }
+    plugins: { text, rectangle, image }
   })
 
   return pdf

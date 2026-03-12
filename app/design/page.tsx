@@ -12,6 +12,116 @@ function fileNameWithoutExt(name: string): string {
   return lastDot > 0 ? name.slice(0, lastDot) : name
 }
 
+function CardBottomBar({
+  page,
+  pageIdx,
+  updatePage,
+  removePage,
+}: {
+  page: ImageToPdfPage
+  pageIdx: number
+  updatePage: (i: number, u: Partial<ImageToPdfPage>) => void
+  removePage: (i: number) => void
+}) {
+  const [isNameFocused, setIsNameFocused] = useState(false)
+  const [isNameHovered, setIsNameHovered] = useState(false)
+  const expandName = isNameFocused || isNameHovered
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 10px",
+        background: "#f8f9fa",
+        borderTop: "1px solid rgba(0,0,0,0.06)",
+      }}
+    >
+      <input
+        type="text"
+        value={page.designName}
+        onChange={(e) => updatePage(pageIdx, { designName: e.target.value })}
+        onFocus={() => setIsNameFocused(true)}
+        onBlur={() => setIsNameFocused(false)}
+        onMouseEnter={() => setIsNameHovered(true)}
+        onMouseLeave={() => setIsNameHovered(false)}
+        placeholder="Name"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          maxWidth: expandName ? "none" : "calc(100% - 90px)",
+          border: "none",
+          background: "transparent",
+          fontSize: 12,
+          color: "#374151",
+          outline: "none",
+          transition: "max-width 0.2s ease",
+        }}
+      />
+      <div
+        style={{
+          display: expandName ? "none" : "flex",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+        }}
+      >
+        <input
+          type="number"
+          min={8}
+          max={24}
+          value={page.fontSize}
+          onChange={(e) =>
+            updatePage(pageIdx, { fontSize: parseInt(e.target.value) || 12 })
+          }
+          style={{
+            width: 42,
+            border: "none",
+            background: "rgba(0,0,0,0.05)",
+            borderRadius: 6,
+            padding: "4px 6px",
+            fontSize: 11,
+            textAlign: "center",
+          }}
+        />
+        <input
+          type="color"
+          value={page.fontColor}
+          onChange={(e) => updatePage(pageIdx, { fontColor: e.target.value })}
+          style={{
+            width: 24,
+            height: 24,
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => removePage(pageIdx)}
+          style={{
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "none",
+            borderRadius: 8,
+            background: "rgba(239,68,68,0.1)",
+            color: "#dc2626",
+            cursor: "pointer",
+          }}
+          title="Remove"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DesignPage() {
   const { startDownload, completeDownload, setError } = useGlobalProgress()
   const [clientName, setClientName] = useState("")
@@ -107,32 +217,41 @@ export default function DesignPage() {
     e.preventDefault()
     if (draggedIdx === null) return
     setDragOverIdx(idx)
-    if (draggedIdx !== idx && appliedForHoverRef.current === null) {
-      if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
-      previewTimerRef.current = setTimeout(() => {
-        previewTimerRef.current = null
+    if (draggedIdx !== idx) {
+      if (appliedForHoverRef.current !== idx) {
         appliedForHoverRef.current = idx
-        setPreviewOrder((prev) => {
-          const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
-          const newOrder = [...order]
-          const fromPos = newOrder.indexOf(draggedIdx)
-          const toPos = newOrder.indexOf(idx)
-          if (fromPos >= 0 && toPos >= 0) {
-            ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
-          }
-          return newOrder
-        })
-      }, 100)
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
+        previewTimerRef.current = setTimeout(() => {
+          previewTimerRef.current = null
+          setPreviewOrder((prev) => {
+            const order = prev ?? Array.from({ length: pages.length }, (_, i) => i)
+            const newOrder = [...order]
+            const fromPos = newOrder.indexOf(draggedIdx)
+            const toPos = newOrder.indexOf(idx)
+            if (fromPos >= 0 && toPos >= 0 && fromPos !== toPos) {
+              ;[newOrder[fromPos], newOrder[toPos]] = [newOrder[toPos], newOrder[fromPos]]
+            }
+            return newOrder
+          })
+        }, 50)
+      }
     }
   }
-  const handleCardDragLeave = () => {
-    setDragOverIdx(null)
-    appliedForHoverRef.current = null
-    if (previewTimerRef.current) {
-      clearTimeout(previewTimerRef.current)
-      previewTimerRef.current = null
-    }
-    setPreviewOrder(null)
+  const handleCardDragLeave = (e: React.DragEvent) => {
+    const related = e.relatedTarget as HTMLElement | null
+    if (related?.closest?.("[data-design-card]")) return
+    const { clientX, clientY } = e
+    setTimeout(() => {
+      const under = document.elementFromPoint(clientX, clientY)
+      if (under?.closest?.("[data-design-card]")) return
+      setDragOverIdx(null)
+      appliedForHoverRef.current = null
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current)
+        previewTimerRef.current = null
+      }
+      setPreviewOrder(null)
+    }, 0)
   }
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
@@ -326,12 +445,13 @@ export default function DesignPage() {
             {pages.length > 0 && (
               <div className="mt-4">
                 <h6 className="fw-semibold mb-3">Pages ({pages.length})</h6>
-                <div className="row g-3">
+                <div className="row g-2">
                   {(previewOrder ?? pages.map((_, i) => i)).map((pageIdx) => {
                     const page = pages[pageIdx]
                     return (
                     <motion.div
                       key={pageIdx}
+                      data-design-card
                       layout
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                       draggable
@@ -355,7 +475,7 @@ export default function DesignPage() {
                       style={{
                         borderRadius: "12px",
                         overflow: "hidden",
-                        backgroundColor: "#0a0a0a",
+                        backgroundColor: "#ffffff",
                         opacity: draggedIdx === pageIdx ? 0.7 : 1,
                         boxShadow: dragOverIdx === pageIdx ? "0 0 0 2px rgba(139,92,246,0.6)" : "0 2px 8px rgba(0,0,0,0.08)",
                         cursor: "grab",
@@ -369,6 +489,7 @@ export default function DesignPage() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          backgroundColor: "#ffffff",
                         }}
                       >
                         <img
@@ -387,7 +508,7 @@ export default function DesignPage() {
                             top: 6,
                             left: 6,
                             padding: "4px 8px",
-                            background: "rgba(0,0,0,0.4)",
+                            background: "rgba(0,0,0,0.35)",
                             borderRadius: "6px",
                             cursor: "grab",
                           }}
@@ -395,82 +516,12 @@ export default function DesignPage() {
                           <GripVertical size={14} style={{ color: "rgba(255,255,255,0.9)" }} />
                         </div>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "8px 10px",
-                          background: "rgba(0,0,0,0.03)",
-                          borderTop: "1px solid rgba(0,0,0,0.06)",
-                        }}
-                      >
-                        <input
-                          type="text"
-                          value={page.designName}
-                          onChange={(e) => updatePage(pageIdx, { designName: e.target.value })}
-                          placeholder="Name"
-                          style={{
-                            flex: 1,
-                            minWidth: 0,
-                            border: "none",
-                            background: "transparent",
-                            fontSize: 12,
-                            color: "#374151",
-                            outline: "none",
-                          }}
-                        />
-                        <input
-                          type="number"
-                          min={8}
-                          max={24}
-                          value={page.fontSize}
-                          onChange={(e) =>
-                            updatePage(pageIdx, { fontSize: parseInt(e.target.value) || 12 })
-                          }
-                          style={{
-                            width: 42,
-                            border: "none",
-                            background: "rgba(0,0,0,0.05)",
-                            borderRadius: 6,
-                            padding: "4px 6px",
-                            fontSize: 11,
-                            textAlign: "center",
-                          }}
-                        />
-                        <input
-                          type="color"
-                          value={page.fontColor}
-                          onChange={(e) => updatePage(pageIdx, { fontColor: e.target.value })}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            border: "none",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePage(pageIdx)}
-                          style={{
-                            width: 32,
-                            height: 32,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            border: "none",
-                            borderRadius: 8,
-                            background: "rgba(239,68,68,0.1)",
-                            color: "#dc2626",
-                            cursor: "pointer",
-                          }}
-                          title="Remove"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <CardBottomBar
+                        page={page}
+                        pageIdx={pageIdx}
+                        updatePage={updatePage}
+                        removePage={removePage}
+                      />
                     </motion.div>
                   )
                   })}
