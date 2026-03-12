@@ -199,6 +199,15 @@ const Sidebar = () => {
             onClick={() => handleSectionClick("stock")}
           />
           )}
+          {canAccess("design") && (
+          <SidebarLink
+            href="/design"
+            label="Design"
+            icon="fas fa-palette"
+            isActive={activeSection === "design"}
+            onClick={() => handleSectionClick("design")}
+          />
+          )}
           {canAccess("reports") && (
           <SidebarLink
             href="/reports"

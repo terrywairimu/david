@@ -6,6 +6,7 @@ export const APP_SECTIONS = [
   { id: "expenses", label: "Expenses" },
   { id: "purchases", label: "Purchases" },
   { id: "stock", label: "Stock" },
+  { id: "design", label: "Design" },
   { id: "reports", label: "Reports" },
   { id: "analytics", label: "Analytics" },
   { id: "settings", label: "Settings" },

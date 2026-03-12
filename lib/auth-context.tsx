@@ -45,7 +45,7 @@ function isKnownAdminEmail(email: string | undefined): boolean {
 
 // Section order for "first allowed" redirect (must match PATH_TO_SECTION keys)
 const SECTION_ORDER = [
-  "register", "sales", "payments", "expenses", "purchases", "stock", "reports", "analytics", "settings",
+  "register", "sales", "payments", "expenses", "purchases", "stock", "design", "reports", "analytics", "settings",
 ] as const
 
 interface AuthContextType {

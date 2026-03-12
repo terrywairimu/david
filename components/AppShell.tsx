@@ -14,6 +14,7 @@ const PATH_TO_SECTION: Record<string, string> = {
   "/expenses": "expenses",
   "/purchases": "purchases",
   "/stock": "stock",
+  "/design": "design",
   "/reports": "reports",
   "/analytics": "analytics",
   "/settings": "settings",
