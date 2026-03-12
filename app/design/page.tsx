@@ -154,10 +154,10 @@ export default function DesignPage() {
       }
       try {
         const newPages: ImageToPdfPage[] = await Promise.all(
-          imageFiles.map(async (file) => ({
+          imageFiles.map(async (file, i) => ({
             imageDataUrl: await readFileAsDataUrl(file),
             designName: fileNameWithoutExt(file.name),
-            fontSize: 12,
+            fontSize: pages.length + i === 0 ? 12 : 30,
             fontColor: "#1f2937",
           }))
         )
@@ -167,7 +167,7 @@ export default function DesignPage() {
         toast.error("Failed to read images")
       }
     },
-    []
+    [pages.length]
   )
 
   const onDrop = useCallback(
@@ -215,6 +215,7 @@ export default function DesignPage() {
   }
   const handleCardDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
     if (draggedIdx === null) return
     setDragOverIdx(idx)
     if (draggedIdx !== idx) {
@@ -255,18 +256,21 @@ export default function DesignPage() {
   }
   const handleCardDrop = (e: React.DragEvent, toIdx: number) => {
     e.preventDefault()
-    setDragOverIdx(null)
-    setPreviewOrder(null)
-    if (previewTimerRef.current) {
-      clearTimeout(previewTimerRef.current)
-      previewTimerRef.current = null
-    }
+    e.stopPropagation()
     const fromStr = e.dataTransfer.getData("text/plain")
     if (fromStr === "") return
     const fromIdx = parseInt(fromStr, 10)
     if (Number.isNaN(fromIdx)) return
-    swapPages(fromIdx, toIdx)
+    if (fromIdx !== toIdx) {
+      swapPages(fromIdx, toIdx)
+    }
+    setDragOverIdx(null)
+    setPreviewOrder(null)
     setDraggedIdx(null)
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
   }
 
   const updatePage = (index: number, updates: Partial<ImageToPdfPage>) => {

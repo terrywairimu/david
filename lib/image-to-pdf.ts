@@ -138,7 +138,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     })
     inputs[`img${idx}`] = page.imageDataUrl
 
-    // Design name: first page = below image; other pages = header position, font 36 default
+    // Design name: first page = below image; other pages = header. Use page.fontSize (card shows actual value)
     if (idx === 0) {
       schemas.push({
         name: `designName${idx}`,
@@ -158,7 +158,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         position: { x: 0, y: 4 },
         width: PAGE_WIDTH,
         height: 14,
-        fontSize: 30,
+        fontSize: page.fontSize,
         fontColor: page.fontColor,
         fontName: 'Helvetica-Bold',
         alignment: 'center'
@@ -170,11 +170,8 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     pageInputs.push(inputs)
   })
 
-  // Reports-style: ensure inputs.length === schemas.length, never pad (causes blank pages)
-  const schemasCount = pageSchemas.length
-  if (pageInputs.length > schemasCount) {
-    pageInputs.length = schemasCount
-  }
+  // pdfme: pass ONE merged input object for multi-page (array of inputs = duplicate docs/pages)
+  const mergedInputs = Object.assign({}, ...pageInputs)
 
   const template = {
     basePdf: { width: PAGE_WIDTH, height: PAGE_HEIGHT, padding: [0, 0, 0, 0] as [number, number, number, number] },
@@ -183,7 +180,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
 
   const pdf = await generate({
     template,
-    inputs: pageInputs,
+    inputs: [mergedInputs],
     plugins: { text, rectangle, image }
   })
 
