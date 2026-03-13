@@ -82,7 +82,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     if (i === 0) {
       pageHeights.push(84 + imgHeightMm + 20)
     } else {
-      pageHeights.push(22 + imgHeightMm)
+      pageHeights.push(11 + imgHeightMm)
     }
   }
 
@@ -129,8 +129,8 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.dateValue = date
     }
 
-    const imgTop = idx === 0 ? 84 : 22
-    const imgHeight = idx === 0 ? PAGE_HEIGHT - 104 : PAGE_HEIGHT - 27
+    const imgTop = idx === 0 ? 84 : 11
+    const imgHeight = idx === 0 ? PAGE_HEIGHT - 104 : PAGE_HEIGHT - 11
     const imgWidth = PAGE_WIDTH
     const imgX = 0
 
@@ -169,9 +169,9 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       schemas.push({
         name: 'designName',
         type: 'text',
-        position: { x: 0, y: 10 },
+        position: { x: 0, y: 6 },
         width: PAGE_WIDTH,
-        height: 14,
+        height: 5,
         fontSize: page.fontSize,
         fontColor: page.fontColor,
         fontName: 'Helvetica-Bold',
