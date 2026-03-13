@@ -80,7 +80,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
     const dims = await getImageDimensions(validPages[i].imageDataUrl)
     const imgHeightMm = PAGE_WIDTH * (dims.height / dims.width)
     if (i === 0) {
-      pageHeights.push(90 + imgHeightMm + 20)
+      pageHeights.push(84 + imgHeightMm + 20)
     } else {
       pageHeights.push(22 + imgHeightMm)
     }
@@ -105,13 +105,13 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'headerBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
         { name: 'docTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 24, color: '#E8E8E8', radius: 4 },
-        { name: 'clientLabel', type: 'text', position: { x: 18, y: 67 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'clientValue', type: 'text', position: { x: 52, y: 67 }, width: 140, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'locationLabel', type: 'text', position: { x: 18, y: 73 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'locationValue', type: 'text', position: { x: 52, y: 73 }, width: 140, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
-        { name: 'dateLabel', type: 'text', position: { x: 18, y: 79 }, width: 32, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
-        { name: 'dateValue', type: 'text', position: { x: 52, y: 79 }, width: 60, height: 5, fontSize: 8, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 18, color: '#E8E8E8', radius: 4 },
+        { name: 'clientLabel', type: 'text', position: { x: 18, y: 66 }, width: 35, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'clientValue', type: 'text', position: { x: 55, y: 66 }, width: 135, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'locationLabel', type: 'text', position: { x: 18, y: 72 }, width: 35, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'locationValue', type: 'text', position: { x: 55, y: 72 }, width: 135, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
+        { name: 'dateLabel', type: 'text', position: { x: 18, y: 78 }, width: 35, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
+        { name: 'dateValue', type: 'text', position: { x: 55, y: 78 }, width: 65, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' }
       )
       if (logoBase64 && logoBase64.length > 500) inputs.logo = logoBase64
       inputs.companyName = company.companyName
@@ -129,8 +129,8 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       inputs.dateValue = date
     }
 
-    const imgTop = idx === 0 ? 90 : 22
-    const imgHeight = idx === 0 ? PAGE_HEIGHT - 110 : PAGE_HEIGHT - 27
+    const imgTop = idx === 0 ? 84 : 22
+    const imgHeight = idx === 0 ? PAGE_HEIGHT - 104 : PAGE_HEIGHT - 27
     const imgWidth = PAGE_WIDTH
     const imgX = 0
 
