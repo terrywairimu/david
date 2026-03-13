@@ -105,7 +105,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
         { name: 'companyEmail', type: 'text', position: { x: 60, y: 33 }, width: 140, height: 6, fontSize: 11, fontColor: '#000000', fontName: 'Helvetica', alignment: 'left' },
         { name: 'headerBg', type: 'rectangle', position: { x: 15, y: 47 }, width: 180, height: 14, color: '#E5E5E5', radius: 5 },
         { name: 'docTitle', type: 'text', position: { x: 0, y: 50 }, width: 210, height: 12, fontSize: 18, fontColor: '#B06A2B', fontName: 'Helvetica-Bold', alignment: 'center' },
-        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 18, color: '#E8E8E8', radius: 4 },
+        { name: 'clientInfoBox', type: 'rectangle', position: { x: 15, y: 64 }, width: 180, height: 20, color: '#E8E8E8', radius: 4 },
         { name: 'clientLabel', type: 'text', position: { x: 18, y: 66 }, width: 35, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
         { name: 'clientValue', type: 'text', position: { x: 55, y: 66 }, width: 135, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica', alignment: 'left' },
         { name: 'locationLabel', type: 'text', position: { x: 18, y: 72 }, width: 35, height: 6, fontSize: 11, fontColor: '#333', fontName: 'Helvetica-Bold', alignment: 'left' },
