@@ -169,7 +169,7 @@ export async function generateImageToPdf(input: ImageToPdfInput): Promise<Uint8A
       schemas.push({
         name: 'designName',
         type: 'text',
-        position: { x: 0, y: 6 },
+        position: { x: 0, y: 2 },
         width: PAGE_WIDTH,
         height: 5,
         fontSize: page.fontSize,
