@@ -405,6 +405,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         ...prev,
         [id]: { cabinet: [], worktop: initialItems?.worktop ?? [] }
       }))
+      setWorktopLaborBySection(prev => ({ ...prev, [id]: { qty: 1, unitPrice: 3000 } }))
     }
     setAddNewSectionDropdownOpen(null)
   }
@@ -418,6 +419,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeCustomSection(prev => { const n = { ...prev }; delete n[id]; return n })
     setCustomSectionIncludeLabour(prev => { const n = { ...prev }; delete n[id]; return n })
     setCustomSectionLabourPercentage(prev => { const n = { ...prev }; delete n[id]; return n })
+    setWorktopLaborBySection(prev => { const n = { ...prev }; delete n[id]; return n })
+    setRawWorktopLaborQtyBySection(prev => { const n = { ...prev }; delete n[id]; return n })
+    setRawWorktopLaborUnitPriceBySection(prev => { const n = { ...prev }; delete n[id]; return n })
   }
   const setIncludeCustomSectionById = (id: string, val: boolean) => {
     setIncludeCustomSection(prev => ({ ...prev, [id]: val }))
@@ -529,12 +533,17 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
   const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Add state at the top of QuotationModal:
+  /** Main worktop section only (includeWorktop). Custom worktop sections use worktopLaborBySection. */
   const [worktopLaborQty, setWorktopLaborQty] = useState(1);
   const [worktopLaborUnitPrice, setWorktopLaborUnitPrice] = useState(3000);
 
-  // Add state for raw editing values for Worktop Installation Labor
   const [rawWorktopLaborQty, setRawWorktopLaborQty] = useState<string | undefined>(undefined);
   const [rawWorktopLaborUnitPrice, setRawWorktopLaborUnitPrice] = useState<string | undefined>(undefined);
+
+  /** Per custom-section worktop labor (keyed by section id) — avoids duplicate qty across multiple worktop sections */
+  const [worktopLaborBySection, setWorktopLaborBySection] = useState<Record<string, { qty: number; unitPrice: number }>>({})
+  const [rawWorktopLaborQtyBySection, setRawWorktopLaborQtyBySection] = useState<Record<string, string | undefined>>({})
+  const [rawWorktopLaborUnitPriceBySection, setRawWorktopLaborUnitPriceBySection] = useState<Record<string, string | undefined>>({})
 
   // Function to fetch payment information
   const fetchPaymentInfo = async () => {
@@ -748,6 +757,9 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeCustomSection({})
     setCustomSectionIncludeLabour({})
     setCustomSectionLabourPercentage({})
+    setWorktopLaborBySection({})
+    setRawWorktopLaborQtyBySection({})
+    setRawWorktopLaborUnitPriceBySection({})
   }
 
   const createNewItem = (category: "cabinet" | "worktop" | "accessories" | "appliances" | "wardrobes" | "tvunit"): QuotationItem => {
@@ -863,12 +875,24 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     setIncludeLabourWardrobes(!!quotation.items?.some((item: any) => item.category === 'wardrobes' && String(item.description || '').includes('Labour Charge')))
     setIncludeLabourTvUnit(!!quotation.items?.some((item: any) => item.category === 'tvunit' && String(item.description || '').includes('Labour Charge')))
 
-    // Load custom sections and their items
-    const customSectionsData = ((quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || []).map(s => ({
+    // Load custom sections and their items (optional per-section worktop labor in JSON)
+    const customSectionsData = ((quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string; worktop_labor_qty?: number; worktop_labor_unit_price?: number }>) || []).map(s => ({
       ...s,
       anchorKey: (s.anchorKey || "cabinet") as AnchorKey
     }))
     setCustomSections(customSectionsData)
+    const laborMap: Record<string, { qty: number; unitPrice: number }> = {}
+    for (const sec of customSectionsData) {
+      if (sec.type === "worktop") {
+        laborMap[sec.id] = {
+          qty: sec.worktop_labor_qty ?? quotation.worktop_labor_qty ?? 1,
+          unitPrice: sec.worktop_labor_unit_price ?? quotation.worktop_labor_unit_price ?? 3000,
+        }
+      }
+    }
+    setWorktopLaborBySection(laborMap)
+    setRawWorktopLaborQtyBySection({})
+    setRawWorktopLaborUnitPriceBySection({})
     const items = quotation.items || []
     const itemsBySection: Record<string, Record<string, QuotationItem[]>> = {}
     const includeLabour: Record<string, boolean> = {}
@@ -1384,15 +1408,16 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           }
         } else {
           const workItems = secItems.worktop || []
-          const workSum = workItems.reduce((s: number, i: QuotationItem) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
+          const labor = worktopLaborBySection[sec.id] ?? { qty: 1, unitPrice: 3000 }
+          const workSum = workItems.reduce((s: number, i: QuotationItem) => s + i.total_price, 0) + (labor.qty * labor.unitPrice)
           secTotal = workSum
           if (secTotal <= 0) continue
           items.push({ isSection: true, description: sec.name, quantity: 0, unit: "", unitPrice: 0, total: 0 })
           workItems.forEach((item: QuotationItem) => {
             items.push({ quantity: item.quantity, unit: item.unit, description: item.description, unitPrice: item.unit_price, total: item.total_price })
           })
-          if (worktopLaborQty > 0 && worktopLaborUnitPrice > 0) {
-            items.push({ quantity: worktopLaborQty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: worktopLaborUnitPrice, total: worktopLaborQty * worktopLaborUnitPrice })
+          if (labor.qty > 0 && labor.unitPrice > 0) {
+            items.push({ quantity: labor.qty, unit: "per slab", description: "Worktop Installation Labor", unitPrice: labor.unitPrice, total: labor.qty * labor.unitPrice })
           }
         }
         items.push({ isSectionSummary: true, description: `${sec.name} Total`, quantity: 0, unit: "", unitPrice: secTotal, total: secTotal })
@@ -1606,7 +1631,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
       // Separate main section items (no section_group) from custom section items (have section_group)
       const mainItems = (quotation.items || []).filter((item: any) => !item.section_group);
       const customSectionItemsList = (quotation.items || []).filter((item: any) => item.section_group);
-      const customSectionsMeta = (quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string }>) || [];
+      const customSectionsMeta = (quotation.custom_sections as Array<{ id: string; name: string; type: string; anchorKey?: string; worktop_labor_qty?: number; worktop_labor_unit_price?: number }>) || [];
       const customSectionNameMap = Object.fromEntries(customSectionsMeta.map((s) => [s.id, s.name]));
       const grouped = mainItems.reduce((acc: Record<string, any[]>, item: any) => {
         (acc[item.category] = acc[item.category] || []).push(item);
@@ -1862,9 +1887,11 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         const secItemList = customBySection[sec.id] || [];
         if (secItemList.length === 0) continue;
         const secName = sec.name || "Custom Section";
+        const customWtQty = sec.type === "worktop" ? (sec.worktop_labor_qty ?? quotation.worktop_labor_qty) : undefined;
+        const customWtPrice = sec.type === "worktop" ? (sec.worktop_labor_unit_price ?? quotation.worktop_labor_unit_price) : undefined;
         let secTotal = secItemList.reduce((s: number, i: any) => s + (i.total_price || 0), 0);
-        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
-          secTotal += quotation.worktop_labor_qty * quotation.worktop_labor_unit_price;
+        if (sec.type === "worktop" && customWtQty && customWtPrice) {
+          secTotal += customWtQty * customWtPrice;
         }
         if (secTotal <= 0) continue;
         items.push({ isSection: true, itemNumber: "", quantity: "", unit: "", description: secName, unitPrice: "", total: "" });
@@ -1879,14 +1906,14 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
             total: item.total_price != null ? item.total_price : ""
           });
         });
-        if (sec.type === "worktop" && quotation.worktop_labor_qty && quotation.worktop_labor_unit_price) {
+        if (sec.type === "worktop" && customWtQty && customWtPrice) {
           items.push({
             itemNumber: String(secItemList.length + 1),
-            quantity: quotation.worktop_labor_qty,
+            quantity: customWtQty,
             unit: "per slab",
             description: "Worktop Installation Labor",
-            unitPrice: quotation.worktop_labor_unit_price.toFixed(2),
-            total: (quotation.worktop_labor_qty * quotation.worktop_labor_unit_price).toFixed(2)
+            unitPrice: customWtPrice.toFixed(2),
+            total: (customWtQty * customWtPrice).toFixed(2)
           });
         }
         items.push({
@@ -2103,7 +2130,18 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
           }
           return [...main, ...custom]
         })(),
-        custom_sections: customSections.map(s => ({ id: s.id, name: s.name, type: s.type, anchorKey: s.anchorKey })),
+        custom_sections: customSections.map(s => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          anchorKey: s.anchorKey,
+          ...(s.type === "worktop"
+            ? {
+                worktop_labor_qty: worktopLaborBySection[s.id]?.qty ?? 1,
+                worktop_labor_unit_price: worktopLaborBySection[s.id]?.unitPrice ?? 3000,
+              }
+            : {}),
+        })),
         cabinet_labour_percentage: cabinetLabourPercentage,
         accessories_labour_percentage: accessoriesLabourPercentage,
         appliances_labour_percentage: appliancesLabourPercentage,
@@ -2356,7 +2394,8 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
         customSectionsLabour += labour
         secTotal = cabSum + labour
       } else {
-        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (worktopLaborQty * worktopLaborUnitPrice)
+        const labor = worktopLaborBySection[sec.id] ?? { qty: 1, unitPrice: 3000 }
+        const workSum = (items.worktop || []).reduce((s, i) => s + i.total_price, 0) + (labor.qty * labor.unitPrice)
         customSectionsItemTotal += workSum
         secTotal = workSum
       }
@@ -2399,7 +2438,7 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
     includeLabourCabinet, includeLabourAccessories, includeLabourAppliances, includeLabourWardrobes, includeLabourTvUnit,
     worktopLaborQty, worktopLaborUnitPrice, cabinetLabourPercentage,
     accessoriesLabourPercentage, appliancesLabourPercentage, wardrobesLabourPercentage, tvUnitLabourPercentage,
-    customSections, customSectionItems, includeCustomSection, customSectionIncludeLabour, customSectionLabourPercentage])
+    customSections, customSectionItems, includeCustomSection, customSectionIncludeLabour, customSectionLabourPercentage, worktopLaborBySection])
 
   // Legacy function for backward compatibility - now just returns memoized values
   const calculateTotals = () => totals
@@ -2950,7 +2989,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                 </div>
@@ -3344,7 +3397,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                     </div>
@@ -3666,7 +3733,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                     </div>
@@ -3988,7 +4069,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                     </div>
@@ -4310,7 +4405,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                     </div>
@@ -4632,7 +4741,21 @@ const QuotationModal: React.FC<QuotationModalProps> = ({
                         {included && (sec.type === "normal" ? (
                           <CustomNormalSection sectionId={sec.id} items={customSectionItems[sec.id] || {}} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} includeLabour={customSectionIncludeLabour[sec.id] ?? true} setIncludeLabour={(v: boolean) => setCustomSectionIncludeLabourById(sec.id, v)} labourPercentage={customSectionLabourPercentage[sec.id] ?? 30} setLabourPercentage={(v: number) => setCustomSectionLabourPercentageById(sec.id, v)} sectionCabinetTotal={(customSectionItems[sec.id]?.cabinet || []).filter((i: QuotationItem) => !i.description?.includes("Labour Charge")).reduce((s: number, i: QuotationItem) => s + i.total_price, 0)} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ) : (
-                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborQty} setWorktopLaborQty={setWorktopLaborQty} worktopLaborUnitPrice={worktopLaborUnitPrice} setWorktopLaborUnitPrice={setWorktopLaborUnitPrice} rawWorktopLaborQty={rawWorktopLaborQty} setRawWorktopLaborQty={setRawWorktopLaborQty} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPrice} setRawWorktopLaborUnitPrice={setRawWorktopLaborUnitPrice} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
+                          <CustomWorktopSection sectionId={sec.id} items={(customSectionItems[sec.id] || {}).worktop || []} addItem={addItem} removeItem={removeItem} updateItem={updateItem} sectionNames={sectionNames} stockItems={stockItems} getItemInputRef={getItemInputRef} itemDropdownVisible={itemDropdownVisible} setItemDropdownVisible={setItemDropdownVisible} handleItemSearch={handleItemSearch} selectStockItem={selectStockItem} getFilteredItems={getFilteredItems} worktopLaborQty={worktopLaborBySection[sec.id]?.qty ?? 1} setWorktopLaborQty={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const nextQty = typeof v === "function" ? (v as (n: number) => number)(cur.qty) : v
+                            return { ...prev, [sec.id]: { ...cur, qty: nextQty } }
+                          })} worktopLaborUnitPrice={worktopLaborBySection[sec.id]?.unitPrice ?? 3000} setWorktopLaborUnitPrice={(v) => setWorktopLaborBySection(prev => {
+                            const cur = prev[sec.id] ?? { qty: 1, unitPrice: 3000 }
+                            const next = typeof v === "function" ? (v as (n: number) => number)(cur.unitPrice) : v
+                            return { ...prev, [sec.id]: { ...cur, unitPrice: next } }
+                          })} rawWorktopLaborQty={rawWorktopLaborQtyBySection[sec.id]} setRawWorktopLaborQty={(val) => setRawWorktopLaborQtyBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawWorktopLaborUnitPrice={rawWorktopLaborUnitPriceBySection[sec.id]} setRawWorktopLaborUnitPrice={(val) => setRawWorktopLaborUnitPriceBySection(prev => {
+                            const next = typeof val === "function" ? (val as (p: string | undefined) => string | undefined)(prev[sec.id]) : val
+                            return { ...prev, [sec.id]: next }
+                          })} rawQuantityValues={rawQuantityValues} setRawQuantityValues={setRawQuantityValues} rawPriceValues={rawPriceValues} setRawPriceValues={setRawPriceValues} isReadOnly={isReadOnly} isMobile={isMobile} PortalDropdown={PortalDropdown} />
                         ))}
                       </div>
                     </div>

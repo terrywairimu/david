@@ -1103,7 +1103,7 @@ export interface SalesOrderData {
     wardrobes: string;
     tvunit: string;
   }
-  custom_sections?: Array<{ id: string; name: string; type: string; anchorKey?: string }>
+  custom_sections?: Array<{ id: string; name: string; type: string; anchorKey?: string; worktop_labor_qty?: number; worktop_labor_unit_price?: number }>
   client?: {
     id: number
     name: string
