@@ -698,11 +698,11 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
       setWorktopLaborQty(salesOrder.worktop_labor_qty ?? 1)
       setWorktopLaborUnitPrice(salesOrder.worktop_labor_unit_price ?? 3000)
     // Infer include labour from saved items (Labour Charge in items when toggle was on)
-    setIncludeLabourCabinet(salesOrder.items?.some((i: any) => i.category === "cabinet" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourAccessories(salesOrder.items?.some((i: any) => i.category === "accessories" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourAppliances(salesOrder.items?.some((i: any) => i.category === "appliances" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourWardrobes(salesOrder.items?.some((i: any) => i.category === "wardrobes" && i.description?.includes?.("Labour Charge")) ?? true);
-    setIncludeLabourTvUnit(salesOrder.items?.some((i: any) => i.category === "tvunit" && i.description?.includes?.("Labour Charge")) ?? true);
+    setIncludeLabourCabinet((salesOrder.items ?? []).some((i: any) => i.category === "cabinet" && i.description?.includes?.("Labour Charge")));
+    setIncludeLabourAccessories((salesOrder.items ?? []).some((i: any) => i.category === "accessories" && i.description?.includes?.("Labour Charge")));
+    setIncludeLabourAppliances((salesOrder.items ?? []).some((i: any) => i.category === "appliances" && i.description?.includes?.("Labour Charge")));
+    setIncludeLabourWardrobes((salesOrder.items ?? []).some((i: any) => i.category === "wardrobes" && i.description?.includes?.("Labour Charge")));
+    setIncludeLabourTvUnit((salesOrder.items ?? []).some((i: any) => i.category === "tvunit" && i.description?.includes?.("Labour Charge")));
   }
 
   const handleClientSelect = (client: Client) => {
@@ -1329,6 +1329,7 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
         // Insert items for this section
         let itemNumber = 1;
         typedItemsInCategory.forEach((item: any) => {
+          if (!item.description?.trim()) return
           const itemRow = {
             itemNumber: itemNumber.toString(),
             quantity: item.quantity?.toString() || "",
@@ -1341,9 +1342,6 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           itemNumber++;
         });
 
-        // Add labour charge logic to sales order modal PDF generation
-
-        // In handlePrint function, after items are added but before section summary
         // Add worktop installation labor if exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
           items.push({
@@ -1357,92 +1355,15 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
           itemNumber++;
         }
 
-        // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (typedItemsInCategory.length > 0 && category !== 'worktop') {
-          // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = typedItemsInCategory.some((item: any) => 
-            item.description && item.description.toLowerCase().includes('labour charge')
-          );
-          
-          // Only calculate labour charge if no labour charge items exist
-          if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-            
-            // Get the correct labour percentage for this specific section from database
-            let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
-            switch (category) {
-              case 'cabinet':
-                labourPercentage = salesOrder.cabinet_labour_percentage || salesOrder.labour_percentage || 30;
-                break;
-              case 'accessories':
-                labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
-                break;
-              case 'appliances':
-                labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
-                break;
-              case 'wardrobes':
-                labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
-                break;
-              case 'tvunit':
-                labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
-                break;
-              default:
-                labourPercentage = salesOrder.labour_percentage || 30;
-            }
-            
-            const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-            
-            if (labourCharge > 0) {
-              items.push({
-                itemNumber: String(itemNumber),
-                quantity: 1,
-                unit: "sum",
-                description: `Labour Charge (${labourPercentage}%)`,
-                unitPrice: labourCharge.toFixed(2),
-                total: labourCharge.toFixed(2)
-              });
-              itemNumber++;
-            }
-          }
-        }
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
 
-        // Insert section summary row
+        // Insert section summary row - total = sum of saved items (Labour Charge included when in items)
         let sectionTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
         
-        // Add worktop labor to section total if it exists
         if (category === 'worktop' && salesOrder.worktop_labor_qty && salesOrder.worktop_labor_unit_price) {
           sectionTotal += salesOrder.worktop_labor_qty * salesOrder.worktop_labor_unit_price;
         }
 
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && typedItemsInCategory.length > 0) {
-          const sectionItemsTotal = typedItemsInCategory.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = salesOrder.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'accessories':
-              labourPercentage = salesOrder.accessories_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = salesOrder.appliances_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = salesOrder.wardrobes_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = salesOrder.tvunit_labour_percentage || salesOrder.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = salesOrder.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal += labourCharge;
-          }
-        }
-        
         const summaryRow = {
           isSectionSummary: true,
           itemNumber: "",

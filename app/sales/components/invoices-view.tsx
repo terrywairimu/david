@@ -523,6 +523,7 @@ const InvoicesView = () => {
         // Insert items for this section
         let itemNumber = 1;
         itemsInCategory.forEach((item) => {
+          if (!item.description?.trim()) return
           items.push({
             itemNumber: String(itemNumber),
             quantity: item.quantity,
@@ -547,88 +548,13 @@ const InvoicesView = () => {
           itemNumber++;
         }
 
-        // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some(item => 
-            item.description && item.description.toLowerCase().includes('labour charge')
-          );
-          
-          // Only calculate labour charge if no labour charge items exist
-          if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-            
-            // Get the correct labour percentage for this specific section from database
-            let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
-            switch (category) {
-              case 'cabinet':
-                labourPercentage = invoice.cabinet_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'accessories':
-                labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'appliances':
-                labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'wardrobes':
-                labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'tvunit':
-                labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
-                break;
-            }
-            
-            const labourAmount = (sectionItemsTotal * labourPercentage) / 100;
-            
-            if (labourAmount > 0) {
-              items.push({
-                itemNumber: String(itemNumber),
-                quantity: "",
-                unit: "",
-                description: `Labour Charge (${labourPercentage}%)`,
-                unitPrice: "",
-                total: labourAmount.toFixed(2)
-              });
-              itemNumber++;
-            }
-          }
-        }
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
 
-        // Insert section summary row
+        // Insert section summary row - total = sum of saved items (Labour Charge included when in items)
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
-        // Add worktop labor to section total if it exists
         if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
           sectionTotal += invoice.worktop_labor_qty * invoice.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'accessories':
-              labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = invoice.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal += labourCharge;
-          }
         }
         
         const summaryRow = {
@@ -806,6 +732,7 @@ const InvoicesView = () => {
         // Insert items for this section
         let itemNumber = 1;
         itemsInCategory.forEach((item) => {
+          if (!item.description?.trim()) return
           items.push({
             itemNumber: String(itemNumber),
             quantity: item.quantity,
@@ -830,88 +757,13 @@ const InvoicesView = () => {
           itemNumber++;
         }
 
-        // Add labour charge for each section that has items (except worktop which has its own labor)
-        if (category !== 'worktop' && itemsInCategory.length > 0) {
-          // Check if labour charge items already exist in this category
-          const hasExistingLabourCharge = itemsInCategory.some(item => 
-            item.description && item.description.toLowerCase().includes('labour charge')
-          );
-          
-          // Only calculate labour charge if no labour charge items exist
-          if (!hasExistingLabourCharge) {
-            const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-            
-            // Get the correct labour percentage for this specific section from database
-            let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
-            switch (category) {
-              case 'cabinet':
-                labourPercentage = invoice.cabinet_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'accessories':
-                labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'appliances':
-                labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'wardrobes':
-                labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
-                break;
-              case 'tvunit':
-                labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
-                break;
-            }
-            
-            const labourAmount = (sectionItemsTotal * labourPercentage) / 100;
-            
-            if (labourAmount > 0) {
-              items.push({
-                itemNumber: String(itemNumber),
-                quantity: "",
-                unit: "",
-                description: `Labour Charge (${labourPercentage}%)`,
-                unitPrice: "",
-                total: labourAmount.toFixed(2)
-              });
-              itemNumber++;
-            }
-          }
-        }
+        // Labour Charge is only shown when it exists in saved items (include labour was on when saving).
 
-        // Insert section summary row
+        // Insert section summary row - total = sum of saved items (Labour Charge included when in items)
         let sectionTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
         
-        // Add worktop labor to section total if it exists
         if (category === 'worktop' && invoice.worktop_labor_qty && invoice.worktop_labor_unit_price) {
           sectionTotal += invoice.worktop_labor_qty * invoice.worktop_labor_unit_price;
-        }
-
-        // Add labour charge to section total if it exists (for non-worktop sections)
-        if (category !== 'worktop' && category !== 'cabinet' && itemsInCategory.length > 0) {
-          const sectionItemsTotal = itemsInCategory.reduce((sum, item) => sum + (item.total_price || 0), 0);
-          
-          // Get the correct labour percentage for this specific section
-          let labourPercentage = invoice.labour_percentage || 30; // Use general labour_percentage as default
-          switch (category) {
-            case 'accessories':
-              labourPercentage = invoice.accessories_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'appliances':
-              labourPercentage = invoice.appliances_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'wardrobes':
-              labourPercentage = invoice.wardrobes_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            case 'tvunit':
-              labourPercentage = invoice.tvunit_labour_percentage || invoice.labour_percentage || 30;
-              break;
-            default:
-              labourPercentage = invoice.labour_percentage || 30;
-          }
-          
-          const labourCharge = (sectionItemsTotal * labourPercentage) / 100;
-          if (labourCharge > 0) {
-            sectionTotal += labourCharge;
-          }
         }
         
         const summaryRow = {
