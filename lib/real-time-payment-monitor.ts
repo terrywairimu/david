@@ -82,8 +82,28 @@ export class RealTimePaymentMonitor {
       .subscribe()
   }
 
+  // Resolve a sales order by order number or linked quotation number
+  private async findSalesOrder(documentNumber: string): Promise<any | null> {
+    const { data: byOrderNumber } = await supabase
+      .from('sales_orders')
+      .select('*')
+      .eq('order_number', documentNumber)
+      .maybeSingle()
+
+    if (byOrderNumber) return byOrderNumber
+
+    const { data: byQuotation } = await supabase
+      .from('sales_orders')
+      .select('*')
+      .eq('original_quotation_number', documentNumber)
+      .order('date_created', { ascending: true })
+      .limit(1)
+
+    return byQuotation?.[0] ?? null
+  }
+
   // Process new payment
-  private async processNewPayment(payment: any) {
+  async processNewPayment(payment: any) {
     try {
       if (payment.status !== 'completed') return
 
@@ -107,7 +127,7 @@ export class RealTimePaymentMonitor {
   }
 
   // Process payment update
-  private async processPaymentUpdate(payment: any) {
+  async processPaymentUpdate(payment: any) {
     try {
       if (payment.status !== 'completed') return
 
@@ -136,6 +156,7 @@ export class RealTimePaymentMonitor {
 
       console.log(`🔍 Processing quotation payment for: ${quotationNumber}`)
       await this.checkQuotationProgression(quotationNumber)
+      await this.checkSalesOrderProgression(quotationNumber)
 
     } catch (error) {
       console.error('❌ Error processing quotation payment:', error)
@@ -170,9 +191,14 @@ export class RealTimePaymentMonitor {
       console.log(`📊 Quotation ${documentNumber}: ${paymentPercentage.toFixed(2)}% paid (${totalPaid}/${quotationTotal})`)
 
       // Auto-convert based on payment percentage
-      if (paymentPercentage > 0 && quotation.status !== 'converted_to_sales_order') {
-        // Any payment received → Convert to Sales Order
-        await this.convertQuotationToSalesOrder(quotation)
+      if (paymentPercentage > 0) {
+        if (quotation.status !== 'converted_to_sales_order') {
+          // Any payment received → Convert to Sales Order (also chains invoice/cash sale checks)
+          await this.convertQuotationToSalesOrder(quotation)
+        } else {
+          // Sales order already exists — still check invoice/cash sale progression
+          await this.checkSalesOrderProgression(documentNumber)
+        }
       }
 
     } catch (error) {
@@ -183,20 +209,17 @@ export class RealTimePaymentMonitor {
   // Check sales order progression
   private async checkSalesOrderProgression(documentNumber: string) {
     try {
-      // Get sales order details
-      const { data: salesOrder, error: salesOrderError } = await supabase
-        .from('sales_orders')
-        .select('*')
-        .eq('order_number', documentNumber)
-        .single()
+      const salesOrder = await this.findSalesOrder(documentNumber)
+      if (!salesOrder) return
 
-      if (salesOrderError || !salesOrder) return
+      const quotationNumber = salesOrder.original_quotation_number
+      if (!quotationNumber) return
 
       // Get original quotation
       const { data: quotation, error: quotationError } = await supabase
         .from('quotations')
         .select('*')
-        .eq('quotation_number', salesOrder.original_quotation_number)
+        .eq('quotation_number', quotationNumber)
         .single()
 
       if (quotationError || !quotation) return
@@ -205,7 +228,7 @@ export class RealTimePaymentMonitor {
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('amount, status')
-        .or(`quotation_number.eq.${quotation.quotation_number},paid_to.eq.${quotation.quotation_number}`)
+        .or(`quotation_number.eq.${quotationNumber},paid_to.eq.${quotationNumber}`)
         .eq('status', 'completed')
 
       if (paymentsError) return
@@ -214,7 +237,7 @@ export class RealTimePaymentMonitor {
       const quotationTotal = quotation.grand_total || quotation.total_amount || 0
       const paymentPercentage = quotationTotal > 0 ? (totalPaid / quotationTotal) * 100 : 0
 
-      console.log(`📊 Sales Order ${documentNumber}: ${paymentPercentage.toFixed(2)}% paid (${totalPaid}/${quotationTotal})`)
+      console.log(`📊 Sales Order ${salesOrder.order_number}: ${paymentPercentage.toFixed(2)}% paid (${totalPaid}/${quotationTotal})`)
 
       // Auto-convert based on payment percentage
       if (paymentPercentage >= 100) {
@@ -304,13 +327,15 @@ export class RealTimePaymentMonitor {
           console.log(`🧹 Cleaning up ${existingSalesOrders.length - 1} duplicate sales orders...`)
           await this.cleanupDuplicateSalesOrdersForQuotation(quotation.quotation_number, existingSalesOrders)
         }
-        
+
+        await this.checkSalesOrderProgression(quotation.quotation_number)
         return
       }
 
       // Check if quotation is already converted
       if (quotation.status === 'converted_to_sales_order') {
         console.log(`⚠️ Quotation ${quotation.quotation_number} is already marked as converted to sales order`)
+        await this.checkSalesOrderProgression(quotation.quotation_number)
         return
       }
 
@@ -319,6 +344,8 @@ export class RealTimePaymentMonitor {
 
       toast.success(`Quotation ${quotation.quotation_number} automatically converted to Sales Order (payment received)`)
       console.log(`✅ Quotation ${quotation.quotation_number} converted to Sales Order`)
+
+      await this.checkSalesOrderProgression(quotation.quotation_number)
 
     } catch (error) {
       console.error('❌ Error converting quotation to sales order:', error)

@@ -396,13 +396,21 @@ const SalesOrderModal: React.FC<SalesOrderModalProps> = ({
 
   // Function to fetch payment information
   const fetchPaymentInfo = async () => {
-    if (!salesOrder?.order_number) return;
+    const orderNum = salesOrder?.order_number;
+    const quotationNum = salesOrder?.original_quotation_number;
+    if (!orderNum && !quotationNum) return;
     
     try {
+      const paymentFilters = [
+        orderNum ? `paid_to.eq.${orderNum}` : null,
+        quotationNum ? `paid_to.eq.${quotationNum}` : null,
+        quotationNum ? `quotation_number.eq.${quotationNum}` : null,
+      ].filter(Boolean).join(",")
+
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
-        .eq("order_number", salesOrder.order_number)
+        .or(paymentFilters)
         .eq("status", "completed")
       
       const totalPaidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
