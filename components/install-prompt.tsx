@@ -126,14 +126,14 @@ export default function InstallPrompt() {
           </button>
 
           <div className="flex justify-center mb-4">
-            <div className="bg-gradient-to-br from-[#FF9500] to-[#C2410C] p-4 rounded-2xl shadow-lg">
+            <div className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] p-4 rounded-2xl shadow-lg">
               <Download className="text-white" size={32} />
             </div>
           </div>
 
           <div className="text-center mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-              Install Business Management
+              Install CMSF projects
             </h3>
             <p className="text-gray-600 mb-4">
               Install the app for faster access, offline support, and a native
@@ -142,20 +142,20 @@ export default function InstallPrompt() {
 
             <div className="space-y-2 mb-6 text-left">
               <div className="flex items-center gap-3 text-sm text-gray-700">
-                <div className="w-6 h-6 rounded-full bg-[#FF9500]/10 flex items-center justify-center flex-shrink-0">
-                  <Smartphone size={14} className="text-[#FF9500]" />
+                <div className="w-6 h-6 rounded-full bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
+                  <Smartphone size={14} className="text-[#6366f1]" />
                 </div>
                 <span>Works offline for cached pages</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-700">
-                <div className="w-6 h-6 rounded-full bg-[#FF9500]/10 flex items-center justify-center flex-shrink-0">
-                  <Monitor size={14} className="text-[#FF9500]" />
+                <div className="w-6 h-6 rounded-full bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
+                  <Monitor size={14} className="text-[#6366f1]" />
                 </div>
                 <span>Faster loading</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-700">
-                <div className="w-6 h-6 rounded-full bg-[#FF9500]/10 flex items-center justify-center flex-shrink-0">
-                  <Tablet size={14} className="text-[#FF9500]" />
+                <div className="w-6 h-6 rounded-full bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
+                  <Tablet size={14} className="text-[#6366f1]" />
                 </div>
                 <span>App drawer shortcut on mobile</span>
               </div>
@@ -173,9 +173,9 @@ export default function InstallPrompt() {
             )}
 
             {isAndroid && !installPrompt && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4 text-left">
-                <p className="text-sm text-orange-900 font-medium mb-2">Android Installation:</p>
-                <p className="text-xs text-orange-800">
+              <div className="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-4 text-left">
+                <p className="text-sm text-violet-900 font-medium mb-2">Android Installation:</p>
+                <p className="text-xs text-violet-800">
                   Tap the menu and select &quot;Install app&quot; or &quot;Add to Home screen&quot;
                 </p>
               </div>
@@ -186,7 +186,7 @@ export default function InstallPrompt() {
             {installPrompt && (
               <button
                 onClick={handleInstall}
-                className="flex-1 bg-gradient-to-r from-[#FF9500] to-[#C2410C] text-white font-medium py-3 px-6 rounded-xl hover:from-[#E68600] hover:to-[#9A3412] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                className="flex-1 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-medium py-3 px-6 rounded-xl hover:from-[#4f46e5] hover:to-[#7c3aed] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
               >
                 Install Now
               </button>

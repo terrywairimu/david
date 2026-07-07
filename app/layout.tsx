@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "David System",
+    title: "CMSF projects",
   },
 }
 
@@ -40,8 +40,8 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="David System" />
-        <meta name="theme-color" content="#FF9500" />
+        <meta name="apple-mobile-web-app-title" content="CMSF projects" />
+        <meta name="theme-color" content="#6366f1" />
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" async></script>
       </head>
       <body className={inter.className} suppressHydrationWarning>

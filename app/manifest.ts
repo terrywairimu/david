@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Business Management System",
-    short_name: "David System",
+    name: "CMSF projects",
+    short_name: "CMSF projects",
     description:
       "Complete business management for inventory, sales, purchases, payments, and reports",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#FF9500",
+    theme_color: "#6366f1",
     orientation: "portrait",
     icons: [
       {
