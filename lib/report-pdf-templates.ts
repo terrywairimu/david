@@ -1831,7 +1831,7 @@ const generateDynamicTemplateWithPagination = (
 };
 
 /** Build per-page inputs array for pdfme (each element = one page). Required for header/logo to show on first page. */
-export const buildPaginatedInputs = (
+const buildPaginatedInputs = (
   pages: number[][],
   schemasCount: number,
   tableHeaders: string[],
