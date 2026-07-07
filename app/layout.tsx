@@ -14,7 +14,7 @@ import NetworkStatus from "@/components/network-status"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Business Management System",
+  title: "CMSF projects",
   description: "Complete business management for inventory, sales, purchases, payments, and reports",
   manifest: "/manifest.webmanifest",
   icons: {
