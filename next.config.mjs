@@ -1,3 +1,5 @@
+import withSerwistInit from "@serwist/next";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -16,22 +18,18 @@ const nextConfig = {
   turbopack: {},
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
-      // Avoid pulling in Node canvas on client
       config.resolve.alias = {
         ...(config.resolve.alias || {}),
         canvas: false,
       }
-      // Some packages hard-require('canvas'); tell webpack this module doesn't exist in the browser
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
         canvas: false,
       }
     }
-    // Ignore optional 'canvas' dependency entirely so webpack does not try to resolve it
     config.plugins = config.plugins || []
     config.plugins.push(new webpack.IgnorePlugin({ resourceRegExp: /^canvas$/ }))
 
-    // Fix CSS extraction issues in Next.js 15
     if (!isServer) {
       config.optimization = {
         ...config.optimization,
@@ -61,4 +59,11 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
+  reloadOnOnline: false,
+});
+
+export default withSerwist(nextConfig)
