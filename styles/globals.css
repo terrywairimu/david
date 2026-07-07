@@ -171,7 +171,8 @@ body {
 .floating-sidebar-button {
     position: fixed;
     bottom: 2rem;
-    left: 2rem;
+    right: 2rem;
+    left: auto;
     z-index: 1040;
     background: var(--primary-gradient);
     border: none;
@@ -556,7 +557,8 @@ body {
     .floating-sidebar-button {
         display: flex;
         bottom: 1rem;
-        left: 1rem;
+        right: 1rem;
+        left: auto;
         height: 50px;
         width: 50px;
         border-radius: 24px;
@@ -659,6 +661,8 @@ body {
     /* Show floating button on tablet screens */
     .floating-sidebar-button {
         display: flex;
+        right: 2rem;
+        left: auto;
         border-radius: 24px;
         background: var(--primary-gradient);
         backdrop-filter: blur(10px);
