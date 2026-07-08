@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
 import {
+  completeOngoingProject,
   fetchOngoingProjects,
   type OngoingProject,
 } from "@/lib/ongoing-projects-service"
@@ -17,17 +18,22 @@ export default function OngoingProjectsPage() {
   const [projects, setProjects] = useState<OngoingProject[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [completingId, setCompletingId] = useState<number | null>(null)
 
-  const loadProjects = useCallback(async () => {
+  const loadProjects = useCallback(async (options?: { silent?: boolean }) => {
     try {
-      setLoading(true)
+      if (!options?.silent) {
+        setLoading(true)
+      }
       const data = await fetchOngoingProjects()
       setProjects(data)
     } catch (error) {
       console.error("Error loading ongoing projects:", error)
       toast.error("Failed to load ongoing projects")
     } finally {
-      setLoading(false)
+      if (!options?.silent) {
+        setLoading(false)
+      }
     }
   }, [])
 
@@ -63,6 +69,20 @@ export default function OngoingProjectsPage() {
     }
   }, [loadProjects])
 
+  const handleCompleteProject = async (quotationId: number) => {
+    try {
+      setCompletingId(quotationId)
+      await completeOngoingProject(quotationId)
+      toast.success("Project marked as complete")
+      await loadProjects({ silent: true })
+    } catch (error) {
+      console.error("Error completing project:", error)
+      toast.error("Failed to complete project")
+    } finally {
+      setCompletingId(null)
+    }
+  }
+
   return (
     <div id="ongoingProjectsSection" className="card">
       <SectionHeader title="Ongoing Projects" icon={<FolderKanban size={24} />} />
@@ -81,7 +101,12 @@ export default function OngoingProjectsPage() {
           <>
             <div className="ongoing-projects-grid">
               {paginatedProjects.map((project) => (
-                <OngoingProjectCard key={project.id} project={project} />
+                <OngoingProjectCard
+                  key={project.id}
+                  project={project}
+                  onComplete={handleCompleteProject}
+                  isCompleting={completingId === project.id}
+                />
               ))}
             </div>
             {totalPages > 1 && (

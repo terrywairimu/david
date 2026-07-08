@@ -3849,6 +3849,8 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .ongoing-project-card:hover {
@@ -3888,10 +3890,44 @@ input:checked + .toggle-slider:before {
 }
 
 .ongoing-project-card-body {
-  padding: 0.45rem 0.65rem 0.55rem;
+  padding: 0.45rem 0.65rem 0.45rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  flex: 1;
+}
+
+.ongoing-project-card-footer {
+  padding: 0.45rem 0.65rem 0.55rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+}
+
+.ongoing-project-complete-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary-gradient);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ongoing-project-complete-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.ongoing-project-complete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .ongoing-project-row {

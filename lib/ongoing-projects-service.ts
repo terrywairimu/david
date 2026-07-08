@@ -1,5 +1,7 @@
 import { supabase } from "./supabase-client"
 
+export const COMPLETED_PROJECT_STATUS = "completed"
+
 export interface OngoingProject {
   id: number
   quotationNumber: string
@@ -84,6 +86,7 @@ export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
         date_created,
         client:registered_entities(name, location)
       `)
+      .neq("status", COMPLETED_PROJECT_STATUS)
       .order("date_created", { ascending: false }),
     supabase.from("payments").select("amount, quotation_number, paid_to, status"),
     supabase
@@ -124,4 +127,13 @@ export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
       dateCreated: quotation.date_created || undefined,
     }
   })
+}
+
+export async function completeOngoingProject(quotationId: number): Promise<void> {
+  const { error } = await supabase
+    .from("quotations")
+    .update({ status: COMPLETED_PROJECT_STATUS })
+    .eq("id", quotationId)
+
+  if (error) throw error
 }

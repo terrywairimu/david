@@ -1,10 +1,13 @@
 "use client"
 
+import { Loader2 } from "lucide-react"
 import { formatNumber } from "@/lib/format-number"
 import type { OngoingProject } from "@/lib/ongoing-projects-service"
 
 interface OngoingProjectCardProps {
   project: OngoingProject
+  onComplete: (quotationId: number) => void
+  isCompleting?: boolean
 }
 
 function formatKes(value: number) {
@@ -20,7 +23,7 @@ function ProjectRow({ label, value, valueClassName }: { label: string; value: st
   )
 }
 
-export default function OngoingProjectCard({ project }: OngoingProjectCardProps) {
+export default function OngoingProjectCard({ project, onComplete, isCompleting = false }: OngoingProjectCardProps) {
   const isProfit = project.profitLoss >= 0
   const profitLossLabel = isProfit ? "Profit" : "Loss"
   const profitLossValue = formatKes(Math.abs(project.profitLoss))
@@ -44,6 +47,23 @@ export default function OngoingProjectCard({ project }: OngoingProjectCardProps)
           value={profitLossValue}
           valueClassName={isProfit ? "ongoing-project-profit" : "ongoing-project-loss"}
         />
+      </div>
+      <div className="ongoing-project-card-footer">
+        <button
+          type="button"
+          className="ongoing-project-complete-btn"
+          onClick={() => onComplete(project.id)}
+          disabled={isCompleting}
+        >
+          {isCompleting ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Completing...
+            </>
+          ) : (
+            "Complete"
+          )}
+        </button>
       </div>
     </article>
   )
