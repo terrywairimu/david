@@ -159,6 +159,15 @@ const Sidebar = () => {
             onClick={() => handleSectionClick("sales")}
           />
           )}
+          {canAccess("ongoing-projects") && (
+          <SidebarLink
+            href="/ongoing-projects"
+            label="Ongoing Projects"
+            icon="fas fa-folder-open"
+            isActive={activeSection === "ongoing-projects"}
+            onClick={() => handleSectionClick("ongoing-projects")}
+          />
+          )}
           {canAccess("payments") && (
           <SidebarLink
             href="/payments"

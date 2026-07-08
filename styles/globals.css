@@ -3833,3 +3833,113 @@ input:checked + .toggle-slider:before {
   padding-left: 8px;
 }
 
+/* Ongoing Projects */
+.ongoing-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.ongoing-project-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ongoing-project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+}
+
+.ongoing-project-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--primary-gradient);
+  color: #ffffff;
+}
+
+.ongoing-project-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ongoing-project-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+}
+
+.ongoing-project-card-body {
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ongoing-project-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ongoing-project-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ongoing-project-label {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.ongoing-project-value {
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+.ongoing-project-profit {
+  color: #16a34a;
+}
+
+.ongoing-project-loss {
+  color: #dc2626;
+}
+
+.ongoing-projects-loading,
+.ongoing-projects-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  color: #64748b;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .ongoing-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
