@@ -34,12 +34,11 @@ export default function OngoingProjectCard({ project }: OngoingProjectCardProps)
         ) : null}
       </div>
       <div className="ongoing-project-card-body">
-        <ProjectRow label="Client Name" value={project.clientName} />
-        <ProjectRow label="Project Location" value={project.projectLocation} />
-        <ProjectRow label="Quote Number" value={project.quotationNumber} />
+        <ProjectRow label="Client" value={project.clientName} />
+        <ProjectRow label="Location" value={project.projectLocation} />
         <ProjectRow label="Quote Amount" value={formatKes(project.quoteAmount)} />
-        <ProjectRow label="Amount Paid" value={formatKes(project.amountPaid)} />
-        <ProjectRow label="Amount Spent" value={formatKes(project.amountSpent)} />
+        <ProjectRow label="Paid" value={formatKes(project.amountPaid)} />
+        <ProjectRow label="Spent" value={formatKes(project.amountSpent)} />
         <ProjectRow
           label={profitLossLabel}
           value={profitLossValue}

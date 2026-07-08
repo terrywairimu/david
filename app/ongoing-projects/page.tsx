@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { FolderKanban, Loader2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, FolderKanban, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { SectionHeader } from "@/components/ui/section-header"
 import { supabase } from "@/lib/supabase-client"
@@ -11,9 +11,12 @@ import {
 } from "@/lib/ongoing-projects-service"
 import OngoingProjectCard from "./components/ongoing-project-card"
 
+const ITEMS_PER_PAGE = 6
+
 export default function OngoingProjectsPage() {
   const [projects, setProjects] = useState<OngoingProject[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const loadProjects = useCallback(async () => {
     try {
@@ -27,6 +30,19 @@ export default function OngoingProjectsPage() {
       setLoading(false)
     }
   }, [])
+
+  const totalPages = Math.max(1, Math.ceil(projects.length / ITEMS_PER_PAGE))
+
+  const paginatedProjects = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return projects.slice(start, start + ITEMS_PER_PAGE)
+  }, [projects, currentPage])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   useEffect(() => {
     loadProjects()
@@ -62,11 +78,38 @@ export default function OngoingProjectsPage() {
             <p className="mb-0">No quotations yet. A project card appears when a quotation is created.</p>
           </div>
         ) : (
-          <div className="ongoing-projects-grid">
-            {projects.map((project) => (
-              <OngoingProjectCard key={project.id} project={project} />
-            ))}
-          </div>
+          <>
+            <div className="ongoing-projects-grid">
+              {paginatedProjects.map((project) => (
+                <OngoingProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="ongoing-projects-pagination">
+                <button
+                  type="button"
+                  className="ongoing-projects-page-btn"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="ongoing-projects-page-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="ongoing-projects-page-btn"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
