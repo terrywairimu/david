@@ -4008,15 +4008,81 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 767px) {
+  #ongoingProjectsSection {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    width: calc(100% + 1rem);
+    max-width: calc(100% + 1rem);
+  }
+
   .ongoing-projects-grid-mobile {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
-    gap: 0.85rem;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 0;
+  }
+
+  .ongoing-projects-grid-mobile > div {
+    width: 100%;
+    min-width: 0;
   }
 
   #ongoingProjectsSection > .card-header {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #ongoingProjectsSection > .card-body {
+    padding: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #ongoingProjectsSection .ongoing-project-card {
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 4 / 5;
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  #ongoingProjectsSection .ongoing-project-card-header {
+    padding: 0.5rem 0.65rem;
+    flex-shrink: 0;
+  }
+
+  #ongoingProjectsSection .ongoing-project-card-body {
+    padding: 0.4rem 0.65rem;
+    gap: 0.15rem;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #ongoingProjectsSection .ongoing-project-card-footer {
+    padding: 0.4rem 0.65rem 0.5rem;
+    flex-shrink: 0;
+  }
+
+  #ongoingProjectsSection .ongoing-project-row {
+    min-height: 1.05rem;
+    padding-bottom: 0.12rem;
+  }
+
+  #ongoingProjectsSection .ongoing-project-label,
+  #ongoingProjectsSection .ongoing-project-value {
+    font-size: clamp(0.62rem, 2.8vw, 0.72rem);
+  }
+
+  #ongoingProjectsSection .ongoing-project-card-title {
+    font-size: clamp(0.72rem, 3.2vw, 0.82rem);
+  }
+
+  #ongoingProjectsSection .ongoing-project-complete-btn {
+    font-size: clamp(0.68rem, 2.8vw, 0.74rem);
+    padding: 0.32rem 0.45rem;
   }
 
   #ongoingProjectsSection .section-header-responsive .d-flex.d-md-none {
@@ -4056,19 +4122,49 @@ input:checked + .toggle-slider:before {
   }
 
   #ongoingProjectsSection .ongoing-projects-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     max-width: none;
     width: auto;
     min-width: 0;
     flex: 1 1 0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.2rem 0.55rem 0.2rem 0.6rem;
+  }
+
+  #ongoingProjectsSection .ongoing-projects-search-wrap:focus-within {
+    border-color: #6366f1;
+  }
+
+  #ongoingProjectsSection .ongoing-projects-search-icon {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: #475569;
+  }
+
+  #ongoingProjectsSection .ongoing-projects-search-wrap svg {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
   }
 
   #ongoingProjectsSection .ongoing-projects-search-input {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
     color: #000000;
-    background: #ffffff;
-    border-color: #e2e8f0;
+    background: transparent;
+    border: none;
     font-size: 0.75rem;
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
+    padding: 0.35rem 0.15rem 0.35rem 0;
   }
 
   #ongoingProjectsSection .ongoing-projects-search-input::placeholder {
@@ -4077,12 +4173,16 @@ input:checked + .toggle-slider:before {
   }
 
   #ongoingProjectsSection .ongoing-projects-search-input:focus {
-    border-color: #6366f1;
-    background: #ffffff;
+    border-color: transparent;
+    background: transparent;
+    outline: none;
+    box-shadow: none;
   }
 
-  #ongoingProjectsSection .ongoing-projects-search-icon {
-    color: #475569;
+  #ongoingProjectsSection .ongoing-projects-loading-more,
+  #ongoingProjectsSection .ongoing-projects-end-message {
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
