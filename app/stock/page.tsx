@@ -589,11 +589,10 @@ const StockPage = () => {
                     <div className="stock-summary-card-mobile-icon">
                       <i className="fas fa-boxes" aria-hidden="true"></i>
                     </div>
-                    <span className="stock-summary-card-mobile-label">Total</span>
+                    <span className="stock-summary-card-mobile-label">Total Items</span>
                   </div>
                   <div className="stock-summary-card-mobile-body">
                     <div className="stock-summary-card-mobile-value">{stockCounts.totalItems}</div>
-                    <p className="stock-summary-card-mobile-caption">Items</p>
                   </div>
                 </div>
                 <div className="stock-summary-card-desktop card-body">
@@ -622,11 +621,10 @@ const StockPage = () => {
                     <div className="stock-summary-card-mobile-icon">
                       <i className="fas fa-check-circle" aria-hidden="true"></i>
                     </div>
-                    <span className="stock-summary-card-mobile-label">In</span>
+                    <span className="stock-summary-card-mobile-label">In Stock</span>
                   </div>
                   <div className="stock-summary-card-mobile-body">
                     <div className="stock-summary-card-mobile-value">{stockCounts.inStock}</div>
-                    <p className="stock-summary-card-mobile-caption">Stock</p>
                   </div>
                 </div>
                 <div className="stock-summary-card-desktop card-body">
@@ -655,11 +653,10 @@ const StockPage = () => {
                     <div className="stock-summary-card-mobile-icon">
                       <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
                     </div>
-                    <span className="stock-summary-card-mobile-label">Low</span>
+                    <span className="stock-summary-card-mobile-label">Low Stock</span>
                   </div>
                   <div className="stock-summary-card-mobile-body">
                     <div className="stock-summary-card-mobile-value">{stockCounts.lowStock}</div>
-                    <p className="stock-summary-card-mobile-caption">Stock</p>
                   </div>
                 </div>
                 <div className="stock-summary-card-desktop card-body">
@@ -688,11 +685,10 @@ const StockPage = () => {
                     <div className="stock-summary-card-mobile-icon">
                       <i className="fas fa-times-circle" aria-hidden="true"></i>
                     </div>
-                    <span className="stock-summary-card-mobile-label">Out</span>
+                    <span className="stock-summary-card-mobile-label">Out of Stock</span>
                   </div>
                   <div className="stock-summary-card-mobile-body">
                     <div className="stock-summary-card-mobile-value">{stockCounts.outOfStock}</div>
-                    <p className="stock-summary-card-mobile-caption">Stock</p>
                   </div>
                 </div>
                 <div className="stock-summary-card-desktop card-body">
