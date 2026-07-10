@@ -4008,17 +4008,10 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 767px) {
-  #ongoingProjectsSection {
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
-    width: calc(100% + 1rem);
-    max-width: calc(100% + 1rem);
-  }
-
   .ongoing-projects-grid-mobile {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
-    gap: 0.5rem;
+    gap: 1rem;
     width: 100%;
     margin: 0;
   }
@@ -4043,46 +4036,44 @@ input:checked + .toggle-slider:before {
   #ongoingProjectsSection .ongoing-project-card {
     width: 100%;
     max-width: 100%;
-    aspect-ratio: 4 / 5;
+    height: auto;
     margin: 0;
     border-radius: 12px;
   }
 
   #ongoingProjectsSection .ongoing-project-card-header {
     padding: 0.5rem 0.65rem;
-    flex-shrink: 0;
   }
 
   #ongoingProjectsSection .ongoing-project-card-body {
-    padding: 0.4rem 0.65rem;
-    gap: 0.15rem;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    padding: 0.45rem 0.65rem;
+    gap: 0.2rem;
+    flex: initial;
+    min-height: auto;
+    overflow: visible;
   }
 
   #ongoingProjectsSection .ongoing-project-card-footer {
-    padding: 0.4rem 0.65rem 0.5rem;
-    flex-shrink: 0;
+    padding: 0.45rem 0.65rem 0.55rem;
   }
 
   #ongoingProjectsSection .ongoing-project-row {
-    min-height: 1.05rem;
-    padding-bottom: 0.12rem;
+    min-height: 1.35rem;
+    padding-bottom: 0.2rem;
   }
 
   #ongoingProjectsSection .ongoing-project-label,
   #ongoingProjectsSection .ongoing-project-value {
-    font-size: clamp(0.62rem, 2.8vw, 0.72rem);
+    font-size: 0.68rem;
   }
 
   #ongoingProjectsSection .ongoing-project-card-title {
-    font-size: clamp(0.72rem, 3.2vw, 0.82rem);
+    font-size: 0.78rem;
   }
 
   #ongoingProjectsSection .ongoing-project-complete-btn {
-    font-size: clamp(0.68rem, 2.8vw, 0.74rem);
-    padding: 0.32rem 0.45rem;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.5rem;
   }
 
   #ongoingProjectsSection .section-header-responsive .d-flex.d-md-none {
