@@ -58,6 +58,8 @@ export default function OngoingProjectsPage() {
     const channel = supabase
       .channel("ongoing_projects_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "quotations" }, loadProjects)
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales_orders" }, loadProjects)
+      .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, loadProjects)
       .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, loadProjects)
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, loadProjects)
       .on("postgres_changes", { event: "*", schema: "public", table: "purchases" }, loadProjects)
@@ -69,10 +71,10 @@ export default function OngoingProjectsPage() {
     }
   }, [loadProjects])
 
-  const handleCompleteProject = async (quotationId: number) => {
+  const handleCompleteProject = async (quotationId: number, salesOrderId?: number | null) => {
     try {
-      setCompletingId(quotationId)
-      await completeOngoingProject(quotationId)
+      setCompletingId(salesOrderId ?? quotationId)
+      await completeOngoingProject(quotationId, salesOrderId)
       toast.success("Project marked as complete")
       await loadProjects({ silent: true })
     } catch (error) {
@@ -95,7 +97,7 @@ export default function OngoingProjectsPage() {
         ) : projects.length === 0 ? (
           <div className="ongoing-projects-empty">
             <FolderKanban size={40} className="text-muted-foreground mb-3" />
-            <p className="mb-0">No quotations yet. A project card appears when a quotation is created.</p>
+            <p className="mb-0">No ongoing projects yet. A card appears once a quotation is converted to a sales order.</p>
           </div>
         ) : (
           <>
@@ -105,7 +107,7 @@ export default function OngoingProjectsPage() {
                   key={project.id}
                   project={project}
                   onComplete={handleCompleteProject}
-                  isCompleting={completingId === project.id}
+                  isCompleting={completingId === project.salesOrderId}
                 />
               ))}
             </div>

@@ -2,9 +2,14 @@ import { supabase } from "./supabase-client"
 
 export const COMPLETED_PROJECT_STATUS = "completed"
 
+const PROJECT_REFERENCE_PATTERN = /^(QT|SO|INV)/i
+
 export interface OngoingProject {
   id: number
-  quotationNumber: string
+  quotationId: number
+  salesOrderId: number | null
+  salesOrderNumber: string
+  originalQuotationNumber: string
   clientName: string
   projectLocation: string
   quoteAmount: number
@@ -35,23 +40,76 @@ type PurchaseRow = {
   status: string | null
 }
 
-type QuotationRow = {
+type SalesOrderRow = {
   id: number
-  quotation_number: string
+  order_number: string
+  quotation_id: number | null
+  original_quotation_number: string | null
   client_id: number
   grand_total: number | null
   status: string | null
   date_created: string | null
-  client: { name: string; location: string | null } | { name: string; location: string | null }[] | null
 }
 
-function sumPaymentsForQuotation(payments: PaymentRow[], quotationNumber: string): number {
+type InvoiceRow = {
+  invoice_number: string
+  sales_order_id: number | null
+  original_quotation_number: string | null
+}
+
+function normalizeReference(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function isProjectDocumentReference(value: string | null | undefined): boolean {
+  const ref = normalizeReference(value)
+  return !!ref && PROJECT_REFERENCE_PATTERN.test(ref)
+}
+
+/** Payments with no QT/SO/INV link are treated as design fees or unrelated receipts. */
+export function isDesignFeeOrUnlinkedPayment(payment: PaymentRow): boolean {
+  if (payment.status !== "completed") return true
+  const quotationRef = normalizeReference(payment.quotation_number)
+  const paidToRef = normalizeReference(payment.paid_to)
+  if (!quotationRef && !paidToRef) return true
+  return !isProjectDocumentReference(quotationRef) && !isProjectDocumentReference(paidToRef)
+}
+
+export function buildProjectReferences(
+  quotationNumber: string,
+  salesOrderNumber?: string | null,
+  invoiceNumbers: string[] = []
+): Set<string> {
+  const references = new Set<string>()
+  const quotationRef = normalizeReference(quotationNumber)
+  const orderRef = normalizeReference(salesOrderNumber)
+
+  if (quotationRef) references.add(quotationRef)
+  if (orderRef) references.add(orderRef)
+  invoiceNumbers.forEach((invoiceNumber) => {
+    const invoiceRef = normalizeReference(invoiceNumber)
+    if (invoiceRef) references.add(invoiceRef)
+  })
+
+  return references
+}
+
+export function sumPaymentsForProject(
+  payments: PaymentRow[],
+  references: Set<string>
+): number {
   return payments
-    .filter(
-      (payment) =>
-        payment.status === "completed" &&
-        (payment.quotation_number === quotationNumber || payment.paid_to === quotationNumber)
-    )
+    .filter((payment) => {
+      if (payment.status !== "completed") return false
+      if (isDesignFeeOrUnlinkedPayment(payment)) return false
+      const quotationRef = normalizeReference(payment.quotation_number)
+      const paidToRef = normalizeReference(payment.paid_to)
+      return (
+        (quotationRef && references.has(quotationRef)) ||
+        (paidToRef && references.has(paidToRef))
+      )
+    })
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
 }
 
@@ -73,33 +131,62 @@ function buildSpentByClient(expenses: ExpenseRow[], purchases: PurchaseRow[]): M
   return spentByClient
 }
 
-export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
-  const [quotationsRes, paymentsRes, expensesRes, purchasesRes] = await Promise.all([
-    supabase
-      .from("quotations")
-      .select(`
-        id,
-        quotation_number,
-        client_id,
-        grand_total,
-        status,
-        date_created,
-        client:registered_entities(name, location)
-      `)
-      .neq("status", COMPLETED_PROJECT_STATUS)
-      .order("date_created", { ascending: false }),
-    supabase.from("payments").select("amount, quotation_number, paid_to, status"),
-    supabase
-      .from("expenses")
-      .select("amount, client_id, expense_type, status")
-      .eq("expense_type", "client"),
-    supabase
-      .from("purchases")
-      .select("total_amount, client_id, status")
-      .not("client_id", "is", null),
-  ])
+function getInvoiceNumbersForProject(
+  quotationNumber: string,
+  salesOrder: SalesOrderRow | undefined,
+  invoices: InvoiceRow[]
+): string[] {
+  const numbers = new Set<string>()
 
-  if (quotationsRes.error) throw quotationsRes.error
+  invoices.forEach((invoice) => {
+    const matchesSalesOrder = salesOrder?.id && invoice.sales_order_id === salesOrder.id
+    const matchesQuotation = invoice.original_quotation_number === quotationNumber
+    if (matchesSalesOrder || matchesQuotation) {
+      numbers.add(invoice.invoice_number)
+    }
+  })
+
+  return Array.from(numbers)
+}
+
+export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
+  const [salesOrdersRes, invoicesRes, paymentsRes, expensesRes, purchasesRes] =
+    await Promise.all([
+      supabase
+        .from("sales_orders")
+        .select(`
+          id,
+          order_number,
+          quotation_id,
+          original_quotation_number,
+          client_id,
+          grand_total,
+          status,
+          date_created,
+          client:registered_entities(name, location)
+        `)
+        .neq("status", COMPLETED_PROJECT_STATUS)
+        .neq("status", "cancelled")
+        .neq("status", "converted_to_cash_sale")
+        .order("date_created", { ascending: false }),
+      supabase
+        .from("invoices")
+        .select("invoice_number, sales_order_id, original_quotation_number"),
+      supabase
+        .from("payments")
+        .select("amount, quotation_number, paid_to, status"),
+      supabase
+        .from("expenses")
+        .select("amount, client_id, expense_type, status")
+        .eq("expense_type", "client"),
+      supabase
+        .from("purchases")
+        .select("total_amount, client_id, status")
+        .not("client_id", "is", null),
+    ])
+
+  if (salesOrdersRes.error) throw salesOrdersRes.error
+  if (invoicesRes.error) throw invoicesRes.error
   if (paymentsRes.error) throw paymentsRes.error
   if (expensesRes.error) throw expensesRes.error
   if (purchasesRes.error) throw purchasesRes.error
@@ -107,33 +194,62 @@ export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
   const payments = (paymentsRes.data || []) as PaymentRow[]
   const expenses = (expensesRes.data || []) as ExpenseRow[]
   const purchases = (purchasesRes.data || []) as PurchaseRow[]
+  const salesOrders = (salesOrdersRes.data || []) as (SalesOrderRow & {
+    client: { name: string; location: string | null } | { name: string; location: string | null }[] | null
+  })[]
+  const invoices = (invoicesRes.data || []) as InvoiceRow[]
   const spentByClient = buildSpentByClient(expenses, purchases)
 
-  return ((quotationsRes.data || []) as QuotationRow[]).map((quotation) => {
-    const client = Array.isArray(quotation.client) ? quotation.client[0] : quotation.client
-    const amountPaid = sumPaymentsForQuotation(payments, quotation.quotation_number)
-    const amountSpent = spentByClient.get(quotation.client_id) || 0
+  return salesOrders.map((salesOrder) => {
+    const client = Array.isArray(salesOrder.client) ? salesOrder.client[0] : salesOrder.client
+    const quotationNumber = salesOrder.original_quotation_number || ""
+    const invoiceNumbers = getInvoiceNumbersForProject(
+      quotationNumber,
+      salesOrder,
+      invoices
+    )
+    const references = buildProjectReferences(
+      quotationNumber,
+      salesOrder.order_number,
+      invoiceNumbers
+    )
+    const amountPaid = sumPaymentsForProject(payments, references)
+    const amountSpent = spentByClient.get(salesOrder.client_id) || 0
 
     return {
-      id: quotation.id,
-      quotationNumber: quotation.quotation_number,
+      id: salesOrder.id,
+      quotationId: salesOrder.quotation_id ?? 0,
+      salesOrderId: salesOrder.id,
+      salesOrderNumber: salesOrder.order_number,
+      originalQuotationNumber: quotationNumber,
       clientName: client?.name || "Unknown Client",
       projectLocation: client?.location || "-",
-      quoteAmount: Number(quotation.grand_total || 0),
+      quoteAmount: Number(salesOrder.grand_total ?? 0),
       amountPaid,
       amountSpent,
       profitLoss: amountPaid - amountSpent,
-      status: quotation.status || undefined,
-      dateCreated: quotation.date_created || undefined,
+      status: salesOrder.status ?? undefined,
+      dateCreated: salesOrder.date_created ?? undefined,
     }
   })
 }
 
-export async function completeOngoingProject(quotationId: number): Promise<void> {
-  const { error } = await supabase
-    .from("quotations")
-    .update({ status: COMPLETED_PROJECT_STATUS })
-    .eq("id", quotationId)
+export async function completeOngoingProject(quotationId: number, salesOrderId?: number | null): Promise<void> {
+  if (quotationId > 0) {
+    const { error: quotationError } = await supabase
+      .from("quotations")
+      .update({ status: COMPLETED_PROJECT_STATUS })
+      .eq("id", quotationId)
 
-  if (error) throw error
+    if (quotationError) throw quotationError
+  }
+
+  if (salesOrderId) {
+    const { error: salesOrderError } = await supabase
+      .from("sales_orders")
+      .update({ status: COMPLETED_PROJECT_STATUS })
+      .eq("id", salesOrderId)
+
+    if (salesOrderError) throw salesOrderError
+  }
 }
