@@ -3072,6 +3072,114 @@ input:checked + .toggle-slider:before {
     border-radius: 2px;
 }
 
+.stock-summary-card-mobile {
+    display: none;
+}
+
+.stock-summary-card-desktop {
+    display: block;
+}
+
+@media (max-width: 767px) {
+    #stockSection .stock-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-left: 0;
+        margin-right: 0;
+        margin-bottom: 1rem !important;
+    }
+
+    #stockSection .stock-summary-col {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        margin-bottom: 0 !important;
+        flex: none;
+    }
+
+    #stockSection .stock-summary-card {
+        border-radius: 12px;
+        min-height: 100%;
+    }
+
+    #stockSection .stock-summary-card:hover,
+    #stockSection .stock-summary-card.active {
+        transform: none;
+    }
+
+    #stockSection .stock-summary-card.active::after {
+        display: none;
+    }
+
+    #stockSection .stock-summary-card-mobile {
+        display: block;
+        padding: 0.75rem;
+    }
+
+    #stockSection .stock-summary-card-desktop {
+        display: none;
+    }
+
+    #stockSection .stock-summary-card-mobile-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.25rem;
+    }
+
+    #stockSection .stock-summary-card-mobile-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: auto;
+        height: auto;
+        background: transparent;
+        border-radius: 0;
+        flex-shrink: 0;
+    }
+
+    #stockSection .stock-summary-card-mobile-icon i {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    #stockSection .stock-summary-card-mobile-label {
+        font-size: 0.625rem;
+        line-height: 1.1;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #stockSection .stock-summary-card-mobile-body {
+        margin-top: 0.5rem;
+    }
+
+    #stockSection .stock-summary-card-mobile-value {
+        font-size: 1.5rem;
+        line-height: 1.1;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+    }
+
+    #stockSection .stock-summary-card-mobile-caption {
+        margin: 0.125rem 0 0;
+        font-size: 0.625rem;
+        line-height: 1.1;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.78);
+    }
+
+    #stockSection .stock-summary-card.active {
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+    }
+}
+
 /* Account Summary Cards Styles */
 .account-summary-card {
     border-radius: 20px;

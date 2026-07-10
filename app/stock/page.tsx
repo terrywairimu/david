@@ -576,15 +576,27 @@ const StockPage = () => {
           />
 
           {/* Stock Summary Cards */}
-          <div className="row mb-4">
-            <div className="col-md-3 mb-3">
+          <div className="stock-summary-grid row mb-4">
+            <div className="col-md-3 mb-3 stock-summary-col">
               <div
                 className={`stock-summary-card total-items ${
                   activeFilter === "all" ? "active" : ""
                 }`}
                 onClick={() => setActiveFilter("all")}
               >
-                <div className="card-body">
+                <div className="stock-summary-card-mobile">
+                  <div className="stock-summary-card-mobile-top">
+                    <div className="stock-summary-card-mobile-icon">
+                      <i className="fas fa-boxes" aria-hidden="true"></i>
+                    </div>
+                    <span className="stock-summary-card-mobile-label">Total</span>
+                  </div>
+                  <div className="stock-summary-card-mobile-body">
+                    <div className="stock-summary-card-mobile-value">{stockCounts.totalItems}</div>
+                    <p className="stock-summary-card-mobile-caption">Items</p>
+                  </div>
+                </div>
+                <div className="stock-summary-card-desktop card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white mb-1">Total Items</h6>
@@ -598,14 +610,26 @@ const StockPage = () => {
               </div>
             </div>
 
-            <div className="col-md-3 mb-3">
+            <div className="col-md-3 mb-3 stock-summary-col">
               <div
                 className={`stock-summary-card in-stock ${
                   activeFilter === "inStock" ? "active" : ""
                 }`}
                 onClick={() => setActiveFilter("inStock")}
               >
-                <div className="card-body">
+                <div className="stock-summary-card-mobile">
+                  <div className="stock-summary-card-mobile-top">
+                    <div className="stock-summary-card-mobile-icon">
+                      <i className="fas fa-check-circle" aria-hidden="true"></i>
+                    </div>
+                    <span className="stock-summary-card-mobile-label">In</span>
+                  </div>
+                  <div className="stock-summary-card-mobile-body">
+                    <div className="stock-summary-card-mobile-value">{stockCounts.inStock}</div>
+                    <p className="stock-summary-card-mobile-caption">Stock</p>
+                  </div>
+                </div>
+                <div className="stock-summary-card-desktop card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white mb-1">In Stock</h6>
@@ -619,14 +643,26 @@ const StockPage = () => {
               </div>
             </div>
 
-            <div className="col-md-3 mb-3">
+            <div className="col-md-3 mb-3 stock-summary-col">
               <div
                 className={`stock-summary-card low-stock ${
                   activeFilter === "lowStock" ? "active" : ""
                 }`}
                 onClick={() => setActiveFilter("lowStock")}
               >
-                <div className="card-body">
+                <div className="stock-summary-card-mobile">
+                  <div className="stock-summary-card-mobile-top">
+                    <div className="stock-summary-card-mobile-icon">
+                      <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                    </div>
+                    <span className="stock-summary-card-mobile-label">Low</span>
+                  </div>
+                  <div className="stock-summary-card-mobile-body">
+                    <div className="stock-summary-card-mobile-value">{stockCounts.lowStock}</div>
+                    <p className="stock-summary-card-mobile-caption">Stock</p>
+                  </div>
+                </div>
+                <div className="stock-summary-card-desktop card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white mb-1">Low Stock</h6>
@@ -640,14 +676,26 @@ const StockPage = () => {
               </div>
             </div>
 
-            <div className="col-md-3 mb-3">
+            <div className="col-md-3 mb-3 stock-summary-col">
               <div
                 className={`stock-summary-card out-of-stock ${
                   activeFilter === "outOfStock" ? "active" : ""
                 }`}
                 onClick={() => setActiveFilter("outOfStock")}
               >
-                <div className="card-body">
+                <div className="stock-summary-card-mobile">
+                  <div className="stock-summary-card-mobile-top">
+                    <div className="stock-summary-card-mobile-icon">
+                      <i className="fas fa-times-circle" aria-hidden="true"></i>
+                    </div>
+                    <span className="stock-summary-card-mobile-label">Out</span>
+                  </div>
+                  <div className="stock-summary-card-mobile-body">
+                    <div className="stock-summary-card-mobile-value">{stockCounts.outOfStock}</div>
+                    <p className="stock-summary-card-mobile-caption">Stock</p>
+                  </div>
+                </div>
+                <div className="stock-summary-card-desktop card-body">
                   <div className="d-flex justify-content-between align-items-center">
                     <div>
                       <h6 className="text-white mb-1">Out of Stock</h6>
