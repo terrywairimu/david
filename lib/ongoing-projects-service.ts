@@ -21,6 +21,7 @@ export interface OngoingProject {
 }
 
 type PaymentRow = {
+  id?: number
   amount: number | null
   quotation_number: string | null
   paid_to: string | null
@@ -149,65 +150,31 @@ function getInvoiceNumbersForProject(
   return Array.from(numbers)
 }
 
-export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
-  const [salesOrdersRes, invoicesRes, paymentsRes, expensesRes, purchasesRes] =
-    await Promise.all([
-      supabase
-        .from("sales_orders")
-        .select(`
-          id,
-          order_number,
-          quotation_id,
-          original_quotation_number,
-          client_id,
-          grand_total,
-          status,
-          date_created,
-          client:registered_entities(name, location)
-        `)
-        .neq("status", COMPLETED_PROJECT_STATUS)
-        .neq("status", "cancelled")
-        .neq("status", "converted_to_cash_sale")
-        .order("date_created", { ascending: false }),
-      supabase
-        .from("invoices")
-        .select("invoice_number, sales_order_id, original_quotation_number"),
-      supabase
-        .from("payments")
-        .select("amount, quotation_number, paid_to, status"),
-      supabase
-        .from("expenses")
-        .select("amount, client_id, expense_type, status")
-        .eq("expense_type", "client"),
-      supabase
-        .from("purchases")
-        .select("total_amount, client_id, status")
-        .not("client_id", "is", null),
-    ])
+export const MOBILE_BATCH_SIZE = 15
+export const DESKTOP_PAGE_SIZE = 6
+/** Prefetch the next batch once the viewer reaches this 1-based card index within the loaded set. */
+export const MOBILE_PREFETCH_CARD_INDEX = 12
 
-  if (salesOrdersRes.error) throw salesOrdersRes.error
-  if (invoicesRes.error) throw invoicesRes.error
-  if (paymentsRes.error) throw paymentsRes.error
-  if (expensesRes.error) throw expensesRes.error
-  if (purchasesRes.error) throw purchasesRes.error
+export interface OngoingProjectsPageResult {
+  projects: OngoingProject[]
+  totalCount: number
+  hasMore: boolean
+}
 
-  const payments = (paymentsRes.data || []) as PaymentRow[]
-  const expenses = (expensesRes.data || []) as ExpenseRow[]
-  const purchases = (purchasesRes.data || []) as PurchaseRow[]
-  const salesOrders = (salesOrdersRes.data || []) as (SalesOrderRow & {
-    client: { name: string; location: string | null } | { name: string; location: string | null }[] | null
-  })[]
-  const invoices = (invoicesRes.data || []) as InvoiceRow[]
-  const spentByClient = buildSpentByClient(expenses, purchases)
+type SalesOrderWithClient = SalesOrderRow & {
+  client: { name: string; location: string | null } | { name: string; location: string | null }[] | null
+}
 
+function mapSalesOrdersToProjects(
+  salesOrders: SalesOrderWithClient[],
+  invoices: InvoiceRow[],
+  payments: PaymentRow[],
+  spentByClient: Map<number, number>
+): OngoingProject[] {
   return salesOrders.map((salesOrder) => {
     const client = Array.isArray(salesOrder.client) ? salesOrder.client[0] : salesOrder.client
     const quotationNumber = salesOrder.original_quotation_number || ""
-    const invoiceNumbers = getInvoiceNumbersForProject(
-      quotationNumber,
-      salesOrder,
-      invoices
-    )
+    const invoiceNumbers = getInvoiceNumbersForProject(quotationNumber, salesOrder, invoices)
     const references = buildProjectReferences(
       quotationNumber,
       salesOrder.order_number,
@@ -232,6 +199,181 @@ export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
       dateCreated: salesOrder.date_created ?? undefined,
     }
   })
+}
+
+async function fetchPaymentsForReferences(references: string[]): Promise<PaymentRow[]> {
+  if (references.length === 0) return []
+
+  const [byPaidToRes, byQuotationRes] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("id, amount, quotation_number, paid_to, status")
+      .eq("status", "completed")
+      .in("paid_to", references),
+    supabase
+      .from("payments")
+      .select("id, amount, quotation_number, paid_to, status")
+      .eq("status", "completed")
+      .in("quotation_number", references),
+  ])
+
+  if (byPaidToRes.error) throw byPaidToRes.error
+  if (byQuotationRes.error) throw byQuotationRes.error
+
+  const merged = new Map<string, PaymentRow>()
+  for (const payment of [...(byPaidToRes.data || []), ...(byQuotationRes.data || [])] as PaymentRow[]) {
+    const key =
+      payment.id != null
+        ? `id:${payment.id}`
+        : `${payment.paid_to}|${payment.quotation_number}|${payment.amount}`
+    if (!merged.has(key)) merged.set(key, payment)
+  }
+
+  return Array.from(merged.values())
+}
+
+async function fetchSpentByClientIds(clientIds: number[]): Promise<Map<number, number>> {
+  if (clientIds.length === 0) return new Map()
+
+  const [expensesRes, purchasesRes] = await Promise.all([
+    supabase
+      .from("expenses")
+      .select("amount, client_id, expense_type, status")
+      .eq("expense_type", "client")
+      .in("client_id", clientIds),
+    supabase
+      .from("purchases")
+      .select("total_amount, client_id, status")
+      .in("client_id", clientIds),
+  ])
+
+  if (expensesRes.error) throw expensesRes.error
+  if (purchasesRes.error) throw purchasesRes.error
+
+  return buildSpentByClient(
+    (expensesRes.data || []) as ExpenseRow[],
+    (purchasesRes.data || []) as PurchaseRow[]
+  )
+}
+
+function collectProjectReferences(
+  salesOrders: SalesOrderRow[],
+  invoices: InvoiceRow[]
+): string[] {
+  const references = new Set<string>()
+
+  for (const salesOrder of salesOrders) {
+    const quotationNumber = salesOrder.original_quotation_number || ""
+    const invoiceNumbers = getInvoiceNumbersForProject(quotationNumber, salesOrder, invoices)
+    buildProjectReferences(quotationNumber, salesOrder.order_number, invoiceNumbers).forEach((ref) => {
+      references.add(ref)
+    })
+  }
+
+  return Array.from(references)
+}
+
+export async function fetchOngoingProjectsPage(
+  offset = 0,
+  limit = MOBILE_BATCH_SIZE
+): Promise<OngoingProjectsPageResult> {
+  const from = offset
+  const to = offset + limit - 1
+
+  const salesOrdersRes = await supabase
+    .from("sales_orders")
+    .select(
+      `
+          id,
+          order_number,
+          quotation_id,
+          original_quotation_number,
+          client_id,
+          grand_total,
+          status,
+          date_created,
+          client:registered_entities(name, location)
+        `,
+      { count: "exact" }
+    )
+    .neq("status", COMPLETED_PROJECT_STATUS)
+    .neq("status", "cancelled")
+    .neq("status", "converted_to_cash_sale")
+    .order("date_created", { ascending: false })
+    .range(from, to)
+
+  if (salesOrdersRes.error) throw salesOrdersRes.error
+
+  const salesOrders = (salesOrdersRes.data || []) as SalesOrderWithClient[]
+  const totalCount = salesOrdersRes.count ?? salesOrders.length
+
+  if (salesOrders.length === 0) {
+    return { projects: [], totalCount, hasMore: false }
+  }
+
+  const salesOrderIds = salesOrders.map((salesOrder) => salesOrder.id)
+  const quotationNumbers = salesOrders
+    .map((salesOrder) => salesOrder.original_quotation_number)
+    .filter((value): value is string => !!value)
+  const clientIds = [...new Set(salesOrders.map((salesOrder) => salesOrder.client_id))]
+
+  const [invoicesRes, spentByClient] = await Promise.all([
+    Promise.all([
+      supabase
+        .from("invoices")
+        .select("invoice_number, sales_order_id, original_quotation_number")
+        .in("sales_order_id", salesOrderIds),
+      quotationNumbers.length > 0
+        ? supabase
+            .from("invoices")
+            .select("invoice_number, sales_order_id, original_quotation_number")
+            .in("original_quotation_number", quotationNumbers)
+        : Promise.resolve({ data: [], error: null }),
+    ]).then(([bySalesOrderRes, byQuotationRes]) => {
+      if (bySalesOrderRes.error) throw bySalesOrderRes.error
+      if (byQuotationRes.error) throw byQuotationRes.error
+
+      const merged = new Map<string, InvoiceRow>()
+      for (const invoice of [...(bySalesOrderRes.data || []), ...(byQuotationRes.data || [])] as InvoiceRow[]) {
+        merged.set(invoice.invoice_number, invoice)
+      }
+
+      return { data: Array.from(merged.values()), error: null }
+    }),
+    fetchSpentByClientIds(clientIds),
+  ])
+
+  if (invoicesRes.error) throw invoicesRes.error
+
+  const invoices = (invoicesRes.data || []) as InvoiceRow[]
+  const references = collectProjectReferences(salesOrders, invoices)
+  const batchPayments = await fetchPaymentsForReferences(references)
+
+  const projects = mapSalesOrdersToProjects(salesOrders, invoices, batchPayments, spentByClient)
+
+  return {
+    projects,
+    totalCount,
+    hasMore: offset + projects.length < totalCount,
+  }
+}
+
+/** @deprecated Prefer fetchOngoingProjectsPage for paginated loading. */
+export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
+  const firstPage = await fetchOngoingProjectsPage(0, 1000)
+  if (!firstPage.hasMore) return firstPage.projects
+
+  let projects = [...firstPage.projects]
+  let offset = projects.length
+
+  while (offset < firstPage.totalCount) {
+    const nextPage = await fetchOngoingProjectsPage(offset, MOBILE_BATCH_SIZE)
+    projects = projects.concat(nextPage.projects)
+    offset += nextPage.projects.length
+    if (!nextPage.hasMore || nextPage.projects.length === 0) break
+  }
+
+  return projects
 }
 
 export async function completeOngoingProject(quotationId: number, salesOrderId?: number | null): Promise<void> {
