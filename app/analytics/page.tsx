@@ -989,7 +989,6 @@ export default function AnalyticsPage() {
 
           <div className="analytics-header-stats grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mt-6 md:mt-8">
             {headerStatsConfig.map((statDef, i) => {
-              const hideOnMobile = section === 'profitability' && statDef.valueKey === 'net_profit'
               const raw = comprehensiveSummary[statDef.valueKey as keyof typeof comprehensiveSummary] ?? 0
               const num = Number(raw)
               const value = statDef.format === 'currency'
@@ -999,13 +998,11 @@ export default function AnalyticsPage() {
                   : num.toLocaleString()
               const icons = [DollarSign, BarChart3, Users, Package, Target]
               const Icon = icons[i % icons.length]
-              const isMiddleStatMobile = headerStatsConfig.length === 5 && i === 2 && section !== 'profitability'
+              const isMiddleStatMobile = headerStatsConfig.length === 5 && i === 2
               return (
                 <div
                   key={i}
                   className={`analytics-header-stat bg-white/10 p-3 md:p-4 rounded-xl backdrop-blur-md min-w-0 ${
-                    hideOnMobile ? 'hidden md:block' : ''
-                  } ${
                     isMiddleStatMobile ? 'col-span-2 md:col-span-1' : 'col-span-1'
                   }`}
                 >
