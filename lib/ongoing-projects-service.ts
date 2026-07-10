@@ -1,4 +1,5 @@
 import { supabase } from "./supabase-client"
+import { formatNumber } from "./format-number"
 
 export const COMPLETED_PROJECT_STATUS = "completed"
 
@@ -170,26 +171,43 @@ function sumSpentForProject(
 }
 
 export function projectMatchesSearch(project: OngoingProject, rawQuery: string): boolean {
-  const query = rawQuery.trim().toLowerCase()
-  if (!query) return true
+  const term = rawQuery.trim().toLowerCase()
+  if (!term) return true
 
-  const searchable = [
-    project.salesOrderNumber,
-    project.originalQuotationNumber,
-    project.clientName,
-    project.projectLocation,
-    project.status,
-    project.salesOrderAmount,
-    project.amountPaid,
-    project.balance,
-    project.amountSpent,
-    project.profitLoss,
-    Math.abs(project.profitLoss),
-  ]
-    .filter((value) => value != null && value !== "")
-    .map((value) => String(value).toLowerCase())
+  const dateStr = project.dateCreated
+    ? new Date(project.dateCreated).toLocaleDateString().toLowerCase()
+    : ""
+  const statusStr = (project.status || "").replace(/_/g, " ").toLowerCase()
+  const profitLabel = project.profitLoss >= 0 ? "profit" : "loss"
 
-  return searchable.some((value) => value.includes(query))
+  return (
+    project.salesOrderNumber.toLowerCase().includes(term) ||
+    project.originalQuotationNumber.toLowerCase().includes(term) ||
+    project.clientName.toLowerCase().includes(term) ||
+    project.projectLocation.toLowerCase().includes(term) ||
+    statusStr.includes(term) ||
+    dateStr.includes(term) ||
+    profitLabel.includes(term) ||
+    String(project.salesOrderAmount).toLowerCase().includes(term) ||
+    String(project.amountPaid).toLowerCase().includes(term) ||
+    String(project.balance).toLowerCase().includes(term) ||
+    String(project.amountSpent).toLowerCase().includes(term) ||
+    String(project.profitLoss).toLowerCase().includes(term) ||
+    String(Math.abs(project.profitLoss)).toLowerCase().includes(term) ||
+    formatNumber(project.salesOrderAmount).toLowerCase().includes(term) ||
+    formatNumber(project.amountPaid).toLowerCase().includes(term) ||
+    formatNumber(project.balance).toLowerCase().includes(term) ||
+    formatNumber(project.amountSpent).toLowerCase().includes(term) ||
+    formatNumber(Math.abs(project.profitLoss)).toLowerCase().includes(term)
+  )
+}
+
+export function filterOngoingProjects(
+  projects: OngoingProject[],
+  searchTerm: string
+): OngoingProject[] {
+  if (!searchTerm.trim()) return projects
+  return projects.filter((project) => projectMatchesSearch(project, searchTerm))
 }
 
 function getInvoicesForProject(
@@ -424,14 +442,12 @@ function collectProjectReferences(
 
 export async function fetchOngoingProjectsPage(
   offset = 0,
-  limit = MOBILE_BATCH_SIZE,
-  searchQuery = ""
+  limit = MOBILE_BATCH_SIZE
 ): Promise<OngoingProjectsPageResult> {
   const from = offset
   const to = offset + limit - 1
-  const trimmedSearch = searchQuery.trim()
 
-  let salesOrdersQuery = supabase
+  const salesOrdersRes = await supabase
     .from("sales_orders")
     .select(
       `
@@ -450,43 +466,16 @@ export async function fetchOngoingProjectsPage(
     .neq("status", COMPLETED_PROJECT_STATUS)
     .neq("status", "cancelled")
     .neq("status", "converted_to_cash_sale")
-
-  if (trimmedSearch) {
-    const like = `%${trimmedSearch}%`
-    salesOrdersQuery = salesOrdersQuery.or(
-      `order_number.ilike.${like},original_quotation_number.ilike.${like}`
-    )
-  }
-
-  const salesOrdersRes = await salesOrdersQuery
     .order("date_created", { ascending: false })
     .range(from, to)
 
   if (salesOrdersRes.error) throw salesOrdersRes.error
 
-  let salesOrders = (salesOrdersRes.data || []) as SalesOrderWithClient[]
+  const salesOrders = (salesOrdersRes.data || []) as SalesOrderWithClient[]
   const totalCount = salesOrdersRes.count ?? salesOrders.length
 
-  if (trimmedSearch) {
-    salesOrders = salesOrders.filter((salesOrder) => {
-      const client = Array.isArray(salesOrder.client) ? salesOrder.client[0] : salesOrder.client
-      const probe = [
-        salesOrder.order_number,
-        salesOrder.original_quotation_number,
-        client?.name,
-        client?.location,
-        salesOrder.grand_total,
-        salesOrder.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-      return probe.includes(trimmedSearch.toLowerCase())
-    })
-  }
-
   if (salesOrders.length === 0) {
-    return { projects: [], totalCount: trimmedSearch ? 0 : totalCount, hasMore: false }
+    return { projects: [], totalCount, hasMore: false }
   }
 
   const salesOrderIds = salesOrders.map((salesOrder) => salesOrder.id)
@@ -521,7 +510,7 @@ export async function fetchOngoingProjectsPage(
     fetchBatchSpendingData(references, quotationNumbers),
   ])
 
-  let projects = mapSalesOrdersToProjects(
+  const projects = mapSalesOrdersToProjects(
     salesOrders,
     invoices,
     batchPayments,
@@ -531,14 +520,10 @@ export async function fetchOngoingProjectsPage(
     spendingData.employeePayments
   )
 
-  if (trimmedSearch) {
-    projects = projects.filter((project) => projectMatchesSearch(project, trimmedSearch))
-  }
-
   return {
     projects,
-    totalCount: trimmedSearch ? projects.length : totalCount,
-    hasMore: !trimmedSearch && offset + salesOrders.length < totalCount,
+    totalCount,
+    hasMore: offset + projects.length < totalCount,
   }
 }
 

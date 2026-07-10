@@ -12,6 +12,7 @@ import {
   DESKTOP_BATCH_SIZE,
   DESKTOP_PREFETCH_CARD_INDEX,
   fetchOngoingProjectsPage,
+  filterOngoingProjects,
   MOBILE_BATCH_SIZE,
   MOBILE_PREFETCH_CARD_INDEX,
   type OngoingProject,
@@ -31,31 +32,32 @@ export default function OngoingProjectsPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [completingId, setCompletingId] = useState<number | null>(null)
-  const [searchInput, setSearchInput] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = useRef(false)
   const projectsRef = useRef<OngoingProject[]>([])
+  const hasMoreRef = useRef(false)
 
   const batchSize = isMobile ? MOBILE_BATCH_SIZE : DESKTOP_BATCH_SIZE
   const prefetchCardIndex = isMobile ? MOBILE_PREFETCH_CARD_INDEX : DESKTOP_PREFETCH_CARD_INDEX
+
+  const filteredProjects = useMemo(
+    () => filterOngoingProjects(projects, searchTerm),
+    [projects, searchTerm]
+  )
 
   useEffect(() => {
     projectsRef.current = projects
   }, [projects])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim())
-    }, 300)
-    return () => window.clearTimeout(timer)
-  }, [searchInput])
+    hasMoreRef.current = hasMore
+  }, [hasMore])
 
   const loadProjects = useCallback(
-    async (options?: { reset?: boolean; silent?: boolean; query?: string }) => {
+    async (options?: { reset?: boolean; silent?: boolean }) => {
       const reset = options?.reset ?? false
       const silent = options?.silent ?? false
-      const query = options?.query ?? searchQuery
 
       if (loadingMoreRef.current) return
       loadingMoreRef.current = true
@@ -68,7 +70,7 @@ export default function OngoingProjectsPage() {
         }
 
         const offset = reset ? 0 : projectsRef.current.length
-        const result = await fetchOngoingProjectsPage(offset, batchSize, query)
+        const result = await fetchOngoingProjectsPage(offset, batchSize)
 
         setTotalCount(result.totalCount)
         setHasMore(result.hasMore)
@@ -90,21 +92,30 @@ export default function OngoingProjectsPage() {
         }
       }
     },
-    [batchSize, searchQuery]
+    [batchSize]
   )
 
   const refreshProjects = useCallback(
     async (options?: { silent?: boolean }) => {
-      await loadProjects({ reset: true, silent: options?.silent, query: searchQuery })
+      await loadProjects({ reset: true, silent: options?.silent })
     },
-    [loadProjects, searchQuery]
+    [loadProjects]
   )
 
   useEffect(() => {
-    void loadProjects({ reset: true, query: searchQuery })
-  }, [loadProjects, searchQuery])
+    void loadProjects({ reset: true })
+  }, [loadProjects])
 
   useEffect(() => {
+    if (!searchTerm.trim() || !hasMore || loading || loadingMore) return
+    if (filteredProjects.length > 0) return
+
+    void loadProjects({ reset: false, silent: true })
+  }, [searchTerm, filteredProjects.length, hasMore, loading, loadingMore, loadProjects])
+
+  useEffect(() => {
+    if (searchTerm.trim()) return
+
     const triggerIndex = getPrefetchTriggerIndex(prefetchCardIndex, projects.length)
     const triggerNode = document.querySelector(`[data-ongoing-project-index="${triggerIndex}"]`)
     const observerTarget = triggerNode ?? loadMoreRef.current
@@ -113,8 +124,8 @@ export default function OngoingProjectsPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries
-        if (entry?.isIntersecting && hasMore && !loadingMoreRef.current) {
-          void loadProjects({ reset: false, query: searchQuery })
+        if (entry?.isIntersecting && hasMoreRef.current && !loadingMoreRef.current) {
+          void loadProjects({ reset: false })
         }
       },
       { root: null, rootMargin: "120px 0px", threshold: 0.1 }
@@ -122,7 +133,7 @@ export default function OngoingProjectsPage() {
 
     observer.observe(observerTarget)
     return () => observer.disconnect()
-  }, [prefetchCardIndex, projects.length, hasMore, loadProjects, searchQuery])
+  }, [prefetchCardIndex, projects.length, hasMore, loadProjects, searchTerm])
 
   useEffect(() => {
     const channel = supabase
@@ -180,13 +191,16 @@ export default function OngoingProjectsPage() {
     }
   }
 
-  const showEmptyState = !loading && projects.length === 0
+  const showEmptyState = !loading && filteredProjects.length === 0
   const emptyMessage = useMemo(() => {
-    if (searchQuery) {
+    if (searchTerm.trim()) {
+      if (hasMore || loadingMore) {
+        return "Searching more projects..."
+      }
       return "No ongoing projects match your search."
     }
     return "No ongoing projects yet. A card appears once a quotation is converted to a sales order."
-  }, [searchQuery])
+  }, [searchTerm, hasMore, loadingMore])
 
   return (
     <div id="ongoingProjectsSection" className="card">
@@ -194,9 +208,9 @@ export default function OngoingProjectsPage() {
         <div className="ongoing-projects-search-wrap">
           <Search size={16} className="ongoing-projects-search-icon" aria-hidden="true" />
           <input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            type="text"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search ongoing projects"
             className="ongoing-projects-search-input"
             aria-label="Search ongoing projects"
@@ -217,8 +231,8 @@ export default function OngoingProjectsPage() {
         ) : (
           <>
             <div className={`ongoing-projects-grid ${isMobile ? "ongoing-projects-grid-mobile" : "ongoing-projects-grid-scroll"}`}>
-              {projects.map((project, index) => (
-                <div key={project.id} data-ongoing-project-index={index}>
+              {filteredProjects.map((project) => (
+                <div key={project.id} data-ongoing-project-index={project.id}>
                   <OngoingProjectCard
                     project={project}
                     onComplete={handleCompleteProject}
@@ -228,17 +242,20 @@ export default function OngoingProjectsPage() {
               ))}
             </div>
 
-            <div ref={loadMoreRef} className="ongoing-projects-scroll-sentinel" aria-hidden="true" />
+            {!searchTerm.trim() ? (
+              <div ref={loadMoreRef} className="ongoing-projects-scroll-sentinel" aria-hidden="true" />
+            ) : null}
             {loadingMore ? (
               <div className="ongoing-projects-loading-more">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span>Loading more projects...</span>
+                <span>{searchTerm.trim() ? "Searching more projects..." : "Loading more projects..."}</span>
               </div>
             ) : null}
-            {!hasMore && projects.length > 0 ? (
-              <p className="ongoing-projects-end-message mb-0">
-                {searchQuery ? "End of search results." : "You've reached the oldest project."}
-              </p>
+            {!searchTerm.trim() && !hasMore && projects.length > 0 ? (
+              <p className="ongoing-projects-end-message mb-0">You&apos;ve reached the oldest project.</p>
+            ) : null}
+            {searchTerm.trim() && !hasMore && filteredProjects.length > 0 ? (
+              <p className="ongoing-projects-end-message mb-0">End of search results.</p>
             ) : null}
           </>
         )}
