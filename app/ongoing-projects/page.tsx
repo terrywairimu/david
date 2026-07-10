@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { FolderKanban, Loader2 } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { FolderKanban, Loader2, Search } from "lucide-react"
 import { toast } from "sonner"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -31,6 +31,8 @@ export default function OngoingProjectsPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [completingId, setCompletingId] = useState<number | null>(null)
+  const [searchInput, setSearchInput] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = useRef(false)
   const projectsRef = useRef<OngoingProject[]>([])
@@ -42,10 +44,18 @@ export default function OngoingProjectsPage() {
     projectsRef.current = projects
   }, [projects])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim())
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
+
   const loadProjects = useCallback(
-    async (options?: { reset?: boolean; silent?: boolean }) => {
+    async (options?: { reset?: boolean; silent?: boolean; query?: string }) => {
       const reset = options?.reset ?? false
       const silent = options?.silent ?? false
+      const query = options?.query ?? searchQuery
 
       if (loadingMoreRef.current) return
       loadingMoreRef.current = true
@@ -58,7 +68,7 @@ export default function OngoingProjectsPage() {
         }
 
         const offset = reset ? 0 : projectsRef.current.length
-        const result = await fetchOngoingProjectsPage(offset, batchSize)
+        const result = await fetchOngoingProjectsPage(offset, batchSize, query)
 
         setTotalCount(result.totalCount)
         setHasMore(result.hasMore)
@@ -80,19 +90,19 @@ export default function OngoingProjectsPage() {
         }
       }
     },
-    [batchSize]
+    [batchSize, searchQuery]
   )
 
   const refreshProjects = useCallback(
     async (options?: { silent?: boolean }) => {
-      await loadProjects({ reset: true, silent: options?.silent })
+      await loadProjects({ reset: true, silent: options?.silent, query: searchQuery })
     },
-    [loadProjects]
+    [loadProjects, searchQuery]
   )
 
   useEffect(() => {
-    void loadProjects({ reset: true })
-  }, [loadProjects])
+    void loadProjects({ reset: true, query: searchQuery })
+  }, [loadProjects, searchQuery])
 
   useEffect(() => {
     const triggerIndex = getPrefetchTriggerIndex(prefetchCardIndex, projects.length)
@@ -104,7 +114,7 @@ export default function OngoingProjectsPage() {
       (entries) => {
         const [entry] = entries
         if (entry?.isIntersecting && hasMore && !loadingMoreRef.current) {
-          void loadProjects({ reset: false })
+          void loadProjects({ reset: false, query: searchQuery })
         }
       },
       { root: null, rootMargin: "120px 0px", threshold: 0.1 }
@@ -112,7 +122,7 @@ export default function OngoingProjectsPage() {
 
     observer.observe(observerTarget)
     return () => observer.disconnect()
-  }, [batchSize, prefetchCardIndex, projects.length, hasMore, loadProjects])
+  }, [prefetchCardIndex, projects.length, hasMore, loadProjects, searchQuery])
 
   useEffect(() => {
     const channel = supabase
@@ -133,6 +143,12 @@ export default function OngoingProjectsPage() {
         void refreshProjects({ silent: true })
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "purchases" }, () => {
+        void refreshProjects({ silent: true })
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "supplier_payments" }, () => {
+        void refreshProjects({ silent: true })
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "employee_payments" }, () => {
         void refreshProjects({ silent: true })
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "registered_entities" }, () => {
@@ -164,11 +180,29 @@ export default function OngoingProjectsPage() {
     }
   }
 
-  const showEmptyState = !loading && totalCount === 0
+  const showEmptyState = !loading && projects.length === 0
+  const emptyMessage = useMemo(() => {
+    if (searchQuery) {
+      return "No ongoing projects match your search."
+    }
+    return "No ongoing projects yet. A card appears once a quotation is converted to a sales order."
+  }, [searchQuery])
 
   return (
     <div id="ongoingProjectsSection" className="card">
-      <SectionHeader title="Ongoing Projects" icon={<FolderKanban size={24} />} />
+      <SectionHeader title="Ongoing Projects" icon={<FolderKanban size={24} />}>
+        <div className="ongoing-projects-search-wrap">
+          <Search size={16} className="ongoing-projects-search-icon" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search ongoing projects"
+            className="ongoing-projects-search-input"
+            aria-label="Search ongoing projects"
+          />
+        </div>
+      </SectionHeader>
       <div className="card-body">
         {loading ? (
           <div className="ongoing-projects-loading">
@@ -178,9 +212,7 @@ export default function OngoingProjectsPage() {
         ) : showEmptyState ? (
           <div className="ongoing-projects-empty">
             <FolderKanban size={40} className="text-muted-foreground mb-3" />
-            <p className="mb-0">
-              No ongoing projects yet. A card appears once a quotation is converted to a sales order.
-            </p>
+            <p className="mb-0">{emptyMessage}</p>
           </div>
         ) : (
           <>
@@ -204,7 +236,9 @@ export default function OngoingProjectsPage() {
               </div>
             ) : null}
             {!hasMore && projects.length > 0 ? (
-              <p className="ongoing-projects-end-message mb-0">You&apos;ve reached the oldest project.</p>
+              <p className="ongoing-projects-end-message mb-0">
+                {searchQuery ? "End of search results." : "You've reached the oldest project."}
+              </p>
             ) : null}
           </>
         )}

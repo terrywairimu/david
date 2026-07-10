@@ -30,15 +30,18 @@ type PaymentRow = {
 }
 
 type ExpenseRow = {
-  amount: number | null
-  client_id: number | null
-  expense_type: string | null
-  status: string | null
+  expense_number: string
+  quotation_number: string | null
 }
 
 type PurchaseRow = {
-  total_amount: number | null
-  client_id: number | null
+  purchase_order_number: string
+  paid_to: string | null
+}
+
+type OutflowPaymentRow = {
+  amount: number | null
+  paid_to: string | null
   status: string | null
 }
 
@@ -117,22 +120,76 @@ export function sumPaymentsForProject(
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
 }
 
-function buildSpentByClient(expenses: ExpenseRow[], purchases: PurchaseRow[]): Map<number, number> {
-  const spentByClient = new Map<number, number>()
+function tokensFromPaidTo(value: string | null | undefined): string[] {
+  if (!value) return []
+  return value
+    .split(/,\s*/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+}
 
-  for (const expense of expenses) {
-    if (!expense.client_id || expense.status === "cancelled") continue
-    const current = spentByClient.get(expense.client_id) || 0
-    spentByClient.set(expense.client_id, current + Number(expense.amount || 0))
-  }
+function outflowPaymentMatchesProject(
+  payment: OutflowPaymentRow,
+  matchTokens: Set<string>
+): boolean {
+  if (payment.status !== "completed") return false
+  const paidToTokens = tokensFromPaidTo(payment.paid_to)
+  return paidToTokens.some((token) => matchTokens.has(token))
+}
 
-  for (const purchase of purchases) {
-    if (!purchase.client_id || purchase.status === "cancelled") continue
-    const current = spentByClient.get(purchase.client_id) || 0
-    spentByClient.set(purchase.client_id, current + Number(purchase.total_amount || 0))
-  }
+function sumSpentForProject(
+  references: Set<string>,
+  purchaseOrders: PurchaseRow[],
+  expenses: ExpenseRow[],
+  supplierPayments: OutflowPaymentRow[],
+  employeePayments: OutflowPaymentRow[]
+): number {
+  const linkedPurchaseOrders = new Set(
+    purchaseOrders
+      .filter((purchase) => purchase.paid_to && references.has(purchase.paid_to))
+      .map((purchase) => purchase.purchase_order_number)
+  )
+  const linkedExpenseNumbers = new Set(
+    expenses
+      .filter((expense) => expense.quotation_number && references.has(expense.quotation_number))
+      .map((expense) => expense.expense_number)
+  )
 
-  return spentByClient
+  const matchTokens = new Set<string>([
+    ...references,
+    ...linkedPurchaseOrders,
+    ...linkedExpenseNumbers,
+  ])
+
+  const sumOutflows = (payments: OutflowPaymentRow[]) =>
+    payments
+      .filter((payment) => outflowPaymentMatchesProject(payment, matchTokens))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+
+  return sumOutflows(supplierPayments) + sumOutflows(employeePayments)
+}
+
+export function projectMatchesSearch(project: OngoingProject, rawQuery: string): boolean {
+  const query = rawQuery.trim().toLowerCase()
+  if (!query) return true
+
+  const searchable = [
+    project.salesOrderNumber,
+    project.originalQuotationNumber,
+    project.clientName,
+    project.projectLocation,
+    project.status,
+    project.salesOrderAmount,
+    project.amountPaid,
+    project.balance,
+    project.amountSpent,
+    project.profitLoss,
+    Math.abs(project.profitLoss),
+  ]
+    .filter((value) => value != null && value !== "")
+    .map((value) => String(value).toLowerCase())
+
+  return searchable.some((value) => value.includes(query))
 }
 
 function getInvoicesForProject(
@@ -195,7 +252,10 @@ function mapSalesOrdersToProjects(
   salesOrders: SalesOrderWithClient[],
   invoices: InvoiceRow[],
   payments: PaymentRow[],
-  spentByClient: Map<number, number>
+  purchaseOrders: PurchaseRow[],
+  expenses: ExpenseRow[],
+  supplierPayments: OutflowPaymentRow[],
+  employeePayments: OutflowPaymentRow[]
 ): OngoingProject[] {
   return salesOrders.map((salesOrder) => {
     const client = Array.isArray(salesOrder.client) ? salesOrder.client[0] : salesOrder.client
@@ -208,7 +268,13 @@ function mapSalesOrdersToProjects(
       invoiceNumbers
     )
     const amountPaid = calculateProjectAmountPaid(payments, references, projectInvoices)
-    const amountSpent = spentByClient.get(salesOrder.client_id) || 0
+    const amountSpent = sumSpentForProject(
+      references,
+      purchaseOrders,
+      expenses,
+      supplierPayments,
+      employeePayments
+    )
     const salesOrderAmount = Number(salesOrder.grand_total ?? 0)
 
     return {
@@ -282,28 +348,53 @@ async function fetchPaymentsForReferences(
   return Array.from(merged.values())
 }
 
-async function fetchSpentByClientIds(clientIds: number[]): Promise<Map<number, number>> {
-  if (clientIds.length === 0) return new Map()
-
-  const [expensesRes, purchasesRes] = await Promise.all([
-    supabase
-      .from("expenses")
-      .select("amount, client_id, expense_type, status")
-      .eq("expense_type", "client")
-      .in("client_id", clientIds),
-    supabase
-      .from("purchases")
-      .select("total_amount, client_id, status")
-      .in("client_id", clientIds),
+async function fetchBatchSpendingData(
+  references: string[],
+  quotationNumbers: string[]
+): Promise<{
+  purchaseOrders: PurchaseRow[]
+  expenses: ExpenseRow[]
+  supplierPayments: OutflowPaymentRow[]
+  employeePayments: OutflowPaymentRow[]
+}> {
+  const [purchasesRes, expensesRes, supplierPaymentsRes, employeePaymentsRes] = await Promise.all([
+    references.length > 0
+      ? supabase
+          .from("purchases")
+          .select("purchase_order_number, paid_to")
+          .in("paid_to", references)
+      : Promise.resolve({ data: [], error: null }),
+    quotationNumbers.length > 0
+      ? supabase
+          .from("expenses")
+          .select("expense_number, quotation_number")
+          .in("quotation_number", quotationNumbers)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from("supplier_payments").select("amount, paid_to, status").eq("status", "completed"),
+    supabase.from("employee_payments").select("amount, paid_to, status").eq("status", "completed"),
   ])
 
-  if (expensesRes.error) throw expensesRes.error
   if (purchasesRes.error) throw purchasesRes.error
+  if (expensesRes.error) throw expensesRes.error
+  if (supplierPaymentsRes.error) throw supplierPaymentsRes.error
+  if (employeePaymentsRes.error) throw employeePaymentsRes.error
 
-  return buildSpentByClient(
-    (expensesRes.data || []) as ExpenseRow[],
-    (purchasesRes.data || []) as PurchaseRow[]
-  )
+  return {
+    purchaseOrders: (purchasesRes.data || []) as PurchaseRow[],
+    expenses: (expensesRes.data || []) as ExpenseRow[],
+    supplierPayments: (supplierPaymentsRes.data || []) as OutflowPaymentRow[],
+    employeePayments: (employeePaymentsRes.data || []) as OutflowPaymentRow[],
+  }
+}
+
+function collectQuotationNumbers(salesOrders: SalesOrderRow[]): string[] {
+  return [
+    ...new Set(
+      salesOrders
+        .map((salesOrder) => salesOrder.original_quotation_number)
+        .filter((value): value is string => !!value)
+    ),
+  ]
 }
 
 function collectProjectReferences(
@@ -333,12 +424,14 @@ function collectProjectReferences(
 
 export async function fetchOngoingProjectsPage(
   offset = 0,
-  limit = MOBILE_BATCH_SIZE
+  limit = MOBILE_BATCH_SIZE,
+  searchQuery = ""
 ): Promise<OngoingProjectsPageResult> {
   const from = offset
   const to = offset + limit - 1
+  const trimmedSearch = searchQuery.trim()
 
-  const salesOrdersRes = await supabase
+  let salesOrdersQuery = supabase
     .from("sales_orders")
     .select(
       `
@@ -357,62 +450,95 @@ export async function fetchOngoingProjectsPage(
     .neq("status", COMPLETED_PROJECT_STATUS)
     .neq("status", "cancelled")
     .neq("status", "converted_to_cash_sale")
+
+  if (trimmedSearch) {
+    const like = `%${trimmedSearch}%`
+    salesOrdersQuery = salesOrdersQuery.or(
+      `order_number.ilike.${like},original_quotation_number.ilike.${like}`
+    )
+  }
+
+  const salesOrdersRes = await salesOrdersQuery
     .order("date_created", { ascending: false })
     .range(from, to)
 
   if (salesOrdersRes.error) throw salesOrdersRes.error
 
-  const salesOrders = (salesOrdersRes.data || []) as SalesOrderWithClient[]
+  let salesOrders = (salesOrdersRes.data || []) as SalesOrderWithClient[]
   const totalCount = salesOrdersRes.count ?? salesOrders.length
 
+  if (trimmedSearch) {
+    salesOrders = salesOrders.filter((salesOrder) => {
+      const client = Array.isArray(salesOrder.client) ? salesOrder.client[0] : salesOrder.client
+      const probe = [
+        salesOrder.order_number,
+        salesOrder.original_quotation_number,
+        client?.name,
+        client?.location,
+        salesOrder.grand_total,
+        salesOrder.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+      return probe.includes(trimmedSearch.toLowerCase())
+    })
+  }
+
   if (salesOrders.length === 0) {
-    return { projects: [], totalCount, hasMore: false }
+    return { projects: [], totalCount: trimmedSearch ? 0 : totalCount, hasMore: false }
   }
 
   const salesOrderIds = salesOrders.map((salesOrder) => salesOrder.id)
-  const quotationNumbers = salesOrders
-    .map((salesOrder) => salesOrder.original_quotation_number)
-    .filter((value): value is string => !!value)
-  const clientIds = [...new Set(salesOrders.map((salesOrder) => salesOrder.client_id))]
+  const quotationNumbers = collectQuotationNumbers(salesOrders)
 
-  const [invoicesRes, spentByClient] = await Promise.all([
-    Promise.all([
-      supabase
-        .from("invoices")
-        .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
-        .in("sales_order_id", salesOrderIds),
-      quotationNumbers.length > 0
-        ? supabase
-            .from("invoices")
-            .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
-            .in("original_quotation_number", quotationNumbers)
-        : Promise.resolve({ data: [], error: null }),
-    ]).then(([bySalesOrderRes, byQuotationRes]) => {
-      if (bySalesOrderRes.error) throw bySalesOrderRes.error
-      if (byQuotationRes.error) throw byQuotationRes.error
+  const invoices = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
+      .in("sales_order_id", salesOrderIds),
+    quotationNumbers.length > 0
+      ? supabase
+          .from("invoices")
+          .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
+          .in("original_quotation_number", quotationNumbers)
+      : Promise.resolve({ data: [], error: null }),
+  ]).then(([bySalesOrderRes, byQuotationRes]) => {
+    if (bySalesOrderRes.error) throw bySalesOrderRes.error
+    if (byQuotationRes.error) throw byQuotationRes.error
 
-      const merged = new Map<string, InvoiceRow>()
-      for (const invoice of [...(bySalesOrderRes.data || []), ...(byQuotationRes.data || [])] as InvoiceRow[]) {
-        merged.set(invoice.invoice_number, invoice)
-      }
+    const merged = new Map<string, InvoiceRow>()
+    for (const invoice of [...(bySalesOrderRes.data || []), ...(byQuotationRes.data || [])] as InvoiceRow[]) {
+      merged.set(invoice.invoice_number, invoice)
+    }
 
-      return { data: Array.from(merged.values()), error: null }
-    }),
-    fetchSpentByClientIds(clientIds),
+    return Array.from(merged.values())
+  })
+
+  const { references, invoiceIds } = collectProjectReferences(salesOrders, invoices)
+  const [batchPayments, spendingData] = await Promise.all([
+    fetchPaymentsForReferences(references, invoiceIds),
+    fetchBatchSpendingData(references, quotationNumbers),
   ])
 
-  if (invoicesRes.error) throw invoicesRes.error
+  let projects = mapSalesOrdersToProjects(
+    salesOrders,
+    invoices,
+    batchPayments,
+    spendingData.purchaseOrders,
+    spendingData.expenses,
+    spendingData.supplierPayments,
+    spendingData.employeePayments
+  )
 
-  const invoices = (invoicesRes.data || []) as InvoiceRow[]
-  const { references, invoiceIds } = collectProjectReferences(salesOrders, invoices)
-  const batchPayments = await fetchPaymentsForReferences(references, invoiceIds)
-
-  const projects = mapSalesOrdersToProjects(salesOrders, invoices, batchPayments, spentByClient)
+  if (trimmedSearch) {
+    projects = projects.filter((project) => projectMatchesSearch(project, trimmedSearch))
+  }
 
   return {
     projects,
-    totalCount,
-    hasMore: offset + projects.length < totalCount,
+    totalCount: trimmedSearch ? projects.length : totalCount,
+    hasMore: !trimmedSearch && offset + salesOrders.length < totalCount,
   }
 }
 

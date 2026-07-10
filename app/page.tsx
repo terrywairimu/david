@@ -11,7 +11,7 @@ const HomePage = () => {
   useEffect(() => {
     if (loading) return
     const first = getFirstAllowedSection()
-    const path = first === "register" ? "/register" : `/${first}`
+    const path = first === "register" ? "/register" : first === "ongoing-projects" ? "/ongoing-projects" : `/${first}`
     router.replace(path)
   }, [router, loading, getFirstAllowedSection])
 

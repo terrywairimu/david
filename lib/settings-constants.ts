@@ -1,8 +1,7 @@
 // App sections (sidebar / page access)
 export const APP_SECTIONS = [
-  { id: "register", label: "Register" },
-  { id: "sales", label: "Sales" },
   { id: "ongoing-projects", label: "Ongoing Projects" },
+  { id: "sales", label: "Sales" },
   { id: "payments", label: "Payments" },
   { id: "expenses", label: "Expenses" },
   { id: "purchases", label: "Purchases" },
@@ -10,6 +9,7 @@ export const APP_SECTIONS = [
   { id: "design", label: "Design" },
   { id: "reports", label: "Reports" },
   { id: "analytics", label: "Analytics" },
+  { id: "register", label: "Register" },
   { id: "settings", label: "Settings" },
 ] as const
 

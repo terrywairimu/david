@@ -45,7 +45,7 @@ function isKnownAdminEmail(email: string | undefined): boolean {
 
 // Section order for "first allowed" redirect (must match PATH_TO_SECTION keys)
 const SECTION_ORDER = [
-  "register", "sales", "ongoing-projects", "payments", "expenses", "purchases", "stock", "design", "reports", "analytics", "settings",
+  "ongoing-projects", "sales", "payments", "expenses", "purchases", "stock", "design", "reports", "analytics", "register", "settings",
 ] as const
 
 interface AuthContextType {
@@ -69,7 +69,7 @@ const AuthContext = createContext<AuthContextType>({
   canAccessSection: () => false,
   canPerformAction: () => false,
   needsAdminApproval: false,
-  getFirstAllowedSection: () => "register",
+  getFirstAllowedSection: () => "ongoing-projects",
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -269,11 +269,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return sections.includes(sectionId)
   }
   const getFirstAllowedSection = () => {
-    if (!profile || needsAdminApproval) return "register"
-    if (canAccessSettings) return "register"
+    if (!profile || needsAdminApproval) return "ongoing-projects"
     const sections = profile.sections ?? []
+    if (canAccessSettings && sections.length === 0) {
+      return "ongoing-projects"
+    }
     const first = SECTION_ORDER.find((s) => sections.includes(s))
-    return first ?? "register"
+    return first ?? "ongoing-projects"
   }
   const canPerformAction = (actionId: string) => {
     if (canAccessSettings) return true
@@ -314,6 +316,6 @@ export function useAuth() {
     canAccessSection: () => false,
     canPerformAction: () => false,
     needsAdminApproval: false,
-    getFirstAllowedSection: () => "register",
+    getFirstAllowedSection: () => "ongoing-projects",
   }
 }

@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context"
 import { UserX, Loader2 } from "lucide-react"
 
 const PATH_TO_SECTION: Record<string, string> = {
-  "/": "register",
+  "/": "ongoing-projects",
   "/register": "register",
   "/sales": "sales",
   "/ongoing-projects": "ongoing-projects",
@@ -89,7 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!showNoAccess) return
     const first = getFirstAllowedSection()
-    const path = first === "register" ? "/register" : `/${first}`
+    const path = first === "register" ? "/register" : first === "ongoing-projects" ? "/ongoing-projects" : `/${first}`
     router.replace(path)
   }, [showNoAccess, router, getFirstAllowedSection])
 

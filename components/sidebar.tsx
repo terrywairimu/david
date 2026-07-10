@@ -55,7 +55,7 @@ function SignOutButton() {
 const Sidebar = () => {
   const { user, profile, canAccessSettings, canAccessSection, needsAdminApproval } = useAuth()
   const canAccess = canAccessSection
-  const [activeSection, setActiveSection] = useState("register")
+  const [activeSection, setActiveSection] = useState("ongoing-projects")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showPurchaseAccordion, setShowPurchaseAccordion] = useState(false)
   const [isHoveringPurchase, setIsHoveringPurchase] = useState(false)
@@ -65,10 +65,10 @@ const Sidebar = () => {
   useEffect(() => {
     // Set active section based on current path
     if (pathname === "/") {
-      setActiveSection("register")
+      setActiveSection("ongoing-projects")
     } else {
       const path = pathname.split("/")[1]
-      setActiveSection(path || "register")
+      setActiveSection(path || "ongoing-projects")
     }
   }, [pathname])
 
@@ -141,13 +141,13 @@ const Sidebar = () => {
           </p>
         ) : null}
         <nav className="nav flex-column">
-          {canAccess("register") && (
+          {canAccess("ongoing-projects") && (
           <SidebarLink
-            href="/register"
-            label="Register"
-            icon="fas fa-user-plus"
-            isActive={activeSection === "register" || pathname === "/"}
-            onClick={() => handleSectionClick("register")}
+            href="/ongoing-projects"
+            label="Ongoing Projects"
+            icon="fas fa-folder-open"
+            isActive={activeSection === "ongoing-projects"}
+            onClick={() => handleSectionClick("ongoing-projects")}
           />
           )}
           {canAccess("sales") && (
@@ -157,15 +157,6 @@ const Sidebar = () => {
             icon="fas fa-cart-shopping"
             isActive={activeSection === "sales"}
             onClick={() => handleSectionClick("sales")}
-          />
-          )}
-          {canAccess("ongoing-projects") && (
-          <SidebarLink
-            href="/ongoing-projects"
-            label="Ongoing Projects"
-            icon="fas fa-folder-open"
-            isActive={activeSection === "ongoing-projects"}
-            onClick={() => handleSectionClick("ongoing-projects")}
           />
           )}
           {canAccess("payments") && (
@@ -233,6 +224,15 @@ const Sidebar = () => {
             icon="fas fa-chart-bar"
             isActive={activeSection === "analytics"}
             onClick={() => handleSectionClick("analytics")}
+          />
+          )}
+          {canAccess("register") && (
+          <SidebarLink
+            href="/register"
+            label="Register"
+            icon="fas fa-user-plus"
+            isActive={activeSection === "register"}
+            onClick={() => handleSectionClick("register")}
           />
           )}
           {canAccessSettings && (
