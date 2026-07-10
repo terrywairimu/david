@@ -952,6 +952,7 @@ export default function AnalyticsPage() {
     { metric: 'Velocity', value: 78, target: performanceSettings.orderFulfillment }
   ]
 
+  const headerStatsConfig = getHeaderStatsConfig(section, subType)
 
   return (
     <>
@@ -969,7 +970,7 @@ export default function AnalyticsPage() {
 
       {/* AI Analytics Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="bg-primary rounded-2xl p-8 text-primary-foreground relative overflow-hidden">
+        <div className="bg-primary rounded-2xl p-4 md:p-8 text-primary-foreground relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-black/20" />
             <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
@@ -986,8 +987,9 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-8">
-            {getHeaderStatsConfig(section, subType).map((statDef, i) => {
+          <div className="analytics-header-stats grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mt-6 md:mt-8">
+            {headerStatsConfig.map((statDef, i) => {
+              const hideOnMobile = section === 'profitability' && statDef.valueKey === 'net_profit'
               const raw = comprehensiveSummary[statDef.valueKey as keyof typeof comprehensiveSummary] ?? 0
               const num = Number(raw)
               const value = statDef.format === 'currency'
@@ -997,10 +999,25 @@ export default function AnalyticsPage() {
                   : num.toLocaleString()
               const icons = [DollarSign, BarChart3, Users, Package, Target]
               const Icon = icons[i % icons.length]
+              const isMiddleStatMobile = headerStatsConfig.length === 5 && i === 2 && section !== 'profitability'
               return (
-                <div key={i} className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
-                  <div className="flex items-center gap-2 opacity-70 text-xs mb-1"><Icon size={14} /> {statDef.label}</div>
-                  <div className="text-xl font-bold">{comprehensiveLoading ? '...' : value}</div>
+                <div
+                  key={i}
+                  className={`analytics-header-stat bg-white/10 p-3 md:p-4 rounded-xl backdrop-blur-md min-w-0 ${
+                    hideOnMobile ? 'hidden md:block' : ''
+                  } ${
+                    isMiddleStatMobile ? 'col-span-2 md:col-span-1' : 'col-span-1'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 opacity-70 text-[10px] md:text-xs mb-1 min-w-0">
+                    <span className="flex items-center gap-1 min-w-0 truncate">
+                      <Icon size={14} className="shrink-0" />
+                      <span className="truncate">{statDef.label}</span>
+                    </span>
+                  </div>
+                  <div className="text-lg md:text-xl font-bold truncate">
+                    {comprehensiveLoading ? '...' : value}
+                  </div>
                 </div>
               )
             })}
