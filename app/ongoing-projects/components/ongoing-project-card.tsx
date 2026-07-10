@@ -6,7 +6,7 @@ import type { OngoingProject } from "@/lib/ongoing-projects-service"
 
 interface OngoingProjectCardProps {
   project: OngoingProject
-  onComplete: (quotationId: number, salesOrderId?: number | null) => void
+  onComplete: (salesOrderId: number) => void
   isCompleting?: boolean
 }
 
@@ -53,8 +53,8 @@ export default function OngoingProjectCard({ project, onComplete, isCompleting =
         <button
           type="button"
           className="ongoing-project-complete-btn"
-          onClick={() => onComplete(project.quotationId, project.salesOrderId)}
-          disabled={isCompleting}
+          onClick={() => project.salesOrderId && onComplete(project.salesOrderId)}
+          disabled={isCompleting || !project.salesOrderId}
         >
           {isCompleting ? (
             <>

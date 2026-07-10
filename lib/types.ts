@@ -690,6 +690,22 @@ export interface SystemNotification {
   action_text?: string
 }
 
+export interface BadDebt {
+  id: number
+  client_id: number
+  quotation_id?: number | null
+  sales_order_id: number
+  original_quotation_number?: string | null
+  sales_order_number: string
+  sales_order_amount: number
+  amount_paid: number
+  bad_debt_amount: number
+  status: string
+  notes?: string | null
+  date_recorded: string
+  date_created: string
+}
+
 // Audit and Logging Types
 export interface AuditLog {
   id: number

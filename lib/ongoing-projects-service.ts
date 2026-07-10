@@ -434,22 +434,92 @@ export async function fetchOngoingProjects(): Promise<OngoingProject[]> {
   return projects
 }
 
-export async function completeOngoingProject(quotationId: number, salesOrderId?: number | null): Promise<void> {
-  if (quotationId > 0) {
+export async function completeOngoingProject(salesOrderId: number): Promise<{ badDebtRecorded: boolean; badDebtAmount: number }> {
+  const { data: salesOrder, error: salesOrderFetchError } = await supabase
+    .from("sales_orders")
+    .select("id, order_number, quotation_id, original_quotation_number, client_id, grand_total, status")
+    .eq("id", salesOrderId)
+    .single()
+
+  if (salesOrderFetchError) throw salesOrderFetchError
+  if (!salesOrder) throw new Error("Sales order not found")
+
+  const quotationNumber = salesOrder.original_quotation_number || ""
+  const salesOrderAmount = Number(salesOrder.grand_total ?? 0)
+
+  const invoicesRes = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
+      .eq("sales_order_id", salesOrderId),
+    quotationNumber
+      ? supabase
+          .from("invoices")
+          .select("id, invoice_number, sales_order_id, original_quotation_number, paid_amount")
+          .eq("original_quotation_number", quotationNumber)
+      : Promise.resolve({ data: [], error: null }),
+  ]).then(([bySalesOrderRes, byQuotationRes]) => {
+    if (bySalesOrderRes.error) throw bySalesOrderRes.error
+    if (byQuotationRes.error) throw byQuotationRes.error
+
+    const merged = new Map<string, InvoiceRow>()
+    for (const invoice of [...(bySalesOrderRes.data || []), ...(byQuotationRes.data || [])] as InvoiceRow[]) {
+      merged.set(invoice.invoice_number, invoice)
+    }
+
+    return Array.from(merged.values())
+  })
+
+  const projectInvoices = getInvoicesForProject(quotationNumber, salesOrder as SalesOrderRow, invoicesRes)
+  const invoiceNumbers = projectInvoices.map((invoice) => invoice.invoice_number)
+  const references = buildProjectReferences(quotationNumber, salesOrder.order_number, invoiceNumbers)
+  const invoiceIds = projectInvoices
+    .map((invoice) => invoice.id)
+    .filter((id): id is number => id != null)
+
+  const batchPayments = await fetchPaymentsForReferences(Array.from(references), invoiceIds)
+  const amountPaid = calculateProjectAmountPaid(batchPayments, references, projectInvoices)
+  const balance = Math.max(0, salesOrderAmount - amountPaid)
+
+  let badDebtRecorded = false
+
+  if (balance > 0) {
+    const { error: badDebtError } = await supabase.from("bad_debts").upsert(
+      {
+        client_id: salesOrder.client_id,
+        quotation_id: salesOrder.quotation_id,
+        sales_order_id: salesOrder.id,
+        original_quotation_number: quotationNumber || null,
+        sales_order_number: salesOrder.order_number,
+        sales_order_amount: salesOrderAmount,
+        amount_paid: amountPaid,
+        bad_debt_amount: balance,
+        status: "outstanding",
+        notes: `Recorded when project ${salesOrder.order_number} was marked complete.`,
+        date_recorded: new Date().toISOString(),
+      },
+      { onConflict: "sales_order_id" }
+    )
+
+    if (badDebtError) throw badDebtError
+    badDebtRecorded = true
+  }
+
+  if (salesOrder.quotation_id) {
     const { error: quotationError } = await supabase
       .from("quotations")
       .update({ status: COMPLETED_PROJECT_STATUS })
-      .eq("id", quotationId)
+      .eq("id", salesOrder.quotation_id)
 
     if (quotationError) throw quotationError
   }
 
-  if (salesOrderId) {
-    const { error: salesOrderError } = await supabase
-      .from("sales_orders")
-      .update({ status: COMPLETED_PROJECT_STATUS })
-      .eq("id", salesOrderId)
+  const { error: salesOrderError } = await supabase
+    .from("sales_orders")
+    .update({ status: COMPLETED_PROJECT_STATUS })
+    .eq("id", salesOrderId)
 
-    if (salesOrderError) throw salesOrderError
-  }
+  if (salesOrderError) throw salesOrderError
+
+  return { badDebtRecorded, badDebtAmount: balance }
 }

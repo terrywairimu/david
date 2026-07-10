@@ -5,6 +5,7 @@ import { FolderKanban, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { SectionHeader } from "@/components/ui/section-header"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { formatNumber } from "@/lib/format-number"
 import { supabase } from "@/lib/supabase-client"
 import {
   completeOngoingProject,
@@ -144,12 +145,17 @@ export default function OngoingProjectsPage() {
     }
   }, [refreshProjects])
 
-  const handleCompleteProject = async (quotationId: number, salesOrderId?: number | null) => {
+  const handleCompleteProject = async (salesOrderId: number) => {
     try {
-      setCompletingId(salesOrderId ?? quotationId)
-      await completeOngoingProject(quotationId, salesOrderId)
-      toast.success("Project marked as complete")
-      await refreshProjects({ silent: true })
+      setCompletingId(salesOrderId)
+      const result = await completeOngoingProject(salesOrderId)
+      if (result.badDebtRecorded) {
+        toast.success(`Project complete. Bad debt of KES ${formatNumber(result.badDebtAmount)} recorded.`)
+      } else {
+        toast.success("Project marked as complete")
+      }
+      setProjects((current) => current.filter((project) => project.salesOrderId !== salesOrderId))
+      setTotalCount((count) => Math.max(0, count - 1))
     } catch (error) {
       console.error("Error completing project:", error)
       toast.error("Failed to complete project")
