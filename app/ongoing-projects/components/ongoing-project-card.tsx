@@ -39,8 +39,9 @@ export default function OngoingProjectCard({ project, onComplete, isCompleting =
       <div className="ongoing-project-card-body">
         <ProjectRow label="Client" value={project.clientName} />
         <ProjectRow label="Location" value={project.projectLocation} />
-        <ProjectRow label="Quote Amount" value={formatKes(project.quoteAmount)} />
+        <ProjectRow label="Sales Order Amount" value={formatKes(project.salesOrderAmount)} />
         <ProjectRow label="Paid" value={formatKes(project.amountPaid)} />
+        <ProjectRow label="Balance" value={formatKes(project.balance)} />
         <ProjectRow label="Spent" value={formatKes(project.amountSpent)} />
         <ProjectRow
           label={profitLossLabel}

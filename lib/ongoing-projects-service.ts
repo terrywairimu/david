@@ -12,8 +12,9 @@ export interface OngoingProject {
   originalQuotationNumber: string
   clientName: string
   projectLocation: string
-  quoteAmount: number
+  salesOrderAmount: number
   amountPaid: number
+  balance: number
   amountSpent: number
   profitLoss: number
   status?: string
@@ -173,9 +174,12 @@ export function calculateProjectAmountPaid(
 }
 
 export const MOBILE_BATCH_SIZE = 15
-export const DESKTOP_PAGE_SIZE = 6
+export const DESKTOP_BATCH_SIZE = 18
+/** Visual grid size on desktop (3 columns x 2 rows). */
+export const DESKTOP_GRID_PAGE_SIZE = 6
 /** Prefetch the next batch once the viewer reaches this 1-based card index within the loaded set. */
 export const MOBILE_PREFETCH_CARD_INDEX = 12
+export const DESKTOP_PREFETCH_CARD_INDEX = 15
 
 export interface OngoingProjectsPageResult {
   projects: OngoingProject[]
@@ -205,6 +209,7 @@ function mapSalesOrdersToProjects(
     )
     const amountPaid = calculateProjectAmountPaid(payments, references, projectInvoices)
     const amountSpent = spentByClient.get(salesOrder.client_id) || 0
+    const salesOrderAmount = Number(salesOrder.grand_total ?? 0)
 
     return {
       id: salesOrder.id,
@@ -214,8 +219,9 @@ function mapSalesOrdersToProjects(
       originalQuotationNumber: quotationNumber,
       clientName: client?.name || "Unknown Client",
       projectLocation: client?.location || "-",
-      quoteAmount: Number(salesOrder.grand_total ?? 0),
+      salesOrderAmount,
       amountPaid,
+      balance: salesOrderAmount - amountPaid,
       amountSpent,
       profitLoss: amountPaid - amountSpent,
       status: salesOrder.status ?? undefined,
